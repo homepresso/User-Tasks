@@ -1,0 +1,86 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "a5ba0840-a631-5ebc-8b44-58769b132779",
+  "asset": {
+    "id": "a5ba0840-a631-5ebc-8b44-58769b132779",
+    "name": "Policy register rows",
+    "rows": [
+      {
+        "id": "cd6fa41f-e1fa-598e-ab1d-741a5591d58e",
+        "data": {
+          "policy_code": "POL-IS-01",
+          "title": "Information security policy",
+          "version": "4.2",
+          "owner_name": "Head of Security",
+          "effective_date": "2026-10-01",
+          "url": "https://intranet.example.com/policies/information-security",
+          "status": "Current",
+          "requires_ack": true,
+          "ack_days": 14,
+          "summary": "New rules for AI tools and for sharing files outside the company."
+        }
+      },
+      {
+        "id": "8b1f3711-560e-5c22-90c5-2441985058b0",
+        "data": {
+          "policy_code": "POL-HR-03",
+          "title": "Code of conduct",
+          "version": "2026.1",
+          "owner_name": "People & Culture",
+          "effective_date": "2026-03-01",
+          "url": "https://intranet.example.com/policies/code-of-conduct",
+          "status": "Current",
+          "requires_ack": true,
+          "ack_days": 21,
+          "summary": "Annual refresh; gifts and hospitality limits updated."
+        }
+      },
+      {
+        "id": "a1e71efc-a1a7-5d72-9502-cf3609d6134b",
+        "data": {
+          "policy_code": "POL-IT-02",
+          "title": "Acceptable use of IT",
+          "version": "3.0",
+          "owner_name": "IT Operations",
+          "effective_date": "2025-07-01",
+          "url": "https://intranet.example.com/policies/acceptable-use",
+          "status": "Current",
+          "requires_ack": false,
+          "ack_days": 14,
+          "summary": ""
+        }
+      },
+      {
+        "id": "815e3a12-a9c8-5f2b-8a07-1303ee262272",
+        "data": {
+          "policy_code": "POL-OP-05",
+          "title": "Hybrid working",
+          "version": "1.1",
+          "owner_name": "Operations",
+          "effective_date": "2026-01-15",
+          "url": "https://intranet.example.com/policies/hybrid-working",
+          "status": "Current",
+          "requires_ack": false,
+          "ack_days": 14,
+          "summary": ""
+        }
+      },
+      {
+        "id": "34f51108-2992-5c25-94b8-b3bf64f61132",
+        "data": {
+          "policy_code": "POL-LG-02",
+          "title": "Anti-bribery and corruption",
+          "version": "2.0",
+          "owner_name": "Legal",
+          "effective_date": "2026-12-01",
+          "url": "https://intranet.example.com/policies/anti-bribery",
+          "status": "Draft",
+          "requires_ack": true,
+          "ack_days": 14,
+          "summary": "Draft for consultation."
+        }
+      }
+    ]
+  }
+}

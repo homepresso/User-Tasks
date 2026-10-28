@@ -1,0 +1,88 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "f7da9866-dbcb-5292-8c52-9a3428e20f05",
+  "asset": {
+    "id": "f7da9866-dbcb-5292-8c52-9a3428e20f05",
+    "name": "Courses",
+    "description": "The training catalogue: what each course is, how it is delivered, what evidence the trainer expects and how long the qualification stays valid.",
+    "columns": [
+      {
+        "id": "42e7edfd-3c1e-58cd-b3d6-3aef7b311a7f",
+        "required": true,
+        "key": "code",
+        "name": "Course code",
+        "type": "text"
+      },
+      {
+        "id": "c26f154d-8480-57aa-a42d-c61e2294b12a",
+        "required": true,
+        "key": "title",
+        "name": "Course",
+        "type": "text"
+      },
+      {
+        "id": "4b0dc217-4239-5b7c-8481-2e358b99317f",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "Health & safety",
+          "Compliance",
+          "Systems",
+          "Leadership",
+          "Technical"
+        ]
+      },
+      {
+        "id": "20d2416f-e2c7-5ea5-a792-80d21575d4d9",
+        "required": false,
+        "key": "delivery",
+        "name": "Delivery",
+        "type": "select",
+        "options": [
+          "Classroom",
+          "Online",
+          "On the job",
+          "Blended"
+        ]
+      },
+      {
+        "id": "1620c182-eef2-51c0-9ce8-6e14ed44fdc8",
+        "required": false,
+        "key": "duration_hours",
+        "name": "Duration (hours)",
+        "type": "number"
+      },
+      {
+        "id": "f465b36e-23f3-5d4f-ba3c-40a0d1d28326",
+        "required": false,
+        "key": "validity_months",
+        "name": "Valid for (months, 0 = no expiry)",
+        "type": "number"
+      },
+      {
+        "id": "171b0a15-0eb6-5fde-aacf-46457a6bcbb8",
+        "required": false,
+        "key": "evidence",
+        "name": "Evidence expected",
+        "type": "text"
+      },
+      {
+        "id": "118a0d81-5122-57b4-a469-132bc114dcd4",
+        "required": false,
+        "key": "mandatory",
+        "name": "Mandatory",
+        "type": "boolean"
+      },
+      {
+        "id": "2340f2ce-1ee8-5494-a4e1-aa89a1ba018e",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

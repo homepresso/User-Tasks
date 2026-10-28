@@ -1,0 +1,166 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "3cbf243f-094d-4843-91a2-8f29513afe66",
+  "asset": {
+    "id": "3cbf243f-094d-4843-91a2-8f29513afe66",
+    "integration_id": "dbe05925-f2bd-4ac7-8884-3c403cfcb123",
+    "name": "Create case",
+    "description": "Open a complaint case on the customer record with the category, severity and SLA targets.",
+    "tags": [
+      "cases"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"customer_id\":\"{{customer_id}}\",\"type\":\"complaint\",\"order_number\":\"{{order_number}}\",\"category\":\"{{category}}\",\"severity\":\"{{severity}}\",\"channel\":\"{{channel}}\",\"description\":\"{{description}}\",\"first_response_due\":\"{{first_response_due}}\",\"resolution_due\":\"{{resolution_due}}\"}",
+      "path_template": "/cases",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "CASE-90321"
+            },
+            {
+              "name": "case_number",
+              "type": "string",
+              "example": "C-2026-04417"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "open"
+            },
+            {
+              "name": "customer_id",
+              "type": "string",
+              "example": "CUS-4410"
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "example": "2026-10-26T08:41:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "id": "CASE-90321",
+          "case_number": "C-2026-04417",
+          "status": "open",
+          "customer_id": "CUS-4410",
+          "created_at": "2026-10-26T08:41:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "0207593c-5a83-461a-9203-4b05edd7cd54",
+        "name": "customer_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "2923f908-8a7a-432e-8126-10806b8dfafb",
+        "name": "order_number",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "69830484-92a8-4520-a4ed-122c275ec808",
+        "name": "category",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "1dbac4c4-7b48-467d-86ea-9eb868c9573e",
+        "name": "severity",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "caf0d10b-6d14-4158-9a6c-819247bb8661",
+        "name": "channel",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "86e54692-90b2-4a31-b42f-30450b03351a",
+        "name": "description",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "87428d2a-8a7a-462d-ad97-42df301018ab",
+        "name": "first_response_due",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "594f6efa-f955-454d-a687-bde51f7572a7",
+        "name": "resolution_due",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "6b2a88ab-d87d-4eaa-84ce-c21c7de7347d",
+        "name": "case_id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "9dfebb04-96ea-41c8-b40f-aaf9c9d664cf",
+        "name": "case_number",
+        "path": "case_number",
+        "type": "string"
+      },
+      {
+        "id": "aa5a8ce8-1436-4ac6-9c84-c33c7f7ea557",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      }
+    ]
+  }
+}

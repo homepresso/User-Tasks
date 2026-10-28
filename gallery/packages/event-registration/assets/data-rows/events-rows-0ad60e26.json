@@ -1,0 +1,86 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "0ad60e26-f882-550f-836a-00d5e3270e7d",
+  "asset": {
+    "id": "0ad60e26-f882-550f-836a-00d5e3270e7d",
+    "name": "Events rows",
+    "rows": [
+      {
+        "id": "3e23b6ea-d8f1-54fc-9d44-de130c2c0750",
+        "data": {
+          "event_code": "EVT-BRK-1119",
+          "title": "Customer breakfast briefing: 2027 product roadmap",
+          "event_date": "2026-11-19",
+          "start_time": "07:30",
+          "venue": "Harbourside Function Centre, Wellington",
+          "capacity": 60,
+          "organiser_name": "Emma Novak",
+          "organiser_email": "events@example.com",
+          "status": "Open",
+          "description": "Breakfast, roadmap preview and Q&A with the product team."
+        }
+      },
+      {
+        "id": "f9014554-d0fd-5116-970d-a34cb9636e99",
+        "data": {
+          "event_code": "EVT-WEB-1126",
+          "title": "Webinar: automating approvals",
+          "event_date": "2026-11-26",
+          "start_time": "12:00",
+          "venue": "Online (link sent on confirmation)",
+          "capacity": 500,
+          "organiser_name": "Emma Novak",
+          "organiser_email": "events@example.com",
+          "status": "Open",
+          "description": "45-minute live demo with questions."
+        }
+      },
+      {
+        "id": "dc7f6cd0-1334-55b4-a577-f538603b147a",
+        "data": {
+          "event_code": "EVT-WKS-1203",
+          "title": "Hands-on workshop: building forms",
+          "event_date": "2026-12-03",
+          "start_time": "13:00",
+          "venue": "Level 4 training room, 12 Harbour Quay",
+          "capacity": 2,
+          "organiser_name": "Ben Carter",
+          "organiser_email": "workshops@example.com",
+          "status": "Open",
+          "description": "Small group, laptops provided."
+        }
+      },
+      {
+        "id": "c072b157-493c-5d6e-bde7-fa944709c572",
+        "data": {
+          "event_code": "EVT-XMS-1211",
+          "title": "End-of-year customer evening",
+          "event_date": "2026-12-11",
+          "start_time": "17:30",
+          "venue": "Rooftop Bar, 1 Queens Wharf",
+          "capacity": 120,
+          "organiser_name": "Emma Novak",
+          "organiser_email": "events@example.com",
+          "status": "Open",
+          "description": "Drinks and canapés."
+        }
+      },
+      {
+        "id": "79373599-9273-5a01-8283-228e57148cf7",
+        "data": {
+          "event_code": "EVT-OLD-0915",
+          "title": "September user group",
+          "event_date": "2026-09-15",
+          "start_time": "16:00",
+          "venue": "Auckland office",
+          "capacity": 40,
+          "organiser_name": "Sam Patel",
+          "organiser_email": "events@example.com",
+          "status": "Closed",
+          "description": ""
+        }
+      }
+    ]
+  }
+}

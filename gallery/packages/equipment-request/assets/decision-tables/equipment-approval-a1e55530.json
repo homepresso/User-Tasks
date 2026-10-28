@@ -1,0 +1,160 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "a1e55530-7f56-4632-8670-085b3d92a6e6",
+  "asset": {
+    "id": "a1e55530-7f56-4632-8670-085b3d92a6e6",
+    "name": "Equipment approval",
+    "description": "Who approves an equipment request, by total cost, category and role. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "1bcbfc2d-abb5-4c33-b663-5a6744f0734f",
+        "key": "total_cost",
+        "label": "Total cost",
+        "type": "number"
+      },
+      {
+        "id": "6bfe7182-1d9d-44d4-be9c-b0c260ea588b",
+        "key": "category",
+        "label": "Category",
+        "type": "text"
+      },
+      {
+        "id": "6d64fccc-0b91-4a81-af7b-f0b2097b62ba",
+        "key": "role_level",
+        "label": "Role level",
+        "type": "text"
+      },
+      {
+        "id": "316acc68-f986-417b-a806-4cea4da195bf",
+        "key": "approval_required",
+        "label": "Approval always required",
+        "type": "boolean"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "dd6bc2be-a346-4b1c-98a4-76aaef7bf293",
+        "key": "auto_approve",
+        "label": "Auto-approve",
+        "type": "boolean"
+      },
+      {
+        "id": "a7d32a96-ad21-4a5e-b0f1-7578433e7012",
+        "key": "finance_approval",
+        "label": "Finance approval",
+        "type": "boolean"
+      },
+      {
+        "id": "afd2aace-e5c5-462c-b8ed-bf62402eaea8",
+        "key": "approval_route",
+        "label": "Approval route",
+        "type": "text"
+      }
+    ],
+    "rules": [
+      {
+        "id": "11266751-e563-4967-96f5-e81f072f2691",
+        "label": "High value",
+        "enabled": true,
+        "outputs": {
+          "auto_approve": false,
+          "finance_approval": true,
+          "approval_route": "Manager, then finance"
+        },
+        "conditions": [
+          {
+            "id": "adece338-b217-40ff-87a0-dba414891673",
+            "inputKey": "total_cost",
+            "operator": "greater_than_or_equal",
+            "value": "3000"
+          }
+        ]
+      },
+      {
+        "id": "d70b5b7b-52f1-436a-ade8-ae0468e67ea0",
+        "label": "Furniture",
+        "enabled": true,
+        "outputs": {
+          "auto_approve": false,
+          "finance_approval": true,
+          "approval_route": "Manager, then finance (facilities budget)"
+        },
+        "conditions": [
+          {
+            "id": "4aeaba17-efb3-4be5-bfd9-e5ad93bcd5bf",
+            "inputKey": "category",
+            "operator": "equals",
+            "value": "furniture"
+          }
+        ]
+      },
+      {
+        "id": "61a7735a-1995-4d6f-9a9f-9b6c82053116",
+        "label": "Executive standard kit",
+        "enabled": true,
+        "outputs": {
+          "auto_approve": true,
+          "finance_approval": false,
+          "approval_route": "Automatic (executive allowance)"
+        },
+        "conditions": [
+          {
+            "id": "e99b1b2d-898d-4d3c-925b-faaf94c052eb",
+            "inputKey": "role_level",
+            "operator": "equals",
+            "value": "executive"
+          },
+          {
+            "id": "c4c6ebd2-5193-4bae-806e-dadec07be3d6",
+            "inputKey": "total_cost",
+            "operator": "less_than",
+            "value": "3000"
+          }
+        ]
+      },
+      {
+        "id": "ee286e7f-3745-46d7-9f1b-9450e2c4c07e",
+        "label": "Low-cost accessory",
+        "enabled": true,
+        "outputs": {
+          "auto_approve": true,
+          "finance_approval": false,
+          "approval_route": "Automatic (accessory under 500)"
+        },
+        "conditions": [
+          {
+            "id": "bd3ab557-b0f6-43d0-81fe-f888345fe7ba",
+            "inputKey": "approval_required",
+            "operator": "equals",
+            "value": "false"
+          },
+          {
+            "id": "d960765d-be26-4790-a78d-beb09d89fb3c",
+            "inputKey": "total_cost",
+            "operator": "less_than",
+            "value": "500"
+          }
+        ]
+      },
+      {
+        "id": "fcf688f4-64f6-4716-a3b6-94b0df6bf8f0",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "auto_approve": false,
+          "finance_approval": false,
+          "approval_route": "Manager"
+        },
+        "conditions": [
+          {
+            "id": "e2bc753f-bff6-4c2b-b5af-629a91327e94",
+            "inputKey": "total_cost",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

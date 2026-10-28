@@ -1,0 +1,343 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "f67a5cee-9aa9-52f9-bca0-1b884fdeeab6",
+  "asset": {
+    "id": "f67a5cee-9aa9-52f9-bca0-1b884fdeeab6",
+    "name": "Equipment loan request",
+    "description": "Borrow a laptop, phone, headset or other device from the IT loan pool. Only devices that are available right now are offered.",
+    "tags": [
+      "it",
+      "equipment",
+      "loans"
+    ],
+    "fields": [
+      {
+        "key": "h_you",
+        "label": "About you",
+        "type": "heading"
+      },
+      {
+        "key": "borrower_name",
+        "label": "Your name",
+        "type": "text",
+        "required": true,
+        "placeholder": "First and last name"
+      },
+      {
+        "key": "borrower_email",
+        "label": "Work email",
+        "type": "email",
+        "required": true
+      },
+      {
+        "key": "team",
+        "label": "Team",
+        "type": "text"
+      },
+      {
+        "key": "manager",
+        "label": "Your manager",
+        "type": "user",
+        "required": true,
+        "help_text": "Your manager approves the loan."
+      },
+      {
+        "key": "div1",
+        "label": "Divider",
+        "type": "divider"
+      },
+      {
+        "key": "h_device",
+        "label": "The device",
+        "type": "heading",
+        "help_text": "Only devices that are free right now are listed."
+      },
+      {
+        "key": "device",
+        "label": "Device",
+        "type": "lookup",
+        "required": true,
+        "help_text": "Search by device, type or asset tag",
+        "lookup": {
+          "source": "table",
+          "table_id": "5e60b089-cef3-55de-b01c-8c9793c25fe3",
+          "search_columns": [
+            "device",
+            "type",
+            "asset_tag",
+            "model"
+          ],
+          "display_columns": [
+            "device",
+            "model",
+            "asset_tag"
+          ],
+          "value_column": "asset_tag",
+          "fill": [
+            {
+              "from": "serial",
+              "to": "serial"
+            },
+            {
+              "from": "type",
+              "to": "device_type"
+            },
+            {
+              "from": "location",
+              "to": "pickup_location"
+            }
+          ],
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Available"
+            }
+          ],
+          "sort": {
+            "column": "type",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "device_type",
+        "label": "Type",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "serial",
+        "label": "Serial number",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "pickup_location",
+        "label": "Pick up from",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "start_date",
+        "label": "Needed from",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "due_date",
+        "label": "Return by",
+        "type": "date",
+        "required": true,
+        "help_text": "Loans are normally up to four weeks."
+      },
+      {
+        "key": "purpose",
+        "label": "Why do you need it?",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Travel",
+          "Own device under repair",
+          "New starter waiting for kit",
+          "Event or presentation",
+          "Project or testing",
+          "Other"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "details",
+        "label": "Anything else IT should know",
+        "type": "textarea"
+      },
+      {
+        "key": "agree",
+        "label": "I will look after the device and return it with its accessories by the due date",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_you",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "borrower_name",
+              "span": 1
+            },
+            {
+              "field_key": "borrower_email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "team",
+              "span": 1
+            },
+            {
+              "field_key": "manager",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "div1",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_device",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "device",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "device_type",
+              "span": 1
+            },
+            {
+              "field_key": "serial",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "pickup_location",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "start_date",
+              "span": 1
+            },
+            {
+              "field_key": "due_date",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "purpose",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "details",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "agree",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#4F46E5",
+            "background": "#FFFFFF",
+            "text": "#1E1B4B",
+            "page": "#EEF0FF",
+            "page_to": "#F8F9FF"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Request loan",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Request sent",
+            "screen_button": "submit_another",
+            "text": "Thanks {{borrower_name}}. {{manager}} has been asked to approve your loan of the {{device_type}} ({{device}}). You will get an email when it is ready to collect.",
+            "screen_button_label": "Request another device"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Borrow IT equipment",
+      "align": "left",
+      "subtitle": "Pick a device from the loan pool; your manager approves and IT has it ready for you."
+    }
+  }
+}

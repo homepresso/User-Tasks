@@ -1,0 +1,80 @@
+{
+  "title": "Car-pool & fleet booking",
+  "category": "workplace",
+  "summary": "Book a pool car on a themed form: service and clash checks, a decision table for long, multi-day or weekend trips, coordinator approval and a confirmation email.",
+  "description": "Car-pool & fleet booking replaces the key cabinet sign-out sheet. People open the Pool car booking start form, pick a vehicle from the list (seats and EV are in the name), give the pick-up and return times, destination, rough distance and how many are travelling.\n\nThe workflow reads the vehicle from the Vehicles table and stops straight away if it is in service. It then looks for confirmed bookings in the Bookings table that overlap the requested times, and a clash is declined with the clashing booking reference. Otherwise the Booking approval decision table decides whether the fleet coordinator must approve: more people than seats, trips of 300 km or more, more than three days, or weekend use.\n\nStandard bookings are confirmed at once. The others give the coordinator an Approve / Reject task with a reminder and escalation. Every booking is recorded, and the driver gets a confirmation with where the keys are and the fuel or charge card, or an email saying why it could not go ahead. Everything is built in.",
+  "trigger": "form",
+  "entry_workflow": "915b1994-2b9c-5360-8334-6ad01b1b33c8",
+  "start": "Starts from a form: open the Pool car booking workflow and use Run (or share its start form); each submission is one booking.",
+  "difficulty": "starter",
+  "setup_minutes": 10,
+  "tags": [
+    "fleet",
+    "car pool",
+    "booking",
+    "decision table",
+    "forms",
+    "no integrations"
+  ],
+  "version": "1.0.1",
+  "changelog": [
+    {
+      "version": "1.0.1",
+      "date": "2026-10-28",
+      "notes": "Steps for the coordinator who set the package up are assigned to the workflow owner (workflow_owner_id), now that workflow_started_by names the person who started the run."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Nothing to configure: install it and share the Pool car booking start form.",
+    "Replace the sample rows in Vehicles with your fleet. Keep the Vehicle list on the start form in step: edit the options of the rego input on the workflow (value = registration).",
+    "Approvals go to the person who installed the package (the fleet coordinator). Change the assignee on the \"Approve the booking\" step to route them elsewhere.",
+    "Adjust the Booking approval decision table (distance, days, weekend), and set EMAIL_PROVIDER so drivers receive the emails."
+  ],
+  "steps": [
+    {
+      "title": "Book",
+      "body": "The driver fills in the themed start form: vehicle, times, destination, distance and passengers."
+    },
+    {
+      "title": "Check the car",
+      "body": "Vehicles in service are declined; confirmed bookings that overlap the times are a clash."
+    },
+    {
+      "title": "Apply the rules",
+      "body": "The Booking approval decision table flags too many passengers, long, multi-day or weekend trips."
+    },
+    {
+      "title": "Approve when needed",
+      "body": "The fleet coordinator approves or rejects with a comment; standard bookings are confirmed at once."
+    },
+    {
+      "title": "Confirm",
+      "body": "The booking is recorded and the driver is emailed the keys location and the fuel or charge card."
+    }
+  ],
+  "sample_input": {
+    "requester_name": "Daniel Okafor",
+    "requester_email": "daniel.okafor@example.com",
+    "rego": "HYB303",
+    "passengers": 3,
+    "pickup_at": "2026-11-13T07:30",
+    "return_at": "2026-11-15T18:00",
+    "destination": "Napier regional office",
+    "distance_km": 640,
+    "purpose": "Site visit",
+    "notes": "Taking display stands; roof racks please."
+  },
+  "expect": "waiting",
+  "icon": "car",
+  "id": "9caf9a47-517d-54c3-8a9f-0acf1cc829bb",
+  "slug": "fleet-booking"
+}

@@ -1,0 +1,202 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "91ef56d6-91df-4fee-ac35-b268015c182d",
+  "asset": {
+    "id": "91ef56d6-91df-4fee-ac35-b268015c182d",
+    "name": "Fraud screening",
+    "description": "Accept, review or reject an order from its value, shipping country, customer history and address match. First matching rule wins; NZ is the home market in the sample rules.",
+    "inputs": [
+      {
+        "id": "b5f467fc-676c-4d5d-9c06-1503edfe1d45",
+        "key": "order_value",
+        "label": "Order value",
+        "type": "number"
+      },
+      {
+        "id": "a9ce7543-bcf2-4bc5-84ff-936f0a48dd59",
+        "key": "country",
+        "label": "Shipping country",
+        "type": "text"
+      },
+      {
+        "id": "ab7ac97e-d713-42d2-aec9-6eb70e74a18f",
+        "key": "new_customer",
+        "label": "New customer",
+        "type": "boolean"
+      },
+      {
+        "id": "bf307de1-b0cc-4e28-a96e-a10db9e0f0a9",
+        "key": "address_mismatch",
+        "label": "Billing / shipping country differ",
+        "type": "boolean"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "e2936099-4cae-4256-a26b-6405c93be232",
+        "key": "decision",
+        "label": "Decision",
+        "type": "text"
+      },
+      {
+        "id": "0081200d-996c-401a-a4fd-e1ea60bc0f82",
+        "key": "risk_score",
+        "label": "Risk score",
+        "type": "number"
+      },
+      {
+        "id": "efda8c2b-8b98-4759-a931-5c47615b6a1c",
+        "key": "fraud_reason",
+        "label": "Reason",
+        "type": "text"
+      }
+    ],
+    "rules": [
+      {
+        "id": "bd227b4d-1d90-4a2c-9f10-62d20a6967b7",
+        "label": "High value, new customer, address mismatch",
+        "enabled": true,
+        "outputs": {
+          "decision": "reject",
+          "risk_score": 90,
+          "fraud_reason": "High-value first order shipped away from the billing country"
+        },
+        "conditions": [
+          {
+            "id": "01e488c1-296d-468f-a3f3-21220ea4c70a",
+            "inputKey": "order_value",
+            "operator": "greater_than_or_equal",
+            "value": "5000"
+          },
+          {
+            "id": "279c293f-69d3-42aa-b753-80e03f73a005",
+            "inputKey": "new_customer",
+            "operator": "equals",
+            "value": "true"
+          },
+          {
+            "id": "1b1178c0-1fd0-4fb9-9d3e-4e3ec26ae401",
+            "inputKey": "address_mismatch",
+            "operator": "equals",
+            "value": "true"
+          }
+        ]
+      },
+      {
+        "id": "4040fac5-ab76-41c5-a3da-2224e213a30f",
+        "label": "High value first order",
+        "enabled": true,
+        "outputs": {
+          "decision": "review",
+          "risk_score": 65,
+          "fraud_reason": "First order over 2,000"
+        },
+        "conditions": [
+          {
+            "id": "5a58d9a4-f5dc-4992-9072-4942b3cb4429",
+            "inputKey": "order_value",
+            "operator": "greater_than_or_equal",
+            "value": "2000"
+          },
+          {
+            "id": "7d5708f6-e52d-40c6-b6c2-b8882a4a05b8",
+            "inputKey": "new_customer",
+            "operator": "equals",
+            "value": "true"
+          }
+        ]
+      },
+      {
+        "id": "fc1227f7-c13b-4ccf-9298-6dc3930a37b8",
+        "label": "New customer, address mismatch",
+        "enabled": true,
+        "outputs": {
+          "decision": "review",
+          "risk_score": 60,
+          "fraud_reason": "First order with billing and shipping in different countries"
+        },
+        "conditions": [
+          {
+            "id": "56272fc6-eb83-414d-810a-2260c9ff2b73",
+            "inputKey": "new_customer",
+            "operator": "equals",
+            "value": "true"
+          },
+          {
+            "id": "ba6a788e-e7a0-4c53-a220-688087cb452f",
+            "inputKey": "address_mismatch",
+            "operator": "equals",
+            "value": "true"
+          }
+        ]
+      },
+      {
+        "id": "9244f841-b9d9-40d8-862e-22e5086afd72",
+        "label": "Very high value",
+        "enabled": true,
+        "outputs": {
+          "decision": "review",
+          "risk_score": 55,
+          "fraud_reason": "Order over 10,000"
+        },
+        "conditions": [
+          {
+            "id": "0fa6b958-cbc9-47e4-86d0-6fc0f1c9e61a",
+            "inputKey": "order_value",
+            "operator": "greater_than_or_equal",
+            "value": "10000"
+          }
+        ]
+      },
+      {
+        "id": "6732108c-adf9-4c65-a655-6d31d6c90461",
+        "label": "International first order",
+        "enabled": true,
+        "outputs": {
+          "decision": "review",
+          "risk_score": 50,
+          "fraud_reason": "International first order over 500"
+        },
+        "conditions": [
+          {
+            "id": "e985ff36-8a42-4e97-9577-d6f1de16d586",
+            "inputKey": "country",
+            "operator": "not_equals",
+            "value": "NZ"
+          },
+          {
+            "id": "abbddae2-6dd5-408e-abec-8da2fd26b0a7",
+            "inputKey": "new_customer",
+            "operator": "equals",
+            "value": "true"
+          },
+          {
+            "id": "040b4609-6345-4f5b-91f4-0fec81f06d23",
+            "inputKey": "order_value",
+            "operator": "greater_than_or_equal",
+            "value": "500"
+          }
+        ]
+      },
+      {
+        "id": "23690156-a73f-4042-98cd-d79e220b73fc",
+        "label": "Accept",
+        "enabled": true,
+        "outputs": {
+          "decision": "accept",
+          "risk_score": 10,
+          "fraud_reason": ""
+        },
+        "conditions": [
+          {
+            "id": "a5cf02a5-64ed-4089-a5da-4499793fe464",
+            "inputKey": "order_value",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

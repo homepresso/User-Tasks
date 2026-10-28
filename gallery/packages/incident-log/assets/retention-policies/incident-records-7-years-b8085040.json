@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "b8085040-da62-5024-945f-becf2e47c72c",
+  "asset": {
+    "id": "b8085040-da62-5024-945f-becf2e47c72c",
+    "name": "Incident records: 7 years",
+    "description": "Health and safety incident records are kept for seven years and then reviewed (not purged automatically): the register may be needed for claims or regulator enquiries.",
+    "policy_mode": "review",
+    "duration_value": 7,
+    "duration_unit": "years",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

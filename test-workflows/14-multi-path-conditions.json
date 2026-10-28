@@ -1,0 +1,482 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "webhook_received",
+      "label": "Incoming Ticket",
+      "position": { "x": 500, "y": 20 },
+      "config": {}
+    },
+    {
+      "id": "n1",
+      "type": "json_build_object",
+      "label": "Build Ticket",
+      "position": { "x": 500, "y": 160 },
+      "config": {
+        "fields": [
+          { "key": "id", "value": "{{=CONCAT('TKT-', ROUND(RAND() * 9999, 0))}}" },
+          { "key": "priority", "value": "critical" },
+          { "key": "category", "value": "billing" },
+          { "key": "customer_tier", "value": "enterprise" },
+          { "key": "age_hours", "value": "48" },
+          { "key": "subject", "value": "Invoice discrepancy on March statement" },
+          { "key": "region", "value": "EMEA" },
+          { "key": "amount", "value": "15200.50" },
+          { "key": "attempts", "value": "3" }
+        ],
+        "output_var": "ticket"
+      }
+    },
+    {
+      "id": "n2",
+      "type": "set_title",
+      "label": "Set Run Title",
+      "position": { "x": 500, "y": 300 },
+      "config": { "title": "Ticket {{ticket.id}} — {{ticket.priority}} — {{ticket.category}}" }
+    },
+    {
+      "id": "n3",
+      "type": "condition",
+      "label": "Is Critical + Enterprise?",
+      "position": { "x": 500, "y": 440 },
+      "config": {
+        "branches": [
+          {
+            "label": "Critical Enterprise",
+            "logic": "AND",
+            "rules": [
+              { "field": "{{ticket.priority}}", "operator": "equals", "value": "critical" },
+              { "field": "{{ticket.customer_tier}}", "operator": "equals", "value": "enterprise" }
+            ]
+          },
+          {
+            "label": "High Priority",
+            "logic": "OR",
+            "rules": [
+              { "field": "{{ticket.priority}}", "operator": "equals", "value": "critical" },
+              { "field": "{{ticket.priority}}", "operator": "equals", "value": "high" }
+            ]
+          }
+        ],
+        "has_else": true
+      }
+    },
+    {
+      "id": "n4",
+      "type": "set_variable",
+      "label": "SLA = 4 Hours",
+      "position": { "x": 200, "y": 620 },
+      "config": { "name": "sla_hours", "expression": "4" }
+    },
+    {
+      "id": "n5",
+      "type": "set_variable",
+      "label": "SLA = 8 Hours",
+      "position": { "x": 500, "y": 620 },
+      "config": { "name": "sla_hours", "expression": "8" }
+    },
+    {
+      "id": "n6",
+      "type": "set_variable",
+      "label": "SLA = 24 Hours",
+      "position": { "x": 800, "y": 620 },
+      "config": { "name": "sla_hours", "expression": "24" }
+    },
+    {
+      "id": "n7",
+      "type": "condition",
+      "label": "SLA Breached?",
+      "position": { "x": 500, "y": 780 },
+      "config": {
+        "branches": [
+          {
+            "label": "Breached",
+            "logic": "AND",
+            "rules": [
+              { "field": "{{ticket.age_hours}}", "operator": "greater_than", "value": "{{sla_hours}}" }
+            ]
+          }
+        ],
+        "has_else": true
+      }
+    },
+    {
+      "id": "n8",
+      "type": "math",
+      "label": "Calc Breach Hours",
+      "position": { "x": 200, "y": 940 },
+      "config": { "expression": "{{ticket.age_hours}} - {{sla_hours}}", "output_var": "breach_hours" }
+    },
+    {
+      "id": "n9",
+      "type": "log",
+      "label": "SLA OK",
+      "position": { "x": 700, "y": 940 },
+      "config": { "message": "SLA within bounds: {{ticket.age_hours}}h / {{sla_hours}}h limit" }
+    },
+    {
+      "id": "n10",
+      "type": "condition",
+      "label": "Severe Breach?",
+      "position": { "x": 200, "y": 1100 },
+      "config": {
+        "branches": [
+          {
+            "label": "Severe (>24h over)",
+            "logic": "AND",
+            "rules": [
+              { "field": "{{breach_hours}}", "operator": "greater_than", "value": "24" }
+            ]
+          },
+          {
+            "label": "Moderate (>8h over)",
+            "logic": "AND",
+            "rules": [
+              { "field": "{{breach_hours}}", "operator": "greater_than", "value": "8" }
+            ]
+          }
+        ],
+        "has_else": true
+      }
+    },
+    {
+      "id": "n11",
+      "type": "log",
+      "label": "ESCALATE: Severe",
+      "position": { "x": 50, "y": 1280 },
+      "config": { "message": "CRITICAL ESCALATION: Ticket {{ticket.id}} is {{breach_hours}}h past SLA! Paging on-call manager." }
+    },
+    {
+      "id": "n12",
+      "type": "log",
+      "label": "WARN: Moderate",
+      "position": { "x": 300, "y": 1280 },
+      "config": { "message": "WARNING: Ticket {{ticket.id}} is {{breach_hours}}h past SLA. Escalating to team lead." }
+    },
+    {
+      "id": "n13",
+      "type": "log",
+      "label": "NOTICE: Minor",
+      "position": { "x": 550, "y": 1280 },
+      "config": { "message": "NOTICE: Ticket {{ticket.id}} is {{breach_hours}}h past SLA. Auto-bumping priority." }
+    },
+    {
+      "id": "n14",
+      "type": "switch_case",
+      "label": "Route by Category",
+      "position": { "x": 500, "y": 1460 },
+      "config": {
+        "field": "{{ticket.category}}",
+        "cases": ["billing", "technical", "account", "feature_request", "security"],
+        "has_default": true
+      }
+    },
+    {
+      "id": "n15",
+      "type": "set_variable",
+      "label": "Team = Finance",
+      "position": { "x": 50, "y": 1640 },
+      "config": { "name": "assigned_team", "expression": "finance-support" }
+    },
+    {
+      "id": "n16",
+      "type": "set_variable",
+      "label": "Team = Engineering",
+      "position": { "x": 250, "y": 1640 },
+      "config": { "name": "assigned_team", "expression": "engineering-tier2" }
+    },
+    {
+      "id": "n17",
+      "type": "set_variable",
+      "label": "Team = Account Mgmt",
+      "position": { "x": 450, "y": 1640 },
+      "config": { "name": "assigned_team", "expression": "account-management" }
+    },
+    {
+      "id": "n18",
+      "type": "set_variable",
+      "label": "Team = Product",
+      "position": { "x": 650, "y": 1640 },
+      "config": { "name": "assigned_team", "expression": "product-backlog" }
+    },
+    {
+      "id": "n19",
+      "type": "set_variable",
+      "label": "Team = SecOps",
+      "position": { "x": 850, "y": 1640 },
+      "config": { "name": "assigned_team", "expression": "security-ops" }
+    },
+    {
+      "id": "n20",
+      "type": "set_variable",
+      "label": "Team = General",
+      "position": { "x": 1050, "y": 1640 },
+      "config": { "name": "assigned_team", "expression": "general-support" }
+    },
+    {
+      "id": "n21",
+      "type": "switch_case",
+      "label": "Route by Region",
+      "position": { "x": 500, "y": 1820 },
+      "config": {
+        "field": "{{ticket.region}}",
+        "cases": ["AMER", "EMEA", "APAC"],
+        "has_default": true
+      }
+    },
+    {
+      "id": "n22",
+      "type": "set_variable",
+      "label": "TZ = Americas",
+      "position": { "x": 200, "y": 1980 },
+      "config": { "name": "timezone", "expression": "America/New_York" }
+    },
+    {
+      "id": "n23",
+      "type": "set_variable",
+      "label": "TZ = Europe",
+      "position": { "x": 400, "y": 1980 },
+      "config": { "name": "timezone", "expression": "Europe/London" }
+    },
+    {
+      "id": "n24",
+      "type": "set_variable",
+      "label": "TZ = Asia Pacific",
+      "position": { "x": 600, "y": 1980 },
+      "config": { "name": "timezone", "expression": "Asia/Tokyo" }
+    },
+    {
+      "id": "n25",
+      "type": "set_variable",
+      "label": "TZ = UTC Default",
+      "position": { "x": 800, "y": 1980 },
+      "config": { "name": "timezone", "expression": "UTC" }
+    },
+    {
+      "id": "n26",
+      "type": "condition",
+      "label": "High Value?",
+      "position": { "x": 500, "y": 2160 },
+      "config": {
+        "branches": [
+          {
+            "label": "Very High (>10k)",
+            "logic": "AND",
+            "rules": [
+              { "field": "{{ticket.amount}}", "operator": "greater_than", "value": "10000" },
+              { "field": "{{ticket.category}}", "operator": "equals", "value": "billing" }
+            ]
+          },
+          {
+            "label": "Medium (>1k)",
+            "logic": "AND",
+            "rules": [
+              { "field": "{{ticket.amount}}", "operator": "greater_than", "value": "1000" }
+            ]
+          }
+        ],
+        "has_else": true
+      }
+    },
+    {
+      "id": "n27",
+      "type": "set_variable",
+      "label": "Flag = VIP",
+      "position": { "x": 200, "y": 2340 },
+      "config": { "name": "value_flag", "expression": "VIP_REVIEW" }
+    },
+    {
+      "id": "n28",
+      "type": "set_variable",
+      "label": "Flag = Review",
+      "position": { "x": 500, "y": 2340 },
+      "config": { "name": "value_flag", "expression": "NEEDS_REVIEW" }
+    },
+    {
+      "id": "n29",
+      "type": "set_variable",
+      "label": "Flag = Standard",
+      "position": { "x": 800, "y": 2340 },
+      "config": { "name": "value_flag", "expression": "STANDARD" }
+    },
+    {
+      "id": "n30",
+      "type": "condition",
+      "label": "Retry Limit?",
+      "position": { "x": 500, "y": 2500 },
+      "config": {
+        "branches": [
+          {
+            "label": "Exceeded (>=3)",
+            "logic": "AND",
+            "rules": [
+              { "field": "{{ticket.attempts}}", "operator": "gte", "value": "3" }
+            ]
+          }
+        ],
+        "has_else": true
+      }
+    },
+    {
+      "id": "n31",
+      "type": "log",
+      "label": "Retry Exhausted",
+      "position": { "x": 250, "y": 2660 },
+      "config": { "message": "ALERT: Ticket {{ticket.id}} has exhausted {{ticket.attempts}} contact attempts. Manual intervention required." }
+    },
+    {
+      "id": "n32",
+      "type": "log",
+      "label": "Auto-Retry OK",
+      "position": { "x": 650, "y": 2660 },
+      "config": { "message": "Auto-retry eligible: {{ticket.attempts}} of 3 attempts used." }
+    },
+    {
+      "id": "n33",
+      "type": "regex",
+      "label": "Extract Subject Words",
+      "position": { "x": 500, "y": 2840 },
+      "config": { "input": "{{ticket.subject}}", "pattern": "\\b[A-Za-z]{4,}\\b", "flags": "g", "operation": "match", "output_var": "subject_keywords" }
+    },
+    {
+      "id": "n34",
+      "type": "modify_string",
+      "label": "Lowercase Subject",
+      "position": { "x": 300, "y": 2980 },
+      "config": { "input": "{{ticket.subject}}", "operation": "lowercase", "output_var": "subject_lower" }
+    },
+    {
+      "id": "n35",
+      "type": "condition",
+      "label": "Contains Urgent Words?",
+      "position": { "x": 500, "y": 3120 },
+      "config": {
+        "branches": [
+          {
+            "label": "Has Urgent Language",
+            "logic": "OR",
+            "rules": [
+              { "field": "{{subject_lower}}", "operator": "contains", "value": "urgent" },
+              { "field": "{{subject_lower}}", "operator": "contains", "value": "immediately" },
+              { "field": "{{subject_lower}}", "operator": "contains", "value": "asap" },
+              { "field": "{{subject_lower}}", "operator": "contains", "value": "critical" }
+            ]
+          }
+        ],
+        "has_else": true
+      }
+    },
+    {
+      "id": "n36",
+      "type": "set_variable",
+      "label": "Urgency = HIGH",
+      "position": { "x": 300, "y": 3300 },
+      "config": { "name": "urgency_flag", "expression": "LANGUAGE_URGENT" }
+    },
+    {
+      "id": "n37",
+      "type": "set_variable",
+      "label": "Urgency = NORMAL",
+      "position": { "x": 700, "y": 3300 },
+      "config": { "name": "urgency_flag", "expression": "LANGUAGE_NORMAL" }
+    },
+    {
+      "id": "n38",
+      "type": "format_date",
+      "label": "Format Due Date",
+      "position": { "x": 300, "y": 3460 },
+      "config": { "input": "{{=ADD_HOURS(NOW(), sla_hours)}}", "format": "datetime", "output_var": "due_date" }
+    },
+    {
+      "id": "n39",
+      "type": "date_math",
+      "label": "Reminder Date",
+      "position": { "x": 700, "y": 3460 },
+      "config": { "date": "{{=NOW()}}", "operation": "add", "amount": 2, "unit": "hours", "output_var": "reminder_at" }
+    },
+    {
+      "id": "n40",
+      "type": "text_template",
+      "label": "Final Summary",
+      "position": { "x": 500, "y": 3620 },
+      "config": {
+        "template": "=== TICKET ROUTING COMPLETE ===\nTicket: {{ticket.id}}\nSubject: {{ticket.subject}}\nPriority: {{ticket.priority}} | Category: {{ticket.category}}\nCustomer Tier: {{ticket.customer_tier}} | Region: {{ticket.region}}\nAmount: ${{ticket.amount}}\n---\nAssigned Team: {{assigned_team}}\nTimezone: {{timezone}}\nSLA: {{sla_hours}}h | Due: {{due_date}}\nValue Flag: {{value_flag}}\nUrgency: {{urgency_flag}}\nRetry Attempts: {{ticket.attempts}}/3\nReminder At: {{reminder_at}}\n===========================",
+        "output_var": "summary"
+      }
+    },
+    {
+      "id": "n41",
+      "type": "log",
+      "label": "Log Summary",
+      "position": { "x": 500, "y": 3780 },
+      "config": { "message": "{{summary}}" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "t1", "target": "n1" },
+    { "id": "e2", "source": "n1", "target": "n2" },
+    { "id": "e3", "source": "n2", "target": "n3" },
+    { "id": "e4", "source": "n3", "target": "n4", "label": "Critical Enterprise" },
+    { "id": "e5", "source": "n3", "target": "n5", "label": "High Priority" },
+    { "id": "e6", "source": "n3", "target": "n6", "label": "Else" },
+    { "id": "e7", "source": "n4", "target": "n7" },
+    { "id": "e8", "source": "n5", "target": "n7" },
+    { "id": "e9", "source": "n6", "target": "n7" },
+    { "id": "e10", "source": "n7", "target": "n8", "label": "Breached" },
+    { "id": "e11", "source": "n7", "target": "n9", "label": "Else" },
+    { "id": "e12", "source": "n8", "target": "n10" },
+    { "id": "e13", "source": "n10", "target": "n11", "label": "Severe (>24h over)" },
+    { "id": "e14", "source": "n10", "target": "n12", "label": "Moderate (>8h over)" },
+    { "id": "e15", "source": "n10", "target": "n13", "label": "Else" },
+    { "id": "e16", "source": "n9", "target": "n14" },
+    { "id": "e17", "source": "n11", "target": "n14" },
+    { "id": "e18", "source": "n12", "target": "n14" },
+    { "id": "e19", "source": "n13", "target": "n14" },
+    { "id": "e20", "source": "n14", "target": "n15", "label": "billing" },
+    { "id": "e21", "source": "n14", "target": "n16", "label": "technical" },
+    { "id": "e22", "source": "n14", "target": "n17", "label": "account" },
+    { "id": "e23", "source": "n14", "target": "n18", "label": "feature_request" },
+    { "id": "e24", "source": "n14", "target": "n19", "label": "security" },
+    { "id": "e25", "source": "n14", "target": "n20", "label": "Default" },
+    { "id": "e26", "source": "n15", "target": "n21" },
+    { "id": "e27", "source": "n16", "target": "n21" },
+    { "id": "e28", "source": "n17", "target": "n21" },
+    { "id": "e29", "source": "n18", "target": "n21" },
+    { "id": "e30", "source": "n19", "target": "n21" },
+    { "id": "e31", "source": "n20", "target": "n21" },
+    { "id": "e32", "source": "n21", "target": "n22", "label": "AMER" },
+    { "id": "e33", "source": "n21", "target": "n23", "label": "EMEA" },
+    { "id": "e34", "source": "n21", "target": "n24", "label": "APAC" },
+    { "id": "e35", "source": "n21", "target": "n25", "label": "Default" },
+    { "id": "e36", "source": "n22", "target": "n26" },
+    { "id": "e37", "source": "n23", "target": "n26" },
+    { "id": "e38", "source": "n24", "target": "n26" },
+    { "id": "e39", "source": "n25", "target": "n26" },
+    { "id": "e40", "source": "n26", "target": "n27", "label": "Very High (>10k)" },
+    { "id": "e41", "source": "n26", "target": "n28", "label": "Medium (>1k)" },
+    { "id": "e42", "source": "n26", "target": "n29", "label": "Else" },
+    { "id": "e43", "source": "n27", "target": "n30" },
+    { "id": "e44", "source": "n28", "target": "n30" },
+    { "id": "e45", "source": "n29", "target": "n30" },
+    { "id": "e46", "source": "n30", "target": "n31", "label": "Exceeded (>=3)" },
+    { "id": "e47", "source": "n30", "target": "n32", "label": "Else" },
+    { "id": "e48", "source": "n31", "target": "n33" },
+    { "id": "e49", "source": "n32", "target": "n33" },
+    { "id": "e50", "source": "n33", "target": "n34" },
+    { "id": "e51", "source": "n34", "target": "n35" },
+    { "id": "e52", "source": "n35", "target": "n36", "label": "Has Urgent Language" },
+    { "id": "e53", "source": "n35", "target": "n37", "label": "Else" },
+    { "id": "e54", "source": "n36", "target": "n38" },
+    { "id": "e55", "source": "n37", "target": "n38" },
+    { "id": "e56", "source": "n38", "target": "n39" },
+    { "id": "e57", "source": "n39", "target": "n40" },
+    { "id": "e58", "source": "n40", "target": "n41" }
+  ],
+  "user_variables": [
+    { "id": "v1", "name": "sla_hours", "type": "number", "defaultValue": "24", "description": "SLA deadline in hours" },
+    { "id": "v2", "name": "assigned_team", "type": "string", "defaultValue": "", "description": "Team assigned by routing" },
+    { "id": "v3", "name": "value_flag", "type": "string", "defaultValue": "STANDARD", "description": "Value classification flag" }
+  ],
+  "swimlanes": []
+}

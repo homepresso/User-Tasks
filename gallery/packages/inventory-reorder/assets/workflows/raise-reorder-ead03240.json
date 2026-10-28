@@ -1,0 +1,576 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "ead03240-469e-5c90-a693-55b9f35e2459",
+  "asset": {
+    "id": "ead03240-469e-5c90-a693-55b9f35e2459",
+    "name": "Raise reorder",
+    "description": "One stock item below its reorder point: log the reorder, ask the buyer to Approve order or Skip, email the purchase order to the supplier.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Reorder needed",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Reorder reference",
+        "position": {
+          "x": 400,
+          "y": 180
+        },
+        "config": {
+          "name": "reorder_ref",
+          "expression": "RO-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "cost",
+        "type": "set_variable",
+        "label": "Estimated cost",
+        "position": {
+          "x": 400,
+          "y": 300
+        },
+        "config": {
+          "name": "est_cost",
+          "expression": "{{=ROUND(reorder_qty * unit_cost, 2)}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 420
+        },
+        "config": {
+          "title": "Reorder {{sku}} {{name}}: {{reorder_qty}} from {{supplier}}"
+        }
+      },
+      {
+        "id": "hold",
+        "type": "update_data_table",
+        "label": "Mark on order",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "table_id": "d8ce1cb7-40f8-5e57-8c88-2c8795071bbb",
+          "table_name": "Stock items",
+          "operation": "update",
+          "match_column": "sku",
+          "match_value": "{{sku}}",
+          "column_values": {
+            "on_order": "true"
+          }
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Log the reorder",
+        "position": {
+          "x": 400,
+          "y": 660
+        },
+        "config": {
+          "table_id": "6b418448-6cb2-5b02-a81b-c5e0d653134c",
+          "table_name": "Reorders",
+          "operation": "insert",
+          "column_values": {
+            "reorder_ref": "{{reorder_ref}}",
+            "sku": "{{sku}}",
+            "item": "{{name}}",
+            "on_hand": "{{on_hand}}",
+            "quantity": "{{reorder_qty}}",
+            "est_cost": "{{est_cost}}",
+            "supplier": "{{supplier}}",
+            "supplier_email": "{{supplier_email}}",
+            "status": "awaiting approval",
+            "raised_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "task",
+        "type": "user_task",
+        "label": "Approve the reorder",
+        "position": {
+          "x": 400,
+          "y": 780
+        },
+        "config": {
+          "task_title": "Reorder {{sku}} {{name}}: {{on_hand}} left (reorder point {{reorder_point}})",
+          "task_description": "<p><strong>{{name}}</strong> ({{sku}}) is down to <strong>{{on_hand}} {{unit}}</strong>, at or below its reorder point of {{reorder_point}}.</p><p>Suggested order: <strong>{{reorder_qty}} {{unit}}</strong> from {{supplier}} at {{=FORMAT_NUMBER(unit_cost, 2)}} each, about <strong>{{=FORMAT_NUMBER(est_cost, 2)}}</strong>. Lead time {{lead_time_days}} days.</p><p><strong>Approve order</strong> emails the purchase order to {{supplier_email}}; <strong>Skip</strong> leaves it for now (it will come up again tomorrow if stock is still low).</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve order",
+            "Skip"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{=COALESCE(buyer_id, workflow_owner_id)}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "fields": [
+            {
+              "key": "quantity",
+              "label": "Order quantity",
+              "type": "number",
+              "required": true,
+              "min": 1,
+              "default": "{{reorder_qty}}"
+            },
+            {
+              "key": "supplier_note",
+              "label": "Note to the supplier",
+              "type": "textarea",
+              "placeholder": "Delivery instructions, PO number…"
+            },
+            {
+              "key": "skip_reason",
+              "label": "Reason to skip",
+              "type": "choice",
+              "options": [
+                "Stock count is wrong",
+                "Order already placed",
+                "Item being discontinued",
+                "Waiting for a better price",
+                "Other"
+              ],
+              "help_text": "Only for Skip."
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "quantity",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "skip_reason",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "supplier_note",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve order",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve order"
+            },
+            {
+              "id": "skip",
+              "label": "Skip",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Skip"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Reorder {{sku}}",
+            "align": "left",
+            "subtitle": "{{name}} · {{on_hand}} {{unit}} left · {{supplier}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#0E7490",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 8,
+              "density": "compact",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "qty",
+        "type": "set_variable",
+        "label": "Approved quantity",
+        "position": {
+          "x": 200,
+          "y": 920
+        },
+        "config": {
+          "name": "quantity",
+          "expression": "{{=COALESCE(task_data.quantity, reorder_qty)}}"
+        }
+      },
+      {
+        "id": "cost2",
+        "type": "set_variable",
+        "label": "Final cost",
+        "position": {
+          "x": 200,
+          "y": 1040
+        },
+        "config": {
+          "name": "est_cost",
+          "expression": "{{=ROUND(quantity * unit_cost, 2)}}"
+        }
+      },
+      {
+        "id": "eta",
+        "type": "set_variable",
+        "label": "Expected by",
+        "position": {
+          "x": 200,
+          "y": 1160
+        },
+        "config": {
+          "name": "expected_by",
+          "expression": "{{=FORMAT_DATE(ADD_DAYS(TODAY(), COALESCE(lead_time_days, 5)), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "ordered",
+        "type": "update_data_table",
+        "label": "Record: ordered",
+        "position": {
+          "x": 200,
+          "y": 1280
+        },
+        "config": {
+          "table_id": "6b418448-6cb2-5b02-a81b-c5e0d653134c",
+          "table_name": "Reorders",
+          "operation": "update",
+          "match_column": "reorder_ref",
+          "match_value": "{{reorder_ref}}",
+          "column_values": {
+            "status": "ordered",
+            "quantity": "{{quantity}}",
+            "est_cost": "{{est_cost}}",
+            "decided_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "expected_by": "{{expected_by}}",
+            "note": "{{task_data.supplier_note}}"
+          }
+        }
+      },
+      {
+        "id": "stamp",
+        "type": "update_data_table",
+        "label": "Stamp the stock item",
+        "position": {
+          "x": 200,
+          "y": 1400
+        },
+        "config": {
+          "table_id": "d8ce1cb7-40f8-5e57-8c88-2c8795071bbb",
+          "table_name": "Stock items",
+          "operation": "update",
+          "match_column": "sku",
+          "match_value": "{{sku}}",
+          "column_values": {
+            "last_ordered": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email the purchase order",
+        "position": {
+          "x": 200,
+          "y": 1520
+        },
+        "config": {
+          "to": "{{supplier_email}}",
+          "email_template_id": "e3b80f86-ff25-5fe0-b07e-16e5d844c628"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "end_ok",
+        "type": "end_workflow",
+        "label": "Ordered",
+        "position": {
+          "x": 200,
+          "y": 1640
+        },
+        "config": {
+          "reason": "{{reorder_ref}}: {{quantity}} × {{sku}} ordered from {{supplier}}"
+        }
+      },
+      {
+        "id": "skipped",
+        "type": "update_data_table",
+        "label": "Record: skipped",
+        "position": {
+          "x": 620,
+          "y": 920
+        },
+        "config": {
+          "table_id": "6b418448-6cb2-5b02-a81b-c5e0d653134c",
+          "table_name": "Reorders",
+          "operation": "update",
+          "match_column": "reorder_ref",
+          "match_value": "{{reorder_ref}}",
+          "column_values": {
+            "status": "skipped",
+            "decided_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "note": "{{task_data.skip_reason}}"
+          }
+        }
+      },
+      {
+        "id": "release",
+        "type": "update_data_table",
+        "label": "Not on order",
+        "position": {
+          "x": 620,
+          "y": 1040
+        },
+        "config": {
+          "table_id": "d8ce1cb7-40f8-5e57-8c88-2c8795071bbb",
+          "table_name": "Stock items",
+          "operation": "update",
+          "match_column": "sku",
+          "match_value": "{{sku}}",
+          "column_values": {
+            "on_order": "false"
+          }
+        }
+      },
+      {
+        "id": "end_skip",
+        "type": "end_workflow",
+        "label": "Skipped",
+        "position": {
+          "x": 620,
+          "y": 1160
+        },
+        "config": {
+          "reason": "{{reorder_ref}} skipped: {{task_data.skip_reason}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-cost",
+        "source": "ref",
+        "target": "cost"
+      },
+      {
+        "id": "e-cost-title",
+        "source": "cost",
+        "target": "title"
+      },
+      {
+        "id": "e-title-hold",
+        "source": "title",
+        "target": "hold"
+      },
+      {
+        "id": "e-hold-log",
+        "source": "hold",
+        "target": "log"
+      },
+      {
+        "id": "e-log-task",
+        "source": "log",
+        "target": "task"
+      },
+      {
+        "id": "e-task-qty-approve-order",
+        "source": "task",
+        "target": "qty",
+        "label": "Approve order"
+      },
+      {
+        "id": "e-qty-cost2",
+        "source": "qty",
+        "target": "cost2"
+      },
+      {
+        "id": "e-cost2-eta",
+        "source": "cost2",
+        "target": "eta"
+      },
+      {
+        "id": "e-eta-ordered",
+        "source": "eta",
+        "target": "ordered"
+      },
+      {
+        "id": "e-ordered-stamp",
+        "source": "ordered",
+        "target": "stamp"
+      },
+      {
+        "id": "e-stamp-mail",
+        "source": "stamp",
+        "target": "mail"
+      },
+      {
+        "id": "e-mail-end_ok",
+        "source": "mail",
+        "target": "end_ok"
+      },
+      {
+        "id": "e-task-skipped-skip",
+        "source": "task",
+        "target": "skipped",
+        "label": "Skip"
+      },
+      {
+        "id": "e-skipped-release",
+        "source": "skipped",
+        "target": "release"
+      },
+      {
+        "id": "e-release-end_skip",
+        "source": "release",
+        "target": "end_skip"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-sku",
+        "name": "sku",
+        "type": "string",
+        "description": "Stock item SKU",
+        "defaultValue": "",
+        "required": true,
+        "label": "SKU"
+      },
+      {
+        "id": "v-name",
+        "name": "name",
+        "type": "string",
+        "description": "Item name",
+        "defaultValue": "",
+        "required": false,
+        "label": "Item"
+      },
+      {
+        "id": "v-unit",
+        "name": "unit",
+        "type": "string",
+        "description": "Unit of measure",
+        "defaultValue": "",
+        "required": false,
+        "label": "Unit"
+      },
+      {
+        "id": "v-on_hand",
+        "name": "on_hand",
+        "type": "number",
+        "description": "Quantity on hand now",
+        "defaultValue": "",
+        "required": false,
+        "label": "On hand"
+      },
+      {
+        "id": "v-reorder_point",
+        "name": "reorder_point",
+        "type": "number",
+        "description": "Reorder point",
+        "defaultValue": "",
+        "required": false,
+        "label": "Reorder point"
+      },
+      {
+        "id": "v-reorder_qty",
+        "name": "reorder_qty",
+        "type": "number",
+        "description": "Suggested order quantity",
+        "defaultValue": "",
+        "required": false,
+        "label": "Reorder quantity"
+      },
+      {
+        "id": "v-unit_cost",
+        "name": "unit_cost",
+        "type": "number",
+        "description": "Unit cost",
+        "defaultValue": "",
+        "required": false,
+        "label": "Unit cost"
+      },
+      {
+        "id": "v-supplier",
+        "name": "supplier",
+        "type": "string",
+        "description": "Supplier name",
+        "defaultValue": "",
+        "required": false,
+        "label": "Supplier"
+      },
+      {
+        "id": "v-supplier_email",
+        "name": "supplier_email",
+        "type": "string",
+        "description": "Where the purchase order goes",
+        "defaultValue": "",
+        "required": false,
+        "label": "Supplier email",
+        "format": "email"
+      },
+      {
+        "id": "v-lead_time_days",
+        "name": "lead_time_days",
+        "type": "number",
+        "description": "Supplier lead time",
+        "defaultValue": "",
+        "required": false,
+        "label": "Lead time (days)"
+      },
+      {
+        "id": "v-buyer_id",
+        "name": "buyer_id",
+        "type": "string",
+        "description": "Optional: user id of the buyer who approves reorders; empty means the workflow owner",
+        "defaultValue": "",
+        "required": false,
+        "label": "Buyer (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

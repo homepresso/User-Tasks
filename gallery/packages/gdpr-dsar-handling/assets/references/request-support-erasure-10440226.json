@@ -1,0 +1,104 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "10440226-40fa-497a-aa59-bb84ea239ec8",
+  "asset": {
+    "id": "10440226-40fa-497a-aa59-bb84ea239ec8",
+    "integration_id": "52ddc1d0-c223-4f8b-8601-65e3bc8d39d3",
+    "name": "Request support erasure",
+    "description": "Deletes the contact and redacts their tickets and attachments in the support desk.",
+    "tags": [
+      "dsar"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"contact_id\":\"{{contact_id}}\",\"email\":\"{{email}}\",\"reference\":\"{{reference}}\"}",
+      "path_template": "/erasure-requests",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "erasure_id",
+              "type": "string",
+              "example": "ER-SD-5528"
+            },
+            {
+              "name": "state",
+              "type": "string",
+              "example": "queued"
+            },
+            {
+              "name": "tickets_redacted",
+              "type": "integer",
+              "example": 6
+            },
+            {
+              "name": "attachments_deleted",
+              "type": "integer",
+              "example": 3
+            }
+          ]
+        },
+        "sample": {
+          "erasure_id": "ER-SD-5528",
+          "state": "queued",
+          "tickets_redacted": 6,
+          "attachments_deleted": 3
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "c25ffcc1-1c76-424e-8446-1b7ddc66a78c",
+        "name": "contact_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "ad7e6057-4c60-4c5a-9c41-994cc25180ca",
+        "name": "email",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "57ffd0a7-4be4-4e03-8e36-572d58ebcb46",
+        "name": "reference",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "bd2395ef-96e8-41f6-a415-eecddc31c4f7",
+        "name": "erasure_id",
+        "path": "erasure_id",
+        "type": "string"
+      },
+      {
+        "id": "3ff0e1bc-b0a8-454b-b8ae-0d20263e2983",
+        "name": "status",
+        "path": "state",
+        "type": "string"
+      }
+    ]
+  }
+}

@@ -1,0 +1,240 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "3e9d69eb-43b5-537e-8fcd-da9e531aef41",
+  "asset": {
+    "id": "3e9d69eb-43b5-537e-8fcd-da9e531aef41",
+    "integration_id": "55b8dad9-6e91-5ac6-a9e4-74cc61cbe7b2",
+    "name": "Create user",
+    "description": "Create the Entra ID account (POST /users) with a forced password change at first sign-in. Returns the new object id and userPrincipalName.",
+    "tags": [
+      "users"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"accountEnabled\":true,\"displayName\":\"{{display_name}}\",\"givenName\":\"{{given_name}}\",\"surname\":\"{{surname}}\",\"mailNickname\":\"{{mail_nickname}}\",\"userPrincipalName\":\"{{upn}}\",\"jobTitle\":\"{{job_title}}\",\"department\":\"{{department}}\",\"officeLocation\":\"{{office_location}}\",\"usageLocation\":\"{{usage_location}}\",\"employeeId\":\"{{employee_id}}\",\"passwordProfile\":{\"forceChangePasswordNextSignIn\":true,\"password\":\"{{initial_pw}}\"}}",
+      "path_template": "/users",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "@odata.context",
+              "type": "string",
+              "example": "https://graph.microsoft.example.com/v1.0/$metadata#users/$entity"
+            },
+            {
+              "name": "id",
+              "type": "string",
+              "example": "6e7b768e-07e2-4810-8459-485f84f8f204"
+            },
+            {
+              "name": "businessPhones",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "displayName",
+              "type": "string",
+              "example": "Ana Lopez"
+            },
+            {
+              "name": "givenName",
+              "type": "string",
+              "example": "Ana"
+            },
+            {
+              "name": "surname",
+              "type": "string",
+              "example": "Lopez"
+            },
+            {
+              "name": "jobTitle",
+              "type": "string",
+              "example": "Financial Analyst"
+            },
+            {
+              "name": "mail",
+              "type": "string",
+              "example": ""
+            },
+            {
+              "name": "mobilePhone",
+              "type": "string",
+              "example": ""
+            },
+            {
+              "name": "officeLocation",
+              "type": "string",
+              "example": "Auckland"
+            },
+            {
+              "name": "preferredLanguage",
+              "type": "string",
+              "example": ""
+            },
+            {
+              "name": "userPrincipalName",
+              "type": "string",
+              "example": "ana.lopez@contoso.example.com"
+            }
+          ]
+        },
+        "sample": {
+          "@odata.context": "https://graph.microsoft.example.com/v1.0/$metadata#users/$entity",
+          "id": "6e7b768e-07e2-4810-8459-485f84f8f204",
+          "businessPhones": [],
+          "displayName": "Ana Lopez",
+          "givenName": "Ana",
+          "surname": "Lopez",
+          "jobTitle": "Financial Analyst",
+          "mail": null,
+          "mobilePhone": null,
+          "officeLocation": "Auckland",
+          "preferredLanguage": null,
+          "userPrincipalName": "ana.lopez@contoso.example.com"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "9f43690d-6a53-57d2-80fc-c1fa172464ec",
+        "name": "display_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Display name",
+        "default_value": ""
+      },
+      {
+        "id": "1a1b9a76-bee0-5298-a622-dc9c43f26215",
+        "name": "given_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "First name",
+        "default_value": ""
+      },
+      {
+        "id": "fad52f2b-afb2-5b9b-a009-3e4496ca1902",
+        "name": "surname",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Last name",
+        "default_value": ""
+      },
+      {
+        "id": "2bc382d6-dcdc-5e80-964b-e7610887966e",
+        "name": "mail_nickname",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Mail alias (no spaces)",
+        "default_value": ""
+      },
+      {
+        "id": "0e3ee87f-137c-5e53-b2d9-8645acfc19cc",
+        "name": "upn",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "userPrincipalName",
+        "default_value": ""
+      },
+      {
+        "id": "98085afd-0042-5986-892d-af397f170983",
+        "name": "job_title",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "Job title",
+        "default_value": ""
+      },
+      {
+        "id": "04254d68-0a72-5ddc-a993-fe8d491e9d81",
+        "name": "department",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "Department name",
+        "default_value": ""
+      },
+      {
+        "id": "c041c78e-87bc-5494-a372-25b5de798e10",
+        "name": "office_location",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "Office",
+        "default_value": ""
+      },
+      {
+        "id": "adbc3628-7456-5ecd-88c8-e9302bf9c6f9",
+        "name": "usage_location",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Two-letter country code: required before a licence can be assigned",
+        "default_value": ""
+      },
+      {
+        "id": "d399b1ca-70a4-5da6-b117-f04604857c28",
+        "name": "employee_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "HR employee id",
+        "default_value": ""
+      },
+      {
+        "id": "50cdb94b-f093-51e0-b501-5a688b2a44ac",
+        "name": "initial_pw",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Initial random password (never shown; the starter signs in with a Temporary Access Pass)",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "7ea00e34-e20e-5295-9ddc-1ff1c748b485",
+        "name": "user_id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "9c189fed-cd73-520d-9150-1ce978fa2047",
+        "name": "user_principal_name",
+        "path": "userPrincipalName",
+        "type": "string"
+      },
+      {
+        "id": "9105bd1e-87db-5f3b-ae2c-692f36f4bd64",
+        "name": "display_name",
+        "path": "displayName",
+        "type": "string"
+      }
+    ]
+  }
+}

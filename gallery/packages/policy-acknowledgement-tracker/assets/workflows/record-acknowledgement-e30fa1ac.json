@@ -1,0 +1,332 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "e30fa1ac-f6cb-581a-8664-7e98fd809133",
+  "asset": {
+    "id": "e30fa1ac-f6cb-581a-8664-7e98fd809133",
+    "name": "Record acknowledgement",
+    "description": "One per person and policy version: a tracker task for the policy owner to record the acknowledgement, which updates the Acknowledgements table.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Acknowledgement issued",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "title": "{{policy_code}} v{{version}} · {{staff_name}}"
+        }
+      },
+      {
+        "id": "track",
+        "type": "user_task",
+        "label": "Record the acknowledgement",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "task_title": "Acknowledgement: {{staff_name}} · {{policy_title}} v{{version}}",
+          "task_description": "<p><strong>{{staff_name}}</strong> ({{department}}, manager {{manager_name}}) has been asked to read the <a href=\"{{policy_url}}\">{{policy_title}}</a> v{{version}} and confirm by <strong>{{due_date}}</strong>.</p><p>When their confirmation arrives (email reply, signed sheet or learning system), record it here. The weekly run reminds everyone still pending.</p>",
+          "task_priority": "low",
+          "outcomes": [
+            "Acknowledged",
+            "Exempt",
+            "Refused"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "fields": [
+            {
+              "key": "acknowledged_on",
+              "label": "Acknowledged on",
+              "type": "date",
+              "required": true,
+              "default": "{{=TODAY()}}"
+            },
+            {
+              "key": "method",
+              "label": "How did they confirm?",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "Email reply",
+                "Signed in person",
+                "Learning system",
+                "Team meeting"
+              ],
+              "default": "Email reply"
+            },
+            {
+              "key": "notes",
+              "label": "Notes",
+              "type": "textarea",
+              "help_text": "For Exempt or Refused, say why."
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "acknowledged_on",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "method",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "ack",
+              "label": "Acknowledged",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Acknowledged"
+            },
+            {
+              "id": "exempt",
+              "label": "Exempt",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Exempt"
+            },
+            {
+              "id": "refused",
+              "label": "Refused",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Refused"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Policy acknowledgement",
+            "align": "left",
+            "subtitle": "{{policy_title}} v{{version}} · {{staff_name}}"
+          },
+          "due_date_mode": "absolute",
+          "due_date": "{{due_date}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 10080,
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#7C3AED",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 10,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "save",
+        "type": "update_data_table",
+        "label": "Save the result",
+        "position": {
+          "x": 400,
+          "y": 500
+        },
+        "config": {
+          "table_id": "6f26592a-312d-55d4-b2be-e79ea9ac6d16",
+          "table_name": "Acknowledgements",
+          "operation": "update",
+          "match_column": "ack_key",
+          "match_value": "{{ack_key}}",
+          "column_values": {
+            "status": "{{outcome}}",
+            "acknowledged_on": "{{=IF(outcome == \"Acknowledged\", task_data.acknowledged_on, \"\")}}",
+            "method": "{{task_data.method}}",
+            "notes": "{{task_data.notes}}"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Recorded",
+        "position": {
+          "x": 400,
+          "y": 660
+        },
+        "config": {
+          "reason": "{{staff_name}}: {{outcome}} ({{policy_code}} v{{version}})"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-track",
+        "source": "title",
+        "target": "track"
+      },
+      {
+        "id": "e-track-save-acknowledged",
+        "source": "track",
+        "target": "save",
+        "label": "Acknowledged"
+      },
+      {
+        "id": "e-track-save-exempt-x",
+        "source": "track",
+        "target": "save",
+        "label": "Exempt"
+      },
+      {
+        "id": "e-track-save-refused-y",
+        "source": "track",
+        "target": "save",
+        "label": "Refused"
+      },
+      {
+        "id": "e-save-done",
+        "source": "save",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-ack_key",
+        "name": "ack_key",
+        "type": "string",
+        "description": "Acknowledgement key: policy|version|email",
+        "defaultValue": "",
+        "required": true,
+        "label": "Key"
+      },
+      {
+        "id": "v-policy_code",
+        "name": "policy_code",
+        "type": "string",
+        "description": "Policy code",
+        "defaultValue": "",
+        "required": false,
+        "label": "Policy code"
+      },
+      {
+        "id": "v-policy_title",
+        "name": "policy_title",
+        "type": "string",
+        "description": "Policy title",
+        "defaultValue": "",
+        "required": false,
+        "label": "Policy"
+      },
+      {
+        "id": "v-version",
+        "name": "version",
+        "type": "string",
+        "description": "Policy version",
+        "defaultValue": "",
+        "required": false,
+        "label": "Version"
+      },
+      {
+        "id": "v-policy_url",
+        "name": "policy_url",
+        "type": "string",
+        "description": "Where the policy is published",
+        "defaultValue": "",
+        "required": false,
+        "label": "Policy link",
+        "format": "url"
+      },
+      {
+        "id": "v-staff_name",
+        "name": "staff_name",
+        "type": "string",
+        "description": "Who must acknowledge",
+        "defaultValue": "",
+        "required": false,
+        "label": "Name"
+      },
+      {
+        "id": "v-staff_email",
+        "name": "staff_email",
+        "type": "string",
+        "description": "Their email",
+        "defaultValue": "",
+        "required": false,
+        "label": "Email",
+        "format": "email"
+      },
+      {
+        "id": "v-department",
+        "name": "department",
+        "type": "string",
+        "description": "Their department",
+        "defaultValue": "",
+        "required": false,
+        "label": "Department"
+      },
+      {
+        "id": "v-manager_name",
+        "name": "manager_name",
+        "type": "string",
+        "description": "Their manager",
+        "defaultValue": "",
+        "required": false,
+        "label": "Manager"
+      },
+      {
+        "id": "v-due_date",
+        "name": "due_date",
+        "type": "string",
+        "description": "Acknowledge by (YYYY-MM-DD)",
+        "defaultValue": "",
+        "required": false,
+        "label": "Due",
+        "format": "date"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

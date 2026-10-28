@@ -1,0 +1,96 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "0140e05f-218a-5126-b9cb-61730dcc32a8",
+  "asset": {
+    "id": "0140e05f-218a-5126-b9cb-61730dcc32a8",
+    "name": "Visitor log",
+    "description": "Everyone who signed in: who they visited, when they arrived and left, and whether an NDA was signed.",
+    "columns": [
+      {
+        "id": "bc3b0329-a284-5fa2-8dee-a3f8cc0bfea8",
+        "required": true,
+        "key": "visit_ref",
+        "name": "Visit reference",
+        "type": "text"
+      },
+      {
+        "id": "b7274cc2-8c22-59cd-b3a7-92ce4963090a",
+        "required": true,
+        "key": "visitor_name",
+        "name": "Visitor",
+        "type": "text"
+      },
+      {
+        "id": "48f9ead8-af2d-5c59-9837-a7b53fc02e99",
+        "required": false,
+        "key": "company",
+        "name": "Company",
+        "type": "text"
+      },
+      {
+        "id": "49a8ee65-5f24-51a2-b409-edea60beb1df",
+        "required": false,
+        "key": "visitor_email",
+        "name": "Visitor email",
+        "type": "text"
+      },
+      {
+        "id": "506ae9a3-03e3-543c-9a70-157e947064b2",
+        "required": false,
+        "key": "host_name",
+        "name": "Host",
+        "type": "text"
+      },
+      {
+        "id": "edc612c8-e946-5a84-b5ee-5969857fab80",
+        "required": false,
+        "key": "host_email",
+        "name": "Host email",
+        "type": "text"
+      },
+      {
+        "id": "8a4e5ba6-3f28-55a5-9993-0fbdab9124c8",
+        "required": false,
+        "key": "purpose",
+        "name": "Purpose",
+        "type": "text"
+      },
+      {
+        "id": "8c8e5e23-134b-526c-8ad8-b78d6cd17b43",
+        "required": false,
+        "key": "arrived_at",
+        "name": "Arrived",
+        "type": "date"
+      },
+      {
+        "id": "2e57140e-8817-51ee-9446-d5b7a0b7bfc9",
+        "required": false,
+        "key": "nda_required",
+        "name": "NDA required",
+        "type": "boolean"
+      },
+      {
+        "id": "4b1693b8-f3b3-52f6-b500-e10d38298fd7",
+        "required": false,
+        "key": "nda_signed",
+        "name": "NDA signed",
+        "type": "boolean"
+      },
+      {
+        "id": "23b4638e-bd86-5e01-9854-d1b89d5f8a8e",
+        "required": false,
+        "key": "badge",
+        "name": "Badge",
+        "type": "text"
+      },
+      {
+        "id": "4fd03d31-0f45-50be-aeaf-a6747ccc2110",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      }
+    ]
+  }
+}

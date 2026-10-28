@@ -1,0 +1,220 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "53d85d76-633c-50c8-a36e-d31c1f3e4566",
+  "asset": {
+    "id": "53d85d76-633c-50c8-a36e-d31c1f3e4566",
+    "integration_id": "bd75f6e0-512e-5150-b896-936f390bfc06",
+    "name": "Get worker job history",
+    "description": "Workday Staffing REST: the worker's staffing events, newest first. data[0] is the change that just happened, data[1] the job before it.",
+    "tags": [
+      "workday",
+      "staffing"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/api/staffing/v6/acme/workers/{{worker_id}}/history",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "total",
+              "type": "integer",
+              "example": 3
+            },
+            {
+              "name": "data",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "id",
+                    "type": "string",
+                    "example": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6"
+                  },
+                  {
+                    "name": "descriptor",
+                    "type": "string",
+                    "example": "Job Change: Marco Rossi"
+                  },
+                  {
+                    "name": "businessProcessType",
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "descriptor",
+                        "type": "string",
+                        "example": "Job Change"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "effective",
+                    "type": "string",
+                    "example": "2026-11-01"
+                  },
+                  {
+                    "name": "completedOn",
+                    "type": "string",
+                    "example": "2026-10-27T21:14:03.000Z"
+                  },
+                  {
+                    "name": "jobProfile",
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "descriptor",
+                        "type": "string",
+                        "example": "Finance Manager"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "supervisoryOrganization",
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "descriptor",
+                        "type": "string",
+                        "example": "Financial Planning & Analysis (Ana Lopez)"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "reason",
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "descriptor",
+                        "type": "string",
+                        "example": "Promotion > Promotion"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "sample": {
+          "total": 3,
+          "data": [
+            {
+              "id": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6",
+              "descriptor": "Job Change: Marco Rossi",
+              "businessProcessType": {
+                "descriptor": "Job Change"
+              },
+              "effective": "2026-11-01",
+              "completedOn": "2026-10-27T21:14:03.000Z",
+              "jobProfile": {
+                "descriptor": "Finance Manager"
+              },
+              "supervisoryOrganization": {
+                "descriptor": "Financial Planning & Analysis (Ana Lopez)"
+              },
+              "reason": {
+                "descriptor": "Promotion > Promotion"
+              }
+            },
+            {
+              "id": "a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4",
+              "descriptor": "Job Change: Marco Rossi",
+              "businessProcessType": {
+                "descriptor": "Job Change"
+              },
+              "effective": "2024-03-11",
+              "completedOn": "2024-03-04T02:40:11.000Z",
+              "jobProfile": {
+                "descriptor": "Accounts Payable Analyst"
+              },
+              "supervisoryOrganization": {
+                "descriptor": "Accounts Payable (Daniel Okafor)"
+              },
+              "reason": {
+                "descriptor": "Lateral Move > Lateral Move"
+              }
+            },
+            {
+              "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+              "descriptor": "Hire: Marco Rossi",
+              "businessProcessType": {
+                "descriptor": "Hire"
+              },
+              "effective": "2022-05-02",
+              "completedOn": "2022-04-20T23:05:47.000Z",
+              "jobProfile": {
+                "descriptor": "Accounts Payable Clerk"
+              },
+              "supervisoryOrganization": {
+                "descriptor": "Accounts Payable (Daniel Okafor)"
+              },
+              "reason": {
+                "descriptor": "New Hire > New Position"
+              }
+            }
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "914f6711-d43a-53a2-9d4c-aeb279095c68",
+        "name": "worker_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "59130f08-7a39-5848-85da-afa6dab3b9c2",
+        "name": "history",
+        "path": "data",
+        "type": "array"
+      },
+      {
+        "id": "68f3053d-7fc3-58b0-bc31-03cb5194178d",
+        "name": "change_type",
+        "path": "data[0].businessProcessType.descriptor",
+        "type": "string"
+      },
+      {
+        "id": "ed8a7c78-c4fa-5cde-b852-82238426a21c",
+        "name": "change_reason",
+        "path": "data[0].reason.descriptor",
+        "type": "string"
+      },
+      {
+        "id": "96b8913f-6980-5e77-aa9e-d4a036e636e7",
+        "name": "effective_date",
+        "path": "data[0].effective",
+        "type": "string"
+      },
+      {
+        "id": "1d10e390-d1b7-5b1b-92e9-4a73c616cbfb",
+        "name": "previous_job_profile",
+        "path": "data[1].jobProfile.descriptor",
+        "type": "string"
+      },
+      {
+        "id": "a3c8ba19-0b31-53af-b4b1-87db892ad526",
+        "name": "previous_org",
+        "path": "data[1].supervisoryOrganization.descriptor",
+        "type": "string"
+      }
+    ]
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "41da2eef-359b-4f04-ae79-6cf7e4a913d6",
+  "asset": {
+    "id": "41da2eef-359b-4f04-ae79-6cf7e4a913d6",
+    "integration_id": "335b3ed0-a793-498e-aaef-1fdfad41a539",
+    "name": "Revoke access grant",
+    "description": "Remove a time-boxed grant when it expires.",
+    "tags": [
+      "access"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"reason\":\"{{reason}}\"}",
+      "path_template": "/access-grants/{{grant_id}}/revoke",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "grant_id",
+              "type": "string",
+              "example": "GR-58213"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "revoked"
+            },
+            {
+              "name": "revoked_at",
+              "type": "string",
+              "example": "2027-01-24T09:12:05Z"
+            }
+          ]
+        },
+        "sample": {
+          "grant_id": "GR-58213",
+          "status": "revoked",
+          "revoked_at": "2027-01-24T09:12:05Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "c87bf020-ed77-4ca9-aa1e-02c79b71fd4e",
+        "name": "grant_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "fa925aea-1625-4154-ab60-c7882f5a296d",
+        "name": "reason",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "68afd5aa-ae2e-4fa9-a8dc-4682d44f9f9e",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "a9ad6195-623f-4cec-8e42-3c092c4f8e98",
+        "name": "revoked_at",
+        "path": "revoked_at",
+        "type": "string"
+      }
+    ]
+  }
+}

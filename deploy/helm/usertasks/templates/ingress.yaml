@@ -1,0 +1,42 @@
+{{- if .Values.ingress.enabled }}
+{{- $host := default (urlParse .Values.appUrl).hostname .Values.ingress.host }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "usertasks.fullname" . }}
+  labels:
+    {{- include "usertasks.labels" . | nindent 4 }}
+  {{- $cm := .Values.ingress.certManager }}
+  {{- if or .Values.ingress.annotations $cm.clusterIssuer $cm.issuer }}
+  annotations:
+    {{- with $cm.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ . | quote }}
+    {{- end }}
+    {{- with $cm.issuer }}
+    cert-manager.io/issuer: {{ . | quote }}
+    {{- end }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts: [{{ $host | quote }}]
+      secretName: {{ default (printf "%s-tls" (include "usertasks.fullname" .)) .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ $host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "usertasks.fullname" . }}
+                port:
+                  name: http
+{{- end }}

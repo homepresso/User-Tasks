@@ -1,0 +1,159 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "8a0cdcfc-7027-429a-ad88-cfb51914b057",
+  "asset": {
+    "id": "8a0cdcfc-7027-429a-ad88-cfb51914b057",
+    "name": "Access approval path",
+    "description": "Which approvals an access request needs, from the application risk, whether the role is privileged and how long access is requested for. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "a763364f-df5d-4dfb-9e30-83bf57a42a98",
+        "key": "risk_level",
+        "label": "Risk level",
+        "type": "text"
+      },
+      {
+        "id": "b0050055-7344-4587-8e05-7b6fb829acc5",
+        "key": "privileged",
+        "label": "Privileged",
+        "type": "boolean"
+      },
+      {
+        "id": "cb601583-bc59-4dcb-bfd7-62e5d5e98bbe",
+        "key": "duration",
+        "label": "Duration",
+        "type": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "13e2aeba-efaa-4aad-84b3-595160ece08e",
+        "key": "approval_path",
+        "label": "Approval path",
+        "type": "text"
+      },
+      {
+        "id": "0f2a0216-c572-4d66-a69c-0f3ffb61b9af",
+        "key": "needs_owner",
+        "label": "Application owner approval",
+        "type": "boolean"
+      },
+      {
+        "id": "1e11d14b-dd1f-43ef-b342-763ebfd0cf45",
+        "key": "needs_security",
+        "label": "Security approval",
+        "type": "boolean"
+      },
+      {
+        "id": "8c59305b-725c-4441-9739-2c2074fe00e3",
+        "key": "sla_days",
+        "label": "Request SLA (days)",
+        "type": "number"
+      }
+    ],
+    "rules": [
+      {
+        "id": "d8886868-c74f-4015-a70e-4f35366a8a60",
+        "label": "Privileged role",
+        "enabled": true,
+        "outputs": {
+          "approval_path": "Manager, application owner and security",
+          "needs_owner": true,
+          "needs_security": true,
+          "sla_days": 5
+        },
+        "conditions": [
+          {
+            "id": "84039f24-c5f7-4bc6-92a8-25fbdcdc6c04",
+            "inputKey": "privileged",
+            "operator": "equals",
+            "value": "true"
+          }
+        ]
+      },
+      {
+        "id": "86ae3899-d1ae-4424-b0ad-d0b0b8c4c69a",
+        "label": "High-risk application",
+        "enabled": true,
+        "outputs": {
+          "approval_path": "Manager, application owner and security",
+          "needs_owner": true,
+          "needs_security": true,
+          "sla_days": 5
+        },
+        "conditions": [
+          {
+            "id": "206df752-a07a-4bb8-92ba-7e3d7581f65b",
+            "inputKey": "risk_level",
+            "operator": "equals",
+            "value": "high"
+          }
+        ]
+      },
+      {
+        "id": "0fb1401e-0aff-436d-8552-3b3ac117116c",
+        "label": "Medium risk",
+        "enabled": true,
+        "outputs": {
+          "approval_path": "Manager and application owner",
+          "needs_owner": true,
+          "needs_security": false,
+          "sla_days": 3
+        },
+        "conditions": [
+          {
+            "id": "8d92705b-2fa0-40b3-97ec-be28ad932b04",
+            "inputKey": "risk_level",
+            "operator": "equals",
+            "value": "medium"
+          }
+        ]
+      },
+      {
+        "id": "cbc7a969-67f4-4670-a98b-11bc85ecca16",
+        "label": "Low risk, permanent",
+        "enabled": true,
+        "outputs": {
+          "approval_path": "Manager and application owner",
+          "needs_owner": true,
+          "needs_security": false,
+          "sla_days": 3
+        },
+        "conditions": [
+          {
+            "id": "97e915f7-3da9-4019-a220-3cf2147d2bf5",
+            "inputKey": "risk_level",
+            "operator": "equals",
+            "value": "low"
+          },
+          {
+            "id": "e4109a72-762e-4aa6-a3af-358f7bdf3080",
+            "inputKey": "duration",
+            "operator": "equals",
+            "value": "permanent"
+          }
+        ]
+      },
+      {
+        "id": "56ec6d2f-8377-488e-a687-1b730600627d",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "approval_path": "Manager only",
+          "needs_owner": false,
+          "needs_security": false,
+          "sla_days": 2
+        },
+        "conditions": [
+          {
+            "id": "85f19486-06f2-4bc3-b82e-102718534db9",
+            "inputKey": "risk_level",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

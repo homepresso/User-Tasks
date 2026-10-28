@@ -1,0 +1,22 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "f48769dc-8c95-4a2f-8a62-2e465311d822",
+  "asset": {
+    "id": "f48769dc-8c95-4a2f-8a62-2e465311d822",
+    "name": "Data warehouse",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://warehouse.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "warehouse"
+    ]
+  }
+}

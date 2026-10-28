@@ -1,0 +1,687 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "0556c9e8-7cf2-4374-b823-da76cee23bd0",
+  "asset": {
+    "id": "0556c9e8-7cf2-4374-b823-da76cee23bd0",
+    "name": "Equipment request",
+    "description": "An employee submits the Equipment request form: the item is priced from the catalogue, the approval policy routes it to the manager (and finance), IT fulfils it and the asset is registered.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Request form submitted",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {
+          "form_id": "6be0e19d-9c85-5986-a50f-a83c603e4e39",
+          "form_name": "Equipment request form"
+        }
+      },
+      {
+        "id": "cc_form",
+        "type": "set_variable",
+        "label": "Cost centre from the form",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "name": "cost_centre",
+          "expression": "{{form.cost_centre}}"
+        }
+      },
+      {
+        "id": "reference",
+        "type": "set_variable",
+        "label": "Request reference",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "name": "request_reference",
+          "expression": "EQ-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 6))}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "title": "Equipment: {{form.quantity}} × {{form.item}} for {{form.requester_name}}"
+        }
+      },
+      {
+        "id": "lookup",
+        "type": "update_data_table",
+        "label": "Catalogue item",
+        "position": {
+          "x": 340,
+          "y": 700
+        },
+        "config": {
+          "table_id": "5eee9989-73aa-4dca-b0a8-7b857a887cd9",
+          "table_name": "Equipment catalogue",
+          "operation": "get",
+          "match_column": "item",
+          "match_value": "{{form.item}}",
+          "output_row_var": "catalogue_item"
+        }
+      },
+      {
+        "id": "total",
+        "type": "set_variable",
+        "label": "Total cost",
+        "position": {
+          "x": 340,
+          "y": 860
+        },
+        "config": {
+          "name": "total_cost",
+          "expression": "{{=MULTIPLY(catalogue_item.unit_cost, form.quantity)}}"
+        }
+      },
+      {
+        "id": "policy",
+        "type": "decision_table",
+        "label": "Equipment approval",
+        "position": {
+          "x": 340,
+          "y": 1020
+        },
+        "config": {
+          "decision_table_id": "a1e55530-7f56-4632-8670-085b3d92a6e6",
+          "decision_table_name": "Equipment approval",
+          "input_mappings": {
+            "total_cost": "{{total_cost}}",
+            "category": "{{catalogue_item.category}}",
+            "role_level": "{{form.role_level}}",
+            "approval_required": "{{catalogue_item.approval_required}}"
+          }
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Ten-day SLA",
+        "position": {
+          "x": 340,
+          "y": 1180
+        },
+        "config": {
+          "sla_label": "Equipment request",
+          "mode": "relative",
+          "amount": 10,
+          "unit": "days",
+          "warning_amount": 7,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "auto",
+        "type": "condition",
+        "label": "Auto-approve?",
+        "position": {
+          "x": 340,
+          "y": 1340
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Auto-approve",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{auto_approve}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "manager",
+        "type": "user_task",
+        "label": "Approve equipment request",
+        "position": {
+          "x": 1060,
+          "y": 1520
+        },
+        "config": {
+          "task_title": "Approve {{form.quantity}} × {{form.item}} for {{form.requester_name}} ({{total_cost}})",
+          "task_description": "<p><strong>{{form.requester_name}}</strong> ({{form.role_level}}) requests <strong>{{form.quantity}} × {{form.item}}</strong>, total <strong>{{total_cost}}</strong>.</p><p>Reason: {{form.reason}}. Needed by {{form.needed_by}}.</p><p>Category {{catalogue_item.category}}, lead time {{catalogue_item.lead_time_days}} days. Route: {{approval_route}} (rule “{{rule_label}}”).</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "d41563f8-fc1f-4d0b-9122-7a1bd7a4bd12",
+          "assignee_variable": "{{form.manager_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "cost_centre",
+              "label": "Cost centre",
+              "type": "text",
+              "required": true,
+              "default": "{{cost_centre}}"
+            },
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "cost_centre",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "comment",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Equipment request: {{form.quantity}} × {{form.item}}",
+            "align": "left",
+            "subtitle": "{{form.requester_name}} · {{total_cost}} · {{approval_route}}"
+          }
+        }
+      },
+      {
+        "id": "cc",
+        "type": "set_variable",
+        "label": "Approved cost centre",
+        "position": {
+          "x": 820,
+          "y": 1700
+        },
+        "config": {
+          "name": "cost_centre",
+          "expression": "{{task_data.cost_centre}}"
+        }
+      },
+      {
+        "id": "needs_finance",
+        "type": "condition",
+        "label": "Finance approval?",
+        "position": {
+          "x": 820,
+          "y": 1860
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Finance",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{finance_approval}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "finance",
+        "type": "user_task",
+        "label": "Finance approval",
+        "position": {
+          "x": 580,
+          "y": 2040
+        },
+        "config": {
+          "task_title": "Finance: approve {{form.item}} for {{form.requester_name}} ({{total_cost}})",
+          "task_description": "<p>The manager approved <strong>{{form.quantity}} × {{form.item}}</strong> for {{form.requester_name}}, total <strong>{{total_cost}}</strong>, cost centre {{cost_centre}}.</p><p>Reason: {{form.reason}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "ed6bcb10-bfaa-45df-b708-f5c379f6049e",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "budget_code",
+              "label": "Budget code",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "budget_code",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "comment",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Finance approval: {{form.item}}",
+            "align": "left",
+            "subtitle": "{{form.requester_name}} · {{total_cost}} · cost centre {{cost_centre}}"
+          }
+        }
+      },
+      {
+        "id": "notify_approved",
+        "type": "send_email",
+        "label": "Email requester: approved",
+        "position": {
+          "x": 340,
+          "y": 2220
+        },
+        "config": {
+          "to": "{{form.requester_email}}",
+          "email_template_id": "9c7339ff-e3d6-4f21-8103-09947a4060e2"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "fulfil",
+        "type": "user_task",
+        "label": "Fulfil equipment request",
+        "position": {
+          "x": 340,
+          "y": 2380
+        },
+        "config": {
+          "task_title": "Fulfil {{form.quantity}} × {{form.item}} for {{form.requester_name}} (SKU {{catalogue_item.supplier_sku}})",
+          "task_description": "<p>Order or pick <strong>{{form.quantity}} × {{form.item}}</strong> (supplier SKU {{catalogue_item.supplier_sku}}) for {{form.requester_name}} ({{form.employee_id}}). Needed by {{form.needed_by}}.</p><p>Approved via {{approval_route}}. Cost centre {{cost_centre}}.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Fulfilled",
+            "Cannot fulfil"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "822fb886-6eeb-4eac-b878-fc289530c62c",
+          "due_date_mode": "relative",
+          "due_offset_amount": 10,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 4320
+            }
+          ],
+          "fields": [
+            {
+              "key": "asset_tag",
+              "label": "Asset tag",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "serial_number",
+              "label": "Serial number",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "delivery_date",
+              "label": "Delivery / handover date",
+              "type": "date",
+              "required": true
+            },
+            {
+              "key": "comment",
+              "label": "Notes",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "asset_tag",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "serial_number",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "delivery_date",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "fulfilled",
+              "label": "Fulfilled",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Fulfilled"
+            },
+            {
+              "id": "cannot_fulfil",
+              "label": "Cannot fulfil",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Cannot fulfil"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Fulfil: {{form.quantity}} × {{form.item}}",
+            "align": "left",
+            "subtitle": "For {{form.requester_name}} · SKU {{catalogue_item.supplier_sku}} · needed by {{form.needed_by}}"
+          }
+        }
+      },
+      {
+        "id": "register",
+        "type": "call_reference",
+        "label": "Register asset",
+        "position": {
+          "x": 340,
+          "y": 2560
+        },
+        "config": {
+          "reference_id": "7190ce81-5899-47ee-8241-4b04e55009bc",
+          "reference_name": "Register asset",
+          "reference_method": "POST",
+          "input_mappings": {
+            "asset_tag": "{{task_data.asset_tag}}",
+            "serial_number": "{{task_data.serial_number}}",
+            "item": "{{form.item}}",
+            "category": "{{catalogue_item.category}}",
+            "supplier_sku": "{{catalogue_item.supplier_sku}}",
+            "unit_cost": "{{catalogue_item.unit_cost}}",
+            "employee_id": "{{form.employee_id}}",
+            "cost_centre": "{{cost_centre}}",
+            "delivery_date": "{{task_data.delivery_date}}",
+            "request_reference": "{{request_reference}}"
+          },
+          "output_mappings": {
+            "asset_id": {
+              "enabled": true,
+              "variableName": "asset_id"
+            }
+          }
+        }
+      },
+      {
+        "id": "notify_ready",
+        "type": "send_email",
+        "label": "Email requester: ready",
+        "position": {
+          "x": 340,
+          "y": 2720
+        },
+        "config": {
+          "to": "{{form.requester_email}}",
+          "email_template_id": "4a631612-49bc-4efc-ab0a-28ac6cbe45da"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "notify_rejected",
+        "type": "send_email",
+        "label": "Email requester: not approved",
+        "position": {
+          "x": 660,
+          "y": 2560
+        },
+        "config": {
+          "to": "{{form.requester_email}}",
+          "email_template_id": "1a3a6aa4-5dc6-4e98-9fc3-8594317feb51"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Delivered",
+        "position": {
+          "x": 340,
+          "y": 2880
+        },
+        "config": {
+          "reason": "{{form.item}} delivered to {{form.requester_name}} (asset {{asset_id}})"
+        }
+      },
+      {
+        "id": "closed",
+        "type": "end_workflow",
+        "label": "Closed",
+        "position": {
+          "x": 660,
+          "y": 2720
+        },
+        "config": {
+          "reason": "Request {{request_reference}} closed without delivery"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-cc_form",
+        "source": "trigger",
+        "target": "cc_form"
+      },
+      {
+        "id": "e-cc_form-reference",
+        "source": "cc_form",
+        "target": "reference"
+      },
+      {
+        "id": "e-reference-title",
+        "source": "reference",
+        "target": "title"
+      },
+      {
+        "id": "e-title-lookup",
+        "source": "title",
+        "target": "lookup"
+      },
+      {
+        "id": "e-lookup-total",
+        "source": "lookup",
+        "target": "total"
+      },
+      {
+        "id": "e-total-policy",
+        "source": "total",
+        "target": "policy"
+      },
+      {
+        "id": "e-policy-sla",
+        "source": "policy",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-auto",
+        "source": "sla",
+        "target": "auto"
+      },
+      {
+        "id": "e-auto-notify_approved-auto-approve",
+        "source": "auto",
+        "target": "notify_approved",
+        "label": "Auto-approve"
+      },
+      {
+        "id": "e-auto-manager-else",
+        "source": "auto",
+        "target": "manager",
+        "label": "Else"
+      },
+      {
+        "id": "e-manager-cc-approve",
+        "source": "manager",
+        "target": "cc",
+        "label": "Approve"
+      },
+      {
+        "id": "e-manager-notify_rejected-reject",
+        "source": "manager",
+        "target": "notify_rejected",
+        "label": "Reject"
+      },
+      {
+        "id": "e-cc-needs_finance",
+        "source": "cc",
+        "target": "needs_finance"
+      },
+      {
+        "id": "e-needs_finance-finance-finance",
+        "source": "needs_finance",
+        "target": "finance",
+        "label": "Finance"
+      },
+      {
+        "id": "e-needs_finance-notify_approved-else",
+        "source": "needs_finance",
+        "target": "notify_approved",
+        "label": "Else"
+      },
+      {
+        "id": "e-finance-notify_approved-approve",
+        "source": "finance",
+        "target": "notify_approved",
+        "label": "Approve"
+      },
+      {
+        "id": "e-finance-notify_rejected-reject",
+        "source": "finance",
+        "target": "notify_rejected",
+        "label": "Reject"
+      },
+      {
+        "id": "e-notify_approved-fulfil",
+        "source": "notify_approved",
+        "target": "fulfil"
+      },
+      {
+        "id": "e-fulfil-register-fulfilled",
+        "source": "fulfil",
+        "target": "register",
+        "label": "Fulfilled"
+      },
+      {
+        "id": "e-fulfil-notify_rejected-cannot-fulfil",
+        "source": "fulfil",
+        "target": "notify_rejected",
+        "label": "Cannot fulfil"
+      },
+      {
+        "id": "e-register-notify_ready",
+        "source": "register",
+        "target": "notify_ready"
+      },
+      {
+        "id": "e-notify_ready-done",
+        "source": "notify_ready",
+        "target": "done"
+      },
+      {
+        "id": "e-notify_rejected-closed",
+        "source": "notify_rejected",
+        "target": "closed"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

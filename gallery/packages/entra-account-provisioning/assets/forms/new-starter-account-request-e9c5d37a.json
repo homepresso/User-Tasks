@@ -1,0 +1,374 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "e9c5d37a-8eec-55a8-b1ff-2e2755fd080e",
+  "asset": {
+    "id": "e9c5d37a-8eec-55a8-b1ff-2e2755fd080e",
+    "name": "New starter account request",
+    "description": "IT's form for a new Microsoft 365 / Entra ID account: starter details, department (licence and group fill in), start date and the approving manager.",
+    "tags": [
+      "it",
+      "onboarding",
+      "microsoft 365"
+    ],
+    "fields": [
+      {
+        "key": "h_person",
+        "label": "New starter",
+        "type": "heading"
+      },
+      {
+        "key": "given_name",
+        "label": "First name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "surname",
+        "label": "Last name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "job_title",
+        "label": "Job title",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "employee_id",
+        "label": "Employee id",
+        "type": "text",
+        "placeholder": "From the HR system"
+      },
+      {
+        "key": "personal_email",
+        "label": "Personal email",
+        "type": "email",
+        "required": true,
+        "help_text": "Where the welcome email with their new sign-in name goes"
+      },
+      {
+        "key": "start_date",
+        "label": "Start date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "office_location",
+        "label": "Office",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Auckland",
+          "Wellington",
+          "Sydney",
+          "Melbourne",
+          "Remote"
+        ]
+      },
+      {
+        "key": "h_access",
+        "label": "Access",
+        "type": "heading"
+      },
+      {
+        "key": "department",
+        "label": "Department",
+        "type": "lookup",
+        "required": true,
+        "help_text": "Fills the licence and group",
+        "lookup": {
+          "source": "table",
+          "table_id": "10db3274-4f9f-5f88-b7c1-c6e30b493e78",
+          "search_columns": [
+            "name",
+            "code"
+          ],
+          "display_columns": [
+            "name",
+            "licence_name"
+          ],
+          "value_column": "code",
+          "fill": [
+            {
+              "from": "licence_name",
+              "to": "licence_name"
+            },
+            {
+              "from": "licence_sku_id",
+              "to": "licence_sku_id"
+            },
+            {
+              "from": "group_id",
+              "to": "group_id"
+            },
+            {
+              "from": "group_name",
+              "to": "group_name"
+            },
+            {
+              "from": "usage_location",
+              "to": "usage_location"
+            },
+            {
+              "from": "mail_domain",
+              "to": "mail_domain"
+            }
+          ],
+          "sort": {
+            "column": "name",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "licence_name",
+        "label": "Licence",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "group_name",
+        "label": "Group",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "licence_sku_id",
+        "label": "Licence SKU id",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "group_id",
+        "label": "Group object id",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "usage_location",
+        "label": "Usage location",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "mail_domain",
+        "label": "Mail domain",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "manager",
+        "label": "Approving manager",
+        "type": "user",
+        "required": true,
+        "help_text": "Approves the account before it is created"
+      },
+      {
+        "key": "manager_email",
+        "label": "Manager email",
+        "type": "email",
+        "required": true,
+        "help_text": "Gets the first sign-in details"
+      },
+      {
+        "key": "notes",
+        "label": "Notes for IT",
+        "type": "textarea"
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_person",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "given_name",
+              "span": 1
+            },
+            {
+              "field_key": "surname",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "job_title",
+              "span": 1
+            },
+            {
+              "field_key": "employee_id",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "personal_email",
+              "span": 1
+            },
+            {
+              "field_key": "start_date",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "office_location",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_access",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "department",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "licence_name",
+              "span": 1
+            },
+            {
+              "field_key": "group_name",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "licence_sku_id",
+              "span": 1
+            },
+            {
+              "field_key": "group_id",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "usage_location",
+              "span": 1
+            },
+            {
+              "field_key": "mail_domain",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "manager",
+              "span": 1
+            },
+            {
+              "field_key": "manager_email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "notes",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#0F6CBD",
+            "background": "#FFFFFF",
+            "text": "#242424",
+            "page": "#EEF4FB",
+            "page_to": "#F8FAFD"
+          }
+        },
+        "radius": 8,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Request account",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Request sent for {{given_name}} {{surname}}",
+            "screen_button": "submit_another",
+            "text": "The approving manager has a task. Once approved, the account is created in Entra ID with the {{licence_name}} licence and added to {{group_name}}.",
+            "screen_button_label": "Another starter"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "New starter account",
+      "align": "left",
+      "subtitle": "Microsoft 365 and Entra ID: the manager approves, then the account, licence and group are created."
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "0e868cb9-c8f0-47af-93a8-a23280605f13",
+  "asset": {
+    "id": "0e868cb9-c8f0-47af-93a8-a23280605f13",
+    "name": "Document ready to sign",
+    "description": "Sent to the signer with the signing link.",
+    "subject": "Please sign: {{doc_title}} {{contract_reference}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">A document is ready for your signature</h2>\n  <p>Hello {{signer_name}},</p>\n  <p>The <strong>{{doc_title}}</strong> for <strong>{{customer_name}}</strong> (reference {{contract_reference}}) is ready. It covers {{term_months}} months from {{start_date_text}} for {{currency}} {{=FORMAT_NUMBER(amount, 2)}}.</p>\n  <p><a href=\"{{signing_url}}\">Review and sign the document</a>. The link expires on {{=FORMAT_DATE(expires_at, \"DD/MM/YYYY\")}}.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent on behalf of your company</p>\n</div>",
+    "text_body": "A document is ready for your signature\n  Hello {{signer_name}},\n  The {{doc_title}} for {{customer_name}} (reference {{contract_reference}}) is ready. It covers {{term_months}} months from {{start_date_text}} for {{currency}} {{=FORMAT_NUMBER(amount, 2)}}.\n  Review and sign the document. The link expires on {{=FORMAT_DATE(expires_at, \"DD/MM/YYYY\")}}.\n  Sent on behalf of your company",
+    "is_default": false
+  }
+}

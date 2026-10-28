@@ -1,0 +1,111 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "f5c8cafc-ed3b-467b-a5e0-9e94473c487b",
+  "asset": {
+    "id": "f5c8cafc-ed3b-467b-a5e0-9e94473c487b",
+    "integration_id": "6d6b9008-fcfe-463d-b597-fccec99d0518",
+    "name": "Reserve stock",
+    "description": "Reserve stock for every order line; the reservation expires if the order is not confirmed.",
+    "tags": [
+      "inventory"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"order_id\":\"{{order_id}}\",\"lines\":{{lines}},\"hold_minutes\":30}",
+      "path_template": "/reservations",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "reservation_id",
+              "type": "string",
+              "example": "RSV-771204"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "reserved"
+            },
+            {
+              "name": "warehouse",
+              "type": "string",
+              "example": "AKL-01"
+            },
+            {
+              "name": "expires_at",
+              "type": "string",
+              "example": "2026-10-26T10:35:00Z"
+            },
+            {
+              "name": "backordered_lines",
+              "type": "array"
+            }
+          ]
+        },
+        "sample": {
+          "reservation_id": "RSV-771204",
+          "status": "reserved",
+          "warehouse": "AKL-01",
+          "expires_at": "2026-10-26T10:35:00Z",
+          "backordered_lines": []
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "1c701aa0-8fd4-42e4-9d7b-cc4d43e885b6",
+        "name": "order_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "d6ca09dd-6a2c-4aa9-8075-95e59821f61c",
+        "name": "lines",
+        "type": "array",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Order lines [{ sku, qty, price }]",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "f123d5ea-8fee-449a-89c9-e4988b1737a9",
+        "name": "reservation_id",
+        "path": "reservation_id",
+        "type": "string"
+      },
+      {
+        "id": "1f5506d9-288a-42b0-8eb8-9b673643bf80",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "f45f30a0-1d26-4843-afcf-f066cd28e84b",
+        "name": "warehouse",
+        "path": "warehouse",
+        "type": "string"
+      },
+      {
+        "id": "4e4f62f4-ccee-4cd1-b889-7168ac24337b",
+        "name": "backordered",
+        "path": "backordered_lines",
+        "type": "array"
+      }
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "d4aaece8-ff18-5e74-928b-8b7f27eebde5",
+  "asset": {
+    "id": "d4aaece8-ff18-5e74-928b-8b7f27eebde5",
+    "name": "Petty cash ledger rows",
+    "rows": [
+      {
+        "id": "06d65ffd-59ab-5edb-8cc7-7c370c20b7fd",
+        "data": {
+          "claim_ref": "PC-20261007-4RT1",
+          "claimed_on": "2026-10-07",
+          "month": "2026-10",
+          "claimant_name": "Ivy Chen",
+          "claimant_email": "ivy.chen@example.com",
+          "cost_centre": "CC-100",
+          "gl_code": "6100 Office supplies",
+          "category": "Office supplies",
+          "spent_on": "2026-10-06",
+          "description": "Whiteboard markers and sticky notes",
+          "amount": 38.5,
+          "receipt_url": "https://files.example.com/receipts/pc-4rt1.jpg",
+          "route": "Small with receipt",
+          "status": "Paid",
+          "approver_comment": "",
+          "paid_on": "2026-10-07"
+        }
+      },
+      {
+        "id": "e3ce52c3-381f-5f30-90c0-b11cd570072a",
+        "data": {
+          "claim_ref": "PC-20261015-9XK3",
+          "claimed_on": "2026-10-15",
+          "month": "2026-10",
+          "claimant_name": "Tom Reid",
+          "claimant_email": "tom.reid@example.com",
+          "cost_centre": "CC-100",
+          "gl_code": "6100 Office supplies",
+          "category": "Kitchen & hospitality",
+          "spent_on": "2026-10-14",
+          "description": "Milk, tea and coffee for the office",
+          "amount": 64.2,
+          "receipt_url": "https://files.example.com/receipts/pc-9xk3.jpg",
+          "route": "Budget holder",
+          "status": "Paid",
+          "approver_comment": "OK",
+          "paid_on": "2026-10-16"
+        }
+      }
+    ]
+  }
+}

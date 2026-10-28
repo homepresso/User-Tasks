@@ -1,0 +1,14 @@
+-- tasks list for a user (newest 50) as service_role
+SELECT * FROM public.tasks WHERE tenant_id = '0be0c000-0000-4000-8000-000000000001' AND assignee_id = '0be0d002-0000-4000-8000-000000000000' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 50
+
+Limit  (cost=0.29..227.43 rows=50 width=709) (actual time=0.098..0.118 rows=50 loops=1)
+  Buffers: shared hit=329
+  ->  Index Scan using idx_tasks_tenant_created on tasks  (cost=0.29..8086.29 rows=1780 width=709) (actual time=0.098..0.115 rows=50 loops=1)
+        Index Cond: (tenant_id = '0be0c000-0000-4000-8000-000000000001'::uuid)
+        Filter: (assignee_id = '0be0d002-0000-4000-8000-000000000000'::uuid)
+        Rows Removed by Filter: 277
+        Buffers: shared hit=329
+Planning:
+  Buffers: shared hit=4
+Planning Time: 0.054 ms
+Execution Time: 0.130 ms

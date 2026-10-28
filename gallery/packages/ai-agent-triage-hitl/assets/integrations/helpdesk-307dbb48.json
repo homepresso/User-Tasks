@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "307dbb48-f993-4741-b526-bb4870989220",
+  "asset": {
+    "id": "307dbb48-f993-4741-b526-bb4870989220",
+    "name": "Helpdesk",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://helpdesk.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "support",
+      "helpdesk"
+    ]
+  }
+}

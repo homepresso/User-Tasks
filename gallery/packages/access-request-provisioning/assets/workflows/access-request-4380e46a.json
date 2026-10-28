@@ -1,0 +1,1057 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "4380e46a-b660-48a0-923c-95a476fb41e1",
+  "asset": {
+    "id": "4380e46a-b660-48a0-923c-95a476fb41e1",
+    "name": "Access request",
+    "description": "Someone requests access to an application; the catalogue and approval path decide which approvals it needs, then the grant is provisioned in the identity platform and removed automatically when time-boxed access ends.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Access requested",
+        "position": {
+          "x": 1380,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "requester_name",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "requester_email",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "employee_id",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "application",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "duration",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "role",
+                      "span": 3
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "justification",
+                      "span": 3
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "manager_user_id",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "app_owner_user_id",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "security_user_id",
+                      "span": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#4F46E5",
+                    "background": "#FFFFFF",
+                    "text": "#1B1916",
+                    "page": "#EFEFFC"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "header": {
+                  "enabled": true,
+                  "title": "Request access",
+                  "subtitle": "Privileged and high-risk roles also need a security review."
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 1380,
+          "y": 220
+        },
+        "config": {
+          "title": "Access: {{application}} · {{role}} · {{employee_id}}"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Request reference",
+        "position": {
+          "x": 1380,
+          "y": 380
+        },
+        "config": {
+          "name": "request_reference",
+          "expression": "ACC-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 6))}}"
+        }
+      },
+      {
+        "id": "user",
+        "type": "call_reference",
+        "label": "Get user",
+        "position": {
+          "x": 1380,
+          "y": 540
+        },
+        "config": {
+          "reference_id": "2d82e350-cb2b-4bb8-94ea-28674fea13ad",
+          "reference_name": "Get user",
+          "reference_method": "GET",
+          "input_mappings": {
+            "employee_id": "{{employee_id}}"
+          },
+          "output_mappings": {
+            "display_name": {
+              "enabled": true,
+              "variableName": "user_name"
+            },
+            "email": {
+              "enabled": true,
+              "variableName": "user_email"
+            },
+            "department": {
+              "enabled": true,
+              "variableName": "department"
+            },
+            "manager_name": {
+              "enabled": true,
+              "variableName": "manager_name"
+            }
+          }
+        }
+      },
+      {
+        "id": "app",
+        "type": "update_data_table",
+        "label": "Look up application",
+        "position": {
+          "x": 1380,
+          "y": 700
+        },
+        "config": {
+          "table_id": "4e4a23e9-834c-47eb-9326-704495f8c238",
+          "table_name": "Application catalogue",
+          "operation": "get",
+          "match_column": "application",
+          "match_value": "{{application}}",
+          "output_row_var": "app"
+        }
+      },
+      {
+        "id": "expiry",
+        "type": "set_variable",
+        "label": "Expiry date",
+        "position": {
+          "x": 1380,
+          "y": 860
+        },
+        "config": {
+          "name": "expires_at",
+          "expression": "{{=IF(TO_NUMBER(LEFT(duration, 2)) > 0, ADD_DAYS(NOW(), TO_NUMBER(LEFT(duration, 2))), \"\")}}"
+        }
+      },
+      {
+        "id": "policy",
+        "type": "decision_table",
+        "label": "Approval path",
+        "position": {
+          "x": 1380,
+          "y": 1020
+        },
+        "config": {
+          "decision_table_id": "8a0cdcfc-7027-429a-ad88-cfb51914b057",
+          "decision_table_name": "Access approval path",
+          "input_mappings": {
+            "risk_level": "{{app.risk_level}}",
+            "privileged": "{{app.privileged}}",
+            "duration": "{{duration}}"
+          }
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Request SLA",
+        "position": {
+          "x": 1380,
+          "y": 1180
+        },
+        "config": {
+          "sla_label": "Access request",
+          "mode": "exact",
+          "due_at": "{{=ADD_DAYS(NOW(), sla_days)}}",
+          "warning_amount": 1,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "mgr",
+        "type": "user_task",
+        "label": "Manager approval",
+        "position": {
+          "x": 1380,
+          "y": 1340
+        },
+        "config": {
+          "task_title": "Approve access: {{user_name}} → {{application}} ({{role}})",
+          "task_description": "<p><strong>{{requester_name}}</strong> requested <strong>{{role}}</strong> on <strong>{{application}}</strong> for {{user_name}} ({{department}}), {{duration}}.</p><p>Justification: {{justification}}</p><p>Application risk: <strong>{{app.risk_level}}</strong>{{=IF(app.privileged, \" · privileged role\", \"\")}}. Approval path: {{approval_path}}.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "bde6ea92-5bf5-427a-ab90-5bf34123ebda",
+          "assignee_variable": "{{manager_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "role_confirmed",
+              "label": "Role is right for the job",
+              "type": "boolean",
+              "default": "true"
+            },
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "role_confirmed",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "comment",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Access request: {{application}}",
+            "align": "left",
+            "subtitle": "{{user_name}} · {{role}} · {{duration}}"
+          }
+        }
+      },
+      {
+        "id": "need_owner",
+        "type": "condition",
+        "label": "Owner approval needed?",
+        "position": {
+          "x": 1380,
+          "y": 1520
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Owner",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_owner}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "owner",
+        "type": "user_task",
+        "label": "Application owner approval",
+        "position": {
+          "x": 820,
+          "y": 1700
+        },
+        "config": {
+          "task_title": "Owner approval: {{application}} {{role}} for {{user_name}}",
+          "task_description": "<p>{{user_name}} ({{department}}) needs <strong>{{role}}</strong> on {{application}} for {{duration}}. Manager approved: {{task_data.comment}}</p><p>Justification: {{justification}}</p><p>Group to be granted: <code>{{app.provisioning_group}}</code>. Catalogue notes: {{app.notes}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "c4f3c6b2-5973-4e1d-9240-163ea26720f4",
+          "assignee_variable": "{{app_owner_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "provisioning_group",
+              "label": "Provisioning group",
+              "type": "lookup",
+              "required": true,
+              "default": "{{app.provisioning_group}}",
+              "help_text": "Group from the Application catalogue",
+              "lookup": {
+                "source": "table",
+                "table_id": "4e4a23e9-834c-47eb-9326-704495f8c238",
+                "search_columns": [
+                  "application",
+                  "provisioning_group"
+                ],
+                "display_columns": [
+                  "provisioning_group",
+                  "application"
+                ],
+                "value_column": "provisioning_group",
+                "fill": [
+                  {
+                    "from": "risk_level",
+                    "to": "app_risk_level"
+                  },
+                  {
+                    "from": "privileged",
+                    "to": "app_privileged"
+                  }
+                ]
+              }
+            },
+            {
+              "key": "app_risk_level",
+              "label": "Risk level",
+              "type": "text",
+              "read_only": true
+            },
+            {
+              "key": "app_privileged",
+              "label": "Privileged",
+              "type": "boolean",
+              "read_only": true
+            },
+            {
+              "key": "sod_checked",
+              "label": "Segregation-of-duties checked",
+              "type": "boolean"
+            },
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "provisioning_group",
+                    "span": 2
+                  },
+                  {
+                    "field_key": "app_risk_level",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "app_privileged",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "sod_checked",
+                    "span": 4
+                  }
+                ]
+              },
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 4
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Owner approval: {{application}}",
+            "align": "left",
+            "subtitle": "{{user_name}} · {{role}} · {{duration}}"
+          }
+        }
+      },
+      {
+        "id": "group_owner",
+        "type": "set_variable",
+        "label": "Group from owner",
+        "position": {
+          "x": 820,
+          "y": 1880
+        },
+        "config": {
+          "name": "group",
+          "expression": "{{=COALESCE(task_data.provisioning_group, app.provisioning_group)}}"
+        }
+      },
+      {
+        "id": "need_sec",
+        "type": "condition",
+        "label": "Security approval needed?",
+        "position": {
+          "x": 820,
+          "y": 2040
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Security",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_security}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "sec",
+        "type": "user_task",
+        "label": "Security approval",
+        "position": {
+          "x": 580,
+          "y": 2220
+        },
+        "config": {
+          "task_title": "Security review: {{application}} {{role}} for {{user_name}}",
+          "task_description": "<p>{{approval_path}} required for <strong>{{role}}</strong> on {{application}} (risk {{app.risk_level}}{{=IF(app.privileged, \", privileged\", \"\")}}), {{duration}}.</p><p>Justification: {{justification}}</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "2cdf648b-e1e5-412b-83f2-203df13c4cc0",
+          "assignee_variable": "{{security_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "mfa_enforced",
+              "label": "MFA / PAM enforced for this role",
+              "type": "boolean"
+            },
+            {
+              "key": "comment",
+              "label": "Security notes",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "mfa_enforced",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "comment",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Security review: {{application}}",
+            "align": "left",
+            "subtitle": "{{user_name}} · {{role}} · {{duration}}"
+          }
+        }
+      },
+      {
+        "id": "group_final",
+        "type": "set_variable",
+        "label": "Provisioning group",
+        "position": {
+          "x": 580,
+          "y": 2400
+        },
+        "config": {
+          "name": "group",
+          "expression": "{{=COALESCE(group, app.provisioning_group)}}"
+        }
+      },
+      {
+        "id": "grant",
+        "type": "call_reference",
+        "label": "Provision access",
+        "position": {
+          "x": 580,
+          "y": 2560
+        },
+        "config": {
+          "reference_id": "7c47ecb6-718f-479f-adf4-2c3a1d3306e2",
+          "reference_name": "Create access grant",
+          "reference_method": "POST",
+          "input_mappings": {
+            "employee_id": "{{employee_id}}",
+            "application": "{{application}}",
+            "role": "{{role}}",
+            "group": "{{group}}",
+            "expires_at": "{{expires_at}}",
+            "request_reference": "{{request_reference}}"
+          },
+          "output_mappings": {
+            "grant_id": {
+              "enabled": true,
+              "variableName": "grant_id"
+            },
+            "provisioned_at": {
+              "enabled": true,
+              "variableName": "provisioned_at"
+            }
+          }
+        }
+      },
+      {
+        "id": "notify_ok",
+        "type": "send_email",
+        "label": "Email requester: granted",
+        "position": {
+          "x": 580,
+          "y": 2720
+        },
+        "config": {
+          "to": "{{requester_email}}",
+          "email_template_id": "f8898e10-a58e-4b61-ac70-b1c3e2dce545"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "timeboxed",
+        "type": "condition",
+        "label": "Time-boxed?",
+        "position": {
+          "x": 580,
+          "y": 2880
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Time-boxed",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{duration}}",
+                  "operator": "not_equals",
+                  "value": "permanent"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "schedule_revoke",
+        "type": "call_sub_workflow",
+        "label": "Schedule revocation",
+        "position": {
+          "x": 340,
+          "y": 3060
+        },
+        "config": {
+          "sub_workflow_id": "6d4612d6-dfb9-4be3-9784-ca57a4f7901d",
+          "sub_workflow_name": "Revoke access on expiry",
+          "input_mappings": {
+            "grant_id": "{{grant_id}}",
+            "duration": "{{duration}}",
+            "application": "{{application}}",
+            "role": "{{role}}",
+            "requester_name": "{{requester_name}}",
+            "requester_email": "{{requester_email}}",
+            "user_name": "{{user_name}}"
+          }
+        },
+        "executionMode": "async"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Provisioned",
+        "position": {
+          "x": 580,
+          "y": 3220
+        },
+        "config": {
+          "reason": "{{request_reference}}: {{application}} {{role}} granted ({{grant_id}})"
+        }
+      },
+      {
+        "id": "rej_mgr",
+        "type": "set_variable",
+        "label": "Rejected by manager",
+        "position": {
+          "x": 1700,
+          "y": 1520
+        },
+        "config": {
+          "name": "rejected_at_step",
+          "expression": "Manager"
+        }
+      },
+      {
+        "id": "rej_owner",
+        "type": "set_variable",
+        "label": "Rejected by application owner",
+        "position": {
+          "x": 1140,
+          "y": 1880
+        },
+        "config": {
+          "name": "rejected_at_step",
+          "expression": "Application owner"
+        }
+      },
+      {
+        "id": "rej_sec",
+        "type": "set_variable",
+        "label": "Rejected by security",
+        "position": {
+          "x": 900,
+          "y": 2400
+        },
+        "config": {
+          "name": "rejected_at_step",
+          "expression": "Security"
+        }
+      },
+      {
+        "id": "notify_no",
+        "type": "send_email",
+        "label": "Email requester: declined",
+        "position": {
+          "x": 900,
+          "y": 2560
+        },
+        "config": {
+          "to": "{{requester_email}}",
+          "email_template_id": "59421741-9da7-4e4a-9478-ca239c31ce0f"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "closed",
+        "type": "end_workflow",
+        "label": "Declined",
+        "position": {
+          "x": 900,
+          "y": 2720
+        },
+        "config": {
+          "reason": "{{request_reference}} rejected by {{rejected_at_step}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-ref",
+        "source": "title",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-user",
+        "source": "ref",
+        "target": "user"
+      },
+      {
+        "id": "e-user-app",
+        "source": "user",
+        "target": "app"
+      },
+      {
+        "id": "e-app-expiry",
+        "source": "app",
+        "target": "expiry"
+      },
+      {
+        "id": "e-expiry-policy",
+        "source": "expiry",
+        "target": "policy"
+      },
+      {
+        "id": "e-policy-sla",
+        "source": "policy",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-mgr",
+        "source": "sla",
+        "target": "mgr"
+      },
+      {
+        "id": "e-mgr-need_owner-approve",
+        "source": "mgr",
+        "target": "need_owner",
+        "label": "Approve"
+      },
+      {
+        "id": "e-mgr-rej_mgr-reject",
+        "source": "mgr",
+        "target": "rej_mgr",
+        "label": "Reject"
+      },
+      {
+        "id": "e-need_owner-owner-owner",
+        "source": "need_owner",
+        "target": "owner",
+        "label": "Owner"
+      },
+      {
+        "id": "e-need_owner-need_sec-else",
+        "source": "need_owner",
+        "target": "need_sec",
+        "label": "Else"
+      },
+      {
+        "id": "e-owner-group_owner-approve",
+        "source": "owner",
+        "target": "group_owner",
+        "label": "Approve"
+      },
+      {
+        "id": "e-owner-rej_owner-reject",
+        "source": "owner",
+        "target": "rej_owner",
+        "label": "Reject"
+      },
+      {
+        "id": "e-group_owner-need_sec",
+        "source": "group_owner",
+        "target": "need_sec"
+      },
+      {
+        "id": "e-need_sec-sec-security",
+        "source": "need_sec",
+        "target": "sec",
+        "label": "Security"
+      },
+      {
+        "id": "e-need_sec-group_final-else",
+        "source": "need_sec",
+        "target": "group_final",
+        "label": "Else"
+      },
+      {
+        "id": "e-sec-group_final-approve",
+        "source": "sec",
+        "target": "group_final",
+        "label": "Approve"
+      },
+      {
+        "id": "e-sec-rej_sec-reject",
+        "source": "sec",
+        "target": "rej_sec",
+        "label": "Reject"
+      },
+      {
+        "id": "e-group_final-grant",
+        "source": "group_final",
+        "target": "grant"
+      },
+      {
+        "id": "e-grant-notify_ok",
+        "source": "grant",
+        "target": "notify_ok"
+      },
+      {
+        "id": "e-notify_ok-timeboxed",
+        "source": "notify_ok",
+        "target": "timeboxed"
+      },
+      {
+        "id": "e-timeboxed-schedule_revoke-time-boxed",
+        "source": "timeboxed",
+        "target": "schedule_revoke",
+        "label": "Time-boxed"
+      },
+      {
+        "id": "e-timeboxed-done-else",
+        "source": "timeboxed",
+        "target": "done",
+        "label": "Else"
+      },
+      {
+        "id": "e-schedule_revoke-done",
+        "source": "schedule_revoke",
+        "target": "done"
+      },
+      {
+        "id": "e-rej_mgr-notify_no",
+        "source": "rej_mgr",
+        "target": "notify_no"
+      },
+      {
+        "id": "e-rej_owner-notify_no",
+        "source": "rej_owner",
+        "target": "notify_no"
+      },
+      {
+        "id": "e-rej_sec-notify_no",
+        "source": "rej_sec",
+        "target": "notify_no"
+      },
+      {
+        "id": "e-notify_no-closed",
+        "source": "notify_no",
+        "target": "closed"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-requester_name",
+        "name": "requester_name",
+        "type": "string",
+        "description": "Your name",
+        "defaultValue": "",
+        "required": true,
+        "label": "Your name"
+      },
+      {
+        "id": "v-requester_email",
+        "name": "requester_email",
+        "type": "string",
+        "description": "Where to send the outcome",
+        "defaultValue": "",
+        "required": true,
+        "label": "Your email",
+        "format": "email"
+      },
+      {
+        "id": "v-employee_id",
+        "name": "employee_id",
+        "type": "string",
+        "description": "Employee id of the person who needs the access (yourself or a team member), e.g. E-2040",
+        "defaultValue": "",
+        "required": true,
+        "label": "Requested for (employee id)"
+      },
+      {
+        "id": "v-application",
+        "name": "application",
+        "type": "string",
+        "description": "Application from the Application catalogue",
+        "defaultValue": "",
+        "required": true,
+        "label": "Application",
+        "options": [
+          "Finance ERP",
+          "CRM",
+          "HR system",
+          "Data warehouse",
+          "Source control",
+          "Cloud console (admin)",
+          "Customer database (DBA)"
+        ]
+      },
+      {
+        "id": "v-role",
+        "name": "role",
+        "type": "string",
+        "description": "Role or entitlement inside the application, e.g. \"Accounts payable clerk\"",
+        "defaultValue": "",
+        "required": true,
+        "label": "Role / entitlement"
+      },
+      {
+        "id": "v-justification",
+        "name": "justification",
+        "type": "string",
+        "description": "Why the access is needed and what it will be used for",
+        "defaultValue": "",
+        "required": true,
+        "label": "Business justification"
+      },
+      {
+        "id": "v-duration",
+        "name": "duration",
+        "type": "string",
+        "description": "How long the access is needed; time-boxed access is removed automatically",
+        "defaultValue": "90 days",
+        "required": true,
+        "label": "Duration",
+        "options": [
+          "30 days",
+          "90 days",
+          "permanent"
+        ]
+      },
+      {
+        "id": "v-manager_user_id",
+        "name": "manager_user_id",
+        "type": "string",
+        "description": "Optional: user id of the line manager approver (overrides the default chosen on install)",
+        "defaultValue": "",
+        "label": "Manager (user id)"
+      },
+      {
+        "id": "v-app_owner_user_id",
+        "name": "app_owner_user_id",
+        "type": "string",
+        "description": "Optional: user id of the application owner approver",
+        "defaultValue": "",
+        "label": "Application owner (user id)"
+      },
+      {
+        "id": "v-security_user_id",
+        "name": "security_user_id",
+        "type": "string",
+        "description": "Optional: user id of the security reviewer",
+        "defaultValue": "",
+        "label": "Security reviewer (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

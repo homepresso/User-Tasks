@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "2aad09dd-6904-4898-859f-b2ed73d5492c",
+  "asset": {
+    "id": "2aad09dd-6904-4898-859f-b2ed73d5492c",
+    "name": "KYC provider",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://kyc.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "kyc",
+      "compliance"
+    ]
+  }
+}

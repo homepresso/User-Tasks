@@ -1,0 +1,65 @@
+{
+  "id": "efded5b9-407a-4b99-a790-0c1a7d85b4c1",
+  "slug": "joiner-mover-leaver-sync",
+  "title": "Joiner, mover, leaver sync",
+  "category": "it-security",
+  "summary": "A nightly job reads joiners, movers and leavers from the HR system and creates, updates or disables directory accounts with role-based groups, logging every action.",
+  "description": "Joiner, mover, leaver sync keeps your directory in step with the HR system without tickets. Every night at 02:00 it asks the HR system for the workforce changes effective since the previous day.\n\nEach change is processed in turn. The Role mappings table (department and job family) gives the birthright groups and licence for the role. Joiners get a new directory account with those groups, movers have their department, manager, groups and licence updated, and leavers are disabled with their sessions revoked and groups removed. Every action, including failures, is written to the JML sync log table with the HTTP status, so you can filter for anything that needs attention.\n\nA summary of joiners, movers and leavers is written to the run log at the end. Adapt the role mappings to your groups and licences, and the HR and directory API paths to your platforms. Runs can also be started by hand with a since date to replay a period.",
+  "trigger": "schedule",
+  "entry_workflow": "75dc4472-1355-4254-a90a-eacb16e01023",
+  "start": "Runs on a schedule: daily at 02:00 (Pacific/Auckland; change the time zone in the trigger). Start it by hand with a since date to replay changes.",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "identity lifecycle",
+    "jml",
+    "provisioning",
+    "directory sync",
+    "hr integration"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "directory"
+  ],
+  "setup": [
+    "HR system integration: set the base URL of your HRIS API and an API token. List HR changes expects GET /hr/changes?since=YYYY-MM-DD returning a changes array with change_type joiner / mover / leaver; adjust the path and response model in Integrations.",
+    "Directory integration: set the base URL of your directory or identity API and a token. The references expect POST /users, PATCH /users/{id} and POST /users/{id}/disable.",
+    "Edit the Role mappings rows: one per department and job family, with the comma-separated groups and the licence. Set default_groups and default_licence on the workflow for unmapped roles.",
+    "Check the schedule trigger time and time zone, then publish. Review the JML sync log table after the first run."
+  ],
+  "steps": [
+    {
+      "title": "Nightly at 02:00",
+      "body": "The schedule trigger starts the run and works out the since date (yesterday unless one is passed)."
+    },
+    {
+      "title": "Read HR changes",
+      "body": "List HR changes returns the joiners, movers and leavers effective since that date."
+    },
+    {
+      "title": "Map the role",
+      "body": "For each change, the Role mappings row for the department and job family gives the groups and licence."
+    },
+    {
+      "title": "Apply to the directory",
+      "body": "Joiners are created, movers updated with their new groups and licence, and leavers disabled with sessions and groups revoked."
+    },
+    {
+      "title": "Log every action",
+      "body": "Each change is written to the JML sync log table with the action, directory user, groups and HTTP status; a summary goes to the run log."
+    }
+  ],
+  "sample_input": {
+    "since": "2026-10-25"
+  },
+  "expect": "completed",
+  "icon": "users-round"
+}

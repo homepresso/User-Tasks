@@ -1,0 +1,217 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "59c4581d-48d6-5350-811a-d256be597cdc",
+  "asset": {
+    "id": "59c4581d-48d6-5350-811a-d256be597cdc",
+    "integration_id": "6f1f1c79-952c-5684-8f42-968ee0adef0e",
+    "name": "Get supplier bank details",
+    "description": "API_BUSINESS_PARTNER: the business partner's bank details (to_BusinessPartnerBank): IBAN, SWIFT, bank key, account holder and validity.",
+    "tags": [
+      "sap",
+      "supplier",
+      "bank"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/API_BUSINESS_PARTNER/A_BusinessPartner('{{supplier}}')/to_BusinessPartnerBank",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "d",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "results",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "__metadata",
+                        "type": "object",
+                        "fields": [
+                          {
+                            "name": "type",
+                            "type": "string",
+                            "example": "API_BUSINESS_PARTNER.A_BusinessPartnerBankType"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "BusinessPartner",
+                        "type": "string",
+                        "example": "17300001"
+                      },
+                      {
+                        "name": "BankIdentification",
+                        "type": "string",
+                        "example": "0001"
+                      },
+                      {
+                        "name": "BankCountryKey",
+                        "type": "string",
+                        "example": "DE"
+                      },
+                      {
+                        "name": "BankName",
+                        "type": "string",
+                        "example": "Commerzbank Hamburg"
+                      },
+                      {
+                        "name": "BankNumber",
+                        "type": "string",
+                        "example": "20040000"
+                      },
+                      {
+                        "name": "SWIFTCode",
+                        "type": "string",
+                        "example": "COBADEHHXXX"
+                      },
+                      {
+                        "name": "BankControlKey",
+                        "type": "string",
+                        "example": ""
+                      },
+                      {
+                        "name": "BankAccountHolderName",
+                        "type": "string",
+                        "example": "Northwind Industrial Supply GmbH"
+                      },
+                      {
+                        "name": "BankAccountName",
+                        "type": "string",
+                        "example": "Operating account"
+                      },
+                      {
+                        "name": "ValidityStartDate",
+                        "type": "string",
+                        "example": "/Date(1609459200000)/"
+                      },
+                      {
+                        "name": "ValidityEndDate",
+                        "type": "string",
+                        "example": "/Date(253402214400000)/"
+                      },
+                      {
+                        "name": "IBAN",
+                        "type": "string",
+                        "example": "DE89370400440532013000"
+                      },
+                      {
+                        "name": "IBANValidityStartDate",
+                        "type": "string",
+                        "example": "/Date(1609459200000)/"
+                      },
+                      {
+                        "name": "BankAccount",
+                        "type": "string",
+                        "example": "0532013000"
+                      },
+                      {
+                        "name": "BankAccountReferenceText",
+                        "type": "string",
+                        "example": ""
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "d": {
+            "results": [
+              {
+                "__metadata": {
+                  "type": "API_BUSINESS_PARTNER.A_BusinessPartnerBankType"
+                },
+                "BusinessPartner": "17300001",
+                "BankIdentification": "0001",
+                "BankCountryKey": "DE",
+                "BankName": "Commerzbank Hamburg",
+                "BankNumber": "20040000",
+                "SWIFTCode": "COBADEHHXXX",
+                "BankControlKey": "",
+                "BankAccountHolderName": "Northwind Industrial Supply GmbH",
+                "BankAccountName": "Operating account",
+                "ValidityStartDate": "/Date(1609459200000)/",
+                "ValidityEndDate": "/Date(253402214400000)/",
+                "IBAN": "DE89370400440532013000",
+                "IBANValidityStartDate": "/Date(1609459200000)/",
+                "BankAccount": "0532013000",
+                "BankAccountReferenceText": ""
+              }
+            ]
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "1bf014d5-5f3f-55ba-adf8-1234f1db3b5b",
+        "name": "supplier",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "c0d79490-cc40-5473-bb38-f07d8eb246c5",
+        "name": "banks",
+        "path": "d.results",
+        "type": "array"
+      },
+      {
+        "id": "ef882ab6-1a89-5d64-8fd5-19a9e062f9b9",
+        "name": "current_bank_id",
+        "path": "d.results[0].BankIdentification",
+        "type": "string"
+      },
+      {
+        "id": "b88a3348-bcc5-5c44-9738-539fe3f7822f",
+        "name": "current_iban",
+        "path": "d.results[0].IBAN",
+        "type": "string"
+      },
+      {
+        "id": "7ee1a835-0e75-59d2-8cb0-fc882abbfed9",
+        "name": "current_swift",
+        "path": "d.results[0].SWIFTCode",
+        "type": "string"
+      },
+      {
+        "id": "e7deed1b-48ad-5201-8d82-f7b094100ae4",
+        "name": "current_bank_country",
+        "path": "d.results[0].BankCountryKey",
+        "type": "string"
+      },
+      {
+        "id": "dba6154a-d476-5e35-8abc-f8281edbe7d2",
+        "name": "current_bank_name",
+        "path": "d.results[0].BankName",
+        "type": "string"
+      },
+      {
+        "id": "e5246b72-c50d-5ccc-a40a-5f7a6ab65daf",
+        "name": "current_holder",
+        "path": "d.results[0].BankAccountHolderName",
+        "type": "string"
+      }
+    ]
+  }
+}

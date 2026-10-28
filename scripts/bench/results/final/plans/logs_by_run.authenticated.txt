@@ -1,0 +1,12 @@
+-- workflow_logs for one run as authenticated
+SELECT * FROM public.workflow_logs WHERE run_id = 'aeafe1c6-51d4-44e9-bea5-c4b6b7978b24' ORDER BY created_at
+
+Index Scan using idx_workflow_logs_run_created on workflow_logs  (cost=0.69..25.10 rows=10 width=140) (actual time=0.125..0.128 rows=10 loops=1)
+  Index Cond: (run_id = 'aeafe1c6-51d4-44e9-bea5-c4b6b7978b24'::uuid)
+  Filter: (tenant_id = ANY ((InitPlan 1).col1))
+  Buffers: shared hit=17
+  InitPlan 1
+    ->  Result  (cost=0.00..0.26 rows=1 width=32) (actual time=0.121..0.121 rows=1 loops=1)
+          Buffers: shared hit=4
+Planning Time: 0.025 ms
+Execution Time: 0.134 ms

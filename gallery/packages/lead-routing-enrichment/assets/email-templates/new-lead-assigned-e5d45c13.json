@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "e5d45c13-0f1c-4522-b949-f9e7a0fb9ab9",
+  "asset": {
+    "id": "e5d45c13-0f1c-4522-b949-f9e7a0fb9ab9",
+    "name": "New lead assigned",
+    "description": "Sent to the territory owner when a sales-ready lead is assigned to them.",
+    "subject": "{{priority}} lead: {{first_name}} {{last_name}} at {{company}} (score {{score}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">A new lead is yours</h2>\n  <p>Hi {{owner_name}},</p>\n  <p><strong>{{first_name}} {{last_name}}</strong> ({{job_title}}) at <strong>{{company}}</strong> came in through <em>{{source}}</em>.</p>\n  <p>{{segment}} · {{industry}} · {{employees}} employees · {{country}}. Score <strong>{{score}}</strong>, priority {{priority}}.</p>\n  <p>Message: “{{message}}”</p>\n  <p>Please make first contact within one business day. <a href=\"{{lead_url}}\">Open the lead in the CRM</a> · <a href=\"{{linkedin_url}}\">Company page</a></p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the lead routing workflow</p>\n</div>",
+    "text_body": "A new lead is yours\n  Hi {{owner_name}},\n  {{first_name}} {{last_name}} ({{job_title}}) at {{company}} came in through {{source}}.\n  {{segment}} · {{industry}} · {{employees}} employees · {{country}}. Score {{score}}, priority {{priority}}.\n  Message: “{{message}}”\n  Please make first contact within one business day. Open the lead in the CRM · Company page\n  Sent by the lead routing workflow",
+    "is_default": false
+  }
+}

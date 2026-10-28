@@ -1,0 +1,54 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "e392c9de-d0ba-53be-9a1d-c47394c07538",
+  "asset": {
+    "id": "e392c9de-d0ba-53be-9a1d-c47394c07538",
+    "name": "Access bundles",
+    "description": "Role-based access bundles: which applications and groups each bundle grants, its risk and who owns it. The decision table picks a bundle code; this table says what it contains.",
+    "columns": [
+      {
+        "id": "a479eac8-ef73-5796-b2ad-453d748afe7b",
+        "required": true,
+        "key": "bundle_code",
+        "name": "Bundle code",
+        "type": "text"
+      },
+      {
+        "id": "be7f1bbd-d476-5914-ba39-6345f278883e",
+        "required": false,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "75b8c3cb-bb6c-52c7-a365-ec6216bbe317",
+        "required": false,
+        "key": "applications",
+        "name": "Applications",
+        "type": "text"
+      },
+      {
+        "id": "c5ae922c-1609-5952-9b48-55d97977c874",
+        "required": false,
+        "key": "groups",
+        "name": "Directory groups",
+        "type": "text"
+      },
+      {
+        "id": "db0bc1ee-ef64-5bfb-8d45-da02a657d3a6",
+        "required": false,
+        "key": "risk",
+        "name": "Risk",
+        "type": "text"
+      },
+      {
+        "id": "e9575fc8-24d3-5e5f-a6ec-6ba53616f44e",
+        "required": false,
+        "key": "owner_team",
+        "name": "Owner team",
+        "type": "text"
+      }
+    ]
+  }
+}

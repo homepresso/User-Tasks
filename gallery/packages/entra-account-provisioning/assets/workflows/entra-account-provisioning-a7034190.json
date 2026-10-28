@@ -1,0 +1,635 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "a7034190-c472-59cb-a115-3f72d9942c25",
+  "asset": {
+    "id": "a7034190-c472-59cb-a115-3f72d9942c25",
+    "name": "Entra account provisioning",
+    "description": "IT submits the new starter form; the UPN is built and checked in Entra ID, the manager approves, then Microsoft Graph creates the user, assigns the department licence, adds the department group and issues a Temporary Access Pass. The starter gets a welcome email with their UPN.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "New starter requested",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "form_id": "e9c5d37a-8eec-55a8-b1ff-2e2755fd080e",
+          "form_name": "New starter account request"
+        }
+      },
+      {
+        "id": "sku",
+        "type": "set_variable",
+        "label": "Licence SKU",
+        "position": {
+          "x": 400,
+          "y": 220
+        },
+        "config": {
+          "name": "sku_id",
+          "expression": "{{=COALESCE(form.licence_sku_id, form.department_item.licence_sku_id)}}"
+        }
+      },
+      {
+        "id": "grp",
+        "type": "set_variable",
+        "label": "Group id",
+        "position": {
+          "x": 400,
+          "y": 380
+        },
+        "config": {
+          "name": "group_id",
+          "expression": "{{=COALESCE(form.group_id, form.department_item.group_id)}}"
+        }
+      },
+      {
+        "id": "lname",
+        "type": "set_variable",
+        "label": "Licence name",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "name": "licence_name",
+          "expression": "{{=COALESCE(form.licence_name, form.department_item.licence_name)}}"
+        }
+      },
+      {
+        "id": "gname",
+        "type": "set_variable",
+        "label": "Group name",
+        "position": {
+          "x": 400,
+          "y": 700
+        },
+        "config": {
+          "name": "group_name",
+          "expression": "{{=COALESCE(form.group_name, form.department_item.group_name)}}"
+        }
+      },
+      {
+        "id": "dname",
+        "type": "set_variable",
+        "label": "Department name",
+        "position": {
+          "x": 400,
+          "y": 860
+        },
+        "config": {
+          "name": "dept_name",
+          "expression": "{{=COALESCE(form.department_item.name, form.department)}}"
+        }
+      },
+      {
+        "id": "loc",
+        "type": "set_variable",
+        "label": "Usage location",
+        "position": {
+          "x": 400,
+          "y": 1020
+        },
+        "config": {
+          "name": "usage_location",
+          "expression": "{{=UPPER(COALESCE(form.usage_location, form.department_item.usage_location, \"NZ\"))}}"
+        }
+      },
+      {
+        "id": "nick",
+        "type": "set_variable",
+        "label": "Mail nickname",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "name": "mail_nickname",
+          "expression": "{{=LOWER(REPLACE(REPLACE(CONCAT(TRIM(form.given_name), \".\", TRIM(form.surname)), \" \", \"\"), \"'\", \"\"))}}"
+        }
+      },
+      {
+        "id": "upn",
+        "type": "set_variable",
+        "label": "User principal name",
+        "position": {
+          "x": 400,
+          "y": 1340
+        },
+        "config": {
+          "name": "upn",
+          "expression": "{{mail_nickname}}@{{=COALESCE(form.mail_domain, form.department_item.mail_domain, \"contoso.example.com\")}}"
+        }
+      },
+      {
+        "id": "find",
+        "type": "call_reference",
+        "label": "Is the UPN taken?",
+        "position": {
+          "x": 400,
+          "y": 1500
+        },
+        "config": {
+          "reference_id": "685bf48f-6507-5f88-9581-bd82c87810da",
+          "reference_name": "Find user by UPN",
+          "reference_method": "GET",
+          "input_mappings": {
+            "$filter": "userPrincipalName eq '{{upn}}'"
+          },
+          "output_mappings": {
+            "existing_users": {
+              "enabled": true,
+              "variableName": "existing_users"
+            }
+          }
+        }
+      },
+      {
+        "id": "taken",
+        "type": "condition",
+        "label": "UPN in use?",
+        "position": {
+          "x": 400,
+          "y": 1660
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Taken",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{=LENGTH(existing_users)}}",
+                  "operator": "gt",
+                  "value": "0"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "upn2",
+        "type": "set_variable",
+        "label": "Add a number",
+        "position": {
+          "x": 720,
+          "y": 1820
+        },
+        "config": {
+          "name": "upn",
+          "expression": "{{mail_nickname}}{{=RIGHT(TO_STRING(YEAR(NOW())), 2)}}@{{=COALESCE(form.mail_domain, form.department_item.mail_domain, \"contoso.example.com\")}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 1980
+        },
+        "config": {
+          "title": "New account: {{form.given_name}} {{form.surname}} ({{upn}})"
+        }
+      },
+      {
+        "id": "approve",
+        "type": "user_task",
+        "label": "Manager approval",
+        "position": {
+          "x": 400,
+          "y": 2140
+        },
+        "config": {
+          "task_title": "Approve account for {{form.given_name}} {{form.surname}} ({{dept_name}}, starts {{form.start_date}})",
+          "task_description": "<p><strong>{{form.given_name}} {{form.surname}}</strong>, {{form.job_title}} in {{dept_name}}, {{form.office_location}}, starting <strong>{{form.start_date}}</strong>.</p><p>Account <strong>{{upn}}</strong> with the <strong>{{licence_name}}</strong> licence and membership of <strong>{{group_name}}</strong>.</p><p>Notes from IT: {{form.notes}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.manager}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320,
+          "fields": [
+            {
+              "key": "upn_ok",
+              "label": "The sign-in name is right",
+              "type": "boolean",
+              "default": "true"
+            },
+            {
+              "key": "licence_ok",
+              "label": "The licence is right",
+              "type": "boolean",
+              "default": "true"
+            },
+            {
+              "key": "extra_access",
+              "label": "Extra access needed later",
+              "type": "text",
+              "placeholder": "Shared mailboxes, Teams, apps: raised as separate requests"
+            },
+            {
+              "key": "comments",
+              "label": "Comments",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "upn_ok",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "licence_ok",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "extra_access",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "comments",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "New starter account",
+            "align": "left",
+            "subtitle": "{{upn}} · {{licence_name}} · {{group_name}}"
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve and create",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ]
+        }
+      },
+      {
+        "id": "pwd",
+        "type": "set_variable",
+        "label": "Initial password",
+        "position": {
+          "x": 80,
+          "y": 2300
+        },
+        "config": {
+          "name": "initial_pw",
+          "expression": "{{=CONCAT(\"Ut-\", UPPER(LEFT(GUID(), 8)), \"-\", LOWER(RIGHT(GUID(), 8)), \"!9\")}}"
+        }
+      },
+      {
+        "id": "create",
+        "type": "call_reference",
+        "label": "Create user",
+        "position": {
+          "x": 80,
+          "y": 2460
+        },
+        "config": {
+          "reference_id": "3e9d69eb-43b5-537e-8fcd-da9e531aef41",
+          "reference_name": "Create user",
+          "reference_method": "POST",
+          "input_mappings": {
+            "display_name": "{{form.given_name}} {{form.surname}}",
+            "given_name": "{{form.given_name}}",
+            "surname": "{{form.surname}}",
+            "mail_nickname": "{{mail_nickname}}",
+            "upn": "{{upn}}",
+            "job_title": "{{form.job_title}}",
+            "department": "{{dept_name}}",
+            "office_location": "{{form.office_location}}",
+            "usage_location": "{{usage_location}}",
+            "employee_id": "{{form.employee_id}}",
+            "initial_pw": "{{initial_pw}}"
+          },
+          "output_mappings": {
+            "user_id": {
+              "enabled": true,
+              "variableName": "user_id"
+            },
+            "user_principal_name": {
+              "enabled": true,
+              "variableName": "user_principal_name"
+            }
+          }
+        }
+      },
+      {
+        "id": "licence",
+        "type": "call_reference",
+        "label": "Assign licence",
+        "position": {
+          "x": 80,
+          "y": 2620
+        },
+        "config": {
+          "reference_id": "eecc45da-6122-5173-b7f6-945a47dbadd8",
+          "reference_name": "Assign licence",
+          "reference_method": "POST",
+          "input_mappings": {
+            "user_id": "{{user_id}}",
+            "sku_id": "{{sku_id}}"
+          },
+          "output_mappings": {}
+        }
+      },
+      {
+        "id": "group",
+        "type": "call_reference",
+        "label": "Add to department group",
+        "position": {
+          "x": 80,
+          "y": 2780
+        },
+        "config": {
+          "reference_id": "9f342b6d-a917-5aab-a75c-16a37c87041c",
+          "reference_name": "Add group member",
+          "reference_method": "POST",
+          "input_mappings": {
+            "group_id": "{{group_id}}",
+            "directory_object": "https://graph.microsoft.example.com/v1.0/directoryObjects/{{user_id}}"
+          },
+          "output_mappings": {}
+        }
+      },
+      {
+        "id": "tap",
+        "type": "call_reference",
+        "label": "Temporary Access Pass",
+        "position": {
+          "x": 80,
+          "y": 2940
+        },
+        "config": {
+          "reference_id": "72efcbbf-484c-58cd-9f50-454769c9b627",
+          "reference_name": "Create Temporary Access Pass",
+          "reference_method": "POST",
+          "input_mappings": {
+            "user_id": "{{user_id}}",
+            "start": "{{form.start_date}}T08:00:00Z",
+            "lifetime": "480"
+          },
+          "output_mappings": {
+            "tap": {
+              "enabled": true,
+              "variableName": "tap"
+            },
+            "tap_start": {
+              "enabled": true,
+              "variableName": "tap_start"
+            },
+            "tap_minutes": {
+              "enabled": true,
+              "variableName": "tap_minutes"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "welcome",
+        "type": "send_email",
+        "label": "Welcome email",
+        "position": {
+          "x": 80,
+          "y": 3100
+        },
+        "config": {
+          "to": "{{form.personal_email}}",
+          "email_template_id": "f3ddff64-40e0-53fa-a9da-82f9a8f24b6e"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "mgr_mail",
+        "type": "send_email",
+        "label": "Sign-in details to the manager",
+        "position": {
+          "x": 80,
+          "y": 3260
+        },
+        "config": {
+          "to": "{{form.manager_email}}",
+          "email_template_id": "b62e20a2-30ed-52b8-b27e-c4d4323cb040"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Account created",
+        "position": {
+          "x": 80,
+          "y": 3420
+        },
+        "config": {
+          "reason": "{{user_principal_name}} created with {{licence_name}} in {{group_name}}"
+        }
+      },
+      {
+        "id": "rej_mail",
+        "type": "send_email",
+        "label": "Tell the manager: not approved",
+        "position": {
+          "x": 720,
+          "y": 2300
+        },
+        "config": {
+          "to": "{{form.manager_email}}",
+          "email_template_id": "4833e66a-cf58-5fb4-89f3-ee958d38bab5"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "rejected",
+        "type": "end_workflow",
+        "label": "Not approved",
+        "position": {
+          "x": 720,
+          "y": 2460
+        },
+        "config": {
+          "reason": "Account for {{form.given_name}} {{form.surname}} not approved"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-sku",
+        "source": "trigger",
+        "target": "sku"
+      },
+      {
+        "id": "e-sku-grp",
+        "source": "sku",
+        "target": "grp"
+      },
+      {
+        "id": "e-grp-lname",
+        "source": "grp",
+        "target": "lname"
+      },
+      {
+        "id": "e-lname-gname",
+        "source": "lname",
+        "target": "gname"
+      },
+      {
+        "id": "e-gname-dname",
+        "source": "gname",
+        "target": "dname"
+      },
+      {
+        "id": "e-dname-loc",
+        "source": "dname",
+        "target": "loc"
+      },
+      {
+        "id": "e-loc-nick",
+        "source": "loc",
+        "target": "nick"
+      },
+      {
+        "id": "e-nick-upn",
+        "source": "nick",
+        "target": "upn"
+      },
+      {
+        "id": "e-upn-find",
+        "source": "upn",
+        "target": "find"
+      },
+      {
+        "id": "e-find-taken",
+        "source": "find",
+        "target": "taken"
+      },
+      {
+        "id": "e-taken-upn2-taken",
+        "source": "taken",
+        "target": "upn2",
+        "label": "Taken"
+      },
+      {
+        "id": "e-taken-title-else",
+        "source": "taken",
+        "target": "title",
+        "label": "Else"
+      },
+      {
+        "id": "e-upn2-title",
+        "source": "upn2",
+        "target": "title"
+      },
+      {
+        "id": "e-title-approve",
+        "source": "title",
+        "target": "approve"
+      },
+      {
+        "id": "e-approve-pwd-approve",
+        "source": "approve",
+        "target": "pwd",
+        "label": "Approve"
+      },
+      {
+        "id": "e-approve-rej_mail-reject",
+        "source": "approve",
+        "target": "rej_mail",
+        "label": "Reject"
+      },
+      {
+        "id": "e-pwd-create",
+        "source": "pwd",
+        "target": "create"
+      },
+      {
+        "id": "e-create-licence",
+        "source": "create",
+        "target": "licence"
+      },
+      {
+        "id": "e-licence-group",
+        "source": "licence",
+        "target": "group"
+      },
+      {
+        "id": "e-group-tap",
+        "source": "group",
+        "target": "tap"
+      },
+      {
+        "id": "e-tap-welcome",
+        "source": "tap",
+        "target": "welcome"
+      },
+      {
+        "id": "e-welcome-mgr_mail",
+        "source": "welcome",
+        "target": "mgr_mail"
+      },
+      {
+        "id": "e-mgr_mail-done",
+        "source": "mgr_mail",
+        "target": "done"
+      },
+      {
+        "id": "e-rej_mail-rejected",
+        "source": "rej_mail",
+        "target": "rejected"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

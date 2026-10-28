@@ -1,0 +1,262 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "acd30d7c-6c69-43ff-9882-c92786f0a932",
+  "asset": {
+    "id": "acd30d7c-6c69-43ff-9882-c92786f0a932",
+    "name": "Alert disposition",
+    "description": "What to do with an enriched alert, from the threat-intel score of the source IP, the asset criticality, whether the user is privileged and the SIEM severity. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "81cfda11-b204-4a5f-bdc4-7dab06458034",
+        "key": "intel_score",
+        "label": "IP reputation score (0-100)",
+        "type": "number"
+      },
+      {
+        "id": "14b467c9-40dd-42e0-b810-38c09b1a3b29",
+        "key": "asset_criticality",
+        "label": "Asset criticality",
+        "type": "text"
+      },
+      {
+        "id": "0bbc3f07-945a-4a15-bff6-dd4bb8c79050",
+        "key": "privileged",
+        "label": "Privileged user",
+        "type": "boolean"
+      },
+      {
+        "id": "6ef58c45-e122-4dee-97c7-e0826044120f",
+        "key": "severity",
+        "label": "SIEM severity",
+        "type": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "708dfe3e-c0dc-48e2-8b02-015f460fb008",
+        "key": "disposition",
+        "label": "Disposition",
+        "type": "text"
+      },
+      {
+        "id": "95855b82-33a7-486a-949d-c14db67404dd",
+        "key": "case_severity",
+        "label": "Case severity",
+        "type": "text"
+      },
+      {
+        "id": "c5178c7f-0674-41f9-bf85-aa2fbb194338",
+        "key": "reason",
+        "label": "Reason",
+        "type": "text"
+      }
+    ],
+    "rules": [
+      {
+        "id": "a8806145-5b3f-4a41-a00f-d5e21bf2b4a2",
+        "label": "Known-bad IP on a critical asset",
+        "enabled": true,
+        "outputs": {
+          "disposition": "contain",
+          "case_severity": "critical",
+          "reason": "High-confidence malicious source against a critical asset"
+        },
+        "conditions": [
+          {
+            "id": "ee8bca82-0a02-4cc4-a9c9-6f49b38552ec",
+            "inputKey": "intel_score",
+            "operator": "greater_than_or_equal",
+            "value": "80"
+          },
+          {
+            "id": "375cee3b-4ade-4faf-9b26-a5ec75861a58",
+            "inputKey": "asset_criticality",
+            "operator": "equals",
+            "value": "critical"
+          }
+        ]
+      },
+      {
+        "id": "776f4d2d-4c10-4ebe-a73c-635b042233ba",
+        "label": "Known-bad IP and privileged user",
+        "enabled": true,
+        "outputs": {
+          "disposition": "contain",
+          "case_severity": "critical",
+          "reason": "High-confidence malicious source and a privileged account"
+        },
+        "conditions": [
+          {
+            "id": "e2c619f8-ac3f-4f22-b4e1-67ab4b88ddde",
+            "inputKey": "intel_score",
+            "operator": "greater_than_or_equal",
+            "value": "80"
+          },
+          {
+            "id": "15436d5e-7c1f-4184-8e9c-a294910e219c",
+            "inputKey": "privileged",
+            "operator": "equals",
+            "value": "true"
+          }
+        ]
+      },
+      {
+        "id": "b394a0fd-3c23-4f1f-86db-3db9e8e34cff",
+        "label": "Known-bad IP, critical alert",
+        "enabled": true,
+        "outputs": {
+          "disposition": "contain",
+          "case_severity": "critical",
+          "reason": "High-confidence malicious source on a critical alert"
+        },
+        "conditions": [
+          {
+            "id": "2b078a54-9189-4d64-b16d-97198620debe",
+            "inputKey": "intel_score",
+            "operator": "greater_than_or_equal",
+            "value": "80"
+          },
+          {
+            "id": "937ab9e0-9520-48c2-aaf7-cee99f25bc0d",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "critical"
+          }
+        ]
+      },
+      {
+        "id": "7e23252b-12fc-493e-a688-a7b88118f867",
+        "label": "Clean IP, low severity",
+        "enabled": true,
+        "outputs": {
+          "disposition": "auto-close",
+          "case_severity": "none",
+          "reason": "Clean source IP and low severity"
+        },
+        "conditions": [
+          {
+            "id": "9cedcbc1-4321-4194-a203-8e8f58445b35",
+            "inputKey": "intel_score",
+            "operator": "less_than",
+            "value": "20"
+          },
+          {
+            "id": "4ef23c7b-87a6-4c21-ac26-e0be5fca94c3",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "low"
+          }
+        ]
+      },
+      {
+        "id": "e0e70fb6-a273-4efd-b258-f7ebd21b310b",
+        "label": "Clean IP, medium severity, low-value target",
+        "enabled": true,
+        "outputs": {
+          "disposition": "auto-close",
+          "case_severity": "none",
+          "reason": "Clean source IP, unprivileged user, low-criticality asset"
+        },
+        "conditions": [
+          {
+            "id": "e44689b1-5797-47f6-afc1-2f1da37be27f",
+            "inputKey": "intel_score",
+            "operator": "less_than",
+            "value": "20"
+          },
+          {
+            "id": "6460c63e-8f77-4681-ad76-2c7fd73f9eea",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "medium"
+          },
+          {
+            "id": "b6c2bc9d-2db0-4c78-8c7f-13dbd296efed",
+            "inputKey": "privileged",
+            "operator": "equals",
+            "value": "false"
+          },
+          {
+            "id": "534b8c2b-040e-4589-b5cf-6af9bc8e30ac",
+            "inputKey": "asset_criticality",
+            "operator": "equals",
+            "value": "low"
+          }
+        ]
+      },
+      {
+        "id": "90ac1902-2653-4a62-8b9b-3b522a057864",
+        "label": "Suspicious IP",
+        "enabled": true,
+        "outputs": {
+          "disposition": "investigate",
+          "case_severity": "high",
+          "reason": "Source IP has a suspicious reputation"
+        },
+        "conditions": [
+          {
+            "id": "4c065eef-9d4f-4156-8ad7-ead1a0fd0bf0",
+            "inputKey": "intel_score",
+            "operator": "greater_than_or_equal",
+            "value": "50"
+          }
+        ]
+      },
+      {
+        "id": "073feda8-d6c7-4819-8d4f-94540331b656",
+        "label": "Privileged user",
+        "enabled": true,
+        "outputs": {
+          "disposition": "investigate",
+          "case_severity": "high",
+          "reason": "Alert involves a privileged account"
+        },
+        "conditions": [
+          {
+            "id": "af9c4b7d-2eae-4bc9-a3a8-2cc91e4fd687",
+            "inputKey": "privileged",
+            "operator": "equals",
+            "value": "true"
+          }
+        ]
+      },
+      {
+        "id": "df1548c9-0e56-4ac2-9cd1-7b1e44bbc4d6",
+        "label": "Critical asset",
+        "enabled": true,
+        "outputs": {
+          "disposition": "investigate",
+          "case_severity": "high",
+          "reason": "Alert involves a critical asset"
+        },
+        "conditions": [
+          {
+            "id": "7b941822-9b95-45fe-8a06-e2960c405275",
+            "inputKey": "asset_criticality",
+            "operator": "equals",
+            "value": "critical"
+          }
+        ]
+      },
+      {
+        "id": "7e9af498-b1b7-4584-968c-15e33a30fd5b",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "disposition": "investigate",
+          "case_severity": "medium",
+          "reason": "Needs analyst review"
+        },
+        "conditions": [
+          {
+            "id": "6bcadab5-a88e-47ca-a37d-af6ffaa091dd",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "format_version": 3,
+  "asset_type": "agents",
+  "id": "57ca51c4-2f94-41e0-a047-61ed701f3bc9",
+  "asset": {
+    "id": "57ca51c4-2f94-41e0-a047-61ed701f3bc9",
+    "name": "Ticket triage agent",
+    "is_active": true,
+    "description": "Classifies a support ticket, judges urgency and sentiment, summarises it and drafts a reply.",
+    "model": "gpt-4o-mini",
+    "role": "a senior customer support triage specialist",
+    "task": "Read the ticket and return its category (billing, technical, how_to, account, security, feedback or other), urgency (low, normal, high or critical), customer sentiment (positive, neutral or negative), a two-sentence summary for the agent who picks it up, a polite suggested reply in plain text, and your confidence from 0 to 1 that the category and reply are right.",
+    "boundaries": "- Use only the ticket text; never invent order numbers, prices, refunds or policies.\n- Do not promise refunds, credits or timelines in the suggested reply.\n- Anything mentioning a breach, account takeover or leaked data is category security and urgency critical.\n- If the ticket is unclear, say so in the summary and give a low confidence.",
+    "system_prompt": "",
+    "tools": [],
+    "integration_id": "c64f693e-b732-48c6-931d-56abbf8623ff",
+    "output_config": {
+      "variables": [
+        {
+          "name": "category",
+          "type": "string",
+          "description": "billing, technical, how_to, account, security, feedback or other"
+        },
+        {
+          "name": "urgency",
+          "type": "string",
+          "description": "low, normal, high or critical"
+        },
+        {
+          "name": "sentiment",
+          "type": "string",
+          "description": "positive, neutral or negative"
+        },
+        {
+          "name": "summary",
+          "type": "string",
+          "description": "Two-sentence summary for the support agent"
+        },
+        {
+          "name": "suggested_reply",
+          "type": "string",
+          "description": "Plain-text reply to the customer"
+        },
+        {
+          "name": "confidence",
+          "type": "number",
+          "description": "Confidence 0 to 1 in the category and reply"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "bbfc00ef-f2cf-5bbc-a417-fd9693fff7fe",
+  "asset": {
+    "id": "bbfc00ef-f2cf-5bbc-a417-fd9693fff7fe",
+    "integration_id": "fe89cfc7-3587-5eea-961a-4ff4fbd258b1",
+    "name": "Update incident",
+    "description": "Write the review decision back to the incident (PATCH /table/incident/{sys_id}): a work note and the major incident state (proposed / accepted / rejected, Major Incident Management plugin).",
+    "tags": [
+      "incident"
+    ],
+    "request_config": {
+      "method": "PATCH",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"work_notes\":\"{{work_notes}}\",\"major_incident_state\":\"{{major_incident_state}}\"}",
+      "path_template": "/table/incident/{{sys_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "result",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "sys_id",
+                  "type": "string",
+                  "example": "9d385017c611228701d22104cc95c371"
+                },
+                {
+                  "name": "number",
+                  "type": "string",
+                  "example": "INC0010342"
+                },
+                {
+                  "name": "major_incident_state",
+                  "type": "string",
+                  "example": "accepted"
+                },
+                {
+                  "name": "sys_updated_on",
+                  "type": "string",
+                  "example": "2026-10-28 09:41:05"
+                },
+                {
+                  "name": "sys_updated_by",
+                  "type": "string",
+                  "example": "usertasks.integration"
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "result": {
+            "sys_id": "9d385017c611228701d22104cc95c371",
+            "number": "INC0010342",
+            "major_incident_state": "accepted",
+            "sys_updated_on": "2026-10-28 09:41:05",
+            "sys_updated_by": "usertasks.integration"
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "1073733c-592f-58ac-81b6-613d00291f76",
+        "name": "sys_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Incident sys_id",
+        "default_value": ""
+      },
+      {
+        "id": "6c6f58e2-8285-5fd0-bc55-2eb86d55f6e5",
+        "name": "work_notes",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Work note text (journal field)",
+        "default_value": ""
+      },
+      {
+        "id": "795fb4fd-81cd-5c60-95f1-4bd5355ad57d",
+        "name": "major_incident_state",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "accepted or rejected",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "be89214e-dfe2-5349-87fa-ed98844f9e9d",
+        "name": "updated_on",
+        "path": "result.sys_updated_on",
+        "type": "string"
+      },
+      {
+        "id": "e57e0d00-d2f7-5080-bb6c-a891ce96e0e7",
+        "name": "major_incident_state",
+        "path": "result.major_incident_state",
+        "type": "string"
+      }
+    ]
+  }
+}

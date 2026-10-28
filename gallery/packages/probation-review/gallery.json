@@ -1,0 +1,73 @@
+{
+  "id": "ab3ca965-144e-4103-93f2-a693ef500a45",
+  "slug": "probation-review",
+  "title": "Probation review",
+  "category": "hr-people",
+  "summary": "Every morning, employees whose probation ends within three weeks get a manager review; the outcome is confirmed, extended or ended and recorded.",
+  "description": "Probation review makes sure no probation period ends without a decision. Every morning the scheduler asks your HR system for employees whose probation ends within the look-ahead window (21 days by default).\n\nFor each employee it starts the Probation review sub-workflow in the background. The manager gets a task due on the probation end date with a performance rating, a recommendation (confirm, extend or end) and development notes. The Probation outcome decision table turns that into the action, the HR status and any extension; a \"confirm\" with a below-expectations rating becomes a short extension.\n\nThe outcome is written back to the HR system, the people team is emailed the result and next step, and confirmed employees get a congratulations email. Adapt the look-ahead, the outcome rules and the API paths; your HR system should stop returning an employee once their review is recorded so they are not picked up twice.",
+  "trigger": "schedule",
+  "entry_workflow": "a2f9772b-5d48-4119-8f03-c6e21f1c07ec",
+  "start": "Runs every day at 08:00 UTC (change the time and time zone on the Schedule trigger). It can also be run on demand from the Run dialog.",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "probation",
+    "performance",
+    "scheduled",
+    "sub-workflow",
+    "hr"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: the manager's probation review has a Submit review button, a grid and a header."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "HR system integration: set the base URL and API token. The references expect GET /employees?probation_ends_within=21 (returning data[] with manager and probation_end_date) and PATCH /employees/{id}/probation; adjust them to your HR system.",
+    "Assignees: pick the default reviewing manager. To route each review to the real manager, map reviewer_id in the Start probation review step from a field your HR system returns.",
+    "Set hr_email on the scheduler to your people team mailbox, and lookahead_days if three weeks is not right.",
+    "Edit the Probation outcome rules (extension lengths, HR follow-ups) to your policy.",
+    "Email: configure EMAIL_PROVIDER on the instance so the HR and employee emails are delivered (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Daily check",
+      "body": "At 08:00 the scheduler lists employees whose probation ends within the look-ahead window."
+    },
+    {
+      "title": "One review each",
+      "body": "For every employee a Probation review sub-workflow starts in the background, so reviews run independently."
+    },
+    {
+      "title": "Manager review",
+      "body": "The manager rates performance, recommends confirm, extend or end, and adds development notes before the end date."
+    },
+    {
+      "title": "Decide the outcome",
+      "body": "The Probation outcome decision table sets the action, the HR status and any extension weeks."
+    },
+    {
+      "title": "Record and tell people",
+      "body": "The HR system is updated, the people team gets the outcome and next step, and confirmed employees are congratulated."
+    }
+  ],
+  "sample_input": {
+    "lookahead_days": 21,
+    "hr_email": "people-team@example.com"
+  },
+  "expect": "completed",
+  "icon": "clipboard-check"
+}

@@ -1,0 +1,71 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "fa64d4c7-8234-5907-9fa0-76b22d425822",
+  "asset": {
+    "id": "fa64d4c7-8234-5907-9fa0-76b22d425822",
+    "name": "Onboarding checklist by job family rows",
+    "rows": [
+      {
+        "id": "c2d64fc1-2e83-5fe2-8d11-e3d9fc7fc5f4",
+        "data": {
+          "job_family": "Engineering",
+          "equipment": "Developer laptop (32 GB) + 2 monitors",
+          "systems": "GitHub, Jira, AWS console (read), Slack, VPN",
+          "buddy_team": "Platform guild",
+          "training_track": "Engineering onboarding (2 weeks)",
+          "first_week_focus": "Dev environment, first pull request, architecture walkthrough",
+          "it_lead_days": 7
+        }
+      },
+      {
+        "id": "f755092b-eef7-5331-89dd-dcd8a5922693",
+        "data": {
+          "job_family": "Sales",
+          "equipment": "Standard laptop + headset",
+          "systems": "CRM, CPQ, Gong, Slack",
+          "buddy_team": "Account executives",
+          "training_track": "Sales bootcamp",
+          "first_week_focus": "Product demo certification, territory review",
+          "it_lead_days": 5
+        }
+      },
+      {
+        "id": "206da86a-4877-583e-b14c-16d05b30d97a",
+        "data": {
+          "job_family": "Finance",
+          "equipment": "Standard laptop + monitor",
+          "systems": "ERP (finance roles), expense tool, BI dashboards",
+          "buddy_team": "Financial operations",
+          "training_track": "Finance systems induction",
+          "first_week_focus": "Month-end calendar, approval policies",
+          "it_lead_days": 5
+        }
+      },
+      {
+        "id": "c43c02f8-d4ee-511a-b1fb-04dfdeea7f87",
+        "data": {
+          "job_family": "Customer Support",
+          "equipment": "Standard laptop + headset",
+          "systems": "Service desk, knowledge base, telephony, Slack",
+          "buddy_team": "Tier 1 support",
+          "training_track": "Support academy",
+          "first_week_focus": "Shadow calls, ticket workflow",
+          "it_lead_days": 3
+        }
+      },
+      {
+        "id": "fbccbc8d-c91f-56f7-af50-9ac6420208dd",
+        "data": {
+          "job_family": "People",
+          "equipment": "Standard laptop",
+          "systems": "Workday (HR partner), LMS, Slack",
+          "buddy_team": "People partners",
+          "training_track": "People team induction",
+          "first_week_focus": "Policies and HR processes",
+          "it_lead_days": 3
+        }
+      }
+    ]
+  }
+}

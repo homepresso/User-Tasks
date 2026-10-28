@@ -1,0 +1,143 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "c6eeddb6-62fb-5d3f-ae54-5d81a7871d3d",
+  "asset": {
+    "id": "c6eeddb6-62fb-5d3f-ae54-5d81a7871d3d",
+    "name": "Complaints",
+    "description": "Every complaint: customer, category, priority, SLA, who handled it and how it was resolved.",
+    "columns": [
+      {
+        "id": "5846cda2-7295-5ce7-b02c-deb4bae88347",
+        "required": true,
+        "key": "complaint_ref",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "951bdc59-d50b-5019-be4e-f67d8d9e28c6",
+        "required": false,
+        "key": "account_no",
+        "name": "Account",
+        "type": "text"
+      },
+      {
+        "id": "5f73a38a-74b0-518e-8fb2-019841a9d19c",
+        "required": false,
+        "key": "company",
+        "name": "Company",
+        "type": "text"
+      },
+      {
+        "id": "5d976da9-07b9-544c-b323-499460b24462",
+        "required": false,
+        "key": "contact_email",
+        "name": "Contact email",
+        "type": "text"
+      },
+      {
+        "id": "d31bec8c-224c-55b3-b7eb-793f2c6db398",
+        "required": false,
+        "key": "tier",
+        "name": "Tier",
+        "type": "text"
+      },
+      {
+        "id": "19933015-fafe-5e9f-a57f-e76f968d9bd7",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "Delivery",
+          "Product quality",
+          "Billing",
+          "Service",
+          "Staff conduct",
+          "Website or app"
+        ]
+      },
+      {
+        "id": "846b88e7-7160-55ec-b776-b47b76774fed",
+        "required": false,
+        "key": "summary",
+        "name": "Summary",
+        "type": "text"
+      },
+      {
+        "id": "f39bda14-0106-5ca4-9877-e2b69b3a67c0",
+        "required": false,
+        "key": "priority",
+        "name": "Priority",
+        "type": "select",
+        "options": [
+          "P1",
+          "P2",
+          "P3",
+          "P4"
+        ]
+      },
+      {
+        "id": "2fbe9535-18a6-5671-b936-7da4ddb08062",
+        "required": false,
+        "key": "received_on",
+        "name": "Received",
+        "type": "date"
+      },
+      {
+        "id": "b4738ea4-d04b-5d39-88e2-0fe6fc5ac586",
+        "required": false,
+        "key": "respond_by",
+        "name": "Resolve by",
+        "type": "text"
+      },
+      {
+        "id": "04006b81-558f-548e-b260-de6e8f29d041",
+        "required": false,
+        "key": "account_manager",
+        "name": "Account manager",
+        "type": "text"
+      },
+      {
+        "id": "9bdf6280-f2b8-5c92-a46c-927715137ca3",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "escalated",
+          "resolved"
+        ]
+      },
+      {
+        "id": "d34816cf-a766-5e4e-aeda-ae25d5db7411",
+        "required": false,
+        "key": "root_cause",
+        "name": "Root cause",
+        "type": "text"
+      },
+      {
+        "id": "d426748f-aa57-5bba-a185-05ec730979e7",
+        "required": false,
+        "key": "resolution",
+        "name": "Resolution",
+        "type": "text"
+      },
+      {
+        "id": "72ea80fa-7ce2-556e-b6db-ff717881a460",
+        "required": false,
+        "key": "goodwill",
+        "name": "Goodwill credit",
+        "type": "number"
+      },
+      {
+        "id": "d25d613e-d1f7-5f33-a354-283b326e9a4f",
+        "required": false,
+        "key": "resolved_on",
+        "name": "Resolved",
+        "type": "date"
+      }
+    ]
+  }
+}

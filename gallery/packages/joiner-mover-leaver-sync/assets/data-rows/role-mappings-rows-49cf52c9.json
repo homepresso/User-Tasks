@@ -1,0 +1,81 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "49cf52c9-a3b1-45fb-844f-0746ab98fc47",
+  "asset": {
+    "id": "49cf52c9-a3b1-45fb-844f-0746ab98fc47",
+    "name": "Role mappings rows",
+    "rows": [
+      {
+        "id": "115c6fda-bf5d-48ea-805c-aeffe9f9d9c5",
+        "data": {
+          "mapping_key": "Engineering|Software engineering",
+          "department": "Engineering",
+          "job_family": "Software engineering",
+          "groups": "all-staff,eng-developers,scm-users,cloud-dev",
+          "licence": "E3"
+        }
+      },
+      {
+        "id": "6df276fb-feb3-4420-a29a-b91c0817584f",
+        "data": {
+          "mapping_key": "Engineering|Site reliability",
+          "department": "Engineering",
+          "job_family": "Site reliability",
+          "groups": "all-staff,eng-sre,scm-users,cloud-ops,oncall",
+          "licence": "E3"
+        }
+      },
+      {
+        "id": "9604febb-a9fb-4793-b53e-7b56e38b10e6",
+        "data": {
+          "mapping_key": "Finance|Financial planning",
+          "department": "Finance",
+          "job_family": "Financial planning",
+          "groups": "all-staff,fin-planning,app-erp-users,app-dwh-readers",
+          "licence": "E3"
+        }
+      },
+      {
+        "id": "dd99b936-e181-40e9-af29-c413cc6adaa5",
+        "data": {
+          "mapping_key": "Finance|Accounts payable",
+          "department": "Finance",
+          "job_family": "Accounts payable",
+          "groups": "all-staff,fin-ap,app-erp-users",
+          "licence": "E3"
+        }
+      },
+      {
+        "id": "76ea8743-dd85-4692-a9e1-3a978b6798f1",
+        "data": {
+          "mapping_key": "Sales|Account management",
+          "department": "Sales",
+          "job_family": "Account management",
+          "groups": "all-staff,sales-team,app-crm-users",
+          "licence": "E3"
+        }
+      },
+      {
+        "id": "94bbb765-385c-432a-923f-dd2798e38033",
+        "data": {
+          "mapping_key": "People|HR business partner",
+          "department": "People",
+          "job_family": "HR business partner",
+          "groups": "all-staff,hr-team,app-hris-users",
+          "licence": "E5"
+        }
+      },
+      {
+        "id": "f8178405-04fb-4e19-99a4-f606a4e4aaca",
+        "data": {
+          "mapping_key": "Operations|Customer support",
+          "department": "Operations",
+          "job_family": "Customer support",
+          "groups": "all-staff,support-agents,app-crm-users",
+          "licence": "F3"
+        }
+      }
+    ]
+  }
+}

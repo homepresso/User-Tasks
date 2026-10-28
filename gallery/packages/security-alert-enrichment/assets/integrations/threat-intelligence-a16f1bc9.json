@@ -1,0 +1,25 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "a16f1bc9-18c8-4421-9761-8253c7c0b9f0",
+  "asset": {
+    "id": "a16f1bc9-18c8-4421-9761-8253c7c0b9f0",
+    "name": "Threat intelligence",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://threatintel.example.com/api",
+      "auth_type": "api_key",
+      "auth_config": {
+        "key_name": "X-API-Key",
+        "key_value": "__SECRET__",
+        "add_to": "header"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "security",
+      "threat intel"
+    ]
+  }
+}

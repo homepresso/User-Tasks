@@ -1,0 +1,12 @@
+-- runs list by workflow, newest 50 (select *) as service_role
+SELECT * FROM public.workflow_runs WHERE workflow_id = '0be00000-0000-4000-8000-000000000301' ORDER BY started_at DESC LIMIT 50
+
+Limit  (cost=0.42..144.83 rows=50 width=654) (actual time=0.005..0.027 rows=50 loops=1)
+  Buffers: shared hit=78
+  ->  Index Scan using idx_workflow_runs_workflow_started on workflow_runs  (cost=0.42..14510.86 rows=5024 width=654) (actual time=0.004..0.023 rows=50 loops=1)
+        Index Cond: (workflow_id = '0be00000-0000-4000-8000-000000000301'::uuid)
+        Buffers: shared hit=78
+Planning:
+  Buffers: shared hit=1
+Planning Time: 0.028 ms
+Execution Time: 0.040 ms

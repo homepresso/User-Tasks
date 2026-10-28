@@ -1,0 +1,80 @@
+{
+  "title": "Event registration",
+  "category": "customer-sales",
+  "summary": "A themed registration form with an event lookup, capacity check and waitlist, confirmation emails and an organiser task for special requests.",
+  "description": "Event registration runs sign-ups for breakfasts, webinars, workshops and customer evenings from one form. The Events table holds each event with its date, venue and capacity; the Event registration form lists the open events and fills in the date, start time and venue when one is picked. Attendees add their details, dietary needs and any accessibility or special request.\n\nRegistering shows a success screen with the reference and starts the workflow through its Form submitted trigger. It counts the confirmed registrations for the event in the Registrations table: while there is room the attendee is confirmed and emailed; once the event is full they join the waitlist with their position.\n\nSpecial requests from confirmed attendees go to the organiser as a task with Confirm and Decline buttons, a reply that is emailed to the attendee, a reminder and escalation. Every registration, waitlist place and request answer is in the Registrations table for name badges and catering numbers. Everything is built in.",
+  "trigger": "form",
+  "entry_workflow": "c1a9ae1d-6e10-58b3-a80f-ceda50d73c32",
+  "entry_form": "46c88b95-e7b2-5bfc-9b9b-97a4023234a7",
+  "start": "Starts from a form page: share the Event registration form (/f/<id>) on your website or invitations; each registration starts the workflow.",
+  "difficulty": "starter",
+  "setup_minutes": 10,
+  "tags": [
+    "events",
+    "registration",
+    "waitlist",
+    "forms",
+    "lookup",
+    "no integrations"
+  ],
+  "version": "1.0.1",
+  "changelog": [
+    {
+      "version": "1.0.1",
+      "date": "2026-10-28",
+      "notes": "Steps for the coordinator who set the package up are assigned to the workflow owner (workflow_owner_id), now that workflow_started_by names the person who started the run."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Nothing to configure: install it and share the Event registration form from Forms (it works for signed-in users; publish it publicly if your workspace allows public forms).",
+    "Replace the sample rows in Events with your events (code, title, date, start time, venue, capacity, status Open).",
+    "Special requests go to the person who installed the package (the organiser). Change the assignee on \"Organiser reviews the request\" to route them elsewhere.",
+    "Optional: set EMAIL_PROVIDER so confirmations, waitlist and request emails are delivered."
+  ],
+  "steps": [
+    {
+      "title": "Register",
+      "body": "The form lists open events; the date, time and venue fill in, and the attendee adds dietary needs and requests."
+    },
+    {
+      "title": "Success screen",
+      "body": "Register shows a success screen with the reference; the Form submitted trigger starts the workflow."
+    },
+    {
+      "title": "Capacity check",
+      "body": "Confirmed registrations for the event are counted against its capacity."
+    },
+    {
+      "title": "Confirm or waitlist",
+      "body": "With room the attendee is confirmed; otherwise they join the waitlist with their position. Both are emailed."
+    },
+    {
+      "title": "Special requests",
+      "body": "The organiser confirms or declines each special request; the reply is emailed and recorded."
+    }
+  ],
+  "sample_input": {
+    "event": "EVT-BRK-1119",
+    "name": "Priya Shah",
+    "email": "priya.shah@example.com",
+    "company": "Fabrikam Logistics",
+    "job_title": "Head of Operations",
+    "dietary": "Gluten free",
+    "special_request": "I use a wheelchair: is there step-free access and a table near the entrance?",
+    "consent": true,
+    "updates": false
+  },
+  "expect": "waiting",
+  "icon": "ticket",
+  "id": "3e157619-be10-51de-88c3-37658cfa93cc",
+  "slug": "event-registration"
+}

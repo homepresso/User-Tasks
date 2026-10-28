@@ -1,0 +1,90 @@
+# Reference Google Cloud profile (docs/deployment-profiles.md), emulated locally:
+#   Database   PostgreSQL 16 (Cloud SQL in the cloud; IAM database auth,
+#              DATABASE_AUTH=gcp, is not emulated)
+#   Storage    fake-gcs-server (Cloud Storage JSON API)
+#   Secrets    Secret Manager stand-in (REST) with Application Default
+#              Credentials from a metadata-server stand-in (GCE_METADATA_HOST,
+#              as on Cloud Run); ENCRYPTION_KEY=secret://encryption-key,
+#              SMTP_PASSWORD=secret://smtp-password
+#   Email      SMTP relay (Workspace SMTP relay in the cloud; Mailpit here)
+#   Auth       built-in + a Google OIDC stand-in (discovery only)
+#   Scheduler  external: the `tick` container calls /api/cron/tick every
+#              minute with CRON_SECRET (Cloud Scheduler sends an OIDC token)
+#   Realtime   built-in SSE
+#   KMS        Cloud KMS stand-in (encrypt / decrypt, ADC token from the
+#              metadata server): KMS_PROVIDER=gcp_kms envelope encryption
+#   Cache      Valkey standing in for Memorystore (AUTH string; IAM auth,
+#              CACHE_REDIS_AUTH=gcp_iam, is not emulated)
+# Real Google Cloud resources: deploy/gcp/.
+
+services:
+  app:
+    depends_on: !override
+      migrate:
+        condition: service_completed_successfully
+      mocks:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+
+  postgres:
+    profiles: [standalone, gcp]
+
+  valkey:
+    profiles: [standalone, gcp]
+
+  # The relay asks for a login (SMTP_USER / SMTP_PASSWORD from Secret Manager).
+  mailpit:
+    profiles: [standalone, gcp]
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+
+  migrate:
+    profiles: [standalone, gcp]
+    depends_on: !override
+      postgres:
+        condition: service_healthy
+      fake-gcs:
+        condition: service_started
+      mocks:
+        condition: service_healthy
+
+  fake-gcs:
+    profiles: [gcp]
+    image: fsouza/fake-gcs-server:latest
+    command: ["-scheme", "http", "-port", "4443", "-public-host", "fake-gcs:4443", "-external-url", "http://fake-gcs:4443"]
+    restart: unless-stopped
+
+  mocks:
+    profiles: [gcp]
+    image: node:22-alpine
+    command: ["node", "/mocks/cloud-mocks.mjs"]
+    environment:
+      MOCK_HTTP_PORT: "8080"
+      MOCK_GCP_PROJECT: usertasks-local
+      MOCK_SECRETS: '{"encryption-key":"${MOCK_ENCRYPTION_KEY:-}","smtp-password":"local-smtp-password","google-client-secret":"local-google-secret"}'
+      MOCK_KMS_SECRET: ${MOCK_KMS_SECRET:-}
+    volumes:
+      - ./deploy/compose/mocks:/mocks:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Cloud Scheduler: POST /api/cron/tick every minute.
+  tick:
+    profiles: [gcp]
+    image: node:22-alpine
+    env_file:
+      - path: ${USERTASKS_ENV_FILE:-.env}
+        required: false
+    command: ["sh", "-c", "while true; do wget -q -O /dev/null --header \"Authorization: Bearer $$CRON_SECRET\" --post-data '' http://app:3000/api/cron/tick || echo tick failed; sleep 60; done"]
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped

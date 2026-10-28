@@ -1,0 +1,922 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "915b1994-2b9c-5360-8334-6ad01b1b33c8",
+  "asset": {
+    "id": "915b1994-2b9c-5360-8334-6ad01b1b33c8",
+    "name": "Pool car booking",
+    "description": "A booking from the themed start form: the vehicle is checked for service and clashes, the Booking approval decision table decides whether the fleet coordinator must approve, and the driver is emailed.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Book a pool car",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 2,
+                  "cells": [
+                    {
+                      "field_key": "requester_name",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "requester_email",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 2,
+                  "cells": [
+                    {
+                      "field_key": "rego",
+                      "span": 2
+                    }
+                  ]
+                },
+                {
+                  "columns": 2,
+                  "cells": [
+                    {
+                      "field_key": "pickup_at",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "return_at",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 2,
+                  "cells": [
+                    {
+                      "field_key": "destination",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "distance_km",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 2,
+                  "cells": [
+                    {
+                      "field_key": "passengers",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "purpose",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 2,
+                  "cells": [
+                    {
+                      "field_key": "notes",
+                      "span": 2
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#0369A1",
+                    "background": "#FFFFFF",
+                    "text": "#0C2A3E",
+                    "page": "#E0F2FE",
+                    "page_to": "#F5FBFF"
+                  }
+                },
+                "radius": 14,
+                "density": "comfortable",
+                "button_placement": "full",
+                "font": {
+                  "source": "google",
+                  "family": "Inter"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Booking reference",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "name": "booking_ref",
+          "expression": "CAR-{{=FORMAT_DATE(pickup_at, \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "veh",
+        "type": "update_data_table",
+        "label": "Read the vehicle",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "table_id": "6290f73c-5d23-58a9-8514-031baf129d80",
+          "table_name": "Vehicles",
+          "operation": "get",
+          "match_column": "rego",
+          "match_value": "{{rego}}",
+          "output_row_var": "vehicle_row"
+        }
+      },
+      {
+        "id": "vname",
+        "type": "set_variable",
+        "label": "Vehicle name",
+        "position": {
+          "x": 400,
+          "y": 480
+        },
+        "config": {
+          "name": "vehicle",
+          "expression": "{{vehicle_row.vehicle}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 620
+        },
+        "config": {
+          "title": "{{rego}} for {{requester_name}}: {{pickup_at}} → {{return_at}}"
+        }
+      },
+      {
+        "id": "days",
+        "type": "set_variable",
+        "label": "Trip length",
+        "position": {
+          "x": 400,
+          "y": 760
+        },
+        "config": {
+          "name": "trip_days",
+          "expression": "{{=DAY_DIFF(pickup_at, return_at)}}"
+        }
+      },
+      {
+        "id": "wkend",
+        "type": "set_variable",
+        "label": "Weekend?",
+        "position": {
+          "x": 400,
+          "y": 900
+        },
+        "config": {
+          "name": "weekend",
+          "expression": "{{=IF(WEEKDAY(LEFT(pickup_at, 10)) == \"Saturday\", true, IF(WEEKDAY(LEFT(pickup_at, 10)) == \"Sunday\", true, IF(WEEKDAY(LEFT(return_at, 10)) == \"Saturday\", true, IF(WEEKDAY(LEFT(return_at, 10)) == \"Sunday\", true, trip_days >= 5))))}}"
+        }
+      },
+      {
+        "id": "cap",
+        "type": "set_variable",
+        "label": "Enough seats?",
+        "position": {
+          "x": 400,
+          "y": 1040
+        },
+        "config": {
+          "name": "over_capacity",
+          "expression": "{{=passengers > vehicle_row.seats}}"
+        }
+      },
+      {
+        "id": "usable",
+        "type": "condition",
+        "label": "Vehicle in service?",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Available",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{vehicle_row.status}}",
+                  "operator": "equals",
+                  "value": "Available"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "clash",
+        "type": "update_data_table",
+        "label": "Overlapping bookings",
+        "position": {
+          "x": 200,
+          "y": 1320
+        },
+        "config": {
+          "table_id": "7d379017-d377-5996-a98d-750e193075b6",
+          "table_name": "Bookings",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "rego",
+              "operator": "eq",
+              "value": "{{rego}}"
+            },
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Confirmed"
+            },
+            {
+              "column": "pickup_at",
+              "operator": "lt",
+              "value": "{{return_at}}"
+            },
+            {
+              "column": "return_at",
+              "operator": "gt",
+              "value": "{{pickup_at}}"
+            }
+          ],
+          "limit": 5,
+          "output_rows_var": "clashes",
+          "output_count_var": "clash_count"
+        }
+      },
+      {
+        "id": "free",
+        "type": "condition",
+        "label": "Free at those times?",
+        "position": {
+          "x": 200,
+          "y": 1460
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Clash",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{clash_count}}",
+                  "operator": "gt",
+                  "value": "0"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "rules",
+        "type": "decision_table",
+        "label": "Does it need approval?",
+        "position": {
+          "x": 40,
+          "y": 1600
+        },
+        "config": {
+          "decision_table_id": "494849e5-c6df-5851-b6f3-10d0df9d5d6a",
+          "decision_table_name": "Booking approval",
+          "input_mappings": {
+            "over_capacity": "{{over_capacity}}",
+            "distance_km": "{{distance_km}}",
+            "trip_days": "{{trip_days}}",
+            "weekend": "{{weekend}}"
+          }
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Record the booking",
+        "position": {
+          "x": 40,
+          "y": 1740
+        },
+        "config": {
+          "table_id": "7d379017-d377-5996-a98d-750e193075b6",
+          "table_name": "Bookings",
+          "operation": "insert",
+          "column_values": {
+            "booking_ref": "{{booking_ref}}",
+            "rego": "{{rego}}",
+            "vehicle": "{{vehicle}}",
+            "requester_name": "{{requester_name}}",
+            "requester_email": "{{requester_email}}",
+            "pickup_at": "{{pickup_at}}",
+            "return_at": "{{return_at}}",
+            "destination": "{{destination}}",
+            "distance_km": "{{distance_km}}",
+            "passengers": "{{passengers}}",
+            "purpose": "{{purpose}}",
+            "approval_reason": "{{approval_reason}}",
+            "status": "{{=IF(approval_needed, \"Pending approval\", \"Confirmed\")}}"
+          }
+        }
+      },
+      {
+        "id": "needs",
+        "type": "condition",
+        "label": "Approval needed?",
+        "position": {
+          "x": 40,
+          "y": 1880
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Approval",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{approval_needed}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "approve",
+        "type": "user_task",
+        "label": "Approve the booking",
+        "position": {
+          "x": -120,
+          "y": 2020
+        },
+        "config": {
+          "task_title": "Approve car booking: {{rego}} for {{requester_name}} ({{approval_reason}})",
+          "task_description": "<p><strong>{{requester_name}}</strong> would like <strong>{{vehicle}}</strong> ({{rego}}, {{vehicle_row.seats}} seats{{=IF(vehicle_row.ev, \", electric, range \" , \"\")}}{{=IF(vehicle_row.ev, vehicle_row.range_km, \"\")}}{{=IF(vehicle_row.ev, \" km\", \"\")}}) from <strong>{{pickup_at}}</strong> to <strong>{{return_at}}</strong>.</p><p>Trip: {{destination}}, about {{distance_km}} km, {{passengers}} people, for {{purpose}}. {{notes}}</p><p>Needs approval because: <strong>{{approval_reason}}</strong>.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "fields": [
+            {
+              "key": "comment",
+              "label": "Comment for the driver",
+              "type": "textarea"
+            },
+            {
+              "key": "mileage_claim",
+              "label": "Mileage to be recharged to a project",
+              "type": "boolean"
+            },
+            {
+              "key": "project_code",
+              "label": "Project code",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "mileage_claim",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "project_code",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Pool car booking",
+            "align": "left",
+            "subtitle": "{{rego}} · {{pickup_at}} → {{return_at}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 1440,
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#0369A1",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 14,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "confirm",
+        "type": "update_data_table",
+        "label": "Confirm the booking",
+        "position": {
+          "x": -120,
+          "y": 2180
+        },
+        "config": {
+          "table_id": "7d379017-d377-5996-a98d-750e193075b6",
+          "table_name": "Bookings",
+          "operation": "update",
+          "match_column": "booking_ref",
+          "match_value": "{{booking_ref}}",
+          "column_values": {
+            "status": "Confirmed",
+            "approver_comment": "{{task_data.comment}}"
+          }
+        }
+      },
+      {
+        "id": "ok_mail",
+        "type": "send_email",
+        "label": "Send the confirmation",
+        "position": {
+          "x": 40,
+          "y": 2340
+        },
+        "config": {
+          "to": "{{requester_email}}",
+          "email_template_id": "a262b72c-42aa-5e9d-b481-508d3dfa29ee"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "ok_end",
+        "type": "end_workflow",
+        "label": "Booked",
+        "position": {
+          "x": 40,
+          "y": 2480
+        },
+        "config": {
+          "reason": "{{rego}} booked for {{requester_name}} ({{booking_ref}})"
+        }
+      },
+      {
+        "id": "rej",
+        "type": "set_variable",
+        "label": "Reason: rejected",
+        "position": {
+          "x": 200,
+          "y": 2180
+        },
+        "config": {
+          "name": "decline_reason",
+          "expression": "{{=COALESCE(task_data.comment, \"the fleet coordinator did not approve it\")}}"
+        }
+      },
+      {
+        "id": "rej_row",
+        "type": "update_data_table",
+        "label": "Mark rejected",
+        "position": {
+          "x": 200,
+          "y": 2320
+        },
+        "config": {
+          "table_id": "7d379017-d377-5996-a98d-750e193075b6",
+          "table_name": "Bookings",
+          "operation": "update",
+          "match_column": "booking_ref",
+          "match_value": "{{booking_ref}}",
+          "column_values": {
+            "status": "Rejected",
+            "approver_comment": "{{task_data.comment}}"
+          }
+        }
+      },
+      {
+        "id": "clash_reason",
+        "type": "set_variable",
+        "label": "Reason: clash",
+        "position": {
+          "x": 440,
+          "y": 1600
+        },
+        "config": {
+          "name": "decline_reason",
+          "expression": "the vehicle is already booked then ({{clashes[0].booking_ref}})"
+        }
+      },
+      {
+        "id": "clash_row",
+        "type": "update_data_table",
+        "label": "Log the clash",
+        "position": {
+          "x": 440,
+          "y": 1740
+        },
+        "config": {
+          "table_id": "7d379017-d377-5996-a98d-750e193075b6",
+          "table_name": "Bookings",
+          "operation": "insert",
+          "column_values": {
+            "booking_ref": "{{booking_ref}}",
+            "rego": "{{rego}}",
+            "vehicle": "{{vehicle}}",
+            "requester_name": "{{requester_name}}",
+            "requester_email": "{{requester_email}}",
+            "pickup_at": "{{pickup_at}}",
+            "return_at": "{{return_at}}",
+            "destination": "{{destination}}",
+            "status": "Clash"
+          }
+        }
+      },
+      {
+        "id": "svc_reason",
+        "type": "set_variable",
+        "label": "Reason: in service",
+        "position": {
+          "x": 720,
+          "y": 1320
+        },
+        "config": {
+          "name": "decline_reason",
+          "expression": "the vehicle is {{=LOWER(COALESCE(vehicle_row.status, \"not in the pool\"))}} at the moment"
+        }
+      },
+      {
+        "id": "no_mail",
+        "type": "send_email",
+        "label": "Tell the driver",
+        "position": {
+          "x": 440,
+          "y": 2480
+        },
+        "config": {
+          "to": "{{requester_email}}",
+          "email_template_id": "b22e31a3-ad6f-5e1a-a4c6-68f2b0a8adbe"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "no_end",
+        "type": "end_workflow",
+        "label": "Not booked",
+        "position": {
+          "x": 440,
+          "y": 2620
+        },
+        "config": {
+          "reason": "Booking {{booking_ref}} not confirmed: {{decline_reason}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-veh",
+        "source": "ref",
+        "target": "veh"
+      },
+      {
+        "id": "e-veh-vname",
+        "source": "veh",
+        "target": "vname"
+      },
+      {
+        "id": "e-vname-title",
+        "source": "vname",
+        "target": "title"
+      },
+      {
+        "id": "e-title-days",
+        "source": "title",
+        "target": "days"
+      },
+      {
+        "id": "e-days-wkend",
+        "source": "days",
+        "target": "wkend"
+      },
+      {
+        "id": "e-wkend-cap",
+        "source": "wkend",
+        "target": "cap"
+      },
+      {
+        "id": "e-cap-usable",
+        "source": "cap",
+        "target": "usable"
+      },
+      {
+        "id": "e-usable-clash-available",
+        "source": "usable",
+        "target": "clash",
+        "label": "Available"
+      },
+      {
+        "id": "e-usable-svc_reason-else",
+        "source": "usable",
+        "target": "svc_reason",
+        "label": "Else"
+      },
+      {
+        "id": "e-svc_reason-no_mail",
+        "source": "svc_reason",
+        "target": "no_mail"
+      },
+      {
+        "id": "e-clash-free",
+        "source": "clash",
+        "target": "free"
+      },
+      {
+        "id": "e-free-clash_reason-clash",
+        "source": "free",
+        "target": "clash_reason",
+        "label": "Clash"
+      },
+      {
+        "id": "e-clash_reason-clash_row",
+        "source": "clash_reason",
+        "target": "clash_row"
+      },
+      {
+        "id": "e-clash_row-no_mail",
+        "source": "clash_row",
+        "target": "no_mail"
+      },
+      {
+        "id": "e-free-rules-else",
+        "source": "free",
+        "target": "rules",
+        "label": "Else"
+      },
+      {
+        "id": "e-rules-row",
+        "source": "rules",
+        "target": "row"
+      },
+      {
+        "id": "e-row-needs",
+        "source": "row",
+        "target": "needs"
+      },
+      {
+        "id": "e-needs-approve-approval",
+        "source": "needs",
+        "target": "approve",
+        "label": "Approval"
+      },
+      {
+        "id": "e-needs-ok_mail-else",
+        "source": "needs",
+        "target": "ok_mail",
+        "label": "Else"
+      },
+      {
+        "id": "e-approve-confirm-approve",
+        "source": "approve",
+        "target": "confirm",
+        "label": "Approve"
+      },
+      {
+        "id": "e-confirm-ok_mail",
+        "source": "confirm",
+        "target": "ok_mail"
+      },
+      {
+        "id": "e-approve-rej-reject",
+        "source": "approve",
+        "target": "rej",
+        "label": "Reject"
+      },
+      {
+        "id": "e-rej-rej_row",
+        "source": "rej",
+        "target": "rej_row"
+      },
+      {
+        "id": "e-rej_row-no_mail",
+        "source": "rej_row",
+        "target": "no_mail"
+      },
+      {
+        "id": "e-ok_mail-ok_end",
+        "source": "ok_mail",
+        "target": "ok_end"
+      },
+      {
+        "id": "e-no_mail-no_end",
+        "source": "no_mail",
+        "target": "no_end"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-requester_name",
+        "name": "requester_name",
+        "type": "string",
+        "description": "Your name (the person driving)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Driver"
+      },
+      {
+        "id": "v-requester_email",
+        "name": "requester_email",
+        "type": "string",
+        "description": "Where the confirmation goes",
+        "defaultValue": "",
+        "required": true,
+        "label": "Email",
+        "format": "email"
+      },
+      {
+        "id": "v-rego",
+        "name": "rego",
+        "type": "string",
+        "description": "Which pool vehicle you would like",
+        "defaultValue": "",
+        "required": true,
+        "label": "Vehicle",
+        "options": [
+          {
+            "value": "EVA101",
+            "label": "Hyundai Kona Electric · 5 seats · EV · EVA101"
+          },
+          {
+            "value": "EVB202",
+            "label": "Tesla Model Y · 5 seats · EV · EVB202"
+          },
+          {
+            "value": "HYB303",
+            "label": "Toyota Corolla Hybrid wagon · 5 seats · HYB303"
+          },
+          {
+            "value": "VAN404",
+            "label": "Toyota Hiace van · 3 seats · VAN404"
+          },
+          {
+            "value": "PEO505",
+            "label": "Kia Carnival people mover · 8 seats · PEO505"
+          },
+          {
+            "value": "EVC606",
+            "label": "MG4 Electric · 5 seats · EV · EVC606"
+          }
+        ]
+      },
+      {
+        "id": "v-passengers",
+        "name": "passengers",
+        "type": "number",
+        "description": "Including the driver",
+        "defaultValue": "1",
+        "required": true,
+        "label": "People travelling"
+      },
+      {
+        "id": "v-pickup_at",
+        "name": "pickup_at",
+        "type": "string",
+        "description": "When you collect the car",
+        "defaultValue": "",
+        "required": true,
+        "label": "Pick up",
+        "format": "datetime"
+      },
+      {
+        "id": "v-return_at",
+        "name": "return_at",
+        "type": "string",
+        "description": "When the car is back in its bay",
+        "defaultValue": "",
+        "required": true,
+        "label": "Return",
+        "format": "datetime"
+      },
+      {
+        "id": "v-destination",
+        "name": "destination",
+        "type": "string",
+        "description": "Where you are going",
+        "defaultValue": "",
+        "required": true,
+        "label": "Destination"
+      },
+      {
+        "id": "v-distance_km",
+        "name": "distance_km",
+        "type": "number",
+        "description": "Rough total distance; 300 km or more needs approval",
+        "defaultValue": "50",
+        "required": true,
+        "label": "Return distance (km)"
+      },
+      {
+        "id": "v-purpose",
+        "name": "purpose",
+        "type": "string",
+        "description": "What the trip is for",
+        "defaultValue": "",
+        "required": true,
+        "label": "Purpose",
+        "options": [
+          "Client meeting",
+          "Site visit",
+          "Event",
+          "Training",
+          "Equipment transport",
+          "Other"
+        ]
+      },
+      {
+        "id": "v-notes",
+        "name": "notes",
+        "type": "string",
+        "description": "Anything the fleet coordinator should know (child seat, roof racks, charging)",
+        "defaultValue": "",
+        "required": false,
+        "label": "Notes"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

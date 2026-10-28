@@ -1,0 +1,80 @@
+{
+  "id": "04291393-3143-4354-a0da-86c58f177cdf",
+  "slug": "complaint-handling-sla",
+  "title": "Complaint handling with SLAs",
+  "category": "customer-sales",
+  "summary": "Agents log a complaint; the customer tier and an SLA matrix set response and resolution targets, with escalation, compensation approval and CRM case resolution.",
+  "description": "Complaint handling with SLAs gives every complaint a clear target and an owner. A service agent logs the complaint from a form: customer email, order number, category, severity, description and channel.\n\nThe workflow finds the customer in your CRM (tier and lifetime value) and evaluates the Complaint SLA matrix decision table, which sets the first-response hours, resolution days, handler level and how much compensation a handler can offer. It opens a case in the CRM, starts a resolution SLA and sends the customer an acknowledgement with the case number and response target.\n\nThe handler investigates in a User Task due on the resolution date, with reminders and escalation to a supervisor if it sits untouched. They record the root cause, resolution and compensation. Compensation over the handler's limit (or a \"needs supervisor\" outcome) goes to a supervisor, who can approve or send it back. The case is resolved in the CRM and the customer receives the resolution email. Adapt the matrix, limits and CRM paths.",
+  "trigger": "form",
+  "entry_workflow": "34e45430-9557-4346-b5ae-b22949b1e931",
+  "start": "Starts from a form: a service agent logs the complaint (Run dialog in the app, or your contact-centre tool posting it to the start API or an inbound webhook).",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "complaints",
+    "sla",
+    "escalation",
+    "customer service",
+    "crm"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: a themed start form with a grid and header, Resolved / Needs supervisor buttons on the investigation and Approve / Send back on the supervisor step, each with a grid and header."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "CRM integration: set the base URL and API token. The references expect GET /customers?email=… (returning data[] with tier and lifetime_value), POST /cases and POST /cases/{id}/resolution; adjust them to your CRM.",
+    "Assignees: pick the default complaints handler (runs can pass handler_id) and the supervisor who approves compensation and receives escalations (runs can pass supervisor_id).",
+    "Edit the Complaint SLA matrix: response hours, resolution days, handler levels and compensation limits per category, severity and tier.",
+    "Email: configure EMAIL_PROVIDER on the instance so the acknowledgement and resolution emails reach customers (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Complaint logged",
+      "body": "The agent enters the customer email, order number, category, severity, description and channel."
+    },
+    {
+      "title": "Find the customer",
+      "body": "The CRM returns the customer name, tier and lifetime value."
+    },
+    {
+      "title": "Set the targets",
+      "body": "The Complaint SLA matrix sets the first-response hours, resolution days, handler level and compensation limit; a case is opened and an SLA started."
+    },
+    {
+      "title": "Acknowledge",
+      "body": "The customer gets the case number, the response target and the expected resolution date."
+    },
+    {
+      "title": "Investigate and resolve",
+      "body": "The handler records the root cause, resolution and compensation, with reminders and escalation to the supervisor."
+    },
+    {
+      "title": "Approve and close",
+      "body": "Compensation over the limit goes to a supervisor; the case is resolved in the CRM and the customer is emailed."
+    }
+  ],
+  "sample_input": {
+    "customer_email": "taylor.brooks@example.net",
+    "order_number": "SO-558201",
+    "category": "delivery",
+    "severity": "high",
+    "description": "Order arrived nine days late and the box was damaged. One of the three items is missing.",
+    "channel": "phone"
+  },
+  "expect": "waiting",
+  "icon": "message-square-warning"
+}

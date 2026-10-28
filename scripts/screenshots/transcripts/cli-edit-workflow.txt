@@ -1,0 +1,24 @@
+$ usertasks workflows definition 490c3c87-8a6a-4bed-9b0e-e67c9c3841a2 -o json > wf.json
+# Give approvers one day instead of two
+$ jq '(.nodes[] | select(.id == "approve") | .config.due_offset_amount) = 1' wf.json > wf.next && mv wf.next wf.json
+$ usertasks workflows update 490c3c87-8a6a-4bed-9b0e-e67c9c3841a2 -f wf.json
+workflow_id     490c3c87-8a6a-4bed-9b0e-e67c9c3841a2
+name            Invoice approval
+changed         true
+updated_fields  nodes
+published       false
+$ usertasks workflows publish 490c3c87-8a6a-4bed-9b0e-e67c9c3841a2 --set notes="Approvers get 1 day instead of 2"
+workflow_id     490c3c87-8a6a-4bed-9b0e-e67c9c3841a2
+published       true
+version_number  8
+version_id      2af72cec-815a-4998-9afa-4a13ea960c72
+$ usertasks workflows versions 490c3c87-8a6a-4bed-9b0e-e67c9c3841a2
+ID                                    IS_ACTIVE  WORKFLOW_ID                           VERSION_NUMBER  PUBLISH_NOTES                                          TRIGGER_TYPE
+2af72cec-815a-4998-9afa-4a13ea960c72  true       490c3c87-8a6a-4bed-9b0e-e67c9c3841a2  8               Approvers get 1 day instead of 2                       webhook_received
+573bd3de-b390-45b3-85b8-95eac269357b  false      490c3c87-8a6a-4bed-9b0e-e67c9c3841a2  7               Route by approval policy; email requester on approval  webhook_received
+616a2bef-d0a6-49d0-8ca3-c143df6bfe3a  false      490c3c87-8a6a-4bed-9b0e-e67c9c3841a2  6               Approvers get 1 day instead of 2                       webhook_received
+00985d96-eb30-4633-980e-c7e4c2f7009d  false      490c3c87-8a6a-4bed-9b0e-e67c9c3841a2  5               Route by approval policy; email requester on approval  webhook_received
+83a17f52-fc5d-49f1-ba31-456a0116187b  false      490c3c87-8a6a-4bed-9b0e-e67c9c3841a2  4               Route by approval policy; email requester on approval  webhook_received
+97edbfbc-ce3a-4ac9-b58f-1bb529033a55  false      490c3c87-8a6a-4bed-9b0e-e67c9c3841a2  3               Route by approval policy; email requester on approval  webhook_received
+441cbaaa-7a7c-4981-96df-bf6b543834e1  false      490c3c87-8a6a-4bed-9b0e-e67c9c3841a2  2               Route by approval policy; email requester on approval  webhook_received
+d89982fd-f37c-4399-9302-a37088668281  false      490c3c87-8a6a-4bed-9b0e-e67c9c3841a2  1               Route by approval policy; email requester on approval  webhook_received

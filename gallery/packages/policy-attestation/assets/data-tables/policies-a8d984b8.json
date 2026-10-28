@@ -1,0 +1,87 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "a8d984b8-0cc7-4a96-bdbb-695ae6d6b40c",
+  "asset": {
+    "id": "a8d984b8-0cc7-4a96-bdbb-695ae6d6b40c",
+    "name": "Policies",
+    "description": "The policies employees attest to: version, owner, document link, audience (a department or \"all\") and how often they are re-attested. Policies whose next due date has arrived are included in the monthly campaign.",
+    "columns": [
+      {
+        "id": "ffa8117d-fdff-4874-992e-15a165fd4463",
+        "required": true,
+        "key": "policy_id",
+        "name": "Policy ID",
+        "type": "text"
+      },
+      {
+        "id": "25fc86f0-89fe-49ca-a8ed-c70d920582ce",
+        "required": true,
+        "key": "policy",
+        "name": "Policy",
+        "type": "text"
+      },
+      {
+        "id": "a7956ea6-b500-45b0-9aa3-a0fa70b46ce1",
+        "required": true,
+        "key": "version",
+        "name": "Version",
+        "type": "text"
+      },
+      {
+        "id": "6aaefac9-97fc-410d-a33b-7b37c950559b",
+        "required": false,
+        "key": "owner",
+        "name": "Policy owner",
+        "type": "text"
+      },
+      {
+        "id": "9aac7460-5069-460c-9bec-c3df4f586875",
+        "required": false,
+        "key": "document_url",
+        "name": "Document URL",
+        "type": "text"
+      },
+      {
+        "id": "290cd386-572e-4a9c-83b2-50fc8a740c4a",
+        "required": true,
+        "key": "audience",
+        "name": "Audience (department or all)",
+        "type": "text"
+      },
+      {
+        "id": "d3d78729-f496-4d7f-8edc-3e44a9baf28a",
+        "required": false,
+        "key": "attestation_frequency",
+        "name": "Attestation frequency",
+        "type": "select",
+        "options": [
+          "monthly",
+          "quarterly",
+          "annual"
+        ]
+      },
+      {
+        "id": "8f294bde-02b5-439d-953f-0f661bc77256",
+        "required": false,
+        "key": "frequency_days",
+        "name": "Days between attestations",
+        "type": "number"
+      },
+      {
+        "id": "26854ac1-413c-4cc3-8f03-bea3f63b4e96",
+        "required": false,
+        "key": "next_due",
+        "name": "Next due",
+        "type": "date"
+      },
+      {
+        "id": "d3382b37-4a34-4351-b474-b20e3b016bdb",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

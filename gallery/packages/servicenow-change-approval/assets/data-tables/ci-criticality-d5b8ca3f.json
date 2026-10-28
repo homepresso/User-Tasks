@@ -1,0 +1,60 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "d5b8ca3f-b869-5d23-a894-6be09de8a8ac",
+  "asset": {
+    "id": "d5b8ca3f-b869-5d23-a894-6be09de8a8ac",
+    "name": "CI criticality",
+    "description": "How critical each configuration item is: the workflow looks the change's CI up by name to set the risk route. Unknown CIs count as medium.",
+    "columns": [
+      {
+        "id": "3ca8b53f-1667-59dd-84ed-67804bdae4aa",
+        "required": true,
+        "key": "ci_name",
+        "name": "CI name",
+        "type": "text"
+      },
+      {
+        "id": "06cc10d3-661c-59be-aee6-036c59915199",
+        "required": false,
+        "key": "ci_class",
+        "name": "CI class",
+        "type": "text"
+      },
+      {
+        "id": "bbe55a90-c8b9-59d1-82e6-e7baaf68abc1",
+        "required": true,
+        "key": "criticality",
+        "name": "Criticality",
+        "type": "select",
+        "options": [
+          "critical",
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      {
+        "id": "110e4cc2-d847-5758-a4ff-9846317e07e9",
+        "required": false,
+        "key": "business_service",
+        "name": "Business service",
+        "type": "text"
+      },
+      {
+        "id": "400de0fa-be40-5843-af14-69665ab8fea8",
+        "required": false,
+        "key": "support_group",
+        "name": "Support group",
+        "type": "text"
+      },
+      {
+        "id": "d5e2e5a3-b24d-5b9f-90be-20fc230faec8",
+        "required": false,
+        "key": "freeze_exempt",
+        "name": "Exempt from change freeze",
+        "type": "boolean"
+      }
+    ]
+  }
+}

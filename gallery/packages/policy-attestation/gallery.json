@@ -1,0 +1,78 @@
+{
+  "id": "5695c286-8d5c-4595-be08-95adaa2e9538",
+  "slug": "policy-attestation",
+  "title": "Policy attestation",
+  "category": "operations-compliance",
+  "summary": "A monthly campaign: employees confirm they have read the policies due for them, with reminders, escalation to compliance and an audit trail of attestations.",
+  "description": "Policy attestation runs your read-and-understood campaigns. On the first of each month it reads the Policies data table, picks the active policies whose next due date has arrived and lists active employees from your HR system.\n\nEach employee gets their own Attest policy run with only the policies for their department plus the ones for everyone. They tick \"I have read and understood\" and attest, or raise a question; questions go to the compliance officer, who answers (the attestation goes back to the employee) or marks them exempt. Reminders go out before the due date, open requests escalate to the compliance officer after 10 days, and every attested policy is written to the Attestations table with the version and date. The policies' next due dates roll forward by their frequency and the compliance officer gets a campaign summary.\n\nAdapt the Policies rows (audience is a department name or \"all\"), the HR system reference to your API, the schedule, and the reminder and escalation timings on the attestation step.",
+  "trigger": "schedule",
+  "entry_workflow": "bbea5157-e255-4ac5-a442-4ca32bcb05db",
+  "start": "Runs on the 1st of every month at 08:00 UTC. Run it by hand with an \"as of\" date to start a campaign early.",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "policies",
+    "attestation",
+    "compliance",
+    "campaign",
+    "escalation"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: Attest / I have a question buttons with a header on the attestation, and Answered / Exempt buttons on the question step with a Policies lookup that fills the owner and document link."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "directory",
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "HR system integration: set the base URL of your HR / directory API and an API token. List active employees expects GET /employees?status=active returning { data: [{ id, name, email, department }] }; adjust the path and response model in Integrations.",
+    "Assignees: pick the default recipient for attestation tasks (used when an employee has no workspace user id; return workspace_user_id from the HR API, or map it, to send each task to the employee) and the compliance officer who answers questions and receives escalations.",
+    "Edit the Policies rows: version, document link, audience (a department name as the HR system spells it, or \"all\"), frequency in days and next due date.",
+    "Set compliance_email on the workflow to the inbox that receives the campaign summary, and change the schedule if your campaigns run on another day.",
+    "Email: configure EMAIL_PROVIDER on the instance so summaries and receipts are delivered (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Monthly campaign",
+      "body": "On the 1st the workflow lists the active policies whose next due date has arrived. If none are due it stops."
+    },
+    {
+      "title": "Find the employees",
+      "body": "List active employees returns everyone in the HR system with their department and email."
+    },
+    {
+      "title": "Match policies to people",
+      "body": "For each employee the due policies are filtered to their department plus \"all\"; an Attest policy run starts for anyone with at least one."
+    },
+    {
+      "title": "Attest or ask",
+      "body": "The employee ticks \"I have read and understood\" and attests, or raises a question. Reminders go out and open tasks escalate to compliance after 10 days."
+    },
+    {
+      "title": "Answer questions",
+      "body": "The compliance officer answers (the attestation returns to the employee) or marks the employee exempt for this campaign."
+    },
+    {
+      "title": "Record and roll forward",
+      "body": "Each policy is recorded in the Attestations table, the employee gets a receipt, next due dates move on by the policy frequency and compliance gets a summary."
+    }
+  ],
+  "sample_input": {
+    "as_of": "2026-11-01",
+    "compliance_email": "compliance@example.com"
+  },
+  "expect": "completed",
+  "icon": "shield-check"
+}

@@ -1,0 +1,65 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "62b351ed-409a-467c-917a-ab2f867e32ff",
+  "asset": {
+    "id": "62b351ed-409a-467c-917a-ab2f867e32ff",
+    "name": "Sync log",
+    "description": "One row per target system per webhook: the HTTP status and whether the sync succeeded. Use it for monitoring and replays.",
+    "columns": [
+      {
+        "id": "1ed44be6-36d4-4da3-b45b-728dcda229a2",
+        "required": false,
+        "key": "synced_at",
+        "name": "Synced at",
+        "type": "text"
+      },
+      {
+        "id": "f45c9565-a600-471b-9085-bcaca3957e33",
+        "required": true,
+        "key": "account_id",
+        "name": "Account id",
+        "type": "text"
+      },
+      {
+        "id": "efb61afc-56b6-4c9b-8fbe-5412b38706dd",
+        "required": true,
+        "key": "target_system",
+        "name": "Target system",
+        "type": "text"
+      },
+      {
+        "id": "64869652-6ce7-40bc-bae4-1369a377e203",
+        "required": false,
+        "key": "operation",
+        "name": "Operation",
+        "type": "text"
+      },
+      {
+        "id": "83b9185d-0fbf-4742-8998-ed218ee2b721",
+        "required": false,
+        "key": "status_code",
+        "name": "HTTP status",
+        "type": "number"
+      },
+      {
+        "id": "d7a9a0bc-9c75-4839-9a3c-a6bbfc7d4624",
+        "required": false,
+        "key": "result",
+        "name": "Result",
+        "type": "text",
+        "options": [
+          "ok",
+          "failed"
+        ]
+      },
+      {
+        "id": "2ac8db9a-1860-43b1-8d54-12db55c1c577",
+        "required": false,
+        "key": "message",
+        "name": "Message",
+        "type": "text"
+      }
+    ]
+  }
+}

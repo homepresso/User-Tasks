@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "564d62ce-ae57-49a7-88ef-148101209edf",
+  "asset": {
+    "id": "564d62ce-ae57-49a7-88ef-148101209edf",
+    "name": "Equipment outstanding",
+    "description": "Sent to the manager when IT could not recover every device or disable every account.",
+    "subject": "Offboarding: equipment or access outstanding for {{employee_name}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Something is still outstanding</h2>\n  <p>Hi {{manager_name}},</p>\n  <p>IT could not close everything for <strong>{{employee_name}}</strong> (last day {{last_working_day}}).</p>\n  <ul><li>Devices returned: {{task_data.devices_returned}}</li><li>Accounts disabled: {{task_data.accounts_disabled}}</li></ul>\n  <p>IT note: {{task_data.it_notes}}</p>\n  <p>Please arrange the return with {{employee_name}} before their last day.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your employee offboarding workflow</p>\n</div>",
+    "text_body": "Something is still outstanding\n  Hi {{manager_name}},\n  IT could not close everything for {{employee_name}} (last day {{last_working_day}}).\n  Devices returned: {{task_data.devices_returned}}Accounts disabled: {{task_data.accounts_disabled}}\n  IT note: {{task_data.it_notes}}\n  Please arrange the return with {{employee_name}} before their last day.\n  Sent by your employee offboarding workflow",
+    "is_default": false
+  }
+}

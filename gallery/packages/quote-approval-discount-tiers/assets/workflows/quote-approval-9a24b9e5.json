@@ -1,0 +1,1448 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "9a24b9e5-3b61-4308-aacf-4d8956402be8",
+  "asset": {
+    "id": "9a24b9e5-3b61-4308-aacf-4d8956402be8",
+    "name": "Quote approval",
+    "description": "A sales rep submits a quote; the discount authority table sets the approval path and each required approver (sales manager, VP sales, deal desk, CFO) approves, rejects or counters in turn. The decision is written to the CPQ system and the rep is emailed.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Quote submitted",
+        "position": {
+          "x": 2580,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "quote_id",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "customer",
+                      "span": 2
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "product",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "currency",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "list_price",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "discount_pct",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "term_months",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "payment_terms",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "rep_email",
+                      "span": 2
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "justification",
+                      "span": 3
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "sales_manager_id",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "vp_sales_id",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "deal_desk_id",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "cfo_id",
+                      "span": 3
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#DB2777",
+                    "background": "#FFFFFF",
+                    "text": "#1B1916",
+                    "page": "#FCEEF5"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "header": {
+                  "enabled": true,
+                  "title": "Request a discount",
+                  "subtitle": "Up to 10% is approved by your sales manager; deeper discounts go up the tiers."
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 2580,
+          "y": 220
+        },
+        "config": {
+          "title": "Quote {{quote_id}} · {{customer}} · {{discount_pct}}% off"
+        }
+      },
+      {
+        "id": "net",
+        "type": "math",
+        "label": "Net annual price",
+        "position": {
+          "x": 2580,
+          "y": 380
+        },
+        "config": {
+          "expression": "{{list_price}} * (1 - {{discount_pct}} / 100)",
+          "output_var": "net_annual"
+        }
+      },
+      {
+        "id": "value",
+        "type": "math",
+        "label": "Deal value",
+        "position": {
+          "x": 2580,
+          "y": 540
+        },
+        "config": {
+          "expression": "{{net_annual}} * {{term_months}} / 12",
+          "output_var": "deal_value"
+        }
+      },
+      {
+        "id": "start_discount",
+        "type": "set_variable",
+        "label": "Discount so far",
+        "position": {
+          "x": 2580,
+          "y": 700
+        },
+        "config": {
+          "name": "approved_discount_pct",
+          "expression": "{{discount_pct}}"
+        }
+      },
+      {
+        "id": "authority",
+        "type": "decision_table",
+        "label": "Discount authority",
+        "position": {
+          "x": 2580,
+          "y": 860
+        },
+        "config": {
+          "decision_table_id": "874094b7-6574-49be-9800-41b83fd418fa",
+          "decision_table_name": "Discount authority",
+          "input_mappings": {
+            "discount_pct": "{{discount_pct}}",
+            "deal_value": "{{deal_value}}",
+            "term_months": "{{term_months}}"
+          }
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Three-day SLA",
+        "position": {
+          "x": 2580,
+          "y": 1020
+        },
+        "config": {
+          "sla_label": "Quote approval",
+          "mode": "relative",
+          "amount": 3,
+          "unit": "days",
+          "warning_amount": 2,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "g_sm",
+        "type": "condition",
+        "label": "Sales manager needed?",
+        "position": {
+          "x": 2580,
+          "y": 1180
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Sales manager",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_sales_manager}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "t_sm",
+        "type": "user_task",
+        "label": "Sales manager approval",
+        "position": {
+          "x": 2020,
+          "y": 1360
+        },
+        "config": {
+          "task_title": "Sales manager approval: {{customer}} {{quote_id}} at {{discount_pct}}%",
+          "task_description": "<p><strong>{{customer}}</strong>: {{product}}, list {{currency}} {{list_price}} a year, <strong>{{discount_pct}}%</strong> discount, {{term_months}} months, {{payment_terms}}.</p><p>Net {{currency}} {{net_annual}} a year, deal value <strong>{{currency}} {{deal_value}}</strong>. Approved so far at {{approved_discount_pct}}%.</p><p>Justification: {{justification}}</p><p>Rule “{{rule_label}}”: {{approval_path}}. You are approving as <strong>Sales manager</strong>.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject",
+            "Counter-offer"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "f73af5e7-f04a-4704-bd8e-05229a2ad2bb",
+          "assignee_variable": "{{sales_manager_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 2880,
+          "fields": [
+            {
+              "key": "approved_discount_pct",
+              "label": "Approved discount %",
+              "type": "number",
+              "required": true,
+              "default": "{{approved_discount_pct}}"
+            },
+            {
+              "key": "conditions",
+              "label": "Conditions (e.g. annual prepayment, case study)",
+              "type": "text"
+            },
+            {
+              "key": "comment",
+              "label": "Comment for the rep",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "approved_discount_pct",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "conditions",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            },
+            {
+              "id": "counter_offer",
+              "label": "Counter-offer",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Counter-offer"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Sales manager approval: {{quote_id}}",
+            "align": "left",
+            "subtitle": "{{customer}} · {{product}} · {{discount_pct}}% requested"
+          }
+        }
+      },
+      {
+        "id": "a_sm",
+        "type": "set_variable",
+        "label": "Sales manager approved",
+        "position": {
+          "x": 2020,
+          "y": 1540
+        },
+        "config": {
+          "name": "approved_discount_pct",
+          "expression": "{{task_data.approved_discount_pct}}"
+        }
+      },
+      {
+        "id": "by_sm",
+        "type": "set_variable",
+        "label": "Decided by sales manager",
+        "position": {
+          "x": 2340,
+          "y": 1540
+        },
+        "config": {
+          "name": "decided_by",
+          "expression": "sales manager"
+        }
+      },
+      {
+        "id": "g_vp",
+        "type": "condition",
+        "label": "VP sales needed?",
+        "position": {
+          "x": 2020,
+          "y": 1700
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "VP sales",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_vp_sales}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "t_vp",
+        "type": "user_task",
+        "label": "VP sales approval",
+        "position": {
+          "x": 1460,
+          "y": 1880
+        },
+        "config": {
+          "task_title": "VP sales approval: {{customer}} {{quote_id}} at {{discount_pct}}%",
+          "task_description": "<p><strong>{{customer}}</strong>: {{product}}, list {{currency}} {{list_price}} a year, <strong>{{discount_pct}}%</strong> discount, {{term_months}} months, {{payment_terms}}.</p><p>Net {{currency}} {{net_annual}} a year, deal value <strong>{{currency}} {{deal_value}}</strong>. Approved so far at {{approved_discount_pct}}%.</p><p>Justification: {{justification}}</p><p>Rule “{{rule_label}}”: {{approval_path}}. You are approving as <strong>VP sales</strong>.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject",
+            "Counter-offer"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "28aeffd6-4ebc-4451-8183-e52f32ab3590",
+          "assignee_variable": "{{vp_sales_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 2880,
+          "fields": [
+            {
+              "key": "approved_discount_pct",
+              "label": "Approved discount %",
+              "type": "number",
+              "required": true,
+              "default": "{{approved_discount_pct}}"
+            },
+            {
+              "key": "conditions",
+              "label": "Conditions (e.g. annual prepayment, case study)",
+              "type": "text"
+            },
+            {
+              "key": "comment",
+              "label": "Comment for the rep",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "approved_discount_pct",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "conditions",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            },
+            {
+              "id": "counter_offer",
+              "label": "Counter-offer",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Counter-offer"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "VP sales approval: {{quote_id}}",
+            "align": "left",
+            "subtitle": "{{customer}} · {{product}} · {{discount_pct}}% requested"
+          }
+        }
+      },
+      {
+        "id": "a_vp",
+        "type": "set_variable",
+        "label": "VP sales approved",
+        "position": {
+          "x": 1460,
+          "y": 2060
+        },
+        "config": {
+          "name": "approved_discount_pct",
+          "expression": "{{task_data.approved_discount_pct}}"
+        }
+      },
+      {
+        "id": "by_vp",
+        "type": "set_variable",
+        "label": "Decided by VP sales",
+        "position": {
+          "x": 1780,
+          "y": 2060
+        },
+        "config": {
+          "name": "decided_by",
+          "expression": "VP sales"
+        }
+      },
+      {
+        "id": "g_dd",
+        "type": "condition",
+        "label": "Deal desk needed?",
+        "position": {
+          "x": 1460,
+          "y": 2220
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Deal desk",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_deal_desk}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "t_dd",
+        "type": "user_task",
+        "label": "Deal desk review",
+        "position": {
+          "x": 900,
+          "y": 2400
+        },
+        "config": {
+          "task_title": "Deal desk approval: {{customer}} {{quote_id}} at {{discount_pct}}%",
+          "task_description": "<p><strong>{{customer}}</strong>: {{product}}, list {{currency}} {{list_price}} a year, <strong>{{discount_pct}}%</strong> discount, {{term_months}} months, {{payment_terms}}.</p><p>Net {{currency}} {{net_annual}} a year, deal value <strong>{{currency}} {{deal_value}}</strong>. Approved so far at {{approved_discount_pct}}%.</p><p>Justification: {{justification}}</p><p>Rule “{{rule_label}}”: {{approval_path}}. You are approving as <strong>Deal desk</strong>.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject",
+            "Counter-offer"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "5f1aa708-fb78-44e8-a4c0-228d5a308dc2",
+          "assignee_variable": "{{deal_desk_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 2880,
+          "fields": [
+            {
+              "key": "approved_discount_pct",
+              "label": "Approved discount %",
+              "type": "number",
+              "required": true,
+              "default": "{{approved_discount_pct}}"
+            },
+            {
+              "key": "gross_margin_pct",
+              "label": "Gross margin % at this discount",
+              "type": "number",
+              "required": true
+            },
+            {
+              "key": "non_standard_terms",
+              "label": "Non-standard terms",
+              "type": "boolean"
+            },
+            {
+              "key": "conditions",
+              "label": "Conditions (e.g. annual prepayment, case study)",
+              "type": "text"
+            },
+            {
+              "key": "comment",
+              "label": "Comment for the rep",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "approved_discount_pct",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "gross_margin_pct",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "non_standard_terms",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "conditions",
+                    "span": 3
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            },
+            {
+              "id": "counter_offer",
+              "label": "Counter-offer",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Counter-offer"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Deal desk review: {{quote_id}}",
+            "align": "left",
+            "subtitle": "{{customer}} · {{product}} · {{discount_pct}}% requested"
+          }
+        }
+      },
+      {
+        "id": "a_dd",
+        "type": "set_variable",
+        "label": "Deal desk approved",
+        "position": {
+          "x": 900,
+          "y": 2580
+        },
+        "config": {
+          "name": "approved_discount_pct",
+          "expression": "{{task_data.approved_discount_pct}}"
+        }
+      },
+      {
+        "id": "by_dd",
+        "type": "set_variable",
+        "label": "Decided by deal desk",
+        "position": {
+          "x": 1220,
+          "y": 2580
+        },
+        "config": {
+          "name": "decided_by",
+          "expression": "deal desk"
+        }
+      },
+      {
+        "id": "g_cfo",
+        "type": "condition",
+        "label": "CFO needed?",
+        "position": {
+          "x": 900,
+          "y": 2740
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "CFO",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_cfo}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "t_cfo",
+        "type": "user_task",
+        "label": "CFO approval",
+        "position": {
+          "x": 660,
+          "y": 2920
+        },
+        "config": {
+          "task_title": "CFO approval: {{customer}} {{quote_id}} at {{discount_pct}}%",
+          "task_description": "<p><strong>{{customer}}</strong>: {{product}}, list {{currency}} {{list_price}} a year, <strong>{{discount_pct}}%</strong> discount, {{term_months}} months, {{payment_terms}}.</p><p>Net {{currency}} {{net_annual}} a year, deal value <strong>{{currency}} {{deal_value}}</strong>. Approved so far at {{approved_discount_pct}}%.</p><p>Justification: {{justification}}</p><p>Rule “{{rule_label}}”: {{approval_path}}. You are approving as <strong>CFO</strong>.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject",
+            "Counter-offer"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "df2a044e-71db-41e2-b872-710f165405a5",
+          "assignee_variable": "{{cfo_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 2880,
+          "fields": [
+            {
+              "key": "approved_discount_pct",
+              "label": "Approved discount %",
+              "type": "number",
+              "required": true,
+              "default": "{{approved_discount_pct}}"
+            },
+            {
+              "key": "conditions",
+              "label": "Conditions (e.g. annual prepayment, case study)",
+              "type": "text"
+            },
+            {
+              "key": "comment",
+              "label": "Comment for the rep",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "approved_discount_pct",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "conditions",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            },
+            {
+              "id": "counter_offer",
+              "label": "Counter-offer",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Counter-offer"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "CFO approval: {{quote_id}}",
+            "align": "left",
+            "subtitle": "{{customer}} · {{product}} · {{discount_pct}}% requested"
+          }
+        }
+      },
+      {
+        "id": "a_cfo",
+        "type": "set_variable",
+        "label": "CFO approved",
+        "position": {
+          "x": 340,
+          "y": 3100
+        },
+        "config": {
+          "name": "approved_discount_pct",
+          "expression": "{{task_data.approved_discount_pct}}"
+        }
+      },
+      {
+        "id": "by_cfo",
+        "type": "set_variable",
+        "label": "Decided by CFO",
+        "position": {
+          "x": 660,
+          "y": 3100
+        },
+        "config": {
+          "name": "decided_by",
+          "expression": "CFO"
+        }
+      },
+      {
+        "id": "not_ok",
+        "type": "switch_case",
+        "label": "Rejected or countered?",
+        "position": {
+          "x": 660,
+          "y": 3260
+        },
+        "config": {
+          "field": "{{outcome}}",
+          "cases": [
+            {
+              "value": "Counter-offer"
+            }
+          ],
+          "has_default": true
+        }
+      },
+      {
+        "id": "rec_ok",
+        "type": "call_reference",
+        "label": "Record approval",
+        "position": {
+          "x": 340,
+          "y": 3260
+        },
+        "config": {
+          "reference_id": "0c83a56b-aa77-401d-ae8a-821f337ac97f",
+          "reference_name": "Record quote approval",
+          "reference_method": "POST",
+          "input_mappings": {
+            "quote_id": "{{quote_id}}",
+            "decision": "approved",
+            "approved_discount_pct": "{{approved_discount_pct}}",
+            "approval_path": "{{approval_path}}",
+            "approved_by": "{{=COALESCE(decided_by, \"auto\")}}",
+            "conditions": "{{task_data.conditions}}",
+            "comment": "{{task_data.comment}}"
+          },
+          "output_mappings": {
+            "quote_url": {
+              "enabled": true,
+              "variableName": "quote_url"
+            },
+            "valid_until": {
+              "enabled": true,
+              "variableName": "valid_until"
+            }
+          }
+        }
+      },
+      {
+        "id": "mail_ok",
+        "type": "send_email",
+        "label": "Email rep: approved",
+        "position": {
+          "x": 340,
+          "y": 3440
+        },
+        "config": {
+          "to": "{{rep_email}}",
+          "email_template_id": "b5058bd7-6ae8-4cf8-9f26-9ab782334597"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "end_ok",
+        "type": "end_workflow",
+        "label": "Approved",
+        "position": {
+          "x": 340,
+          "y": 3600
+        },
+        "config": {
+          "reason": "Quote {{quote_id}} approved at {{approved_discount_pct}}% ({{approval_path}})"
+        }
+      },
+      {
+        "id": "rec_no",
+        "type": "call_reference",
+        "label": "Record rejection",
+        "position": {
+          "x": 980,
+          "y": 3440
+        },
+        "config": {
+          "reference_id": "0c83a56b-aa77-401d-ae8a-821f337ac97f",
+          "reference_name": "Record quote approval",
+          "reference_method": "POST",
+          "input_mappings": {
+            "quote_id": "{{quote_id}}",
+            "decision": "rejected",
+            "approved_discount_pct": "0",
+            "approval_path": "{{approval_path}}",
+            "approved_by": "{{decided_by}}",
+            "comment": "{{task_data.comment}}"
+          }
+        }
+      },
+      {
+        "id": "mail_no",
+        "type": "send_email",
+        "label": "Email rep: rejected",
+        "position": {
+          "x": 980,
+          "y": 3600
+        },
+        "config": {
+          "to": "{{rep_email}}",
+          "email_template_id": "2627f27f-ee01-4f96-9149-eb5eca382fa7"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "end_no",
+        "type": "end_workflow",
+        "label": "Rejected",
+        "position": {
+          "x": 980,
+          "y": 3760
+        },
+        "config": {
+          "reason": "Quote {{quote_id}} rejected by the {{decided_by}}"
+        }
+      },
+      {
+        "id": "rec_co",
+        "type": "call_reference",
+        "label": "Record counter-offer",
+        "position": {
+          "x": 660,
+          "y": 3440
+        },
+        "config": {
+          "reference_id": "0c83a56b-aa77-401d-ae8a-821f337ac97f",
+          "reference_name": "Record quote approval",
+          "reference_method": "POST",
+          "input_mappings": {
+            "quote_id": "{{quote_id}}",
+            "decision": "counter_offer",
+            "approved_discount_pct": "{{task_data.approved_discount_pct}}",
+            "approval_path": "{{approval_path}}",
+            "approved_by": "{{decided_by}}",
+            "conditions": "{{task_data.conditions}}",
+            "comment": "{{task_data.comment}}"
+          }
+        }
+      },
+      {
+        "id": "mail_co",
+        "type": "send_email",
+        "label": "Email rep: counter-offer",
+        "position": {
+          "x": 660,
+          "y": 3600
+        },
+        "config": {
+          "to": "{{rep_email}}",
+          "email_template_id": "f8649e24-a3d4-41b6-8221-f14bfb0bd12b"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "end_co",
+        "type": "end_workflow",
+        "label": "Counter-offer",
+        "position": {
+          "x": 660,
+          "y": 3760
+        },
+        "config": {
+          "reason": "Quote {{quote_id}} countered at {{task_data.approved_discount_pct}}% by the {{decided_by}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-net",
+        "source": "title",
+        "target": "net"
+      },
+      {
+        "id": "e-net-value",
+        "source": "net",
+        "target": "value"
+      },
+      {
+        "id": "e-value-start_discount",
+        "source": "value",
+        "target": "start_discount"
+      },
+      {
+        "id": "e-start_discount-authority",
+        "source": "start_discount",
+        "target": "authority"
+      },
+      {
+        "id": "e-authority-sla",
+        "source": "authority",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-g_sm",
+        "source": "sla",
+        "target": "g_sm"
+      },
+      {
+        "id": "e-g_sm-t_sm-sales-manager",
+        "source": "g_sm",
+        "target": "t_sm",
+        "label": "Sales manager"
+      },
+      {
+        "id": "e-g_sm-g_vp-else",
+        "source": "g_sm",
+        "target": "g_vp",
+        "label": "Else"
+      },
+      {
+        "id": "e-t_sm-a_sm-approve",
+        "source": "t_sm",
+        "target": "a_sm",
+        "label": "Approve"
+      },
+      {
+        "id": "e-t_sm-by_sm-reject",
+        "source": "t_sm",
+        "target": "by_sm",
+        "label": "Reject"
+      },
+      {
+        "id": "e-t_sm-by_sm-counter-offer",
+        "source": "t_sm",
+        "target": "by_sm",
+        "label": "Counter-offer"
+      },
+      {
+        "id": "e-a_sm-g_vp",
+        "source": "a_sm",
+        "target": "g_vp"
+      },
+      {
+        "id": "e-g_vp-t_vp-vp-sales",
+        "source": "g_vp",
+        "target": "t_vp",
+        "label": "VP sales"
+      },
+      {
+        "id": "e-g_vp-g_dd-else",
+        "source": "g_vp",
+        "target": "g_dd",
+        "label": "Else"
+      },
+      {
+        "id": "e-t_vp-a_vp-approve",
+        "source": "t_vp",
+        "target": "a_vp",
+        "label": "Approve"
+      },
+      {
+        "id": "e-t_vp-by_vp-reject",
+        "source": "t_vp",
+        "target": "by_vp",
+        "label": "Reject"
+      },
+      {
+        "id": "e-t_vp-by_vp-counter-offer",
+        "source": "t_vp",
+        "target": "by_vp",
+        "label": "Counter-offer"
+      },
+      {
+        "id": "e-a_vp-g_dd",
+        "source": "a_vp",
+        "target": "g_dd"
+      },
+      {
+        "id": "e-g_dd-t_dd-deal-desk",
+        "source": "g_dd",
+        "target": "t_dd",
+        "label": "Deal desk"
+      },
+      {
+        "id": "e-g_dd-g_cfo-else",
+        "source": "g_dd",
+        "target": "g_cfo",
+        "label": "Else"
+      },
+      {
+        "id": "e-t_dd-a_dd-approve",
+        "source": "t_dd",
+        "target": "a_dd",
+        "label": "Approve"
+      },
+      {
+        "id": "e-t_dd-by_dd-reject",
+        "source": "t_dd",
+        "target": "by_dd",
+        "label": "Reject"
+      },
+      {
+        "id": "e-t_dd-by_dd-counter-offer",
+        "source": "t_dd",
+        "target": "by_dd",
+        "label": "Counter-offer"
+      },
+      {
+        "id": "e-a_dd-g_cfo",
+        "source": "a_dd",
+        "target": "g_cfo"
+      },
+      {
+        "id": "e-g_cfo-t_cfo-cfo",
+        "source": "g_cfo",
+        "target": "t_cfo",
+        "label": "CFO"
+      },
+      {
+        "id": "e-g_cfo-rec_ok-else",
+        "source": "g_cfo",
+        "target": "rec_ok",
+        "label": "Else"
+      },
+      {
+        "id": "e-t_cfo-a_cfo-approve",
+        "source": "t_cfo",
+        "target": "a_cfo",
+        "label": "Approve"
+      },
+      {
+        "id": "e-t_cfo-by_cfo-reject",
+        "source": "t_cfo",
+        "target": "by_cfo",
+        "label": "Reject"
+      },
+      {
+        "id": "e-t_cfo-by_cfo-counter-offer",
+        "source": "t_cfo",
+        "target": "by_cfo",
+        "label": "Counter-offer"
+      },
+      {
+        "id": "e-a_cfo-rec_ok",
+        "source": "a_cfo",
+        "target": "rec_ok"
+      },
+      {
+        "id": "e-rec_ok-mail_ok",
+        "source": "rec_ok",
+        "target": "mail_ok"
+      },
+      {
+        "id": "e-mail_ok-end_ok",
+        "source": "mail_ok",
+        "target": "end_ok"
+      },
+      {
+        "id": "e-by_sm-not_ok",
+        "source": "by_sm",
+        "target": "not_ok"
+      },
+      {
+        "id": "e-by_vp-not_ok",
+        "source": "by_vp",
+        "target": "not_ok"
+      },
+      {
+        "id": "e-by_dd-not_ok",
+        "source": "by_dd",
+        "target": "not_ok"
+      },
+      {
+        "id": "e-by_cfo-not_ok",
+        "source": "by_cfo",
+        "target": "not_ok"
+      },
+      {
+        "id": "e-not_ok-rec_co-counter-offer",
+        "source": "not_ok",
+        "target": "rec_co",
+        "label": "Counter-offer"
+      },
+      {
+        "id": "e-not_ok-rec_no-default",
+        "source": "not_ok",
+        "target": "rec_no",
+        "label": "Default"
+      },
+      {
+        "id": "e-rec_no-mail_no",
+        "source": "rec_no",
+        "target": "mail_no"
+      },
+      {
+        "id": "e-mail_no-end_no",
+        "source": "mail_no",
+        "target": "end_no"
+      },
+      {
+        "id": "e-rec_co-mail_co",
+        "source": "rec_co",
+        "target": "mail_co"
+      },
+      {
+        "id": "e-mail_co-end_co",
+        "source": "mail_co",
+        "target": "end_co"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-quote_id",
+        "name": "quote_id",
+        "type": "string",
+        "description": "Quote id in the CPQ system",
+        "defaultValue": "",
+        "required": true,
+        "label": "Quote id"
+      },
+      {
+        "id": "v-customer",
+        "name": "customer",
+        "type": "string",
+        "description": "Customer account name",
+        "defaultValue": "",
+        "required": true,
+        "label": "Customer"
+      },
+      {
+        "id": "v-product",
+        "name": "product",
+        "type": "string",
+        "description": "Product or plan being quoted",
+        "defaultValue": "",
+        "required": true,
+        "label": "Product",
+        "options": [
+          "Platform Standard",
+          "Platform Professional",
+          "Platform Enterprise",
+          "Add-on: Analytics",
+          "Services: Implementation"
+        ]
+      },
+      {
+        "id": "v-list_price",
+        "name": "list_price",
+        "type": "number",
+        "description": "Annual list price before discount",
+        "defaultValue": "0",
+        "required": true,
+        "label": "List price (annual)"
+      },
+      {
+        "id": "v-currency",
+        "name": "currency",
+        "type": "string",
+        "description": "ISO currency code",
+        "defaultValue": "USD",
+        "label": "Currency",
+        "options": [
+          "NZD",
+          "AUD",
+          "USD",
+          "EUR",
+          "GBP"
+        ]
+      },
+      {
+        "id": "v-discount_pct",
+        "name": "discount_pct",
+        "type": "number",
+        "description": "Requested discount off list, in percent",
+        "defaultValue": "0",
+        "required": true,
+        "label": "Discount %"
+      },
+      {
+        "id": "v-term_months",
+        "name": "term_months",
+        "type": "number",
+        "description": "Contract term in months",
+        "defaultValue": "12",
+        "required": true,
+        "label": "Term (months)"
+      },
+      {
+        "id": "v-payment_terms",
+        "name": "payment_terms",
+        "type": "string",
+        "description": "Billing and payment terms",
+        "defaultValue": "Annual in advance",
+        "label": "Payment terms",
+        "options": [
+          "Annual in advance",
+          "Quarterly in advance",
+          "Monthly in arrears",
+          "Net 30",
+          "Net 60"
+        ]
+      },
+      {
+        "id": "v-justification",
+        "name": "justification",
+        "type": "string",
+        "description": "Why the discount is needed: competition, volume, strategic logo, timing",
+        "defaultValue": "",
+        "required": true,
+        "label": "Justification"
+      },
+      {
+        "id": "v-rep_email",
+        "name": "rep_email",
+        "type": "string",
+        "description": "Sales rep email: receives the decision",
+        "defaultValue": "",
+        "required": true,
+        "label": "Your email",
+        "format": "email"
+      },
+      {
+        "id": "v-sales_manager_id",
+        "name": "sales_manager_id",
+        "type": "string",
+        "description": "Optional: user id of the sales manager (overrides the install-time default)",
+        "defaultValue": "",
+        "label": "Sales manager (user id)"
+      },
+      {
+        "id": "v-vp_sales_id",
+        "name": "vp_sales_id",
+        "type": "string",
+        "description": "Optional: user id of the VP sales",
+        "defaultValue": "",
+        "label": "VP sales (user id)"
+      },
+      {
+        "id": "v-deal_desk_id",
+        "name": "deal_desk_id",
+        "type": "string",
+        "description": "Optional: user id of the deal desk analyst",
+        "defaultValue": "",
+        "label": "Deal desk (user id)"
+      },
+      {
+        "id": "v-cfo_id",
+        "name": "cfo_id",
+        "type": "string",
+        "description": "Optional: user id of the CFO",
+        "defaultValue": "",
+        "label": "CFO (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

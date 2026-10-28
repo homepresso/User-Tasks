@@ -1,0 +1,23 @@
+-- task title ILIKE '%invoice 4%' (20) as service_role
+SELECT id, title, status FROM public.tasks WHERE tenant_id = '0be0c000-0000-4000-8000-000000000001' AND title ILIKE '%invoice 4%' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 20
+
+Limit  (cost=92.19..92.20 rows=5 width=56) (actual time=4.287..4.290 rows=20 loops=1)
+  Buffers: shared hit=1158
+  ->  Sort  (cost=92.19..92.20 rows=5 width=56) (actual time=4.286..4.287 rows=20 loops=1)
+        Sort Key: created_at DESC
+        Sort Method: top-N heapsort  Memory: 29kB
+        Buffers: shared hit=1158
+        ->  Bitmap Heap Scan on tasks  (cost=65.01..92.13 rows=5 width=56) (actual time=1.484..4.219 rows=517 loops=1)
+              Recheck Cond: (title ~~* '%invoice 4%'::text)
+              Rows Removed by Index Recheck: 1905
+              Filter: ((deleted_at IS NULL) AND (tenant_id = '0be0c000-0000-4000-8000-000000000001'::uuid))
+              Rows Removed by Filter: 204
+              Heap Blocks: exact=1103
+              Buffers: shared hit=1158
+              ->  Bitmap Index Scan on idx_tasks_title_trgm  (cost=0.00..65.01 rows=7 width=0) (actual time=1.374..1.374 rows=2626 loops=1)
+                    Index Cond: (title ~~* '%invoice 4%'::text)
+                    Buffers: shared hit=55
+Planning:
+  Buffers: shared hit=5
+Planning Time: 0.155 ms
+Execution Time: 4.311 ms

@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "webhook_received",
+      "label": "Webhook",
+      "position": { "x": 400, "y": 20 },
+      "config": {}
+    },
+    {
+      "id": "n1",
+      "type": "json_build_object",
+      "label": "Build Customer",
+      "position": { "x": 400, "y": 160 },
+      "config": {
+        "fields": [
+          { "key": "name", "value": "Acme Corp" },
+          { "key": "email", "value": "info@acme.com" },
+          { "key": "tier", "value": "enterprise" },
+          { "key": "active", "value": "true" }
+        ],
+        "output_var": "customer"
+      }
+    },
+    {
+      "id": "n2",
+      "type": "json_get_value",
+      "label": "Get Name",
+      "position": { "x": 200, "y": 320 },
+      "config": { "source": "{{customer}}", "path": "name", "output_var": "customer_name" }
+    },
+    {
+      "id": "n3",
+      "type": "json_get_value",
+      "label": "Get Tier",
+      "position": { "x": 600, "y": 320 },
+      "config": { "source": "{{customer}}", "path": "tier", "output_var": "customer_tier" }
+    },
+    {
+      "id": "n4",
+      "type": "json_build_array",
+      "label": "Build Tags",
+      "position": { "x": 400, "y": 480 },
+      "config": { "items": ["vip", "priority", "{{customer_tier}}"], "output_var": "tags" }
+    },
+    {
+      "id": "n5",
+      "type": "json_add_to_array",
+      "label": "Add Tag",
+      "position": { "x": 400, "y": 620 },
+      "config": { "array": "{{tags}}", "value": "new_tag", "output_var": "tags" }
+    },
+    {
+      "id": "n6",
+      "type": "collection_join",
+      "label": "Join Tags",
+      "position": { "x": 400, "y": 760 },
+      "config": { "collection": "{{tags}}", "separator": ", ", "output_var": "tags_string" }
+    },
+    {
+      "id": "n7",
+      "type": "log",
+      "label": "Log All",
+      "position": { "x": 400, "y": 900 },
+      "config": { "message": "Customer: {{customer_name}} ({{customer_tier}}) | Tags: {{tags_string}}" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "t1", "target": "n1" },
+    { "id": "e2", "source": "n1", "target": "n2" },
+    { "id": "e3", "source": "n1", "target": "n3" },
+    { "id": "e4", "source": "n2", "target": "n4" },
+    { "id": "e5", "source": "n3", "target": "n4" },
+    { "id": "e6", "source": "n4", "target": "n5" },
+    { "id": "e7", "source": "n5", "target": "n6" },
+    { "id": "e8", "source": "n6", "target": "n7" }
+  ],
+  "user_variables": [],
+  "swimlanes": []
+}

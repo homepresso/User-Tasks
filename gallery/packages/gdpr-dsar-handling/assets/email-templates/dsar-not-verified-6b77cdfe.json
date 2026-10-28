@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "6b77cdfe-c367-4003-bb11-92c32092e660",
+  "asset": {
+    "id": "6b77cdfe-c367-4003-bb11-92c32092e660",
+    "name": "DSAR not verified",
+    "description": "Tells the requester the request cannot proceed because their identity could not be confirmed.",
+    "subject": "Your privacy request {{reference}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">We could not verify your request</h2>\n  <p>Hi {{requester_name}},</p>\n  <p>We could not confirm that your {{request_type}} request came from the person the data is about, so we cannot act on it.</p>\n  <p>{{task_data.verification_notes}}</p>\n  <p>You can submit a new request at any time. You also have the right to complain to your data protection authority.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Privacy team, your company · Reference {{reference}}</p>\n</div>",
+    "text_body": "We could not verify your request\n  Hi {{requester_name}},\n  We could not confirm that your {{request_type}} request came from the person the data is about, so we cannot act on it.\n  {{task_data.verification_notes}}\n  You can submit a new request at any time. You also have the right to complain to your data protection authority.\n  Privacy team, your company · Reference {{reference}}",
+    "is_default": false
+  }
+}

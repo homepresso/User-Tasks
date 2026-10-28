@@ -1,0 +1,121 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "790b41d0-de31-4537-ba24-0840fb8bc35f",
+  "asset": {
+    "id": "790b41d0-de31-4537-ba24-0840fb8bc35f",
+    "integration_id": "0ebe81e1-25f1-43cd-ac67-e372d3745746",
+    "name": "Find billing customer",
+    "description": "Billing accounts, invoices and payment methods held for the subject's email.",
+    "tags": [
+      "dsar"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/customers",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "total",
+              "type": "integer",
+              "example": 1
+            },
+            {
+              "name": "customers",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "id",
+                    "type": "string",
+                    "example": "CUS-20417"
+                  },
+                  {
+                    "name": "name",
+                    "type": "string",
+                    "example": "Robin James"
+                  },
+                  {
+                    "name": "email",
+                    "type": "string",
+                    "example": "robin.james@example.com"
+                  },
+                  {
+                    "name": "invoice_count",
+                    "type": "integer",
+                    "example": 14
+                  },
+                  {
+                    "name": "payment_methods",
+                    "type": "integer",
+                    "example": 1
+                  },
+                  {
+                    "name": "retention_until",
+                    "type": "string",
+                    "example": "2033-06-30"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "sample": {
+          "total": 1,
+          "customers": [
+            {
+              "id": "CUS-20417",
+              "name": "Robin James",
+              "email": "robin.james@example.com",
+              "invoice_count": 14,
+              "payment_methods": 1,
+              "retention_until": "2033-06-30"
+            }
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "6591f0fb-cdcd-4f89-96a1-4e4733f30b6d",
+        "name": "email",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "Data subject email",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "5ff23a3a-426a-48a1-ac90-dd3d11a65697",
+        "name": "match_count",
+        "path": "total",
+        "type": "number"
+      },
+      {
+        "id": "2c0685f8-f0c9-4db8-b103-b8eb81624848",
+        "name": "customer_id",
+        "path": "customers.0.id",
+        "type": "string"
+      },
+      {
+        "id": "cd2f6706-676a-4318-bf8a-a9695b50d03c",
+        "name": "invoice_count",
+        "path": "customers.0.invoice_count",
+        "type": "number"
+      }
+    ]
+  }
+}

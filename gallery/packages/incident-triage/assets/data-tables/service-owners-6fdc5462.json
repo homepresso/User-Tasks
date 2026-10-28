@@ -1,0 +1,61 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "6fdc5462-9590-4dd0-84c1-42dd7086a783",
+  "asset": {
+    "id": "6fdc5462-9590-4dd0-84c1-42dd7086a783",
+    "name": "Service owners",
+    "description": "Business services with their tier (1 = most critical), on-call contact, ITSM assignment group, runbook and business owner. Monitoring alerts are matched on the service name.",
+    "columns": [
+      {
+        "id": "7ce06d1b-7ce2-4a88-80de-5f07f371054e",
+        "required": true,
+        "key": "service",
+        "name": "Service",
+        "type": "text"
+      },
+      {
+        "id": "3d493b3a-9963-4873-80fc-1114084a10ec",
+        "required": true,
+        "key": "tier",
+        "name": "Tier",
+        "type": "number"
+      },
+      {
+        "id": "291ec7c1-5fbd-4954-881a-2586ad9aa07d",
+        "required": false,
+        "key": "oncall_contact",
+        "name": "On-call contact",
+        "type": "text"
+      },
+      {
+        "id": "63a4d687-9d28-40be-a27f-07b51c006ea3",
+        "required": true,
+        "key": "assignment_group",
+        "name": "Assignment group",
+        "type": "text"
+      },
+      {
+        "id": "4e386892-753d-4e92-baa1-a0d287f22f00",
+        "required": false,
+        "key": "runbook_url",
+        "name": "Runbook URL",
+        "type": "text"
+      },
+      {
+        "id": "335768d9-7008-4912-b72e-d574f9c5b5bf",
+        "required": false,
+        "key": "business_owner",
+        "name": "Business owner",
+        "type": "text"
+      },
+      {
+        "id": "ff54666e-90b5-49b4-9910-55ce6ada2ffd",
+        "required": false,
+        "key": "business_owner_email",
+        "name": "Business owner email",
+        "type": "text"
+      }
+    ]
+  }
+}

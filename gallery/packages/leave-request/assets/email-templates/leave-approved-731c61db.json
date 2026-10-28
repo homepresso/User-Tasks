@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "731c61db-fe10-4964-af2a-94cc982035c9",
+  "asset": {
+    "id": "731c61db-fe10-4964-af2a-94cc982035c9",
+    "name": "Leave approved",
+    "description": "Sent to the employee when the leave is approved and booked.",
+    "subject": "Leave approved: {{start_date}} to {{end_date}} ({{days}} days)",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your leave is approved</h2>\n  <p>Hi {{employee_name}},</p>\n  <p>Your <strong>{{leave_type}}</strong> leave from <strong>{{start_date}}</strong> to <strong>{{end_date}}</strong> ({{days}} days) is approved and booked as {{booking_id}}.</p>\n  <p>Remaining {{leave_type}} balance: {{balance_after}} days.</p>\n  <p style=\"color:#6E6759\">{{=IF(leave_rule.certificate_required, \"Remember to send your certificate to the people team.\", \"\")}}</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your leave request workflow</p>\n</div>",
+    "text_body": "Your leave is approved\n  Hi {{employee_name}},\n  Your {{leave_type}} leave from {{start_date}} to {{end_date}} ({{days}} days) is approved and booked as {{booking_id}}.\n  Remaining {{leave_type}} balance: {{balance_after}} days.\n  {{=IF(leave_rule.certificate_required, \"Remember to send your certificate to the people team.\", \"\")}}\n  Sent by your leave request workflow",
+    "is_default": false
+  }
+}

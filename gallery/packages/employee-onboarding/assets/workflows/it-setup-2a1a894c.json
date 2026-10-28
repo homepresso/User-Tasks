@@ -1,0 +1,471 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "2a1a894c-f5b3-4c3e-ae9d-c35c09533364",
+  "asset": {
+    "id": "2a1a894c-f5b3-4c3e-ae9d-c35c09533364",
+    "name": "IT setup",
+    "description": "Sub-workflow started by Employee onboarding: IT prepares the laptop and accounts before the start date, then the request is recorded in the IT service desk.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Setup requested",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "title": "IT setup: {{new_hire_name}} · ready by {{it_ready_by}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Ready-by SLA",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "sla_label": "IT setup",
+          "mode": "exact",
+          "due_at": "{{it_ready_by}}",
+          "warning_amount": 2,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "it_task",
+        "type": "user_task",
+        "label": "Prepare equipment and accounts",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "task_title": "IT setup for {{new_hire_name}} ({{department}}), ready by {{it_ready_by}}",
+          "task_description": "<p><strong>{{new_hire_name}}</strong> starts as {{job_title}} on {{start_date}} ({{location}}).</p><p>Laptop: <strong>{{laptop_model}}</strong></p><p>Systems: {{systems}}</p><p>Remote starters need the laptop shipped so it arrives before day one.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Ready",
+            "Blocked"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "5fc34ce6-9edd-45ad-af2d-4315ece6f0ed",
+          "assignee_variable": "{{it_owner_id}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{it_ready_by}}",
+          "reminders": [
+            {
+              "offset_minutes": 2880
+            }
+          ],
+          "fields": [
+            {
+              "key": "kit_profile",
+              "label": "Department kit",
+              "type": "lookup",
+              "default": "{{department}}",
+              "help_text": "Standard kit from the Onboarding checklist",
+              "lookup": {
+                "source": "table",
+                "table_id": "fc80acc4-7337-462f-9ecd-91499b9bc8dc",
+                "search_columns": [
+                  "department"
+                ],
+                "display_columns": [
+                  "department",
+                  "laptop_model"
+                ],
+                "value_column": "department",
+                "fill": [
+                  {
+                    "from": "laptop_model",
+                    "to": "kit_laptop"
+                  },
+                  {
+                    "from": "systems",
+                    "to": "kit_systems"
+                  }
+                ]
+              }
+            },
+            {
+              "key": "kit_laptop",
+              "label": "Laptop",
+              "type": "text",
+              "read_only": true,
+              "default": "{{laptop_model}}"
+            },
+            {
+              "key": "kit_systems",
+              "label": "Systems to set up",
+              "type": "text",
+              "read_only": true,
+              "default": "{{systems}}"
+            },
+            {
+              "key": "asset_tag",
+              "label": "Laptop asset tag",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "accounts_created",
+              "label": "Accounts created",
+              "type": "boolean",
+              "required": true,
+              "default": "false"
+            },
+            {
+              "key": "laptop_shipped_date",
+              "label": "Laptop shipped / handed over on",
+              "type": "date"
+            },
+            {
+              "key": "notes",
+              "label": "Notes",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "kit_profile",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "kit_laptop",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "kit_systems",
+                    "span": 3
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "asset_tag",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "laptop_shipped_date",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "accounts_created",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "notes",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "ready",
+              "label": "Ready",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Ready"
+            },
+            {
+              "id": "blocked",
+              "label": "Blocked",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Blocked"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "IT setup: {{new_hire_name}}",
+            "align": "left",
+            "subtitle": "{{department}} · {{location}} · ready by {{it_ready_by}}"
+          }
+        }
+      },
+      {
+        "id": "record",
+        "type": "call_reference",
+        "label": "Record provisioning request",
+        "position": {
+          "x": 340,
+          "y": 720
+        },
+        "config": {
+          "reference_id": "c43a54ad-c5c8-4105-b707-ad48fa68d0bf",
+          "reference_name": "Create provisioning request",
+          "reference_method": "POST",
+          "input_mappings": {
+            "employee_id": "{{employee_id}}",
+            "full_name": "{{new_hire_name}}",
+            "asset_tag": "{{task_data.asset_tag}}",
+            "laptop_model": "{{laptop_model}}",
+            "systems": "{{systems}}",
+            "accounts_created": "{{task_data.accounts_created}}",
+            "shipped_date": "{{task_data.laptop_shipped_date}}",
+            "ready_by": "{{it_ready_by}}"
+          },
+          "output_mappings": {
+            "request_id": {
+              "enabled": true,
+              "variableName": "provisioning_request_id"
+            }
+          }
+        }
+      },
+      {
+        "id": "log_done",
+        "type": "log",
+        "label": "Setup recorded",
+        "position": {
+          "x": 340,
+          "y": 880
+        },
+        "config": {
+          "message": "IT setup for {{new_hire_name}} recorded as {{provisioning_request_id}} (asset {{task_data.asset_tag}})",
+          "level": "info"
+        }
+      },
+      {
+        "id": "notify_blocked",
+        "type": "send_email",
+        "label": "Email manager: blocked",
+        "position": {
+          "x": 660,
+          "y": 720
+        },
+        "config": {
+          "to": "{{manager_email}}",
+          "email_template_id": "6cef2483-7c8f-41a9-93ca-d9bcc6f5f634"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "log_blocked",
+        "type": "log",
+        "label": "Setup blocked",
+        "position": {
+          "x": 660,
+          "y": 880
+        },
+        "config": {
+          "message": "IT setup for {{new_hire_name}} blocked: {{task_data.notes}}",
+          "level": "warn"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Ready",
+        "position": {
+          "x": 340,
+          "y": 1040
+        },
+        "config": {
+          "reason": "IT setup complete for {{new_hire_name}}"
+        }
+      },
+      {
+        "id": "blocked_end",
+        "type": "end_workflow",
+        "label": "Blocked",
+        "position": {
+          "x": 660,
+          "y": 1040
+        },
+        "config": {
+          "reason": "IT setup blocked for {{new_hire_name}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-sla",
+        "source": "title",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-it_task",
+        "source": "sla",
+        "target": "it_task"
+      },
+      {
+        "id": "e-it_task-record-ready",
+        "source": "it_task",
+        "target": "record",
+        "label": "Ready"
+      },
+      {
+        "id": "e-it_task-notify_blocked-blocked",
+        "source": "it_task",
+        "target": "notify_blocked",
+        "label": "Blocked"
+      },
+      {
+        "id": "e-record-log_done",
+        "source": "record",
+        "target": "log_done"
+      },
+      {
+        "id": "e-log_done-done",
+        "source": "log_done",
+        "target": "done"
+      },
+      {
+        "id": "e-notify_blocked-log_blocked",
+        "source": "notify_blocked",
+        "target": "log_blocked"
+      },
+      {
+        "id": "e-log_blocked-blocked_end",
+        "source": "log_blocked",
+        "target": "blocked_end"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-employee_id",
+        "name": "employee_id",
+        "type": "string",
+        "description": "Employee id from the HR system",
+        "defaultValue": "",
+        "required": true,
+        "label": "Employee id"
+      },
+      {
+        "id": "v-new_hire_name",
+        "name": "new_hire_name",
+        "type": "string",
+        "description": "Full name of the new hire",
+        "defaultValue": "",
+        "required": true,
+        "label": "New hire"
+      },
+      {
+        "id": "v-job_title",
+        "name": "job_title",
+        "type": "string",
+        "description": "Job title",
+        "defaultValue": "",
+        "label": "Job title"
+      },
+      {
+        "id": "v-department",
+        "name": "department",
+        "type": "string",
+        "description": "Department (row of the Onboarding checklist)",
+        "defaultValue": "",
+        "label": "Department"
+      },
+      {
+        "id": "v-location",
+        "name": "location",
+        "type": "string",
+        "description": "office or remote",
+        "defaultValue": "",
+        "label": "Location"
+      },
+      {
+        "id": "v-start_date",
+        "name": "start_date",
+        "type": "string",
+        "description": "First day",
+        "defaultValue": "",
+        "label": "Start date",
+        "format": "date"
+      },
+      {
+        "id": "v-it_ready_by",
+        "name": "it_ready_by",
+        "type": "string",
+        "description": "Date the equipment and accounts must be ready",
+        "defaultValue": "",
+        "label": "Ready by",
+        "format": "date"
+      },
+      {
+        "id": "v-laptop_model",
+        "name": "laptop_model",
+        "type": "string",
+        "description": "Laptop from the Onboarding checklist",
+        "defaultValue": "",
+        "label": "Laptop model"
+      },
+      {
+        "id": "v-systems",
+        "name": "systems",
+        "type": "string",
+        "description": "Systems to grant from the Onboarding checklist",
+        "defaultValue": "",
+        "label": "Systems"
+      },
+      {
+        "id": "v-manager_name",
+        "name": "manager_name",
+        "type": "string",
+        "description": "Hiring manager",
+        "defaultValue": "",
+        "label": "Manager"
+      },
+      {
+        "id": "v-manager_email",
+        "name": "manager_email",
+        "type": "string",
+        "description": "Hiring manager email (told if setup is blocked)",
+        "defaultValue": "",
+        "label": "Manager email",
+        "format": "email"
+      },
+      {
+        "id": "v-it_owner_id",
+        "name": "it_owner_id",
+        "type": "string",
+        "description": "Optional: user id of the IT person for this setup (overrides the install-time default)",
+        "defaultValue": "",
+        "label": "IT owner (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "66657dd9-f20b-5538-abe9-e1cc5482d358",
+  "asset": {
+    "id": "66657dd9-f20b-5538-abe9-e1cc5482d358",
+    "name": "Access change requests rows",
+    "rows": [
+      {
+        "id": "bdfc0fd2-0670-5237-9de2-31208740c536",
+        "data": {
+          "change_ref": "ACC-20261012-7F3A",
+          "worker_id": "0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a",
+          "worker_name": "Hana Sato",
+          "event_type": "org_move",
+          "effective_date": "2026-10-15",
+          "from_bundle": "ENG-DEV",
+          "to_bundle": "PEOPLE-HRP",
+          "remove_by": "2026-10-15",
+          "decision": "Approve",
+          "decided_by": "Lena Ortiz",
+          "status": "approved",
+          "notes": "Moved to People systems"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "a0a130f1-b047-59cf-bd0d-478bcc1facaa",
+  "asset": {
+    "id": "a0a130f1-b047-59cf-bd0d-478bcc1facaa",
+    "name": "Inspection failed",
+    "description": "Sent to the site manager when a monthly inspection fails.",
+    "subject": "Safety inspection failed at {{site_name}} ({{period}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <div style=\"height:4px;background:#CA8A04;border-radius:2px;margin-bottom:16px\"></div>\n  <h2 style=\"margin:0 0 12px\">Safety inspection failed: {{site_name}}</h2>\n  <p style=\"margin:0 0 12px\">Hi {{site_manager}},</p>\n  <p style=\"margin:0 0 12px\">This month's safety inspection of <strong>{{site_name}}</strong> failed <strong>{{failed_count}}</strong> check(s).</p>\n  <p style=\"margin:0 0 12px\">Findings: {{task_data.findings}}</p>\n  <p style=\"margin:0 0 12px\">A corrective action is due by <strong>{{action_due}}</strong>. Please make sure it is done; the inspector will record it once complete.</p>\n  <p style=\"color:#6E6759;font-size:13px;margin-top:20px\">Sent by the safety inspection checklist</p>\n</div>",
+    "text_body": "Safety inspection failed: {{site_name}}\n\nHi {{site_manager}},\n{{failed_count}} check(s) failed at {{site_name}}.\nFindings: {{task_data.findings}}\nCorrective action due {{action_due}}.",
+    "is_default": false
+  }
+}

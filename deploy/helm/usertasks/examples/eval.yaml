@@ -1,0 +1,26 @@
+# Evaluation / CI: everything in the cluster, no Supabase, no cloud account.
+# Bundled single-replica PostgreSQL, MinIO, Valkey and Mailpit; built-in
+# auth, SSE realtime, the worker Deployment.
+#
+#   helm install usertasks deploy/helm/usertasks -f deploy/helm/usertasks/examples/eval.yaml
+#   kubectl port-forward svc/usertasks 3000:80   →  http://localhost:3000
+
+appUrl: http://localhost:3000
+
+providers:
+  db: { provider: postgres }
+  auth: { provider: builtin }
+  storage: { provider: s3 }
+  realtime: { provider: sse }
+  scheduler: { provider: worker }
+  email: { provider: smtp }
+  secrets: { provider: env }
+  cache: { provider: redis }
+
+app:
+  replicas: 1
+
+postgresql: { enabled: true, persistence: { enabled: false } }
+minio: { enabled: true, persistence: { enabled: false } }
+valkey: { enabled: true }
+mailpit: { enabled: true }

@@ -1,0 +1,47 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "49cf52c9-a3b1-45fb-844f-0746ab98fc47",
+  "asset": {
+    "id": "49cf52c9-a3b1-45fb-844f-0746ab98fc47",
+    "name": "Role mappings",
+    "description": "Birthright access by department and job family: the directory groups (comma-separated) and licence a person in that role gets. The key is \"Department|Job family\". Unmapped roles get all-staff and the standard licence.",
+    "columns": [
+      {
+        "id": "18dc0d89-7bd3-43e8-8b3a-362b0773e1a9",
+        "required": true,
+        "key": "mapping_key",
+        "name": "Key (Department|Job family)",
+        "type": "text"
+      },
+      {
+        "id": "8374e96e-fc83-4f17-a82a-79ad60e84d39",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "text"
+      },
+      {
+        "id": "6bbe35a1-cf15-4915-be58-f222b948078b",
+        "required": false,
+        "key": "job_family",
+        "name": "Job family",
+        "type": "text"
+      },
+      {
+        "id": "04e963b7-71a2-4b81-ac2f-a770ba05a8fd",
+        "required": true,
+        "key": "groups",
+        "name": "Groups",
+        "type": "text"
+      },
+      {
+        "id": "29785238-5642-4355-a09d-8890a0a2a600",
+        "required": false,
+        "key": "licence",
+        "name": "Licence",
+        "type": "text"
+      }
+    ]
+  }
+}

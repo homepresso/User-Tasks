@@ -1,0 +1,1096 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "1e13dfb0-7ca4-46ca-8950-4a1a234bd4f0",
+  "asset": {
+    "id": "1e13dfb0-7ca4-46ca-8950-4a1a234bd4f0",
+    "name": "Customer onboarding",
+    "description": "An account manager registers a new business customer; KYC screening, a credit report and the risk rating decide the tier and limit, compliance reviews where needed, and the account is opened in billing with a welcome email and onboarding kickoff.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "New customer submitted",
+        "position": {
+          "x": 1540,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "company_name",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "registration_number",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "country",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "product",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "expected_monthly_volume",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "contact_name",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "contact_email",
+                      "span": 2
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "account_manager_email",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "account_manager_user_id",
+                      "span": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#0891B2",
+                    "background": "#FFFFFF",
+                    "text": "#1B1916",
+                    "page": "#E8F6F9"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "header": {
+                  "enabled": true,
+                  "title": "Onboard a customer",
+                  "subtitle": "Compliance reviews every new account before it goes live."
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 1540,
+          "y": 220
+        },
+        "config": {
+          "title": "Onboarding: {{company_name}} · {{product}}"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Onboarding reference",
+        "position": {
+          "x": 1540,
+          "y": 380
+        },
+        "config": {
+          "name": "onboarding_reference",
+          "expression": "ONB-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 6))}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Five-day SLA",
+        "position": {
+          "x": 1540,
+          "y": 540
+        },
+        "config": {
+          "sla_label": "Customer onboarding",
+          "mode": "relative",
+          "amount": 5,
+          "unit": "days",
+          "warning_amount": 1,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "reset",
+        "type": "set_variable",
+        "label": "No country yet",
+        "position": {
+          "x": 1540,
+          "y": 700
+        },
+        "config": {
+          "name": "country_row",
+          "expression": ""
+        }
+      },
+      {
+        "id": "country",
+        "type": "update_data_table",
+        "label": "Country risk",
+        "position": {
+          "x": 1540,
+          "y": 860
+        },
+        "config": {
+          "table_id": "d4ab2dcb-4009-4931-98b0-787b42e8c197",
+          "table_name": "Country risk",
+          "operation": "get",
+          "match_column": "country",
+          "match_value": "{{country}}",
+          "output_row_var": "country_row"
+        }
+      },
+      {
+        "id": "country_risk",
+        "type": "set_variable",
+        "label": "Country risk level",
+        "position": {
+          "x": 1540,
+          "y": 1020
+        },
+        "config": {
+          "name": "country_risk",
+          "expression": "{{=COALESCE(country_row.risk, \"high\")}}"
+        }
+      },
+      {
+        "id": "kyc",
+        "type": "call_reference",
+        "label": "Run KYC checks",
+        "position": {
+          "x": 1540,
+          "y": 1180
+        },
+        "config": {
+          "reference_id": "95b3a33e-cadf-45a1-9cd8-beffe5951f8e",
+          "reference_name": "Run KYC checks",
+          "reference_method": "POST",
+          "input_mappings": {
+            "company_name": "{{company_name}}",
+            "registration_number": "{{registration_number}}",
+            "country": "{{country}}",
+            "reference": "{{onboarding_reference}}"
+          },
+          "output_mappings": {
+            "check_id": {
+              "enabled": true,
+              "variableName": "kyc_check_id"
+            },
+            "result": {
+              "enabled": true,
+              "variableName": "kyc_result"
+            },
+            "registry_status": {
+              "enabled": true,
+              "variableName": "registry_status"
+            },
+            "registered_name": {
+              "enabled": true,
+              "variableName": "registered_name"
+            },
+            "sanctions_hits": {
+              "enabled": true,
+              "variableName": "sanctions_hits"
+            },
+            "pep_hits": {
+              "enabled": true,
+              "variableName": "pep_hits"
+            },
+            "report_url": {
+              "enabled": true,
+              "variableName": "kyc_report_url"
+            }
+          }
+        }
+      },
+      {
+        "id": "credit",
+        "type": "call_reference",
+        "label": "Get credit report",
+        "position": {
+          "x": 1540,
+          "y": 1340
+        },
+        "config": {
+          "reference_id": "55a07992-5c03-4a1a-a169-ad1dc97eb347",
+          "reference_name": "Get credit report",
+          "reference_method": "GET",
+          "input_mappings": {
+            "registration_number": "{{registration_number}}"
+          },
+          "output_mappings": {
+            "score": {
+              "enabled": true,
+              "variableName": "credit_score"
+            },
+            "rating": {
+              "enabled": true,
+              "variableName": "credit_rating"
+            },
+            "suggested_limit": {
+              "enabled": true,
+              "variableName": "bureau_limit"
+            },
+            "days_beyond_terms": {
+              "enabled": true,
+              "variableName": "days_beyond_terms"
+            }
+          }
+        }
+      },
+      {
+        "id": "rate",
+        "type": "decision_table",
+        "label": "Customer risk rating",
+        "position": {
+          "x": 1540,
+          "y": 1500
+        },
+        "config": {
+          "decision_table_id": "51ace0d9-969a-4289-b718-f6865691bd54",
+          "decision_table_name": "Customer risk rating",
+          "input_mappings": {
+            "kyc_result": "{{kyc_result}}",
+            "credit_score": "{{credit_score}}",
+            "country_risk": "{{country_risk}}",
+            "monthly_volume": "{{expected_monthly_volume}}"
+          }
+        }
+      },
+      {
+        "id": "need_review",
+        "type": "condition",
+        "label": "Compliance review?",
+        "position": {
+          "x": 1540,
+          "y": 1660
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Review",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{review_needed}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "review",
+        "type": "user_task",
+        "label": "Compliance review",
+        "position": {
+          "x": 340,
+          "y": 1840
+        },
+        "config": {
+          "task_title": "KYC review: {{company_name}} ({{country}}) · tier {{risk_tier}}",
+          "task_description": "<p><strong>{{company_name}}</strong> ({{registration_number}}, {{country}}, country risk {{country_risk}}) for <strong>{{product}}</strong>, expected volume {{expected_monthly_volume}} a month. Account manager: {{account_manager_email}}.</p><ul><li>KYC result <strong>{{kyc_result}}</strong>: registry {{registry_status}} as “{{registered_name}}”, sanctions hits {{sanctions_hits}}, PEP hits {{pep_hits}}. <a href=\"{{kyc_report_url}}\">Screening report</a></li><li>Credit score {{credit_score}} (rating {{credit_rating}}), {{days_beyond_terms}} days beyond terms, bureau suggests {{bureau_limit}}</li><li>Rating rule “{{rule_label}}”: tier {{risk_tier}}, limit {{credit_limit}}, terms {{payment_terms}}</li></ul>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Request documents",
+            "Decline"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "dc61279b-284f-4fd1-b53d-24ae4cf67ed1",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "country_check",
+              "label": "Country",
+              "type": "lookup",
+              "default": "{{country}}",
+              "help_text": "Country risk rating from the Country risk table",
+              "lookup": {
+                "source": "table",
+                "table_id": "d4ab2dcb-4009-4931-98b0-787b42e8c197",
+                "search_columns": [
+                  "country"
+                ],
+                "display_columns": [
+                  "country",
+                  "risk"
+                ],
+                "value_column": "country",
+                "fill": [
+                  {
+                    "from": "risk",
+                    "to": "country_risk"
+                  },
+                  {
+                    "from": "enhanced_due_diligence",
+                    "to": "edd_required"
+                  }
+                ]
+              }
+            },
+            {
+              "key": "country_risk",
+              "label": "Country risk",
+              "type": "text",
+              "read_only": true
+            },
+            {
+              "key": "edd_required",
+              "label": "Enhanced due diligence",
+              "type": "boolean",
+              "read_only": true
+            },
+            {
+              "key": "risk_tier",
+              "label": "Risk tier",
+              "type": "choice",
+              "options": [
+                "A",
+                "B",
+                "C"
+              ],
+              "required": true,
+              "default": "{{=IF(CONTAINS(risk_tier, \"Decline\"), \"C\", risk_tier)}}"
+            },
+            {
+              "key": "credit_limit",
+              "label": "Approved credit limit",
+              "type": "number",
+              "required": true,
+              "default": "{{credit_limit}}"
+            },
+            {
+              "key": "payment_terms",
+              "label": "Payment terms",
+              "type": "choice",
+              "options": [
+                "prepaid",
+                "14 days",
+                "30 days"
+              ],
+              "required": true,
+              "default": "{{=IF(CONTAINS(payment_terms, \"none\"), \"prepaid\", payment_terms)}}"
+            },
+            {
+              "key": "documents_needed",
+              "label": "Documents to request (if requesting documents)",
+              "type": "text"
+            },
+            {
+              "key": "review_notes",
+              "label": "Review notes",
+              "type": "text",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "country_check",
+                    "span": 2
+                  },
+                  {
+                    "field_key": "country_risk",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "edd_required",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "risk_tier",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "credit_limit",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "payment_terms",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "documents_needed",
+                    "span": 4
+                  }
+                ]
+              },
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "review_notes",
+                    "span": 4
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "request_documents",
+              "label": "Request documents",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Request documents"
+            },
+            {
+              "id": "decline",
+              "label": "Decline",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Decline"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "KYC review: {{company_name}}",
+            "align": "left",
+            "subtitle": "{{country}} · {{product}} · tier {{risk_tier}}"
+          }
+        }
+      },
+      {
+        "id": "docs",
+        "type": "user_task",
+        "label": "Collect documents",
+        "position": {
+          "x": 980,
+          "y": 2020
+        },
+        "config": {
+          "task_title": "Documents needed from {{company_name}}",
+          "task_description": "<p>Compliance needs the following from <strong>{{company_name}}</strong> before onboarding can continue:</p><p><strong>{{task_data.documents_needed}}</strong></p><p>Notes: {{task_data.review_notes}}</p><p>Request them from {{contact_name}} ({{contact_email}}) and add the links below.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Documents provided",
+            "Customer withdrew"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "87a11f43-3e7f-4900-9741-4f9f531c98b2",
+          "assignee_variable": "{{account_manager_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 10,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 4320
+            }
+          ],
+          "fields": [
+            {
+              "key": "document_links",
+              "label": "Links to the documents",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "note",
+              "label": "Note for compliance",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "document_links",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "note",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "documents_provided",
+              "label": "Documents provided",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Documents provided"
+            },
+            {
+              "id": "customer_withdrew",
+              "label": "Customer withdrew",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Customer withdrew"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Documents needed",
+            "align": "left",
+            "subtitle": "{{company_name}} · requested by compliance"
+          }
+        }
+      },
+      {
+        "id": "back",
+        "type": "goto_activity",
+        "label": "Back to compliance",
+        "position": {
+          "x": 660,
+          "y": 2200
+        },
+        "config": {
+          "target_node_id": "review",
+          "target_node_label": "Compliance review"
+        }
+      },
+      {
+        "id": "apply_review",
+        "type": "set_variable",
+        "label": "Use reviewed limit",
+        "position": {
+          "x": 340,
+          "y": 2020
+        },
+        "config": {
+          "name": "credit_limit",
+          "expression": "{{task_data.credit_limit}}"
+        }
+      },
+      {
+        "id": "apply_tier",
+        "type": "set_variable",
+        "label": "Use reviewed tier",
+        "position": {
+          "x": 340,
+          "y": 2200
+        },
+        "config": {
+          "name": "risk_tier",
+          "expression": "{{task_data.risk_tier}}"
+        }
+      },
+      {
+        "id": "apply_terms",
+        "type": "set_variable",
+        "label": "Use reviewed terms",
+        "position": {
+          "x": 340,
+          "y": 2360
+        },
+        "config": {
+          "name": "payment_terms",
+          "expression": "{{task_data.payment_terms}}"
+        }
+      },
+      {
+        "id": "account",
+        "type": "call_reference",
+        "label": "Create customer account",
+        "position": {
+          "x": 340,
+          "y": 2520
+        },
+        "config": {
+          "reference_id": "bd378cfe-3cbe-4ea0-af2c-18850db07370",
+          "reference_name": "Create customer account",
+          "reference_method": "POST",
+          "input_mappings": {
+            "company_name": "{{company_name}}",
+            "registration_number": "{{registration_number}}",
+            "country": "{{country}}",
+            "product": "{{product}}",
+            "risk_tier": "{{risk_tier}}",
+            "credit_limit": "{{credit_limit}}",
+            "payment_terms": "{{payment_terms}}",
+            "contact_name": "{{contact_name}}",
+            "contact_email": "{{contact_email}}",
+            "kyc_check_id": "{{kyc_check_id}}"
+          },
+          "output_mappings": {
+            "account_id": {
+              "enabled": true,
+              "variableName": "account_id"
+            },
+            "account_number": {
+              "enabled": true,
+              "variableName": "account_number"
+            },
+            "portal_url": {
+              "enabled": true,
+              "variableName": "portal_url"
+            }
+          }
+        }
+      },
+      {
+        "id": "mail_welcome",
+        "type": "send_email",
+        "label": "Welcome email",
+        "position": {
+          "x": 340,
+          "y": 2680
+        },
+        "config": {
+          "to": "{{contact_email}}, {{account_manager_email}}",
+          "email_template_id": "dc480bdf-2da6-458a-a1d3-2fded0ea81a9"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "kickoff",
+        "type": "user_task",
+        "label": "Onboarding kickoff",
+        "position": {
+          "x": 340,
+          "y": 2840
+        },
+        "config": {
+          "task_title": "Kick off onboarding: {{company_name}} ({{account_number}})",
+          "task_description": "<p>New <strong>{{product}}</strong> customer <strong>{{company_name}}</strong>, account {{account_number}}: tier {{risk_tier}}, credit limit {{credit_limit}}, terms {{payment_terms}}.</p><p>Contact: {{contact_name}} ({{contact_email}}). Account manager: {{account_manager_email}}.</p><p>Book the kickoff call, confirm the implementation plan and record it below.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Kickoff held"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "b1662888-bbc9-4332-9ee2-188f2e557dd9",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "kickoff_date",
+              "label": "Kickoff date",
+              "type": "date",
+              "required": true
+            },
+            {
+              "key": "go_live_target",
+              "label": "Target go-live date",
+              "type": "date"
+            },
+            {
+              "key": "plan_notes",
+              "label": "Implementation plan notes",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "kickoff_date",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "go_live_target",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "plan_notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "kickoff_held",
+              "label": "Kickoff held",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Kickoff held"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Kick off onboarding",
+            "align": "left",
+            "subtitle": "{{company_name}} · account {{account_number}}"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Onboarded",
+        "position": {
+          "x": 340,
+          "y": 3020
+        },
+        "config": {
+          "reason": "{{company_name}} onboarded as {{account_number}} (tier {{risk_tier}}, limit {{credit_limit}})"
+        }
+      },
+      {
+        "id": "mail_declined",
+        "type": "send_email",
+        "label": "Email account manager: declined",
+        "position": {
+          "x": 1300,
+          "y": 2020
+        },
+        "config": {
+          "to": "{{account_manager_email}}",
+          "email_template_id": "3b2d297f-0e17-4987-a5f1-9a4e960d70c0"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "declined",
+        "type": "end_workflow",
+        "label": "Declined",
+        "position": {
+          "x": 1300,
+          "y": 2200
+        },
+        "config": {
+          "reason": "{{onboarding_reference}} declined by compliance"
+        }
+      },
+      {
+        "id": "withdrew",
+        "type": "log",
+        "label": "Customer withdrew",
+        "position": {
+          "x": 980,
+          "y": 2200
+        },
+        "config": {
+          "message": "{{company_name}} withdrew during document collection: {{task_data.note}}",
+          "level": "info"
+        }
+      },
+      {
+        "id": "closed",
+        "type": "end_workflow",
+        "label": "Withdrawn",
+        "position": {
+          "x": 980,
+          "y": 2360
+        },
+        "config": {
+          "reason": "{{onboarding_reference}} withdrawn"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-ref",
+        "source": "title",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-sla",
+        "source": "ref",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-reset",
+        "source": "sla",
+        "target": "reset"
+      },
+      {
+        "id": "e-reset-country",
+        "source": "reset",
+        "target": "country"
+      },
+      {
+        "id": "e-country-country_risk",
+        "source": "country",
+        "target": "country_risk"
+      },
+      {
+        "id": "e-country_risk-kyc",
+        "source": "country_risk",
+        "target": "kyc"
+      },
+      {
+        "id": "e-kyc-credit",
+        "source": "kyc",
+        "target": "credit"
+      },
+      {
+        "id": "e-credit-rate",
+        "source": "credit",
+        "target": "rate"
+      },
+      {
+        "id": "e-rate-need_review",
+        "source": "rate",
+        "target": "need_review"
+      },
+      {
+        "id": "e-need_review-review-review",
+        "source": "need_review",
+        "target": "review",
+        "label": "Review"
+      },
+      {
+        "id": "e-need_review-account-else",
+        "source": "need_review",
+        "target": "account",
+        "label": "Else"
+      },
+      {
+        "id": "e-review-apply_review-approve",
+        "source": "review",
+        "target": "apply_review",
+        "label": "Approve"
+      },
+      {
+        "id": "e-review-docs-request-documents",
+        "source": "review",
+        "target": "docs",
+        "label": "Request documents"
+      },
+      {
+        "id": "e-review-mail_declined-decline",
+        "source": "review",
+        "target": "mail_declined",
+        "label": "Decline"
+      },
+      {
+        "id": "e-docs-back-documents-provided",
+        "source": "docs",
+        "target": "back",
+        "label": "Documents provided"
+      },
+      {
+        "id": "e-docs-withdrew-customer-withdrew",
+        "source": "docs",
+        "target": "withdrew",
+        "label": "Customer withdrew"
+      },
+      {
+        "id": "e-apply_review-apply_tier",
+        "source": "apply_review",
+        "target": "apply_tier"
+      },
+      {
+        "id": "e-apply_tier-apply_terms",
+        "source": "apply_tier",
+        "target": "apply_terms"
+      },
+      {
+        "id": "e-apply_terms-account",
+        "source": "apply_terms",
+        "target": "account"
+      },
+      {
+        "id": "e-account-mail_welcome",
+        "source": "account",
+        "target": "mail_welcome"
+      },
+      {
+        "id": "e-mail_welcome-kickoff",
+        "source": "mail_welcome",
+        "target": "kickoff"
+      },
+      {
+        "id": "e-kickoff-done-kickoff-held",
+        "source": "kickoff",
+        "target": "done",
+        "label": "Kickoff held"
+      },
+      {
+        "id": "e-mail_declined-declined",
+        "source": "mail_declined",
+        "target": "declined"
+      },
+      {
+        "id": "e-withdrew-closed",
+        "source": "withdrew",
+        "target": "closed"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-company_name",
+        "name": "company_name",
+        "type": "string",
+        "description": "Legal name of the customer",
+        "defaultValue": "",
+        "required": true,
+        "label": "Company name"
+      },
+      {
+        "id": "v-registration_number",
+        "name": "registration_number",
+        "type": "string",
+        "description": "Company registration number in its home registry",
+        "defaultValue": "",
+        "required": true,
+        "label": "Registration number"
+      },
+      {
+        "id": "v-country",
+        "name": "country",
+        "type": "string",
+        "description": "Country of incorporation (see the Country risk table)",
+        "defaultValue": "New Zealand",
+        "required": true,
+        "label": "Country",
+        "options": [
+          "New Zealand",
+          "Australia",
+          "United Kingdom",
+          "United States",
+          "Singapore",
+          "United Arab Emirates",
+          "Other"
+        ]
+      },
+      {
+        "id": "v-contact_name",
+        "name": "contact_name",
+        "type": "string",
+        "description": "Primary contact at the customer",
+        "defaultValue": "",
+        "required": true,
+        "label": "Primary contact name"
+      },
+      {
+        "id": "v-contact_email",
+        "name": "contact_email",
+        "type": "string",
+        "description": "Primary contact email; receives the welcome email",
+        "defaultValue": "",
+        "required": true,
+        "label": "Primary contact email",
+        "format": "email"
+      },
+      {
+        "id": "v-product",
+        "name": "product",
+        "type": "string",
+        "description": "Product or plan the customer is signing up for",
+        "defaultValue": "",
+        "required": true,
+        "label": "Product",
+        "options": [
+          "Starter",
+          "Business",
+          "Enterprise",
+          "Payments add-on"
+        ]
+      },
+      {
+        "id": "v-expected_monthly_volume",
+        "name": "expected_monthly_volume",
+        "type": "number",
+        "description": "Expected monthly spend or transaction volume, in your base currency",
+        "defaultValue": "0",
+        "required": true,
+        "label": "Expected monthly volume"
+      },
+      {
+        "id": "v-account_manager_email",
+        "name": "account_manager_email",
+        "type": "string",
+        "description": "Your email (the account manager)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Account manager email",
+        "format": "email"
+      },
+      {
+        "id": "v-account_manager_user_id",
+        "name": "account_manager_user_id",
+        "type": "string",
+        "description": "Optional: user id of the account manager who collects documents (falls back to the default chosen on install)",
+        "defaultValue": "",
+        "label": "Account manager (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

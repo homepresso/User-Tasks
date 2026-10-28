@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "6e41117f-a2a7-5cdb-8823-cdb9e5bcd2a4",
+  "asset": {
+    "id": "6e41117f-a2a7-5cdb-8823-cdb9e5bcd2a4",
+    "name": "Visitor log: 12 months",
+    "description": "Visitor records are personal data: purge rows 12 months after they were created. Apply it to the Visitor log table after install.",
+    "policy_mode": "purge_on",
+    "duration_value": 12,
+    "duration_unit": "months",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

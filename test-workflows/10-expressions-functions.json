@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "webhook_received",
+      "label": "Webhook",
+      "position": { "x": 400, "y": 20 },
+      "config": {}
+    },
+    {
+      "id": "n1",
+      "type": "set_variable",
+      "label": "Set Test Data",
+      "position": { "x": 400, "y": 160 },
+      "config": { "name": "test_string", "expression": "  Hello, World!  " }
+    },
+    {
+      "id": "n2",
+      "type": "set_variable",
+      "label": "Trim",
+      "position": { "x": 200, "y": 300 },
+      "config": { "name": "trimmed", "expression": "{{=TRIM(test_string)}}" }
+    },
+    {
+      "id": "n3",
+      "type": "set_variable",
+      "label": "Length",
+      "position": { "x": 400, "y": 300 },
+      "config": { "name": "str_length", "expression": "{{=LEN(test_string)}}" }
+    },
+    {
+      "id": "n4",
+      "type": "set_variable",
+      "label": "Left 5",
+      "position": { "x": 600, "y": 300 },
+      "config": { "name": "left_5", "expression": "{{=LEFT(test_string, 5)}}" }
+    },
+    {
+      "id": "n5",
+      "type": "set_variable",
+      "label": "Replace",
+      "position": { "x": 200, "y": 440 },
+      "config": { "name": "replaced", "expression": "{{=REPLACE(test_string, 'World', 'Universe')}}" }
+    },
+    {
+      "id": "n6",
+      "type": "set_variable",
+      "label": "Concat",
+      "position": { "x": 400, "y": 440 },
+      "config": { "name": "concatenated", "expression": "{{=CONCAT(trimmed, ' — ', left_5)}}" }
+    },
+    {
+      "id": "n7",
+      "type": "set_variable",
+      "label": "IF Expression",
+      "position": { "x": 600, "y": 440 },
+      "config": { "name": "conditional", "expression": "{{=IF(str_length > 10, 'Long string', 'Short string')}}" }
+    },
+    {
+      "id": "n8",
+      "type": "set_variable",
+      "label": "Math Expression",
+      "position": { "x": 200, "y": 580 },
+      "config": { "name": "math_result", "expression": "{{=ROUND(3.14159 * 2, 2)}}" }
+    },
+    {
+      "id": "n9",
+      "type": "set_variable",
+      "label": "Date Expression",
+      "position": { "x": 600, "y": 580 },
+      "config": { "name": "future_date", "expression": "{{=ADD_DAYS(NOW(), 14)}}" }
+    },
+    {
+      "id": "n10",
+      "type": "log",
+      "label": "Log Everything",
+      "position": { "x": 400, "y": 740 },
+      "config": { "message": "Trimmed: {{trimmed}} | Len: {{str_length}} | Left5: {{left_5}} | Replaced: {{replaced}} | Concat: {{concatenated}} | Cond: {{conditional}} | Math: {{math_result}} | Date: {{future_date}}" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "t1", "target": "n1" },
+    { "id": "e2", "source": "n1", "target": "n2" },
+    { "id": "e3", "source": "n1", "target": "n3" },
+    { "id": "e4", "source": "n1", "target": "n4" },
+    { "id": "e5", "source": "n2", "target": "n5" },
+    { "id": "e6", "source": "n2", "target": "n6" },
+    { "id": "e7", "source": "n3", "target": "n7" },
+    { "id": "e8", "source": "n4", "target": "n6" },
+    { "id": "e9", "source": "n5", "target": "n8" },
+    { "id": "e10", "source": "n6", "target": "n10" },
+    { "id": "e11", "source": "n7", "target": "n9" },
+    { "id": "e12", "source": "n8", "target": "n10" },
+    { "id": "e13", "source": "n9", "target": "n10" }
+  ],
+  "user_variables": [],
+  "swimlanes": []
+}

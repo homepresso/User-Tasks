@@ -1,0 +1,222 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "51ace0d9-969a-4289-b718-f6865691bd54",
+  "asset": {
+    "id": "51ace0d9-969a-4289-b718-f6865691bd54",
+    "name": "Customer risk rating",
+    "description": "Risk tier, credit limit and payment terms for a new customer from the KYC result, credit score, country risk and expected monthly volume, and whether compliance must review it. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "a1c6dff6-738f-4d9d-9c19-e03bb1aecb92",
+        "key": "kyc_result",
+        "label": "KYC result",
+        "type": "text"
+      },
+      {
+        "id": "17129e68-5943-4fd2-a9d4-94135a72c778",
+        "key": "credit_score",
+        "label": "Credit score (0-1000)",
+        "type": "number"
+      },
+      {
+        "id": "db5ca66d-af66-45ae-bfda-c919feb3fe62",
+        "key": "country_risk",
+        "label": "Country risk",
+        "type": "text"
+      },
+      {
+        "id": "170c74c9-3c20-4ab2-b1b5-e0db64a49fa1",
+        "key": "monthly_volume",
+        "label": "Expected monthly volume",
+        "type": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "4117a607-500a-468a-800d-a35b4a33c5ad",
+        "key": "risk_tier",
+        "label": "Risk tier",
+        "type": "text"
+      },
+      {
+        "id": "e1bd770e-1380-4d91-b215-4a0342ac074d",
+        "key": "credit_limit",
+        "label": "Credit limit",
+        "type": "number"
+      },
+      {
+        "id": "8f7a59d4-dfea-433d-b02d-915dea032df5",
+        "key": "payment_terms",
+        "label": "Payment terms",
+        "type": "text"
+      },
+      {
+        "id": "4e7c3992-24de-482a-950e-1bb30e69eccf",
+        "key": "review_needed",
+        "label": "Compliance review needed",
+        "type": "boolean"
+      }
+    ],
+    "rules": [
+      {
+        "id": "bf1a822c-2927-4916-824d-a11c54c21a05",
+        "label": "KYC failed",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "Decline",
+          "credit_limit": 0,
+          "payment_terms": "none",
+          "review_needed": true
+        },
+        "conditions": [
+          {
+            "id": "dd8fb1b2-b30b-4958-8db6-a10244412de0",
+            "inputKey": "kyc_result",
+            "operator": "equals",
+            "value": "fail"
+          }
+        ]
+      },
+      {
+        "id": "8b3e32e9-10db-4adf-90d6-5a8099ee9cee",
+        "label": "High-risk country",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "C",
+          "credit_limit": 5000,
+          "payment_terms": "prepaid",
+          "review_needed": true
+        },
+        "conditions": [
+          {
+            "id": "cb0849e0-cade-4cf5-bd1f-36bcd3912b44",
+            "inputKey": "country_risk",
+            "operator": "equals",
+            "value": "high"
+          }
+        ]
+      },
+      {
+        "id": "6ac13651-29cb-4d48-a097-441279bbac4b",
+        "label": "KYC needs review",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "C",
+          "credit_limit": 10000,
+          "payment_terms": "14 days",
+          "review_needed": true
+        },
+        "conditions": [
+          {
+            "id": "c5874a87-578d-46de-b26d-392044d4b96c",
+            "inputKey": "kyc_result",
+            "operator": "equals",
+            "value": "review"
+          }
+        ]
+      },
+      {
+        "id": "a05183bd-21b8-4966-beff-47ea7a372df2",
+        "label": "Weak credit",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "C",
+          "credit_limit": 5000,
+          "payment_terms": "prepaid",
+          "review_needed": true
+        },
+        "conditions": [
+          {
+            "id": "b90bc6d9-3060-4694-8c9e-400b71182fbe",
+            "inputKey": "credit_score",
+            "operator": "less_than",
+            "value": "500"
+          }
+        ]
+      },
+      {
+        "id": "d1d7efed-4936-4599-8f6c-eaf79486392d",
+        "label": "Large exposure",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "B",
+          "credit_limit": 100000,
+          "payment_terms": "30 days",
+          "review_needed": true
+        },
+        "conditions": [
+          {
+            "id": "5ab29404-7bcb-49c9-a0f9-5c7fe209634c",
+            "inputKey": "monthly_volume",
+            "operator": "greater_than_or_equal",
+            "value": "250000"
+          }
+        ]
+      },
+      {
+        "id": "c2cea41e-c8d5-4ee6-abb9-339476c23178",
+        "label": "Strong credit, low-risk country",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "A",
+          "credit_limit": 50000,
+          "payment_terms": "30 days",
+          "review_needed": false
+        },
+        "conditions": [
+          {
+            "id": "d608d201-db76-437f-9292-3c237bb5178c",
+            "inputKey": "credit_score",
+            "operator": "greater_than_or_equal",
+            "value": "750"
+          },
+          {
+            "id": "fb5a1407-d6a2-48eb-9f92-1810cd978653",
+            "inputKey": "country_risk",
+            "operator": "equals",
+            "value": "low"
+          }
+        ]
+      },
+      {
+        "id": "2bf7fb64-d20b-478b-87e6-8938977e1e93",
+        "label": "Good credit",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "B",
+          "credit_limit": 25000,
+          "payment_terms": "30 days",
+          "review_needed": false
+        },
+        "conditions": [
+          {
+            "id": "bff5d27c-0677-44c9-b6fd-f8bb0146689b",
+            "inputKey": "credit_score",
+            "operator": "greater_than_or_equal",
+            "value": "600"
+          }
+        ]
+      },
+      {
+        "id": "4696e09e-a595-478d-9187-ba43216e7c20",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "C",
+          "credit_limit": 10000,
+          "payment_terms": "14 days",
+          "review_needed": true
+        },
+        "conditions": [
+          {
+            "id": "a1d8b625-35a6-49ae-a6c2-e899b70c6e92",
+            "inputKey": "kyc_result",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

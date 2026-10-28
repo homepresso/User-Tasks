@@ -1,0 +1,78 @@
+{
+  "title": "ServiceNow change approval",
+  "category": "it-security",
+  "summary": "ServiceNow sends a change for approval; CI criticality and a risk table route it, the CAB approves, rejects or asks for info, and the approval is written back.",
+  "description": "ServiceNow change approval moves CAB decisions into a focused review task while ServiceNow stays the system of record. When a change request reaches Authorize, a business rule or flow posts its sys_id to the workflow.\n\nThe workflow reads the change from the Table API (type, risk, impact, CI, window, implementation / backout / test plans and conflicts), looks the CI up in the CI criticality table and evaluates the Change risk route decision table: emergency changes go to the ECAB, standard changes are approved automatically, high-risk changes and critical CIs go to the CAB and the rest to the change manager.\n\nIt finds the pending sysapproval_approver record for the change. The reviewer gets a task with the plans, the checks for the route and Approve, Request info and Reject buttons. Approve and Reject PATCH the approval record with the comments, so the ServiceNow change model moves on by itself; Request info adds a work note to the change. The change team is emailed the decision.",
+  "trigger": "api",
+  "entry_workflow": "e86cfb1f-a600-5d9d-b9b5-749537a67194",
+  "start": "Starts from ServiceNow: a business rule on change_request (state changes to Authorize) posts {\"sys_id\": current.sys_id} to the workflow webhook.",
+  "difficulty": "intermediate",
+  "setup_minutes": 25,
+  "tags": [
+    "servicenow",
+    "change management",
+    "cab",
+    "approvals",
+    "decision table",
+    "itsm"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "webhook",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "ServiceNow integration: base URL https://<instance>.service-now.com/api/now and an OAuth bearer token (or Basic auth) for an integration user with change_manager or approval admin rights on sysapproval_approver.",
+    "Assignee: pick the CAB chair or change manager who receives the reviews. In ServiceNow, make the integration user (or a group it is in) the approver the change model asks, so its approval record is the one the workflow updates.",
+    "Add a business rule on change_request (after update, state changes to Authorize) that posts {\"sys_id\": current.sys_id, \"number\": current.number} to the workflow webhook URL.",
+    "Replace the CI criticality rows with your CIs (or sync them from the CMDB) and tune the Change risk route rules.",
+    "Email: configure EMAIL_PROVIDER so decision emails are delivered (the step continues on error)."
+  ],
+  "steps": [
+    {
+      "title": "Change sent",
+      "body": "ServiceNow posts the change_request sys_id when it reaches Authorize."
+    },
+    {
+      "title": "Read the change",
+      "body": "GET /table/change_request/{sys_id} returns type, risk, CI, window and plans with display values."
+    },
+    {
+      "title": "Route by risk",
+      "body": "The CI criticality table and the Change risk route table pick ECAB, CAB, change manager or pre-approved."
+    },
+    {
+      "title": "Find the approval",
+      "body": "GET /table/sysapproval_approver finds the requested approval record for the change."
+    },
+    {
+      "title": "CAB decides",
+      "body": "The reviewer checks the plans and window and chooses Approve, Request info or Reject."
+    },
+    {
+      "title": "Write back",
+      "body": "PATCH the approval record (approved / rejected with comments) or add a work note to the change; the change team is emailed."
+    }
+  ],
+  "sample_input": {
+    "sys_id": "c286d61347c12200e0ef563dbb9a71df",
+    "number": "CHG0030457",
+    "notify_email": "payments-platform@example.com"
+  },
+  "expect": "waiting",
+  "icon": "git-pull-request",
+  "systems": [
+    "ServiceNow"
+  ],
+  "id": "8b723213-ec3d-567b-9639-3d144d0c2d5e",
+  "slug": "servicenow-change-approval"
+}

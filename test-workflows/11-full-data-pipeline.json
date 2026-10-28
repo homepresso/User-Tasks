@@ -1,0 +1,187 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "webhook_received",
+      "label": "Webhook Trigger",
+      "position": { "x": 400, "y": 20 },
+      "config": {}
+    },
+    {
+      "id": "n1",
+      "type": "set_variable",
+      "label": "Set Employee Count",
+      "position": { "x": 400, "y": 140 },
+      "config": { "name": "emp_count", "expression": "5" }
+    },
+    {
+      "id": "n2",
+      "type": "json_build_array",
+      "label": "Build Empty List",
+      "position": { "x": 400, "y": 260 },
+      "config": { "items": [], "output_var": "employees" }
+    },
+    {
+      "id": "n3",
+      "type": "loop_n_times",
+      "label": "Generate Employees",
+      "position": { "x": 400, "y": 380 },
+      "config": { "count": "{{emp_count}}", "index_var": "i" }
+    },
+    {
+      "id": "n4",
+      "type": "json_build_object",
+      "label": "Build Employee",
+      "position": { "x": 400, "y": 540 },
+      "config": {
+        "fields": [
+          { "key": "id", "value": "{{i}}" },
+          { "key": "name", "value": "{{=CONCAT('Employee_', i)}}" },
+          { "key": "email", "value": "{{=CONCAT('emp', i, '@acme.com')}}" },
+          { "key": "department", "value": "{{=IF(i < 3, 'Engineering', 'Sales')}}" },
+          { "key": "salary", "value": "{{=ROUND(50000 + i * 12500, 0)}}" },
+          { "key": "active", "value": "true" },
+          { "key": "start_date", "value": "{{=ADD_DAYS(NOW(), 0 - i * 30)}}" }
+        ],
+        "output_var": "emp"
+      }
+    },
+    {
+      "id": "n5",
+      "type": "json_add_to_array",
+      "label": "Add to List",
+      "position": { "x": 400, "y": 700 },
+      "config": { "array": "{{employees}}", "value": "{{emp}}", "output_var": "employees" }
+    },
+    {
+      "id": "n6",
+      "type": "collection_count",
+      "label": "Count All",
+      "position": { "x": 140, "y": 880 },
+      "config": { "collection": "{{employees}}", "output_var": "total_count" }
+    },
+    {
+      "id": "n7",
+      "type": "collection_filter",
+      "label": "Filter Engineering",
+      "position": { "x": 400, "y": 880 },
+      "config": { "collection": "{{employees}}", "field": "department", "operator": "equals", "value": "Engineering", "output_var": "engineers" }
+    },
+    {
+      "id": "n8",
+      "type": "collection_sort",
+      "label": "Sort by Salary",
+      "position": { "x": 660, "y": 880 },
+      "config": { "collection": "{{employees}}", "field": "salary", "direction": "desc", "output_var": "by_salary" }
+    },
+    {
+      "id": "n9",
+      "type": "collection_count",
+      "label": "Count Engineers",
+      "position": { "x": 400, "y": 1020 },
+      "config": { "collection": "{{engineers}}", "output_var": "eng_count" }
+    },
+    {
+      "id": "n10",
+      "type": "collection_get",
+      "label": "Get Top Earner",
+      "position": { "x": 660, "y": 1020 },
+      "config": { "collection": "{{by_salary}}", "index": "0", "output_var": "top_earner" }
+    },
+    {
+      "id": "n11",
+      "type": "loop",
+      "label": "Process Engineers",
+      "position": { "x": 400, "y": 1160 },
+      "config": { "items": "{{engineers}}", "item_var": "engineer", "index_var": "eng_idx" }
+    },
+    {
+      "id": "n12",
+      "type": "text_template",
+      "label": "Build Email Body",
+      "position": { "x": 400, "y": 1320 },
+      "config": { "template": "Hello {{engineer.name}},\n\nYou are in the {{engineer.department}} dept.\nYour salary: ${{engineer.salary}}\nStart: {{engineer.start_date}}\n\nBest,\nHR", "output_var": "email_body" }
+    },
+    {
+      "id": "n13",
+      "type": "log",
+      "label": "Log Email",
+      "position": { "x": 400, "y": 1460 },
+      "config": { "message": "Would send to {{engineer.email}}: {{email_body}}" }
+    },
+    {
+      "id": "n14",
+      "type": "json_get_value",
+      "label": "Get Top Name",
+      "position": { "x": 660, "y": 1160 },
+      "config": { "source": "{{top_earner}}", "path": "name", "output_var": "top_name" }
+    },
+    {
+      "id": "n15",
+      "type": "math",
+      "label": "Calc Average Salary",
+      "position": { "x": 140, "y": 1160 },
+      "config": { "expression": "(50000 + 62500 + 75000 + 87500 + 100000) / 5", "output_var": "avg_salary" }
+    },
+    {
+      "id": "n16",
+      "type": "condition",
+      "label": "High Avg?",
+      "position": { "x": 140, "y": 1320 },
+      "config": {
+        "branches": [{ "label": "High", "logic": "AND", "rules": [{ "field": "{{avg_salary}}", "operator": "greater_than", "value": "70000" }] }],
+        "has_else": true
+      }
+    },
+    {
+      "id": "n17",
+      "type": "set_variable",
+      "label": "Set Budget Status",
+      "position": { "x": 40, "y": 1500 },
+      "config": { "name": "budget_status", "expression": "Over budget" }
+    },
+    {
+      "id": "n18",
+      "type": "set_variable",
+      "label": "Set Budget OK",
+      "position": { "x": 260, "y": 1500 },
+      "config": { "name": "budget_status", "expression": "Within budget" }
+    },
+    {
+      "id": "n19",
+      "type": "log",
+      "label": "Final Summary",
+      "position": { "x": 400, "y": 1660 },
+      "config": { "message": "=== SUMMARY ===\nTotal employees: {{total_count}}\nEngineers: {{eng_count}}\nTop earner: {{top_name}}\nAverage salary: ${{avg_salary}}\nBudget: {{budget_status}}" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "t1", "target": "n1" },
+    { "id": "e2", "source": "n1", "target": "n2" },
+    { "id": "e3", "source": "n2", "target": "n3" },
+    { "id": "e4", "source": "n3", "target": "n4", "label": "Each Item" },
+    { "id": "e5", "source": "n4", "target": "n5" },
+    { "id": "e6", "source": "n3", "target": "n6", "label": "Done" },
+    { "id": "e7", "source": "n3", "target": "n7", "label": "Done" },
+    { "id": "e8", "source": "n3", "target": "n8", "label": "Done" },
+    { "id": "e9", "source": "n7", "target": "n9" },
+    { "id": "e10", "source": "n8", "target": "n10" },
+    { "id": "e11", "source": "n9", "target": "n11" },
+    { "id": "e12", "source": "n11", "target": "n12", "label": "Each Item" },
+    { "id": "e13", "source": "n12", "target": "n13" },
+    { "id": "e14", "source": "n10", "target": "n14" },
+    { "id": "e15", "source": "n6", "target": "n15" },
+    { "id": "e16", "source": "n15", "target": "n16" },
+    { "id": "e17", "source": "n16", "target": "n17", "label": "High" },
+    { "id": "e18", "source": "n16", "target": "n18", "label": "Else" },
+    { "id": "e19", "source": "n17", "target": "n19" },
+    { "id": "e20", "source": "n18", "target": "n19" },
+    { "id": "e21", "source": "n11", "target": "n19", "label": "Done" },
+    { "id": "e22", "source": "n14", "target": "n19" }
+  ],
+  "user_variables": [
+    { "id": "v1", "name": "emp_count", "type": "number", "defaultValue": "5", "description": "Number of employees to generate" }
+  ],
+  "swimlanes": []
+}

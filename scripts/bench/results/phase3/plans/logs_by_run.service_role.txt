@@ -1,0 +1,8 @@
+-- workflow_logs for one run as service_role
+SELECT * FROM public.workflow_logs WHERE run_id = 'aeafe1c6-51d4-44e9-bea5-c4b6b7978b24' ORDER BY created_at
+
+Index Scan using idx_workflow_logs_run_created on workflow_logs  (cost=0.42..24.71 rows=10 width=140) (actual time=0.003..0.007 rows=10 loops=1)
+  Index Cond: (run_id = 'aeafe1c6-51d4-44e9-bea5-c4b6b7978b24'::uuid)
+  Buffers: shared hit=13
+Planning Time: 0.022 ms
+Execution Time: 0.013 ms

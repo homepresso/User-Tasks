@@ -1,0 +1,47 @@
+{{- if eq (toString .Values.providers.scheduler.provider) "external" }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "usertasks.fullname" . }}-tick
+  labels:
+    {{- include "usertasks.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tick
+spec:
+  schedule: {{ .Values.tick.schedule | quote }}
+  # A late tick is skipped, not stacked: the next minute's tick catches up.
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 50
+  successfulJobsHistoryLimit: {{ .Values.tick.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.tick.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            {{- include "usertasks.podLabels" (dict "root" . "component" "tick") | nindent 12 }}
+        spec:
+          {{- include "usertasks.podCommon" (dict "root" .) | nindent 10 }}
+          restartPolicy: Never
+          containers:
+            - name: tick
+              {{- include "usertasks.containerCommon" (dict "root" .) | nindent 14 }}
+              {{- if eq .Values.tick.mode "worker-once" }}
+              command: ["node", "worker.cjs", "--once"]
+              {{- else }}
+              # POST /api/cron/tick with CRON_SECRET (from the Secret).
+              command:
+                - node
+                - -e
+                - |
+                  const url = 'http://{{ include "usertasks.fullname" . }}:{{ .Values.service.port }}/api/cron/tick'
+                  fetch(url, { method: 'POST', headers: { authorization: `Bearer ${process.env.CRON_SECRET}` }, signal: AbortSignal.timeout(240000) })
+                    .then(async (res) => { console.log(`tick: ${res.status} ${(await res.text()).slice(0, 300)}`); process.exit(res.ok ? 0 : 1) })
+                    .catch((error) => { console.error(`tick failed: ${error.message}`); process.exit(1) })
+              {{- end }}
+              resources:
+                {{- toYaml .Values.tick.resources | nindent 16 }}
+          volumes:
+            {{- include "usertasks.volumes" . | nindent 12 }}
+{{- end }}

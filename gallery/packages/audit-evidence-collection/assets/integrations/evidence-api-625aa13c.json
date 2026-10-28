@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "625aa13c-9c62-44c8-91e2-0b37d0e6865b",
+  "asset": {
+    "id": "625aa13c-9c62-44c8-91e2-0b37d0e6865b",
+    "name": "Evidence API",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://evidence.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "compliance",
+      "audit"
+    ]
+  }
+}

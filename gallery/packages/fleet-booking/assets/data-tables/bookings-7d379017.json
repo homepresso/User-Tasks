@@ -1,0 +1,117 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "7d379017-d377-5996-a98d-750e193075b6",
+  "asset": {
+    "id": "7d379017-d377-5996-a98d-750e193075b6",
+    "name": "Bookings",
+    "description": "Every booking request: the vehicle, the dates, whether it needed approval and the outcome. Confirmed rows block the vehicle for other bookings.",
+    "columns": [
+      {
+        "id": "08f65ee6-173b-573f-9583-631cf9c8cafa",
+        "required": true,
+        "key": "booking_ref",
+        "name": "Booking",
+        "type": "text"
+      },
+      {
+        "id": "223a49ed-6c7e-5cd5-bc81-654a209e59b6",
+        "required": true,
+        "key": "rego",
+        "name": "Registration",
+        "type": "text"
+      },
+      {
+        "id": "e74336a3-5bdd-5a14-9522-d09906b95e03",
+        "required": false,
+        "key": "vehicle",
+        "name": "Vehicle",
+        "type": "text"
+      },
+      {
+        "id": "82e85f13-addb-5e5c-9993-26eded5fc822",
+        "required": false,
+        "key": "requester_name",
+        "name": "Driver",
+        "type": "text"
+      },
+      {
+        "id": "1ac25e24-bbf1-56d2-a95e-65378b524d02",
+        "required": false,
+        "key": "requester_email",
+        "name": "Driver email",
+        "type": "email"
+      },
+      {
+        "id": "fed8b04b-044a-5c29-bb34-ae11210fe974",
+        "required": false,
+        "key": "pickup_at",
+        "name": "Pick up",
+        "type": "datetime"
+      },
+      {
+        "id": "b01c4210-d2fd-5d5b-b7df-b6a5629464fc",
+        "required": false,
+        "key": "return_at",
+        "name": "Return",
+        "type": "datetime"
+      },
+      {
+        "id": "9ca3a719-efdb-58e4-968b-3d64f8cf9bdc",
+        "required": false,
+        "key": "destination",
+        "name": "Destination",
+        "type": "text"
+      },
+      {
+        "id": "1fa7479a-f394-51e9-a0df-95670828f610",
+        "required": false,
+        "key": "distance_km",
+        "name": "Distance (km)",
+        "type": "number"
+      },
+      {
+        "id": "9182d893-05db-5a97-99bb-c48a2071e8b1",
+        "required": false,
+        "key": "passengers",
+        "name": "People travelling",
+        "type": "number"
+      },
+      {
+        "id": "977dbdec-b785-5725-a3d4-ae00fe9fcbd1",
+        "required": false,
+        "key": "purpose",
+        "name": "Purpose",
+        "type": "text"
+      },
+      {
+        "id": "742066a9-09c6-5985-96d1-35a3e8518141",
+        "required": false,
+        "key": "approval_reason",
+        "name": "Approval needed because",
+        "type": "text"
+      },
+      {
+        "id": "a643f9cd-57b1-5ea8-9dcd-38068e1265db",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Pending approval",
+          "Confirmed",
+          "Rejected",
+          "Clash",
+          "Unavailable"
+        ]
+      },
+      {
+        "id": "46ee7d8a-3a90-560e-8303-429b6f88db0f",
+        "required": false,
+        "key": "approver_comment",
+        "name": "Coordinator comment",
+        "type": "text"
+      }
+    ]
+  }
+}

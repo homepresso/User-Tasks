@@ -1,0 +1,74 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "d4ab2dcb-4009-4931-98b0-787b42e8c197",
+  "asset": {
+    "id": "d4ab2dcb-4009-4931-98b0-787b42e8c197",
+    "name": "Country risk rows",
+    "rows": [
+      {
+        "id": "b6f2d282-b2f7-4fdd-8921-0b45a5dcd05f",
+        "data": {
+          "country": "New Zealand",
+          "risk": "low",
+          "enhanced_due_diligence": false,
+          "notes": "Home market"
+        }
+      },
+      {
+        "id": "e9c09e2b-b70d-46d6-83ef-bedd308179ec",
+        "data": {
+          "country": "Australia",
+          "risk": "low",
+          "enhanced_due_diligence": false,
+          "notes": ""
+        }
+      },
+      {
+        "id": "1247d016-2b00-4eff-84f8-7f7d42838bd8",
+        "data": {
+          "country": "United Kingdom",
+          "risk": "low",
+          "enhanced_due_diligence": false,
+          "notes": ""
+        }
+      },
+      {
+        "id": "f301ab66-cbfb-4250-9f37-3dc2eb7e6235",
+        "data": {
+          "country": "United States",
+          "risk": "medium",
+          "enhanced_due_diligence": false,
+          "notes": "Check state registration"
+        }
+      },
+      {
+        "id": "6eae039d-d6a5-4359-8922-437344c7be1a",
+        "data": {
+          "country": "Singapore",
+          "risk": "medium",
+          "enhanced_due_diligence": false,
+          "notes": ""
+        }
+      },
+      {
+        "id": "a5c194be-5fd4-4cb0-8860-7e67e2e4b065",
+        "data": {
+          "country": "United Arab Emirates",
+          "risk": "high",
+          "enhanced_due_diligence": true,
+          "notes": "Beneficial ownership evidence required"
+        }
+      },
+      {
+        "id": "aee30d49-1c9a-4d30-962d-4d8a2310c417",
+        "data": {
+          "country": "Other",
+          "risk": "high",
+          "enhanced_due_diligence": true,
+          "notes": "Compliance review for every new customer"
+        }
+      }
+    ]
+  }
+}

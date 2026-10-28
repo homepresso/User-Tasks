@@ -1,0 +1,79 @@
+{
+  "title": "Meeting room booking",
+  "category": "workplace",
+  "summary": "Book a room from a themed start form; rules send large, long or catered bookings to facilities for approval, everything else is confirmed straight away.",
+  "description": "Meeting room booking gives people one simple, branded form to ask for a room: meeting title, room, date, start time, duration, number of attendees, catering and external guests. The Rooms table holds every bookable room with its floor, seats and equipment, so facilities can keep it up to date without touching the workflow.\n\nThe workflow reads the chosen room and checks the request against the Room booking approval decision table: more attendees than seats, a large room (12+ seats), a booking longer than four hours or catering all need facilities approval; anything else is confirmed automatically. Every request is recorded in the Room bookings table with the rule that applied.\n\nFacilities get an approval task with Approve and Reject buttons, choose the room setup, tick that catering is ordered and leave a note for the organiser. The organiser gets a confirmation email with the room details, or the reason it could not be approved. No integrations needed.",
+  "trigger": "form",
+  "entry_workflow": "2b8dc225-aae3-5b48-beab-ab8383d05652",
+  "start": "Starts from its start form: open the Meeting room booking workflow and press Start (or share the start link). The form is themed and laid out in a grid.",
+  "difficulty": "starter",
+  "setup_minutes": 10,
+  "tags": [
+    "meeting rooms",
+    "facilities",
+    "bookings",
+    "decision table",
+    "no integrations"
+  ],
+  "version": "1.0.1",
+  "changelog": [
+    {
+      "version": "1.0.1",
+      "date": "2026-10-28",
+      "notes": "Steps for the coordinator who set the package up are assigned to the workflow owner (workflow_owner_id), now that workflow_started_by names the person who started the run."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Edit the Rooms table: your rooms, floors, seats and equipment. If you rename or add rooms, update the Room options on the workflow's inputs to match.",
+    "Set the default of the \"Facilities approver (user id)\" input to your facilities coordinator. Until you do, the person booking reviews their own large bookings (useful for trying it out).",
+    "Adjust the Room booking approval rules (seat threshold, maximum hours, catering) to your policy.",
+    "Optional: set EMAIL_PROVIDER so confirmations are delivered (the console provider logs them)."
+  ],
+  "steps": [
+    {
+      "title": "Ask for a room",
+      "body": "The organiser fills in the themed start form: room, date, time, duration, attendees, catering and guests."
+    },
+    {
+      "title": "Check the room",
+      "body": "The workflow reads the room's seats and equipment from the Rooms table and flags more attendees than seats."
+    },
+    {
+      "title": "Apply the rules",
+      "body": "The approval decision table decides whether facilities must approve (large rooms, long bookings, catering) and records why."
+    },
+    {
+      "title": "Facilities approve",
+      "body": "Facilities pick the room setup, confirm catering and press Approve or Reject, with a note for the organiser."
+    },
+    {
+      "title": "Confirmation",
+      "body": "The booking is confirmed or declined in Room bookings and the organiser is emailed the details."
+    }
+  ],
+  "sample_input": {
+    "meeting_title": "Quarterly business review",
+    "room": "Boardroom",
+    "booking_date": "2026-11-12",
+    "start_time": "10:00",
+    "duration_hours": 3,
+    "attendees": 12,
+    "organiser_email": "priya.shah@example.com",
+    "catering": true,
+    "external_guests": true,
+    "notes": "Customer visit: please set up the boardroom layout"
+  },
+  "expect": "waiting",
+  "icon": "presentation",
+  "id": "4e43d9de-932e-575d-aa18-ddd65344c088",
+  "slug": "meeting-room-booking"
+}

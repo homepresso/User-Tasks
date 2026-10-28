@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "335b3ed0-a793-498e-aaef-1fdfad41a539",
+  "asset": {
+    "id": "335b3ed0-a793-498e-aaef-1fdfad41a539",
+    "name": "Identity platform",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://identity.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "identity",
+      "access"
+    ]
+  }
+}

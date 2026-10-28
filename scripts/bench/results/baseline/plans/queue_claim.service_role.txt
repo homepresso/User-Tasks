@@ -1,0 +1,26 @@
+-- queue claim (claim_next_job SELECT … FOR UPDATE SKIP LOCKED) as service_role
+SELECT * FROM public.workflow_queue WHERE ((status = 'pending' AND scheduled_for <= now()) OR (status = 'failed' AND attempts < max_attempts AND next_retry_at <= now())) ORDER BY priority DESC, scheduled_for ASC LIMIT 1 FOR UPDATE SKIP LOCKED
+
+Limit  (cost=2410.77..2410.78 rows=1 width=857) (actual time=0.574..0.574 rows=0 loops=1)
+  Buffers: shared hit=990
+  ->  LockRows  (cost=2410.77..2421.78 rows=881 width=857) (actual time=0.573..0.574 rows=0 loops=1)
+        Buffers: shared hit=990
+        ->  Sort  (cost=2410.77..2412.97 rows=881 width=857) (actual time=0.573..0.574 rows=0 loops=1)
+              Sort Key: priority DESC, scheduled_for
+              Sort Method: quicksort  Memory: 25kB
+              Buffers: shared hit=990
+              ->  Bitmap Heap Scan on workflow_queue  (cost=63.46..2406.36 rows=881 width=857) (actual time=0.571..0.572 rows=0 loops=1)
+                    Recheck Cond: (((scheduled_for <= now()) AND (status = 'pending'::text)) OR ((next_retry_at <= now()) AND (status = 'failed'::text) AND (attempts < max_attempts)))
+                    Filter: (((status = 'pending'::text) AND (scheduled_for <= now())) OR ((status = 'failed'::text) AND (attempts < max_attempts) AND (next_retry_at <= now())))
+                    Heap Blocks: exact=974
+                    Buffers: shared hit=990
+                    ->  BitmapOr  (cost=63.46..63.46 rows=881 width=0) (actual time=0.149..0.149 rows=0 loops=1)
+                          Buffers: shared hit=16
+                          ->  Bitmap Index Scan on idx_queue_pending  (cost=0.00..58.89 rows=881 width=0) (actual time=0.147..0.147 rows=3672 loops=1)
+                                Index Cond: (scheduled_for <= now())
+                                Buffers: shared hit=15
+                          ->  Bitmap Index Scan on idx_queue_retry  (cost=0.00..4.14 rows=1 width=0) (actual time=0.002..0.002 rows=25 loops=1)
+                                Index Cond: (next_retry_at <= now())
+                                Buffers: shared hit=1
+Planning Time: 0.060 ms
+Execution Time: 0.592 ms

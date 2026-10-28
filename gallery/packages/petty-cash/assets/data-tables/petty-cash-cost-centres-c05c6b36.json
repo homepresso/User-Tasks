@@ -1,0 +1,61 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "c05c6b36-1d8e-5009-8968-9eb90f252379",
+  "asset": {
+    "id": "c05c6b36-1d8e-5009-8968-9eb90f252379",
+    "name": "Petty cash cost centres",
+    "description": "Cost centres that hold a petty cash float: the budget holder approves claims, and the monthly float caps what is paid out.",
+    "columns": [
+      {
+        "id": "4baed53a-61b9-50dc-aab4-e1a6b11dfae9",
+        "required": true,
+        "key": "code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "b61ec691-525a-5c7c-bfdc-d9b6df77094c",
+        "required": true,
+        "key": "name",
+        "name": "Cost centre",
+        "type": "text"
+      },
+      {
+        "id": "b42af778-4296-5a82-a47f-dd4cbe45a90d",
+        "required": false,
+        "key": "budget_holder",
+        "name": "Budget holder",
+        "type": "text"
+      },
+      {
+        "id": "c6ebcf61-0172-5962-87cb-6ae905bff64a",
+        "required": false,
+        "key": "budget_holder_email",
+        "name": "Budget holder email",
+        "type": "email"
+      },
+      {
+        "id": "4fd829bb-4347-5d23-b3f8-ac894b200afa",
+        "required": false,
+        "key": "monthly_float",
+        "name": "Monthly float (NZD)",
+        "type": "number"
+      },
+      {
+        "id": "9457ae85-e8c0-5c89-8e0d-1b002809391c",
+        "required": false,
+        "key": "gl_code",
+        "name": "GL account",
+        "type": "text"
+      },
+      {
+        "id": "199acb02-9064-5c62-9357-eee23e8361b3",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

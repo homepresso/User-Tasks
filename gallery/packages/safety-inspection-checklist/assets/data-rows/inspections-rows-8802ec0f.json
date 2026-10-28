@@ -1,0 +1,28 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "8802ec0f-01cb-58f0-b007-8b89d1f629ef",
+  "asset": {
+    "id": "8802ec0f-01cb-58f0-b007-8b89d1f629ef",
+    "name": "Inspections rows",
+    "rows": [
+      {
+        "id": "0a853de2-d6da-5f5f-b712-466adb7f45ee",
+        "data": {
+          "inspection_ref": "AKL-DC-2026-09",
+          "period": "2026-09",
+          "site_code": "AKL-DC",
+          "site_name": "Auckland distribution centre",
+          "status": "Action complete",
+          "inspected_on": "2026-09-10",
+          "inspector_notes": "Fire exit in bay 2 blocked by pallets.",
+          "checks_failed": 1,
+          "photos_url": "https://files.example.com/inspections/akl-dc-2026-09",
+          "corrective_action": "Pallets moved; exit marked with floor tape.",
+          "action_due": "2026-09-12",
+          "action_closed_on": "2026-09-11"
+        }
+      }
+    ]
+  }
+}

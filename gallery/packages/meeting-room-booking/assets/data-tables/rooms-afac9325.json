@@ -1,0 +1,61 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "afac9325-bb0f-5e00-b601-3003fdd80f79",
+  "asset": {
+    "id": "afac9325-bb0f-5e00-b601-3003fdd80f79",
+    "name": "Rooms",
+    "description": "Bookable meeting rooms: floor, seats and equipment. The booking workflow reads the capacity from here; untick Bookable to take a room out of service.",
+    "columns": [
+      {
+        "id": "65d4259b-4f0e-5a21-a0d9-54943477c99c",
+        "required": true,
+        "key": "room",
+        "name": "Room",
+        "type": "text"
+      },
+      {
+        "id": "b1fbe93b-1ecb-5b35-88a7-2743982ffeec",
+        "required": false,
+        "key": "floor",
+        "name": "Floor",
+        "type": "text"
+      },
+      {
+        "id": "b71a1b29-73ef-5015-87cf-98a1b4c26161",
+        "required": true,
+        "key": "capacity",
+        "name": "Seats",
+        "type": "number"
+      },
+      {
+        "id": "9c3fcef8-3e13-5cd8-9e06-22355a8a62c9",
+        "required": false,
+        "key": "equipment",
+        "name": "Equipment",
+        "type": "text"
+      },
+      {
+        "id": "d007a3f3-14bc-520d-be35-75d4cf170b4b",
+        "required": false,
+        "key": "video_conferencing",
+        "name": "Video conferencing",
+        "type": "boolean"
+      },
+      {
+        "id": "817feb58-4e2a-50d0-a1b1-fb7659933278",
+        "required": false,
+        "key": "accessible",
+        "name": "Step-free access",
+        "type": "boolean"
+      },
+      {
+        "id": "e7189c1d-595f-5bc2-ae86-914735041e9d",
+        "required": false,
+        "key": "bookable",
+        "name": "Bookable",
+        "type": "boolean"
+      }
+    ]
+  }
+}

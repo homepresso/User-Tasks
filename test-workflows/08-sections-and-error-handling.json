@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "webhook_received",
+      "label": "Webhook Trigger",
+      "position": { "x": 400, "y": 20 },
+      "config": {}
+    },
+    {
+      "id": "sec1",
+      "type": "section_group",
+      "label": "Data Processing",
+      "position": { "x": 60, "y": 140 },
+      "config": { "width": 600, "height": 340, "color": "#6366F1" },
+      "collapsed": false
+    },
+    {
+      "id": "n1",
+      "type": "set_variable",
+      "label": "Set Input",
+      "position": { "x": 100, "y": 200 },
+      "config": { "name": "input_data", "expression": "Hello World" },
+      "sectionId": "sec1"
+    },
+    {
+      "id": "n2",
+      "type": "modify_string",
+      "label": "Process String",
+      "position": { "x": 100, "y": 340 },
+      "config": { "operation": "upper", "input": "{{input_data}}", "output_var": "processed" },
+      "sectionId": "sec1",
+      "onError": "continue"
+    },
+    {
+      "id": "n3",
+      "type": "math",
+      "label": "Calculate Length",
+      "position": { "x": 380, "y": 340 },
+      "config": { "expression": "{{=LEN(input_data)}}", "output_var": "data_length" },
+      "sectionId": "sec1"
+    },
+    {
+      "id": "sec2",
+      "type": "section_group",
+      "label": "Output & Logging",
+      "position": { "x": 60, "y": 540 },
+      "config": { "width": 600, "height": 280, "color": "#10B981" },
+      "collapsed": false
+    },
+    {
+      "id": "n4",
+      "type": "condition",
+      "label": "Has Error?",
+      "position": { "x": 100, "y": 600 },
+      "config": {
+        "branches": [{ "label": "Error", "logic": "AND", "rules": [{ "field": "{{has_error}}", "operator": "equals", "value": "true" }] }],
+        "has_else": true
+      },
+      "sectionId": "sec2"
+    },
+    {
+      "id": "n5",
+      "type": "log",
+      "label": "Log Error",
+      "position": { "x": 100, "y": 760 },
+      "config": { "message": "ERROR: {{last_error}} on node {{last_error_node}}" },
+      "sectionId": "sec2"
+    },
+    {
+      "id": "n6",
+      "type": "log",
+      "label": "Log Success",
+      "position": { "x": 400, "y": 760 },
+      "config": { "message": "Success! Processed: {{processed}}, Length: {{data_length}}" },
+      "sectionId": "sec2"
+    },
+    {
+      "id": "n7",
+      "type": "log",
+      "label": "Final Log",
+      "position": { "x": 400, "y": 920 },
+      "config": { "message": "Workflow complete" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "t1", "target": "n1" },
+    { "id": "e2", "source": "n1", "target": "n2" },
+    { "id": "e3", "source": "n1", "target": "n3" },
+    { "id": "e4", "source": "n2", "target": "n4" },
+    { "id": "e5", "source": "n3", "target": "n4" },
+    { "id": "e6", "source": "n4", "target": "n5", "label": "Error" },
+    { "id": "e7", "source": "n4", "target": "n6", "label": "Else" },
+    { "id": "e8", "source": "n5", "target": "n7" },
+    { "id": "e9", "source": "n6", "target": "n7" }
+  ],
+  "user_variables": [
+    { "id": "v1", "name": "input_data", "type": "string", "defaultValue": "Hello World", "description": "Data to process" }
+  ],
+  "swimlanes": []
+}

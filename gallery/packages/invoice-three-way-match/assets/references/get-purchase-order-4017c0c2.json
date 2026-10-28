@@ -1,0 +1,247 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "4017c0c2-e783-4abb-b67e-fb105123418f",
+  "asset": {
+    "id": "4017c0c2-e783-4abb-b67e-fb105123418f",
+    "integration_id": "49ee43f1-c00d-4c35-8b47-a824f179f12d",
+    "name": "Get purchase order",
+    "description": "Purchase order header and lines from the ERP, including the vendor risk rating, payment terms and remittance email.",
+    "tags": [
+      "purchasing"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/purchase-orders/{{po_number}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "po_number",
+              "type": "string",
+              "example": "PO-4500123"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "open"
+            },
+            {
+              "name": "currency",
+              "type": "string",
+              "example": "NZD"
+            },
+            {
+              "name": "total",
+              "type": "integer",
+              "example": 11500
+            },
+            {
+              "name": "order_date",
+              "type": "string",
+              "example": "2026-09-28"
+            },
+            {
+              "name": "vendor",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "V-2001"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "example": "Northwind Industrial Supply"
+                },
+                {
+                  "name": "email",
+                  "type": "string",
+                  "example": "accounts@northwind.example.com"
+                },
+                {
+                  "name": "risk_rating",
+                  "type": "string",
+                  "example": "low"
+                },
+                {
+                  "name": "payment_terms_days",
+                  "type": "integer",
+                  "example": 30
+                }
+              ]
+            },
+            {
+              "name": "buyer",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "name",
+                  "type": "string",
+                  "example": "Jordan Lee"
+                },
+                {
+                  "name": "email",
+                  "type": "string",
+                  "example": "jordan.lee@example.com"
+                }
+              ]
+            },
+            {
+              "name": "lines",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "type": "integer",
+                    "example": 1,
+                    "name": "line"
+                  },
+                  {
+                    "type": "string",
+                    "example": "BRG-6204",
+                    "name": "sku"
+                  },
+                  {
+                    "type": "string",
+                    "example": "Ball bearing 6204-2RS",
+                    "name": "description"
+                  },
+                  {
+                    "type": "integer",
+                    "example": 200,
+                    "name": "quantity"
+                  },
+                  {
+                    "type": "number",
+                    "example": 12.5,
+                    "name": "unit_price"
+                  },
+                  {
+                    "type": "integer",
+                    "example": 2500,
+                    "name": "amount"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "sample": {
+          "po_number": "PO-4500123",
+          "status": "open",
+          "currency": "NZD",
+          "total": 11500,
+          "order_date": "2026-09-28",
+          "vendor": {
+            "id": "V-2001",
+            "name": "Northwind Industrial Supply",
+            "email": "accounts@northwind.example.com",
+            "risk_rating": "low",
+            "payment_terms_days": 30
+          },
+          "buyer": {
+            "name": "Jordan Lee",
+            "email": "jordan.lee@example.com"
+          },
+          "lines": [
+            {
+              "line": 1,
+              "sku": "BRG-6204",
+              "description": "Ball bearing 6204-2RS",
+              "quantity": 200,
+              "unit_price": 12.5,
+              "amount": 2500
+            },
+            {
+              "line": 2,
+              "sku": "MTR-0750",
+              "description": "Electric motor 0.75 kW",
+              "quantity": 10,
+              "unit_price": 900,
+              "amount": 9000
+            }
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "5a7cd6fa-7c11-4812-be90-8700828cb70a",
+        "name": "po_number",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Purchase order number, e.g. PO-4500123",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "b2f3483c-c681-485a-8cbf-733d649b521f",
+        "name": "po_status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "26129a31-7dc5-4e28-a7af-5e702e3ecd15",
+        "name": "po_total",
+        "path": "total",
+        "type": "number"
+      },
+      {
+        "id": "feb93f3f-3e55-4033-aa7c-d2865c988363",
+        "name": "po_currency",
+        "path": "currency",
+        "type": "string"
+      },
+      {
+        "id": "2ad2aef1-e173-456e-9ab4-77f36e3622d7",
+        "name": "vendor_name",
+        "path": "vendor.name",
+        "type": "string"
+      },
+      {
+        "id": "983f43b1-c50f-4b2d-902f-6e5b7cdf490c",
+        "name": "vendor_email",
+        "path": "vendor.email",
+        "type": "string"
+      },
+      {
+        "id": "0d84e0d3-2d52-4b31-ac25-418033804d6a",
+        "name": "vendor_risk",
+        "path": "vendor.risk_rating",
+        "type": "string"
+      },
+      {
+        "id": "b5cc0b10-da1a-4818-aa78-41773612d34b",
+        "name": "payment_terms_days",
+        "path": "vendor.payment_terms_days",
+        "type": "number"
+      },
+      {
+        "id": "394df98d-2f7d-49a9-8dbe-437326d0ef23",
+        "name": "buyer_email",
+        "path": "buyer.email",
+        "type": "string"
+      },
+      {
+        "id": "a2f8bdf4-1f80-445f-94bf-c3c99e02b839",
+        "name": "po_lines",
+        "path": "lines",
+        "type": "array"
+      }
+    ]
+  }
+}

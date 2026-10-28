@@ -1,0 +1,20 @@
+-- runs list by workflow, newest 50 (select *) as service_role
+SELECT * FROM public.workflow_runs WHERE workflow_id = '0be00000-0000-4000-8000-000000000301' ORDER BY started_at DESC LIMIT 50
+
+Limit  (cost=7595.32..7595.44 rows=50 width=655) (actual time=5.347..5.354 rows=50 loops=1)
+  Buffers: shared hit=5839
+  ->  Sort  (cost=7595.32..7608.14 rows=5130 width=655) (actual time=5.346..5.349 rows=50 loops=1)
+        Sort Key: started_at DESC
+        Sort Method: top-N heapsort  Memory: 66kB
+        Buffers: shared hit=5839
+        ->  Bitmap Heap Scan on workflow_runs  (cost=64.05..7424.90 rows=5130 width=655) (actual time=0.875..4.615 rows=5000 loops=1)
+              Recheck Cond: (workflow_id = '0be00000-0000-4000-8000-000000000301'::uuid)
+              Heap Blocks: exact=5833
+              Buffers: shared hit=5839
+              ->  Bitmap Index Scan on idx_workflow_runs_workflow  (cost=0.00..62.77 rows=5130 width=0) (actual time=0.373..0.374 rows=5833 loops=1)
+                    Index Cond: (workflow_id = '0be00000-0000-4000-8000-000000000301'::uuid)
+                    Buffers: shared hit=6
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.047 ms
+Execution Time: 5.373 ms

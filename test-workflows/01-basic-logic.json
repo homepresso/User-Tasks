@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "webhook_received",
+      "label": "Webhook Trigger",
+      "position": { "x": 400, "y": 20 },
+      "config": {}
+    },
+    {
+      "id": "n1",
+      "type": "set_variable",
+      "label": "Set Counter",
+      "position": { "x": 400, "y": 160 },
+      "config": { "name": "counter", "expression": "0" }
+    },
+    {
+      "id": "n2",
+      "type": "math",
+      "label": "Add 10",
+      "position": { "x": 400, "y": 300 },
+      "config": { "expression": "{{counter}} + 10", "output_var": "counter" }
+    },
+    {
+      "id": "n3",
+      "type": "condition",
+      "label": "Is Counter > 5?",
+      "position": { "x": 400, "y": 440 },
+      "config": {
+        "branches": [{ "label": "Yes", "logic": "AND", "rules": [{ "field": "{{counter}}", "operator": "greater_than", "value": "5" }] }],
+        "has_else": true
+      }
+    },
+    {
+      "id": "n4",
+      "type": "log",
+      "label": "Log High",
+      "position": { "x": 200, "y": 600 },
+      "config": { "message": "Counter is high: {{counter}}" }
+    },
+    {
+      "id": "n5",
+      "type": "log",
+      "label": "Log Low",
+      "position": { "x": 600, "y": 600 },
+      "config": { "message": "Counter is low: {{counter}}" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "t1", "target": "n1" },
+    { "id": "e2", "source": "n1", "target": "n2" },
+    { "id": "e3", "source": "n2", "target": "n3" },
+    { "id": "e4", "source": "n3", "target": "n4", "label": "Yes" },
+    { "id": "e5", "source": "n3", "target": "n5", "label": "Else" }
+  ],
+  "user_variables": [
+    { "id": "v1", "name": "counter", "type": "number", "defaultValue": "0", "description": "Running counter" }
+  ],
+  "swimlanes": []
+}

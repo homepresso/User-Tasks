@@ -1,0 +1,87 @@
+{
+  "id": "b9c1bafe-2b1b-48d2-b022-e48713acc244",
+  "slug": "ai-agent-triage-hitl",
+  "title": "AI ticket triage with human review",
+  "category": "headless-integration",
+  "summary": "An AI agent classifies each helpdesk ticket and drafts a reply; confident, low-risk answers go out automatically and the rest wait for a person.",
+  "description": "AI ticket triage with human review puts an AI agent in front of your support queue without letting it answer everything on its own. Your helpdesk posts each new ticket (id, subject, body, customer email, channel and plan tier) to the workflow.\n\nThe Ticket triage agent returns the category, urgency, sentiment, a short summary, a suggested reply and its confidence. The Triage routing decision table then decides: confident how-to and low-urgency answers are posted automatically; security issues, critical tickets, enterprise billing and anything the agent is unsure about go to a person, with a queue and priority set either way.\n\nThe \"Review AI triage\" task shows the ticket, the summary and the draft reply. The reviewer corrects the category and priority, edits the reply and sends it, escalates the ticket (which moves it to the escalation queue and emails your support leads) or discards the draft and leaves the ticket for an agent. Every ticket is tagged so you can measure how often the AI reply was used. Adapt the agent instructions, the routing rules and the helpdesk calls to your tooling.",
+  "trigger": "api",
+  "entry_workflow": "02d0bf05-aec5-4b89-ac69-413c4268b540",
+  "start": "Headless: your helpdesk posts each new ticket to the start API or an inbound webhook. People only see the tickets the rules send for review.",
+  "difficulty": "intermediate",
+  "setup_minutes": 20,
+  "tags": [
+    "ai agent",
+    "support",
+    "triage",
+    "human in the loop",
+    "helpdesk"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "ai_model",
+    "rest_api",
+    "assignees",
+    "webhook"
+  ],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "AI model: set the base URL of an OpenAI-compatible endpoint (e.g. https://api.openai.com/v1 or your gateway) and its API key. Change the agent model if gpt-4o-mini is not available.",
+    "Helpdesk: set the base URL and API token of your helpdesk API. Post reply posts to /tickets/{id}/replies; Update ticket patches /tickets/{id}.",
+    "Assignee: pick the default support reviewer (runs can pass reviewer_id, e.g. per queue).",
+    "Tune the Triage routing rules: which categories and confidence levels may be answered automatically. Start strict and loosen as you review results.",
+    "Inbound webhook: create a webhook for the workflow and point your helpdesk's new-ticket trigger at it.",
+    "Email (optional): configure EMAIL_PROVIDER and set escalation_email for the escalation notice (the step continues on error)."
+  ],
+  "steps": [
+    {
+      "title": "Ticket received",
+      "body": "The helpdesk posts the ticket id, subject, body, customer email, channel and plan tier."
+    },
+    {
+      "title": "AI triage",
+      "body": "The Ticket triage agent returns category, urgency, sentiment, a summary, a suggested reply and its confidence."
+    },
+    {
+      "title": "Apply routing rules",
+      "body": "The Triage routing decision table decides auto-reply or human review and sets the queue and priority."
+    },
+    {
+      "title": "Auto-reply",
+      "body": "Confident, low-risk answers are posted to the customer and the ticket is updated and tagged."
+    },
+    {
+      "title": "Human review",
+      "body": "Otherwise a reviewer checks the triage and edits the reply, then sends it, escalates or discards it."
+    }
+  ],
+  "sample_input": {
+    "ticket_id": "T-48213",
+    "subject": "Charged twice for October",
+    "channel": "email",
+    "tier": "pro",
+    "customer_email": "lee.chen@example.com",
+    "body": "Hi, my card statement shows two charges of 49.00 for the October invoice. Can you check and refund the duplicate? This is the second time this has happened."
+  },
+  "verify_mocks": {
+    "agent_outputs": {
+      "category": "billing",
+      "urgency": "high",
+      "sentiment": "negative",
+      "confidence": 0.62,
+      "summary": "Customer reports a duplicate charge for the October invoice and asks for a refund. They say it has happened before.",
+      "suggested_reply": "Hi Lee, thanks for letting us know about the two charges for October. We are checking your billing history now and will confirm the outcome within one business day."
+    }
+  },
+  "expect": "waiting",
+  "icon": "bot"
+}

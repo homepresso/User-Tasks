@@ -1,0 +1,196 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "ac6c80df-5b95-52cd-bd4e-12fc800f80db",
+  "asset": {
+    "id": "ac6c80df-5b95-52cd-bd4e-12fc800f80db",
+    "integration_id": "2d4f8199-d586-5b02-bc32-526657bd3ee1",
+    "name": "Find pending approval",
+    "description": "Find the requested approval record for the change (GET /table/sysapproval_approver?sysparm_query=sysapproval={sys_id}^state=requested).",
+    "tags": [
+      "change",
+      "approval"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/table/sysapproval_approver",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "result",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "sys_id",
+                    "type": "string",
+                    "example": "3f1dd0320a0a0b99000a53f7604a2ef9"
+                  },
+                  {
+                    "name": "state",
+                    "type": "string",
+                    "example": "requested"
+                  },
+                  {
+                    "name": "source_table",
+                    "type": "string",
+                    "example": "change_request"
+                  },
+                  {
+                    "name": "document_id",
+                    "type": "string",
+                    "example": "c286d61347c12200e0ef563dbb9a71df"
+                  },
+                  {
+                    "name": "sysapproval",
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "link",
+                        "type": "string",
+                        "example": "https://acme.service-now.example.com/api/now/table/task/c286d61347c12200e0ef563dbb9a71df"
+                      },
+                      {
+                        "name": "value",
+                        "type": "string",
+                        "example": "c286d61347c12200e0ef563dbb9a71df"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "approver",
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "link",
+                        "type": "string",
+                        "example": "https://acme.service-now.example.com/api/now/table/sys_user/62826bf03710200044e0bfc8bcbe5df1"
+                      },
+                      {
+                        "name": "value",
+                        "type": "string",
+                        "example": "62826bf03710200044e0bfc8bcbe5df1"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "group",
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "link",
+                        "type": "string",
+                        "example": "https://acme.service-now.example.com/api/now/table/sysapproval_group/a2b1c6f3db5f2300d0f0fb1d0f96195c"
+                      },
+                      {
+                        "name": "value",
+                        "type": "string",
+                        "example": "a2b1c6f3db5f2300d0f0fb1d0f96195c"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "due_date",
+                    "type": "string",
+                    "example": ""
+                  },
+                  {
+                    "name": "sys_created_on",
+                    "type": "string",
+                    "example": "2026-10-28 08:02:11"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "sample": {
+          "result": [
+            {
+              "sys_id": "3f1dd0320a0a0b99000a53f7604a2ef9",
+              "state": "requested",
+              "source_table": "change_request",
+              "document_id": "c286d61347c12200e0ef563dbb9a71df",
+              "sysapproval": {
+                "link": "https://acme.service-now.example.com/api/now/table/task/c286d61347c12200e0ef563dbb9a71df",
+                "value": "c286d61347c12200e0ef563dbb9a71df"
+              },
+              "approver": {
+                "link": "https://acme.service-now.example.com/api/now/table/sys_user/62826bf03710200044e0bfc8bcbe5df1",
+                "value": "62826bf03710200044e0bfc8bcbe5df1"
+              },
+              "group": {
+                "link": "https://acme.service-now.example.com/api/now/table/sysapproval_group/a2b1c6f3db5f2300d0f0fb1d0f96195c",
+                "value": "a2b1c6f3db5f2300d0f0fb1d0f96195c"
+              },
+              "due_date": "",
+              "sys_created_on": "2026-10-28 08:02:11"
+            }
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "4263192b-0cca-5148-83df-bbd5f2e4e83d",
+        "name": "sysparm_query",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "Encoded query, e.g. sysapproval=<change sys_id>^state=requested",
+        "default_value": ""
+      },
+      {
+        "id": "5ae01ae0-8b45-5317-a650-c48a5d8c0b98",
+        "name": "sysparm_fields",
+        "type": "string",
+        "source": "static",
+        "location": "query",
+        "required": false,
+        "description": "Fields to return",
+        "default_value": "sys_id,state,source_table,document_id,sysapproval,approver,group,due_date,sys_created_on"
+      },
+      {
+        "id": "63740f23-38ca-5dd0-aa17-8c36813ad0bb",
+        "name": "sysparm_limit",
+        "type": "string",
+        "source": "static",
+        "location": "query",
+        "required": false,
+        "description": "Only the first match",
+        "default_value": "1"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "5c1cc012-623c-5cae-9358-597ffddf5a2e",
+        "name": "approval_sys_id",
+        "path": "result[0].sys_id",
+        "type": "string"
+      },
+      {
+        "id": "8719b569-6358-54a3-b27e-f558670d2f2d",
+        "name": "approval_state",
+        "path": "result[0].state",
+        "type": "string"
+      },
+      {
+        "id": "9c3a0aa2-0d17-579d-a9ba-1b68b8916a14",
+        "name": "approvals",
+        "path": "result",
+        "type": "array"
+      }
+    ]
+  }
+}

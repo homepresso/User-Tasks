@@ -1,0 +1,554 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "570f7e82-ebc3-5960-9b7c-53053c5f73e9",
+  "asset": {
+    "id": "570f7e82-ebc3-5960-9b7c-53053c5f73e9",
+    "integration_id": "2d4f8199-d586-5b02-bc32-526657bd3ee1",
+    "name": "Get change request",
+    "description": "Read the change request with display values (GET /table/change_request/{sys_id}?sysparm_display_value=all): type, risk, CI, window, plans and requester.",
+    "tags": [
+      "change"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/table/change_request/{{sys_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "result",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "sys_id",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "c286d61347c12200e0ef563dbb9a71df"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "c286d61347c12200e0ef563dbb9a71df"
+                    }
+                  ]
+                },
+                {
+                  "name": "number",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "CHG0030457"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "CHG0030457"
+                    }
+                  ]
+                },
+                {
+                  "name": "short_description",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Upgrade payments gateway cluster to v5.2"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "Upgrade payments gateway cluster to v5.2"
+                    }
+                  ]
+                },
+                {
+                  "name": "description",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Rolling upgrade of the four gateway nodes behind the load balancer, one node at a time. Rollback: redeploy v5.1 images (15 minutes)."
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "Rolling upgrade of the four gateway nodes behind the load balancer, one node at a time. Rollback: redeploy v5.1 images (15 minutes)."
+                    }
+                  ]
+                },
+                {
+                  "name": "type",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Normal"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "normal"
+                    }
+                  ]
+                },
+                {
+                  "name": "risk",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "High"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "2"
+                    }
+                  ]
+                },
+                {
+                  "name": "impact",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "2 - Medium"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "2"
+                    }
+                  ]
+                },
+                {
+                  "name": "state",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Authorize"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "-4"
+                    }
+                  ]
+                },
+                {
+                  "name": "approval",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Requested"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "requested"
+                    }
+                  ]
+                },
+                {
+                  "name": "category",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Software"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "Software"
+                    }
+                  ]
+                },
+                {
+                  "name": "cmdb_ci",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Payments Gateway"
+                    },
+                    {
+                      "name": "link",
+                      "type": "string",
+                      "example": "https://acme.service-now.example.com/api/now/table/cmdb_ci/a9c0c8d2c6112276018f7705562f9cb0"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "a9c0c8d2c6112276018f7705562f9cb0"
+                    }
+                  ]
+                },
+                {
+                  "name": "assignment_group",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Payments Platform"
+                    },
+                    {
+                      "name": "link",
+                      "type": "string",
+                      "example": "https://acme.service-now.example.com/api/now/table/sys_user_group/287ebd7da9fe198100f92cc8d1d2154e"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "287ebd7da9fe198100f92cc8d1d2154e"
+                    }
+                  ]
+                },
+                {
+                  "name": "requested_by",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Jordan Lee"
+                    },
+                    {
+                      "name": "link",
+                      "type": "string",
+                      "example": "https://acme.service-now.example.com/api/now/table/sys_user/46d44a23a9fe19810012d100cca80666"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "46d44a23a9fe19810012d100cca80666"
+                    }
+                  ]
+                },
+                {
+                  "name": "start_date",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "2026-11-04 22:00:00"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "2026-11-04 22:00:00"
+                    }
+                  ]
+                },
+                {
+                  "name": "end_date",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "2026-11-05 01:00:00"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "2026-11-05 01:00:00"
+                    }
+                  ]
+                },
+                {
+                  "name": "implementation_plan",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "1. Drain node 1. 2. Upgrade. 3. Smoke test. 4. Repeat for nodes 2-4."
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "1. Drain node 1. 2. Upgrade. 3. Smoke test. 4. Repeat for nodes 2-4."
+                    }
+                  ]
+                },
+                {
+                  "name": "backout_plan",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Redeploy v5.1 images from the release registry and re-enable the node."
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "Redeploy v5.1 images from the release registry and re-enable the node."
+                    }
+                  ]
+                },
+                {
+                  "name": "test_plan",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Synthetic checkout transactions after each node; error rate below 0.5%."
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "Synthetic checkout transactions after each node; error rate below 0.5%."
+                    }
+                  ]
+                },
+                {
+                  "name": "conflict_status",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "No Conflict"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "No Conflict"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "result": {
+            "sys_id": {
+              "display_value": "c286d61347c12200e0ef563dbb9a71df",
+              "value": "c286d61347c12200e0ef563dbb9a71df"
+            },
+            "number": {
+              "display_value": "CHG0030457",
+              "value": "CHG0030457"
+            },
+            "short_description": {
+              "display_value": "Upgrade payments gateway cluster to v5.2",
+              "value": "Upgrade payments gateway cluster to v5.2"
+            },
+            "description": {
+              "display_value": "Rolling upgrade of the four gateway nodes behind the load balancer, one node at a time. Rollback: redeploy v5.1 images (15 minutes).",
+              "value": "Rolling upgrade of the four gateway nodes behind the load balancer, one node at a time. Rollback: redeploy v5.1 images (15 minutes)."
+            },
+            "type": {
+              "display_value": "Normal",
+              "value": "normal"
+            },
+            "risk": {
+              "display_value": "High",
+              "value": "2"
+            },
+            "impact": {
+              "display_value": "2 - Medium",
+              "value": "2"
+            },
+            "state": {
+              "display_value": "Authorize",
+              "value": "-4"
+            },
+            "approval": {
+              "display_value": "Requested",
+              "value": "requested"
+            },
+            "category": {
+              "display_value": "Software",
+              "value": "Software"
+            },
+            "cmdb_ci": {
+              "display_value": "Payments Gateway",
+              "link": "https://acme.service-now.example.com/api/now/table/cmdb_ci/a9c0c8d2c6112276018f7705562f9cb0",
+              "value": "a9c0c8d2c6112276018f7705562f9cb0"
+            },
+            "assignment_group": {
+              "display_value": "Payments Platform",
+              "link": "https://acme.service-now.example.com/api/now/table/sys_user_group/287ebd7da9fe198100f92cc8d1d2154e",
+              "value": "287ebd7da9fe198100f92cc8d1d2154e"
+            },
+            "requested_by": {
+              "display_value": "Jordan Lee",
+              "link": "https://acme.service-now.example.com/api/now/table/sys_user/46d44a23a9fe19810012d100cca80666",
+              "value": "46d44a23a9fe19810012d100cca80666"
+            },
+            "start_date": {
+              "display_value": "2026-11-04 22:00:00",
+              "value": "2026-11-04 22:00:00"
+            },
+            "end_date": {
+              "display_value": "2026-11-05 01:00:00",
+              "value": "2026-11-05 01:00:00"
+            },
+            "implementation_plan": {
+              "display_value": "1. Drain node 1. 2. Upgrade. 3. Smoke test. 4. Repeat for nodes 2-4.",
+              "value": "1. Drain node 1. 2. Upgrade. 3. Smoke test. 4. Repeat for nodes 2-4."
+            },
+            "backout_plan": {
+              "display_value": "Redeploy v5.1 images from the release registry and re-enable the node.",
+              "value": "Redeploy v5.1 images from the release registry and re-enable the node."
+            },
+            "test_plan": {
+              "display_value": "Synthetic checkout transactions after each node; error rate below 0.5%.",
+              "value": "Synthetic checkout transactions after each node; error rate below 0.5%."
+            },
+            "conflict_status": {
+              "display_value": "No Conflict",
+              "value": "No Conflict"
+            }
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "f5e02446-65d2-5df8-8f1f-a93b1c11f010",
+        "name": "sys_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Change request sys_id",
+        "default_value": ""
+      },
+      {
+        "id": "48a7d83e-90fc-5f35-9bbc-932e16de9bfb",
+        "name": "sysparm_display_value",
+        "type": "string",
+        "source": "static",
+        "location": "query",
+        "required": false,
+        "description": "Value and display value per field",
+        "default_value": "all"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "7b6e8599-9045-5534-a97f-44c0ac33c763",
+        "name": "number",
+        "path": "result.number.value",
+        "type": "string"
+      },
+      {
+        "id": "073418fd-71c2-5994-bf25-c353ca77688f",
+        "name": "short_description",
+        "path": "result.short_description.value",
+        "type": "string"
+      },
+      {
+        "id": "b76761b9-2ccb-565e-b59e-52762e12ad2d",
+        "name": "description",
+        "path": "result.description.value",
+        "type": "string"
+      },
+      {
+        "id": "e94daadd-50f2-5858-bdba-f430b6e79321",
+        "name": "change_type",
+        "path": "result.type.value",
+        "type": "string"
+      },
+      {
+        "id": "1df50708-2822-547d-acfb-8f9d054f300d",
+        "name": "risk",
+        "path": "result.risk.display_value",
+        "type": "string"
+      },
+      {
+        "id": "ffa41e4a-d51b-5ba9-8e1e-103e111d32c1",
+        "name": "impact",
+        "path": "result.impact.display_value",
+        "type": "string"
+      },
+      {
+        "id": "57b9297c-f617-5dba-b5fa-a0aefbe89cfb",
+        "name": "cmdb_ci",
+        "path": "result.cmdb_ci.display_value",
+        "type": "string"
+      },
+      {
+        "id": "8b758236-7646-5633-b010-d5a46ae97d7e",
+        "name": "assignment_group",
+        "path": "result.assignment_group.display_value",
+        "type": "string"
+      },
+      {
+        "id": "75482624-e630-51d2-b5df-969311a8863c",
+        "name": "requested_by",
+        "path": "result.requested_by.display_value",
+        "type": "string"
+      },
+      {
+        "id": "4e4e3b96-b0f5-5b28-b544-e80b41aeb960",
+        "name": "start_date",
+        "path": "result.start_date.value",
+        "type": "string"
+      },
+      {
+        "id": "e56258ec-1ab1-5bea-a5c3-450dd7253c12",
+        "name": "end_date",
+        "path": "result.end_date.value",
+        "type": "string"
+      },
+      {
+        "id": "726558c4-c3e2-5080-b491-911a52852198",
+        "name": "implementation_plan",
+        "path": "result.implementation_plan.value",
+        "type": "string"
+      },
+      {
+        "id": "e9efde31-b65b-5b1d-8a0c-06129bc2f655",
+        "name": "backout_plan",
+        "path": "result.backout_plan.value",
+        "type": "string"
+      },
+      {
+        "id": "caef28ec-8de3-59e1-b1dd-b7afcc04283e",
+        "name": "test_plan",
+        "path": "result.test_plan.value",
+        "type": "string"
+      },
+      {
+        "id": "4e2062df-cc5c-562f-9ea0-5c28b5ec7655",
+        "name": "conflict_status",
+        "path": "result.conflict_status.display_value",
+        "type": "string"
+      }
+    ]
+  }
+}

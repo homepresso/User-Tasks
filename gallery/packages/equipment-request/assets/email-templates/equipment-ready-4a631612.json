@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "4a631612-49bc-4efc-ab0a-28ac6cbe45da",
+  "asset": {
+    "id": "4a631612-49bc-4efc-ab0a-28ac6cbe45da",
+    "name": "Equipment ready",
+    "description": "Sent to the requester when IT has fulfilled the request and registered the asset.",
+    "subject": "Your {{form.item}} is ready (asset {{task_data.asset_tag}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your equipment is ready</h2>\n  <p>Hi {{form.requester_name}},</p>\n  <p><strong>{{form.item}}</strong> is ready for you on <strong>{{task_data.delivery_date}}</strong>.</p>\n  <ul><li>Asset tag: {{task_data.asset_tag}}</li><li>Serial number: {{task_data.serial_number}}</li></ul>\n  <p>The item is registered to you. Return it to IT if you change role or leave.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your equipment request workflow</p>\n</div>",
+    "text_body": "Your equipment is ready\n  Hi {{form.requester_name}},\n  {{form.item}} is ready for you on {{task_data.delivery_date}}.\n  Asset tag: {{task_data.asset_tag}}Serial number: {{task_data.serial_number}}\n  The item is registered to you. Return it to IT if you change role or leave.\n  Sent by your equipment request workflow",
+    "is_default": false
+  }
+}

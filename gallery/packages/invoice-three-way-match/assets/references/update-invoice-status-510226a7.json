@@ -1,0 +1,108 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "510226a7-2538-4dd9-9504-a222850c7b88",
+  "asset": {
+    "id": "510226a7-2538-4dd9-9504-a222850c7b88",
+    "integration_id": "49ee43f1-c00d-4c35-8b47-a824f179f12d",
+    "name": "Update invoice status",
+    "description": "Set the AP status of an invoice (matched, on hold, rejected) with a reason visible to the AP team.",
+    "tags": [
+      "invoices"
+    ],
+    "request_config": {
+      "method": "PATCH",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"status\":\"{{status}}\",\"reason\":\"{{reason}}\",\"match_variance\":{{variance}}}",
+      "path_template": "/invoices/{{invoice_number}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "invoice_number",
+              "type": "string",
+              "example": "INV-55410"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "matched"
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "example": "2026-10-26T09:12:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "invoice_number": "INV-55410",
+          "status": "matched",
+          "updated_at": "2026-10-26T09:12:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "ac8b54d9-3fe3-4e40-898a-f4ce26a2c903",
+        "name": "invoice_number",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "f487296c-9229-41f8-94bb-d11bde351638",
+        "name": "status",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "matched, on_hold, awaiting_credit_note, rejected",
+        "default_value": ""
+      },
+      {
+        "id": "6a0db723-55aa-4678-84d9-c8102526e177",
+        "name": "reason",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "81c73d8f-7821-44e3-9abb-6d547b09009f",
+        "name": "variance",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "024032c7-9027-4461-8c0f-caa93cc4314c",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "989d9863-0ce0-4b8a-9861-6a77099d63ed",
+        "name": "updated_at",
+        "path": "updated_at",
+        "type": "string"
+      }
+    ]
+  }
+}

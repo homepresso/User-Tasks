@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "6e9ed26b-0f51-5635-a2c2-d358206018d7",
+  "asset": {
+    "id": "6e9ed26b-0f51-5635-a2c2-d358206018d7",
+    "name": "Check-outs: 2 years",
+    "description": "Loan records name the borrower: purge check-out rows two years after they were created. Apply it to the Check-outs table after install.",
+    "policy_mode": "purge_on",
+    "duration_value": 2,
+    "duration_unit": "years",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

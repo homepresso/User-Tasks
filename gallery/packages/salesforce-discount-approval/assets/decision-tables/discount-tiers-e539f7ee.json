@@ -1,0 +1,146 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "e539f7ee-0730-5c94-b49c-6d3d93295259",
+  "asset": {
+    "id": "e539f7ee-0730-5c94-b49c-6d3d93295259",
+    "name": "Discount tiers",
+    "description": "Who approves a discount, by the discount percent and the deal amount. First matching rule wins.",
+    "inputs": [
+      {
+        "key": "discount",
+        "label": "Discount %",
+        "type": "number",
+        "id": "97a07eaf-2986-596e-8265-eacf29e4c2ce"
+      },
+      {
+        "key": "amount",
+        "label": "Amount",
+        "type": "number",
+        "id": "d72151a7-386f-5d0c-bb76-7a6870aeb7d1"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "tier",
+        "label": "Tier",
+        "type": "text",
+        "id": "7db592c4-6b48-5e1e-9bc3-4f8b34962ef0"
+      },
+      {
+        "key": "needs_manager",
+        "label": "Sales manager",
+        "type": "boolean",
+        "id": "e35101a6-6646-5c31-9e43-70e9bea1df67"
+      },
+      {
+        "key": "needs_finance",
+        "label": "Finance",
+        "type": "boolean",
+        "id": "ff2a823c-03c2-5586-9ec1-4e862a717624"
+      },
+      {
+        "key": "decision_hours",
+        "label": "Decision within (hours)",
+        "type": "number",
+        "id": "85f4d994-b6dc-52c0-8d7a-7e18528a22d3"
+      }
+    ],
+    "rules": [
+      {
+        "label": "30% or more",
+        "conditions": [
+          {
+            "inputKey": "discount",
+            "operator": "greater_than_or_equal",
+            "value": "30",
+            "id": "06834e77-ccdf-5de1-84a2-e26a7bdf1ece"
+          }
+        ],
+        "outputs": {
+          "tier": "Tier 3: sales manager + finance (exceptional)",
+          "needs_manager": true,
+          "needs_finance": true,
+          "decision_hours": 48
+        },
+        "id": "6273328e-b39f-5367-8918-e1b13a4de45f",
+        "enabled": true
+      },
+      {
+        "label": "20% or more",
+        "conditions": [
+          {
+            "inputKey": "discount",
+            "operator": "greater_than_or_equal",
+            "value": "20",
+            "id": "6a79daa5-0d63-5210-8988-1dfe13a56f3d"
+          }
+        ],
+        "outputs": {
+          "tier": "Tier 2: sales manager + finance",
+          "needs_manager": true,
+          "needs_finance": true,
+          "decision_hours": 24
+        },
+        "id": "3b178494-0499-536d-b5a1-6db87cc74656",
+        "enabled": true
+      },
+      {
+        "label": "Large deal over 10%",
+        "conditions": [
+          {
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "250000",
+            "id": "27da0aa9-701f-530d-ab15-d48cd0f3f001"
+          },
+          {
+            "inputKey": "discount",
+            "operator": "greater_than",
+            "value": "10",
+            "id": "5a267dfa-ccb7-5133-9318-374e4c285ec7"
+          }
+        ],
+        "outputs": {
+          "tier": "Tier 2: large deal",
+          "needs_manager": true,
+          "needs_finance": true,
+          "decision_hours": 24
+        },
+        "id": "f14b134e-ccab-53ff-b404-6bc7d37ecb2d",
+        "enabled": true
+      },
+      {
+        "label": "Over 10%",
+        "conditions": [
+          {
+            "inputKey": "discount",
+            "operator": "greater_than",
+            "value": "10",
+            "id": "75069d43-29ab-5c27-9e82-aa75a4232670"
+          }
+        ],
+        "outputs": {
+          "tier": "Tier 1: sales manager",
+          "needs_manager": true,
+          "needs_finance": false,
+          "decision_hours": 24
+        },
+        "id": "f9b2e350-5ac3-542a-9e7d-5bab0e833bc6",
+        "enabled": true
+      },
+      {
+        "label": "Up to 10%",
+        "conditions": [],
+        "outputs": {
+          "tier": "Within rep authority",
+          "needs_manager": false,
+          "needs_finance": false,
+          "decision_hours": 0
+        },
+        "id": "5c73b17c-94a2-5fa4-847e-3b01f69efa36",
+        "enabled": true
+      }
+    ]
+  }
+}

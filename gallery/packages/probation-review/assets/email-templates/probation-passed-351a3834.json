@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "351a3834-004b-45ec-a0f2-696e30ebd92c",
+  "asset": {
+    "id": "351a3834-004b-45ec-a0f2-696e30ebd92c",
+    "name": "Probation passed",
+    "description": "Sent to the employee when their probation is confirmed.",
+    "subject": "Congratulations: your probation is complete",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your probation is complete</h2>\n  <p>Hi {{employee_name}},</p>\n  <p>{{manager_name}} has confirmed your probation as {{job_title}}. Your employment continues on your normal terms from {{probation_end_date}}.</p>\n  <p>Thank you for a strong start.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your probation review workflow</p>\n</div>",
+    "text_body": "Your probation is complete\n  Hi {{employee_name}},\n  {{manager_name}} has confirmed your probation as {{job_title}}. Your employment continues on your normal terms from {{probation_end_date}}.\n  Thank you for a strong start.\n  Sent by your probation review workflow",
+    "is_default": false
+  }
+}

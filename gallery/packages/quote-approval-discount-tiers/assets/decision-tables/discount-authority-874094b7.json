@@ -1,0 +1,196 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "874094b7-6574-49be-9800-41b83fd418fa",
+  "asset": {
+    "id": "874094b7-6574-49be-9800-41b83fd418fa",
+    "name": "Discount authority",
+    "description": "Who has to approve a quote discount, by discount %, deal size and term. Approvals run in sequence: sales manager, VP sales, deal desk, CFO. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "c343050a-1335-4bdf-8f21-1a7d7562edcb",
+        "key": "discount_pct",
+        "label": "Discount %",
+        "type": "number"
+      },
+      {
+        "id": "76100991-9ab9-4c62-8285-11d4f5550c64",
+        "key": "deal_value",
+        "label": "Deal value (net, whole term)",
+        "type": "number"
+      },
+      {
+        "id": "2ce7988c-db13-4337-92a9-97bd11a1933e",
+        "key": "term_months",
+        "label": "Term (months)",
+        "type": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "85d71b07-daf6-4b46-8297-7e6dfa747bf9",
+        "key": "approval_path",
+        "label": "Approval path",
+        "type": "text"
+      },
+      {
+        "id": "bd6ff7fd-1ed9-4822-87db-4e1472913e6f",
+        "key": "needs_sales_manager",
+        "label": "Sales manager",
+        "type": "boolean"
+      },
+      {
+        "id": "36c44cb0-c9e5-4096-87b7-9899bbc81684",
+        "key": "needs_vp_sales",
+        "label": "VP sales",
+        "type": "boolean"
+      },
+      {
+        "id": "3dab8731-b63a-48e2-919c-9230a502057b",
+        "key": "needs_deal_desk",
+        "label": "Deal desk",
+        "type": "boolean"
+      },
+      {
+        "id": "bca49d09-7051-48a6-87e7-139b2e418ac5",
+        "key": "needs_cfo",
+        "label": "CFO",
+        "type": "boolean"
+      }
+    ],
+    "rules": [
+      {
+        "id": "82952844-13aa-48b9-a6d9-a3e1d52112ae",
+        "label": "Over 30%: CFO and deal desk",
+        "enabled": true,
+        "outputs": {
+          "approval_path": "Sales manager → VP sales → Deal desk → CFO",
+          "needs_sales_manager": true,
+          "needs_vp_sales": true,
+          "needs_deal_desk": true,
+          "needs_cfo": true
+        },
+        "conditions": [
+          {
+            "id": "0e6c595f-9d9c-4528-bf99-965b6a4d43d5",
+            "inputKey": "discount_pct",
+            "operator": "greater_than",
+            "value": "30"
+          }
+        ]
+      },
+      {
+        "id": "7e2addd7-b73c-4639-9d10-b418f3c4fa25",
+        "label": "Over 20%: VP sales",
+        "enabled": true,
+        "outputs": {
+          "approval_path": "Sales manager → VP sales",
+          "needs_sales_manager": true,
+          "needs_vp_sales": true,
+          "needs_deal_desk": false,
+          "needs_cfo": false
+        },
+        "conditions": [
+          {
+            "id": "8017539e-d523-40fb-9665-27358080c772",
+            "inputKey": "discount_pct",
+            "operator": "greater_than",
+            "value": "20"
+          }
+        ]
+      },
+      {
+        "id": "85d353da-136e-4bdb-9b02-f5e241835d06",
+        "label": "Large deal: VP sales and deal desk",
+        "enabled": true,
+        "outputs": {
+          "approval_path": "Sales manager → VP sales → Deal desk",
+          "needs_sales_manager": true,
+          "needs_vp_sales": true,
+          "needs_deal_desk": true,
+          "needs_cfo": false
+        },
+        "conditions": [
+          {
+            "id": "da24d56c-7777-409d-b237-9faddb0d2cf4",
+            "inputKey": "deal_value",
+            "operator": "greater_than_or_equal",
+            "value": "500000"
+          },
+          {
+            "id": "4912f272-c4c8-4cba-b1ba-6d3f651c1510",
+            "inputKey": "discount_pct",
+            "operator": "greater_than",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "id": "1f613f3d-ff9d-4017-a512-0989ce02f425",
+        "label": "Over 10%: sales manager",
+        "enabled": true,
+        "outputs": {
+          "approval_path": "Sales manager",
+          "needs_sales_manager": true,
+          "needs_vp_sales": false,
+          "needs_deal_desk": false,
+          "needs_cfo": false
+        },
+        "conditions": [
+          {
+            "id": "35e48af6-be3b-42be-9782-122817ea92c9",
+            "inputKey": "discount_pct",
+            "operator": "greater_than",
+            "value": "10"
+          }
+        ]
+      },
+      {
+        "id": "2fe441d9-0ede-4aba-bf34-173e1412b2c4",
+        "label": "Short term with a discount",
+        "enabled": true,
+        "outputs": {
+          "approval_path": "Sales manager",
+          "needs_sales_manager": true,
+          "needs_vp_sales": false,
+          "needs_deal_desk": false,
+          "needs_cfo": false
+        },
+        "conditions": [
+          {
+            "id": "3f1ecfc1-e9b3-431f-8823-5429ed7bd545",
+            "inputKey": "term_months",
+            "operator": "less_than",
+            "value": "12"
+          },
+          {
+            "id": "979519c9-e58f-4416-a860-ec5abb735ed0",
+            "inputKey": "discount_pct",
+            "operator": "greater_than",
+            "value": "5"
+          }
+        ]
+      },
+      {
+        "id": "2268658b-20c6-4964-82a8-ab4318c59851",
+        "label": "Up to 10%: auto-approve",
+        "enabled": true,
+        "outputs": {
+          "approval_path": "Auto-approved",
+          "needs_sales_manager": false,
+          "needs_vp_sales": false,
+          "needs_deal_desk": false,
+          "needs_cfo": false
+        },
+        "conditions": [
+          {
+            "id": "ebc2c384-b483-46e1-8480-6edff50d3c21",
+            "inputKey": "discount_pct",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "4ac5552d-8051-5afc-a59e-e14db98c3496",
+  "asset": {
+    "id": "4ac5552d-8051-5afc-a59e-e14db98c3496",
+    "name": "Room bookings rows",
+    "rows": [
+      {
+        "id": "6b4256eb-cb9f-5c77-9bd0-f3ec2ff6eb1c",
+        "data": {
+          "booking_ref": "RB-20261026-3HQ7",
+          "room": "Rimu",
+          "meeting_title": "Sprint planning",
+          "booking_date": "2026-10-27",
+          "start_time": "09:30",
+          "duration_hours": 1.5,
+          "attendees": 6,
+          "organiser_email": "mia.wong@example.com",
+          "catering": false,
+          "approval_reason": "Standard booking",
+          "status": "confirmed"
+        }
+      },
+      {
+        "id": "110a0a3c-981f-532f-9407-ffcdca67ed77",
+        "data": {
+          "booking_ref": "RB-20261027-9KD2",
+          "room": "Training Room",
+          "meeting_title": "New starter induction",
+          "booking_date": "2026-11-03",
+          "start_time": "09:00",
+          "duration_hours": 6,
+          "attendees": 18,
+          "organiser_email": "chloe.martin@example.com",
+          "catering": true,
+          "approval_reason": "Large room",
+          "room_setup": "Classroom",
+          "status": "confirmed",
+          "facilities_note": "Morning tea at 10:30, lunch at 12:30"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,238 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "7cbb7801-83b3-463f-b245-a9e04f6c9b21",
+  "asset": {
+    "id": "7cbb7801-83b3-463f-b245-a9e04f6c9b21",
+    "integration_id": "b4e9852d-49cc-449e-bbd0-df28a983b899",
+    "name": "Company checks",
+    "description": "Screen a company: sanctions and watch lists, the company registry and adverse media, returning a combined risk score and flags.",
+    "tags": [
+      "screening"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"legal_name\":\"{{legal_name}}\",\"registration_number\":\"{{registration_number}}\",\"country\":\"{{country}}\",\"website\":\"{{website}}\",\"checks\":[\"sanctions\",\"registry\",\"adverse_media\"]}",
+      "path_template": "/kyc/company-checks",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "check_id",
+              "type": "string",
+              "example": "KYC-30418"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "complete"
+            },
+            {
+              "name": "risk_score",
+              "type": "integer",
+              "example": 28
+            },
+            {
+              "name": "sanctions",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "hit",
+                  "type": "boolean",
+                  "example": false
+                },
+                {
+                  "name": "lists_checked",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "example": "UN"
+                  }
+                },
+                {
+                  "name": "matches",
+                  "type": "array"
+                }
+              ]
+            },
+            {
+              "name": "registry",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "status",
+                  "type": "string",
+                  "example": "active"
+                },
+                {
+                  "name": "registered_name",
+                  "type": "string",
+                  "example": "Harbourline Logistics Limited"
+                },
+                {
+                  "name": "incorporated",
+                  "type": "string",
+                  "example": "2014-03-11"
+                },
+                {
+                  "name": "directors",
+                  "type": "integer",
+                  "example": 3
+                }
+              ]
+            },
+            {
+              "name": "adverse_media",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "count",
+                  "type": "integer",
+                  "example": 0
+                },
+                {
+                  "name": "articles",
+                  "type": "array"
+                }
+              ]
+            },
+            {
+              "name": "flags",
+              "type": "array"
+            },
+            {
+              "name": "report_url",
+              "type": "string",
+              "example": "https://kyc.example.com/reports/KYC-30418"
+            }
+          ]
+        },
+        "sample": {
+          "check_id": "KYC-30418",
+          "status": "complete",
+          "risk_score": 28,
+          "sanctions": {
+            "hit": false,
+            "lists_checked": [
+              "UN",
+              "EU",
+              "OFAC"
+            ],
+            "matches": []
+          },
+          "registry": {
+            "status": "active",
+            "registered_name": "Harbourline Logistics Limited",
+            "incorporated": "2014-03-11",
+            "directors": 3
+          },
+          "adverse_media": {
+            "count": 0,
+            "articles": []
+          },
+          "flags": [],
+          "report_url": "https://kyc.example.com/reports/KYC-30418"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "77393e1e-e81b-46e2-a174-4771e8a19b3c",
+        "name": "legal_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "52cd50ae-6a26-4ccb-ba8e-e1a1ac7b0cdb",
+        "name": "registration_number",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "5238ad9f-0ce3-4949-9edc-5bb538e9c7eb",
+        "name": "country",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "90a3e648-a756-49ff-8864-b3c04702d4bb",
+        "name": "website",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "e66c2c11-2d4d-4453-9459-33a6c8e8ada5",
+        "name": "check_id",
+        "path": "check_id",
+        "type": "string"
+      },
+      {
+        "id": "067140b6-0097-4b7a-ac87-62df4aa64088",
+        "name": "risk_score",
+        "path": "risk_score",
+        "type": "number"
+      },
+      {
+        "id": "e4b3e2e2-7795-443e-a820-19745a5e79bc",
+        "name": "sanctions_hit",
+        "path": "sanctions.hit",
+        "type": "boolean"
+      },
+      {
+        "id": "4118ee63-4339-4484-8233-2746f16705b3",
+        "name": "registry_status",
+        "path": "registry.status",
+        "type": "string"
+      },
+      {
+        "id": "de636283-16a6-4682-9b84-f05c3d2d0bcf",
+        "name": "registered_name",
+        "path": "registry.registered_name",
+        "type": "string"
+      },
+      {
+        "id": "b0526250-ccdf-46fa-a966-9cff5557a94f",
+        "name": "adverse_media_count",
+        "path": "adverse_media.count",
+        "type": "number"
+      },
+      {
+        "id": "614a08b5-5adb-4bfe-8d5f-68b9b1e124ac",
+        "name": "flags",
+        "path": "flags",
+        "type": "array"
+      },
+      {
+        "id": "7241f009-85b3-45bb-8a5d-956934e6e14f",
+        "name": "report_url",
+        "path": "report_url",
+        "type": "string"
+      }
+    ]
+  }
+}

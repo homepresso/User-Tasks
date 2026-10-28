@@ -1,0 +1,1337 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "3ee64fae-33cf-40b7-9a88-b1b804464ba2",
+  "asset": {
+    "id": "3ee64fae-33cf-40b7-9a88-b1b804464ba2",
+    "name": "Change request",
+    "description": "A requester submits an RFC; the Change risk rules decide between pre-approval, CAB and emergency CAB, then implementation and a post-implementation review close the change in the ITSM.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "RFC submitted",
+        "position": {
+          "x": 660,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "requester_name",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "requester_email",
+                      "span": 2
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "change_title",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "system",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "change_type",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "customer_impact",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "rollback_tested",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "window_start",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "window_end",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "out_of_hours",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "description",
+                      "span": 3
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "backout_plan",
+                      "span": 3
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "cab_user_id",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "implementer_user_id",
+                      "span": 2
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#EA580C",
+                    "background": "#FFFFFF",
+                    "text": "#1B1916",
+                    "page": "#FDF1E9"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "header": {
+                  "enabled": true,
+                  "title": "Raise a change request",
+                  "subtitle": "Normal changes go to the next CAB; emergencies go to the emergency CAB straight away."
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 660,
+          "y": 220
+        },
+        "config": {
+          "title": "Change: {{change_title}} · {{system}}"
+        }
+      },
+      {
+        "id": "risk",
+        "type": "decision_table",
+        "label": "Change risk",
+        "position": {
+          "x": 660,
+          "y": 380
+        },
+        "config": {
+          "decision_table_id": "c231c1e9-373c-4074-82c1-a48f183761b9",
+          "decision_table_name": "Change risk",
+          "input_mappings": {
+            "change_type": "{{change_type}}",
+            "customer_impact": "{{customer_impact}}",
+            "rollback_tested": "{{rollback_tested}}",
+            "out_of_hours": "{{out_of_hours}}"
+          }
+        }
+      },
+      {
+        "id": "create",
+        "type": "call_reference",
+        "label": "Create change request",
+        "position": {
+          "x": 660,
+          "y": 540
+        },
+        "config": {
+          "reference_id": "ac6e55ee-9abd-4c73-9f81-827509a53450",
+          "reference_name": "Create change request",
+          "reference_method": "POST",
+          "input_mappings": {
+            "short_description": "{{change_title}}",
+            "description": "{{description}}",
+            "system": "{{system}}",
+            "type": "{{change_type}}",
+            "risk": "{{risk_level}}",
+            "planned_start": "{{window_start}}",
+            "planned_end": "{{window_end}}",
+            "backout_plan": "{{backout_plan}}",
+            "requested_by": "{{requester_email}}"
+          },
+          "output_mappings": {
+            "id": {
+              "enabled": true,
+              "variableName": "change_id"
+            },
+            "number": {
+              "enabled": true,
+              "variableName": "change_number"
+            },
+            "url": {
+              "enabled": true,
+              "variableName": "change_url"
+            }
+          }
+        }
+      },
+      {
+        "id": "retitle",
+        "type": "set_title",
+        "label": "Title with number",
+        "position": {
+          "x": 660,
+          "y": 700
+        },
+        "config": {
+          "title": "{{change_number}} · {{change_title}} · {{risk_level}} risk"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Complete by window end",
+        "position": {
+          "x": 660,
+          "y": 860
+        },
+        "config": {
+          "sla_label": "Change window",
+          "mode": "exact",
+          "due_at": "{{window_end}}",
+          "warning_amount": 2,
+          "warning_unit": "hours"
+        }
+      },
+      {
+        "id": "path",
+        "type": "switch_case",
+        "label": "Approval path",
+        "position": {
+          "x": 660,
+          "y": 1020
+        },
+        "config": {
+          "field": "{{approval_path}}",
+          "cases": [
+            {
+              "value": "Auto",
+              "label": "Auto"
+            },
+            {
+              "value": "CAB",
+              "label": "CAB"
+            },
+            {
+              "value": "ECAB",
+              "label": "ECAB"
+            }
+          ],
+          "has_default": true
+        }
+      },
+      {
+        "id": "auto",
+        "type": "set_variable",
+        "label": "Pre-approved",
+        "position": {
+          "x": 660,
+          "y": 1200
+        },
+        "config": {
+          "name": "approved_by",
+          "expression": "Standard change model (pre-approved)"
+        }
+      },
+      {
+        "id": "cab",
+        "type": "user_task",
+        "label": "CAB review",
+        "position": {
+          "x": 980,
+          "y": 1200
+        },
+        "config": {
+          "task_title": "CAB: {{change_number}} {{change_title}} ({{risk_level}} risk)",
+          "task_description": "<p><strong>{{change_number}}</strong> · Change Advisory Board review</p><p><strong>{{change_title}}</strong> on <strong>{{system}}</strong> ({{change_type}} change), requested by {{requester_name}}.</p><p>{{description}}</p><ul><li>Window: {{window_start}} to {{window_end}}</li><li>Customer impact: {{customer_impact}} · rollback tested: {{rollback_tested}} · out of hours: {{out_of_hours}}</li><li>Risk <strong>{{risk_level}}</strong> ({{rule_label}}){{=IF(freeze_check, \" · check the freeze calendar\", \"\")}}</li></ul><p>Backout plan: {{backout_plan}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Approve with conditions",
+            "Reject",
+            "Defer"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "2acbef71-2a5c-40f6-add5-19aba98ca99f",
+          "assignee_variable": "{{cab_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "conditions",
+              "label": "Conditions (if approving with conditions)",
+              "type": "text"
+            },
+            {
+              "key": "freeze_checked",
+              "label": "Change calendar and freeze periods checked",
+              "type": "boolean"
+            },
+            {
+              "key": "cab_notes",
+              "label": "CAB notes",
+              "type": "text",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "freeze_checked",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "conditions",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "cab_notes",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "approve_with_conditions",
+              "label": "Approve with conditions",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Approve with conditions"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            },
+            {
+              "id": "defer",
+              "label": "Defer",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Defer"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "CAB: {{change_title}}",
+            "align": "left",
+            "subtitle": "{{change_number}} · {{system}} · {{risk_level}} risk"
+          }
+        }
+      },
+      {
+        "id": "ecab",
+        "type": "user_task",
+        "label": "Emergency CAB review",
+        "position": {
+          "x": 1860,
+          "y": 1200
+        },
+        "config": {
+          "task_title": "ECAB: {{change_number}} {{change_title}} (emergency)",
+          "task_description": "<p><strong>{{change_number}}</strong> · Emergency CAB: decide within 2 hours</p><p><strong>{{change_title}}</strong> on <strong>{{system}}</strong> ({{change_type}} change), requested by {{requester_name}}.</p><p>{{description}}</p><ul><li>Window: {{window_start}} to {{window_end}}</li><li>Customer impact: {{customer_impact}} · rollback tested: {{rollback_tested}} · out of hours: {{out_of_hours}}</li><li>Risk <strong>{{risk_level}}</strong> ({{rule_label}}){{=IF(freeze_check, \" · check the freeze calendar\", \"\")}}</li></ul><p>Backout plan: {{backout_plan}}</p>",
+          "task_priority": "critical",
+          "outcomes": [
+            "Approve",
+            "Approve with conditions",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "5cbba155-13cf-4e40-a435-8a1bcd58a535",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "hours",
+          "escalation_enabled": true,
+          "escalation_type": "individual",
+          "escalation_user_id": "2acbef71-2a5c-40f6-add5-19aba98ca99f",
+          "escalate_after_minutes": 60,
+          "fields": [
+            {
+              "key": "conditions",
+              "label": "Conditions (if approving with conditions)",
+              "type": "text"
+            },
+            {
+              "key": "freeze_checked",
+              "label": "Change calendar and freeze periods checked",
+              "type": "boolean"
+            },
+            {
+              "key": "cab_notes",
+              "label": "CAB notes",
+              "type": "text",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "freeze_checked",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "conditions",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "cab_notes",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "approve_with_conditions",
+              "label": "Approve with conditions",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Approve with conditions"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Emergency CAB: {{change_title}}",
+            "align": "left",
+            "subtitle": "{{change_number}} · {{system}} · {{risk_level}} risk"
+          }
+        }
+      },
+      {
+        "id": "by_cab",
+        "type": "set_variable",
+        "label": "Approved by CAB",
+        "position": {
+          "x": 660,
+          "y": 1380
+        },
+        "config": {
+          "name": "approved_by",
+          "expression": "CAB"
+        }
+      },
+      {
+        "id": "by_ecab",
+        "type": "set_variable",
+        "label": "Approved by ECAB",
+        "position": {
+          "x": 1620,
+          "y": 1380
+        },
+        "config": {
+          "name": "approved_by",
+          "expression": "Emergency CAB"
+        }
+      },
+      {
+        "id": "conditions",
+        "type": "set_variable",
+        "label": "Approval conditions",
+        "position": {
+          "x": 660,
+          "y": 1540
+        },
+        "config": {
+          "name": "approval_conditions",
+          "expression": "{{=COALESCE(task_data.conditions, \"None\")}}"
+        }
+      },
+      {
+        "id": "schedule",
+        "type": "call_reference",
+        "label": "Mark scheduled",
+        "position": {
+          "x": 660,
+          "y": 1700
+        },
+        "config": {
+          "reference_id": "3243150c-01d5-4e19-97e9-3f94c6e582a8",
+          "reference_name": "Update change request",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "change_id": "{{change_id}}",
+            "state": "scheduled",
+            "work_note": "Approved by {{approved_by}}. Conditions: {{approval_conditions}}. {{task_data.cab_notes}}"
+          }
+        }
+      },
+      {
+        "id": "mail_ok",
+        "type": "send_email",
+        "label": "Email requester: approved",
+        "position": {
+          "x": 660,
+          "y": 1860
+        },
+        "config": {
+          "to": "{{requester_email}}",
+          "email_template_id": "07e1c86f-6529-473e-bd84-777d6d2f4922"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "implement",
+        "type": "user_task",
+        "label": "Implement change",
+        "position": {
+          "x": 660,
+          "y": 2020
+        },
+        "config": {
+          "task_title": "Implement {{change_number}}: {{change_title}}",
+          "task_description": "<p>Implement <strong>{{change_title}}</strong> on {{system}} in the window {{window_start}} to {{window_end}}.</p><p>{{description}}</p><p>Conditions from approval: <strong>{{approval_conditions}}</strong></p><p>Backout plan: {{backout_plan}}</p><p><a href=\"{{change_url}}\">{{change_number}} in the ITSM</a></p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Implemented",
+            "Rolled back"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "0b04334b-d4ca-4a75-9c46-7401be33ac6b",
+          "assignee_variable": "{{implementer_user_id}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{window_end}}",
+          "fields": [
+            {
+              "key": "actual_start",
+              "label": "Actual start (date and time)",
+              "type": "text",
+              "required": true,
+              "default": "{{window_start}}"
+            },
+            {
+              "key": "actual_end",
+              "label": "Actual end (date and time)",
+              "type": "text",
+              "required": true,
+              "default": "{{window_end}}"
+            },
+            {
+              "key": "implementation_notes",
+              "label": "Implementation notes",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "actual_start",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "actual_end",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "implementation_notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "implemented",
+              "label": "Implemented",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Implemented"
+            },
+            {
+              "id": "rolled_back",
+              "label": "Rolled back",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Rolled back"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Implement: {{change_title}}",
+            "align": "left",
+            "subtitle": "{{change_number}} · window {{window_start}} to {{window_end}}"
+          }
+        }
+      },
+      {
+        "id": "res_ok",
+        "type": "set_variable",
+        "label": "Result: implemented",
+        "position": {
+          "x": 500,
+          "y": 2200
+        },
+        "config": {
+          "name": "implementation_result",
+          "expression": "Implemented"
+        }
+      },
+      {
+        "id": "res_back",
+        "type": "set_variable",
+        "label": "Result: rolled back",
+        "position": {
+          "x": 820,
+          "y": 2200
+        },
+        "config": {
+          "name": "implementation_result",
+          "expression": "Rolled back"
+        }
+      },
+      {
+        "id": "mark_impl",
+        "type": "call_reference",
+        "label": "Record implementation",
+        "position": {
+          "x": 660,
+          "y": 2360
+        },
+        "config": {
+          "reference_id": "3243150c-01d5-4e19-97e9-3f94c6e582a8",
+          "reference_name": "Update change request",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "change_id": "{{change_id}}",
+            "state": "review",
+            "work_note": "{{implementation_result}}: {{task_data.implementation_notes}}",
+            "actual_start": "{{task_data.actual_start}}",
+            "actual_end": "{{task_data.actual_end}}"
+          }
+        }
+      },
+      {
+        "id": "pir",
+        "type": "user_task",
+        "label": "Post-implementation review",
+        "position": {
+          "x": 660,
+          "y": 2520
+        },
+        "config": {
+          "task_title": "Review {{change_number}}: {{change_title}} ({{implementation_result}})",
+          "task_description": "<p><strong>{{change_title}}</strong> on {{system}} was <strong>{{implementation_result}}</strong> ({{task_data.actual_start}} to {{task_data.actual_end}}).</p><p>Implementer notes: {{task_data.implementation_notes}}</p><p>Confirm whether the change met its objectives and record any incidents it caused.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Successful",
+            "Successful with issues",
+            "Unsuccessful"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "5bb11833-6c02-4ca0-bd9e-d881422f7826",
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "objectives_met",
+              "label": "Objectives met",
+              "type": "boolean"
+            },
+            {
+              "key": "incidents_caused",
+              "label": "Incidents caused (numbers)",
+              "type": "text"
+            },
+            {
+              "key": "lessons_learned",
+              "label": "Lessons learned",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "objectives_met",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "incidents_caused",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "lessons_learned",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "successful",
+              "label": "Successful",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Successful"
+            },
+            {
+              "id": "successful_with_issues",
+              "label": "Successful with issues",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Successful with issues"
+            },
+            {
+              "id": "unsuccessful",
+              "label": "Unsuccessful",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Unsuccessful"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Post-implementation review: {{change_title}}",
+            "align": "left",
+            "subtitle": "{{change_number}} · {{implementation_result}}"
+          }
+        }
+      },
+      {
+        "id": "code_ok",
+        "type": "set_variable",
+        "label": "Close: successful",
+        "position": {
+          "x": 340,
+          "y": 2700
+        },
+        "config": {
+          "name": "close_code",
+          "expression": "successful"
+        }
+      },
+      {
+        "id": "code_issues",
+        "type": "set_variable",
+        "label": "Close: with issues",
+        "position": {
+          "x": 660,
+          "y": 2700
+        },
+        "config": {
+          "name": "close_code",
+          "expression": "successful_with_issues"
+        }
+      },
+      {
+        "id": "code_fail",
+        "type": "set_variable",
+        "label": "Close: unsuccessful",
+        "position": {
+          "x": 980,
+          "y": 2700
+        },
+        "config": {
+          "name": "close_code",
+          "expression": "unsuccessful"
+        }
+      },
+      {
+        "id": "close",
+        "type": "call_reference",
+        "label": "Close change",
+        "position": {
+          "x": 660,
+          "y": 2860
+        },
+        "config": {
+          "reference_id": "3243150c-01d5-4e19-97e9-3f94c6e582a8",
+          "reference_name": "Update change request",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "change_id": "{{change_id}}",
+            "state": "closed",
+            "work_note": "PIR: objectives met {{task_data.objectives_met}}. Incidents: {{task_data.incidents_caused}}. Lessons: {{task_data.lessons_learned}}",
+            "close_code": "{{close_code}}"
+          }
+        }
+      },
+      {
+        "id": "mail_closed",
+        "type": "send_email",
+        "label": "Email requester: closed",
+        "position": {
+          "x": 660,
+          "y": 3020
+        },
+        "config": {
+          "to": "{{requester_email}}",
+          "email_template_id": "4624d72c-d06e-46ba-b1da-162f17eea235"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Closed",
+        "position": {
+          "x": 660,
+          "y": 3180
+        },
+        "config": {
+          "reason": "{{change_number}} closed: {{close_code}}"
+        }
+      },
+      {
+        "id": "reject",
+        "type": "call_reference",
+        "label": "Mark rejected",
+        "position": {
+          "x": 980,
+          "y": 1380
+        },
+        "config": {
+          "reference_id": "3243150c-01d5-4e19-97e9-3f94c6e582a8",
+          "reference_name": "Update change request",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "change_id": "{{change_id}}",
+            "state": "rejected",
+            "work_note": "Rejected: {{task_data.cab_notes}}"
+          }
+        }
+      },
+      {
+        "id": "mail_no",
+        "type": "send_email",
+        "label": "Email requester: rejected",
+        "position": {
+          "x": 980,
+          "y": 1540
+        },
+        "config": {
+          "to": "{{requester_email}}",
+          "email_template_id": "75fecf7f-3643-4b9d-b3d8-dfde8cef3de2"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "rejected",
+        "type": "end_workflow",
+        "label": "Rejected",
+        "position": {
+          "x": 980,
+          "y": 1700
+        },
+        "config": {
+          "reason": "{{change_number}} rejected by {{approval_path}}"
+        }
+      },
+      {
+        "id": "defer",
+        "type": "call_reference",
+        "label": "Mark deferred",
+        "position": {
+          "x": 1300,
+          "y": 1380
+        },
+        "config": {
+          "reference_id": "3243150c-01d5-4e19-97e9-3f94c6e582a8",
+          "reference_name": "Update change request",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "change_id": "{{change_id}}",
+            "state": "deferred",
+            "work_note": "Deferred to the next CAB: {{task_data.cab_notes}}"
+          }
+        }
+      },
+      {
+        "id": "wait_cab",
+        "type": "delay",
+        "label": "Wait for next CAB",
+        "position": {
+          "x": 1300,
+          "y": 1540
+        },
+        "config": {
+          "duration": 7,
+          "unit": "days"
+        }
+      },
+      {
+        "id": "back_cab",
+        "type": "goto_activity",
+        "label": "Back to CAB",
+        "position": {
+          "x": 1300,
+          "y": 1700
+        },
+        "config": {
+          "target_node_id": "cab",
+          "target_node_label": "CAB review"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-risk",
+        "source": "title",
+        "target": "risk"
+      },
+      {
+        "id": "e-risk-create",
+        "source": "risk",
+        "target": "create"
+      },
+      {
+        "id": "e-create-retitle",
+        "source": "create",
+        "target": "retitle"
+      },
+      {
+        "id": "e-retitle-sla",
+        "source": "retitle",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-path",
+        "source": "sla",
+        "target": "path"
+      },
+      {
+        "id": "e-path-auto-auto",
+        "source": "path",
+        "target": "auto",
+        "label": "Auto"
+      },
+      {
+        "id": "e-path-cab-cab",
+        "source": "path",
+        "target": "cab",
+        "label": "CAB"
+      },
+      {
+        "id": "e-path-ecab-ecab",
+        "source": "path",
+        "target": "ecab",
+        "label": "ECAB"
+      },
+      {
+        "id": "e-path-cab-default",
+        "source": "path",
+        "target": "cab",
+        "label": "Default"
+      },
+      {
+        "id": "e-cab-by_cab-approve",
+        "source": "cab",
+        "target": "by_cab",
+        "label": "Approve"
+      },
+      {
+        "id": "e-cab-by_cab-approve-with-conditions",
+        "source": "cab",
+        "target": "by_cab",
+        "label": "Approve with conditions"
+      },
+      {
+        "id": "e-cab-reject-reject",
+        "source": "cab",
+        "target": "reject",
+        "label": "Reject"
+      },
+      {
+        "id": "e-cab-defer-defer",
+        "source": "cab",
+        "target": "defer",
+        "label": "Defer"
+      },
+      {
+        "id": "e-ecab-by_ecab-approve",
+        "source": "ecab",
+        "target": "by_ecab",
+        "label": "Approve"
+      },
+      {
+        "id": "e-ecab-by_ecab-approve-with-conditions",
+        "source": "ecab",
+        "target": "by_ecab",
+        "label": "Approve with conditions"
+      },
+      {
+        "id": "e-ecab-reject-reject",
+        "source": "ecab",
+        "target": "reject",
+        "label": "Reject"
+      },
+      {
+        "id": "e-auto-conditions",
+        "source": "auto",
+        "target": "conditions"
+      },
+      {
+        "id": "e-by_cab-conditions",
+        "source": "by_cab",
+        "target": "conditions"
+      },
+      {
+        "id": "e-by_ecab-conditions",
+        "source": "by_ecab",
+        "target": "conditions"
+      },
+      {
+        "id": "e-conditions-schedule",
+        "source": "conditions",
+        "target": "schedule"
+      },
+      {
+        "id": "e-schedule-mail_ok",
+        "source": "schedule",
+        "target": "mail_ok"
+      },
+      {
+        "id": "e-mail_ok-implement",
+        "source": "mail_ok",
+        "target": "implement"
+      },
+      {
+        "id": "e-implement-res_ok-implemented",
+        "source": "implement",
+        "target": "res_ok",
+        "label": "Implemented"
+      },
+      {
+        "id": "e-implement-res_back-rolled-back",
+        "source": "implement",
+        "target": "res_back",
+        "label": "Rolled back"
+      },
+      {
+        "id": "e-res_ok-mark_impl",
+        "source": "res_ok",
+        "target": "mark_impl"
+      },
+      {
+        "id": "e-res_back-mark_impl",
+        "source": "res_back",
+        "target": "mark_impl"
+      },
+      {
+        "id": "e-mark_impl-pir",
+        "source": "mark_impl",
+        "target": "pir"
+      },
+      {
+        "id": "e-pir-code_ok-successful",
+        "source": "pir",
+        "target": "code_ok",
+        "label": "Successful"
+      },
+      {
+        "id": "e-pir-code_issues-successful-with-issues",
+        "source": "pir",
+        "target": "code_issues",
+        "label": "Successful with issues"
+      },
+      {
+        "id": "e-pir-code_fail-unsuccessful",
+        "source": "pir",
+        "target": "code_fail",
+        "label": "Unsuccessful"
+      },
+      {
+        "id": "e-code_ok-close",
+        "source": "code_ok",
+        "target": "close"
+      },
+      {
+        "id": "e-code_issues-close",
+        "source": "code_issues",
+        "target": "close"
+      },
+      {
+        "id": "e-code_fail-close",
+        "source": "code_fail",
+        "target": "close"
+      },
+      {
+        "id": "e-close-mail_closed",
+        "source": "close",
+        "target": "mail_closed"
+      },
+      {
+        "id": "e-mail_closed-done",
+        "source": "mail_closed",
+        "target": "done"
+      },
+      {
+        "id": "e-reject-mail_no",
+        "source": "reject",
+        "target": "mail_no"
+      },
+      {
+        "id": "e-mail_no-rejected",
+        "source": "mail_no",
+        "target": "rejected"
+      },
+      {
+        "id": "e-defer-wait_cab",
+        "source": "defer",
+        "target": "wait_cab"
+      },
+      {
+        "id": "e-wait_cab-back_cab",
+        "source": "wait_cab",
+        "target": "back_cab"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-requester_name",
+        "name": "requester_name",
+        "type": "string",
+        "description": "Your name",
+        "defaultValue": "",
+        "required": true,
+        "label": "Requested by"
+      },
+      {
+        "id": "v-requester_email",
+        "name": "requester_email",
+        "type": "string",
+        "description": "Where to send approval and closure updates",
+        "defaultValue": "",
+        "required": true,
+        "label": "Your email",
+        "format": "email"
+      },
+      {
+        "id": "v-change_title",
+        "name": "change_title",
+        "type": "string",
+        "description": "Short title, e.g. \"Upgrade order database to v16\"",
+        "defaultValue": "",
+        "required": true,
+        "label": "Change title"
+      },
+      {
+        "id": "v-system",
+        "name": "system",
+        "type": "string",
+        "description": "System or configuration item being changed",
+        "defaultValue": "",
+        "required": true,
+        "label": "System"
+      },
+      {
+        "id": "v-change_type",
+        "name": "change_type",
+        "type": "string",
+        "description": "Standard (pre-approved model), normal (CAB) or emergency (ECAB)",
+        "defaultValue": "normal",
+        "required": true,
+        "label": "Change type",
+        "options": [
+          "standard",
+          "normal",
+          "emergency"
+        ]
+      },
+      {
+        "id": "v-description",
+        "name": "description",
+        "type": "string",
+        "description": "What will be changed, why, and how it will be tested",
+        "defaultValue": "",
+        "required": true,
+        "label": "Description"
+      },
+      {
+        "id": "v-customer_impact",
+        "name": "customer_impact",
+        "type": "string",
+        "description": "Expected impact on customers during the window",
+        "defaultValue": "none",
+        "required": true,
+        "label": "Customer impact",
+        "options": [
+          "none",
+          "minor",
+          "major",
+          "outage"
+        ]
+      },
+      {
+        "id": "v-rollback_tested",
+        "name": "rollback_tested",
+        "type": "boolean",
+        "description": "Has the rollback been rehearsed in a test environment?",
+        "defaultValue": "false",
+        "label": "Rollback tested"
+      },
+      {
+        "id": "v-out_of_hours",
+        "name": "out_of_hours",
+        "type": "boolean",
+        "description": "Will the change run outside business hours?",
+        "defaultValue": "false",
+        "label": "Out of hours"
+      },
+      {
+        "id": "v-window_start",
+        "name": "window_start",
+        "type": "string",
+        "description": "Planned start of the change window",
+        "defaultValue": "",
+        "required": true,
+        "label": "Window start",
+        "format": "datetime"
+      },
+      {
+        "id": "v-window_end",
+        "name": "window_end",
+        "type": "string",
+        "description": "Planned end of the change window",
+        "defaultValue": "",
+        "required": true,
+        "label": "Window end",
+        "format": "datetime"
+      },
+      {
+        "id": "v-backout_plan",
+        "name": "backout_plan",
+        "type": "string",
+        "description": "How the change is reversed if it fails, and how long that takes",
+        "defaultValue": "",
+        "required": true,
+        "label": "Backout plan"
+      },
+      {
+        "id": "v-cab_user_id",
+        "name": "cab_user_id",
+        "type": "string",
+        "description": "Optional: user id of the CAB chair (overrides the default chosen on install)",
+        "defaultValue": "",
+        "label": "CAB chair (user id)"
+      },
+      {
+        "id": "v-implementer_user_id",
+        "name": "implementer_user_id",
+        "type": "string",
+        "description": "Optional: user id of the engineer implementing the change",
+        "defaultValue": "",
+        "label": "Implementer (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

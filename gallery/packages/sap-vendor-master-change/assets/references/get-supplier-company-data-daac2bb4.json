@@ -1,0 +1,159 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "daac2bb4-e92a-5b11-86f5-6be8f8d2457d",
+  "asset": {
+    "id": "daac2bb4-e92a-5b11-86f5-6be8f8d2457d",
+    "integration_id": "6f1f1c79-952c-5684-8f42-968ee0adef0e",
+    "name": "Get supplier company data",
+    "description": "API_BUSINESS_PARTNER A_SupplierCompany: payment terms, payment methods, reconciliation account, house bank and payment block for the company code.",
+    "tags": [
+      "sap",
+      "supplier"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/API_BUSINESS_PARTNER/A_SupplierCompany(Supplier='{{supplier}}',CompanyCode='{{company_code}}')",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "d",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "__metadata",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "type",
+                      "type": "string",
+                      "example": "API_BUSINESS_PARTNER.A_SupplierCompanyType"
+                    }
+                  ]
+                },
+                {
+                  "name": "Supplier",
+                  "type": "string",
+                  "example": "17300001"
+                },
+                {
+                  "name": "CompanyCode",
+                  "type": "string",
+                  "example": "1010"
+                },
+                {
+                  "name": "PaymentTerms",
+                  "type": "string",
+                  "example": "0004"
+                },
+                {
+                  "name": "PaymentMethodsList",
+                  "type": "string",
+                  "example": "T"
+                },
+                {
+                  "name": "ReconciliationAccount",
+                  "type": "string",
+                  "example": "21100000"
+                },
+                {
+                  "name": "AccountingClerk",
+                  "type": "string",
+                  "example": "AP"
+                },
+                {
+                  "name": "PaymentBlockingReason",
+                  "type": "string",
+                  "example": ""
+                },
+                {
+                  "name": "HouseBank",
+                  "type": "string",
+                  "example": "DEUBA"
+                },
+                {
+                  "name": "SupplierIsBlockedForPosting",
+                  "type": "boolean",
+                  "example": false
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "d": {
+            "__metadata": {
+              "type": "API_BUSINESS_PARTNER.A_SupplierCompanyType"
+            },
+            "Supplier": "17300001",
+            "CompanyCode": "1010",
+            "PaymentTerms": "0004",
+            "PaymentMethodsList": "T",
+            "ReconciliationAccount": "21100000",
+            "AccountingClerk": "AP",
+            "PaymentBlockingReason": "",
+            "HouseBank": "DEUBA",
+            "SupplierIsBlockedForPosting": false
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "159babeb-2e1c-510e-b7d5-c6553c21f889",
+        "name": "supplier",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "65a95e2e-f6b9-53d3-93ea-7af5d451af3b",
+        "name": "company_code",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "141c0cde-f5f2-571b-939c-19973a108b06",
+        "name": "payment_terms",
+        "path": "d.PaymentTerms",
+        "type": "string"
+      },
+      {
+        "id": "3f160fd0-3507-5797-b930-d77a467af7b7",
+        "name": "payment_methods",
+        "path": "d.PaymentMethodsList",
+        "type": "string"
+      },
+      {
+        "id": "8fafcb7d-23f3-50a4-bf9e-98b0a8eeef1d",
+        "name": "house_bank",
+        "path": "d.HouseBank",
+        "type": "string"
+      },
+      {
+        "id": "2dbbe464-5ce0-52b9-bfb6-fd41436ff4c4",
+        "name": "payment_block",
+        "path": "d.PaymentBlockingReason",
+        "type": "string"
+      }
+    ]
+  }
+}

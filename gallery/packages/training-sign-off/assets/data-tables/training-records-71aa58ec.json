@@ -1,0 +1,116 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "71aa58ec-9493-517f-8d13-f8acfbfd849e",
+  "asset": {
+    "id": "71aa58ec-9493-517f-8d13-f8acfbfd849e",
+    "name": "Training records",
+    "description": "One row per completion: who, which course, the evidence, the trainer's decision and when it expires.",
+    "columns": [
+      {
+        "id": "1128a38b-bef3-5474-a00c-45824589229c",
+        "required": true,
+        "key": "record_ref",
+        "name": "Record reference",
+        "type": "text"
+      },
+      {
+        "id": "fbd03379-baca-5cea-afb7-03c80e8a6857",
+        "required": true,
+        "key": "trainee_name",
+        "name": "Trainee",
+        "type": "text"
+      },
+      {
+        "id": "945acd91-4534-5b92-aa5a-34d0e38ac5b0",
+        "required": false,
+        "key": "trainee_email",
+        "name": "Trainee email",
+        "type": "text"
+      },
+      {
+        "id": "6d622cb0-a1dd-577e-8181-be4305d4552c",
+        "required": false,
+        "key": "course_code",
+        "name": "Course code",
+        "type": "text"
+      },
+      {
+        "id": "c04c2966-3368-5c25-b526-c6d5bb53da10",
+        "required": false,
+        "key": "course_title",
+        "name": "Course",
+        "type": "text"
+      },
+      {
+        "id": "c67b2408-66ec-54ec-8f18-0a6d5b20b3f3",
+        "required": false,
+        "key": "completed_on",
+        "name": "Completed",
+        "type": "date"
+      },
+      {
+        "id": "31cacde9-3738-5c73-a26e-74f3b1890c16",
+        "required": false,
+        "key": "evidence_link",
+        "name": "Evidence link",
+        "type": "text"
+      },
+      {
+        "id": "19a7e226-b2a8-5778-aec0-f7e1d4aad949",
+        "required": false,
+        "key": "score",
+        "name": "Score (%)",
+        "type": "number"
+      },
+      {
+        "id": "63649738-1271-5cd4-a870-be2f4930ab81",
+        "required": false,
+        "key": "hours",
+        "name": "Hours",
+        "type": "number"
+      },
+      {
+        "id": "b34f4e1c-4e11-50df-941e-002e87a8ec02",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "awaiting sign-off",
+          "signed off",
+          "needs more work",
+          "withdrawn"
+        ]
+      },
+      {
+        "id": "668d134e-4a29-5c0d-9ab1-0690a67adca2",
+        "required": false,
+        "key": "assessment",
+        "name": "Assessment",
+        "type": "text"
+      },
+      {
+        "id": "9bb1ec11-7778-55ed-af3f-68a6f20a88b1",
+        "required": false,
+        "key": "trainer_comments",
+        "name": "Trainer comments",
+        "type": "text"
+      },
+      {
+        "id": "535e2e3f-416f-5381-8d41-66a27253835f",
+        "required": false,
+        "key": "signed_off_on",
+        "name": "Signed off",
+        "type": "date"
+      },
+      {
+        "id": "04b48cb0-84d4-5c2c-bf02-4815360442ba",
+        "required": false,
+        "key": "expires_on",
+        "name": "Expires",
+        "type": "date"
+      }
+    ]
+  }
+}

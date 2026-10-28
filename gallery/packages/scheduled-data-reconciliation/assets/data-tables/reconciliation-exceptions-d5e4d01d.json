@@ -1,0 +1,84 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "d5e4d01d-b151-473a-ae3a-dd949206a6cf",
+  "asset": {
+    "id": "d5e4d01d-b151-473a-ae3a-dd949206a6cf",
+    "name": "Reconciliation exceptions",
+    "description": "Orders that did not reconcile with billing: a missing invoice or an amount mismatch. Finance works these rows and sets the status.",
+    "columns": [
+      {
+        "id": "93501b39-8111-4fb2-af05-3caf10ec4be6",
+        "required": true,
+        "key": "run_date",
+        "name": "Business date",
+        "type": "text"
+      },
+      {
+        "id": "19f44b7a-bc31-4af7-a69b-27a54e4c2d89",
+        "required": true,
+        "key": "order_id",
+        "name": "Order",
+        "type": "text"
+      },
+      {
+        "id": "4cacc5a2-7f79-4bbc-b485-2e462d83a07d",
+        "required": false,
+        "key": "customer",
+        "name": "Customer",
+        "type": "text"
+      },
+      {
+        "id": "9a887678-9f68-4ea2-89e3-7dc73d5c68f3",
+        "required": false,
+        "key": "exception_type",
+        "name": "Exception",
+        "type": "text",
+        "options": [
+          "missing invoice",
+          "amount mismatch"
+        ]
+      },
+      {
+        "id": "a70a3619-cb38-4a9e-8401-fc921475d76a",
+        "required": false,
+        "key": "order_total",
+        "name": "Order total",
+        "type": "number"
+      },
+      {
+        "id": "4e531b03-eb5b-4bbc-aaaa-54f6fef0e3ae",
+        "required": false,
+        "key": "invoice_number",
+        "name": "Invoice",
+        "type": "text"
+      },
+      {
+        "id": "c881de09-6179-440c-b252-a1b77f50c25a",
+        "required": false,
+        "key": "invoice_amount",
+        "name": "Invoice amount",
+        "type": "number"
+      },
+      {
+        "id": "0bd9da1c-1205-4046-96fb-5f0c956ec0ea",
+        "required": false,
+        "key": "difference",
+        "name": "Difference",
+        "type": "number"
+      },
+      {
+        "id": "73d7114d-60c1-4f0d-894e-5a9ac49b1123",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "text",
+        "options": [
+          "open",
+          "investigating",
+          "resolved"
+        ]
+      }
+    ]
+  }
+}

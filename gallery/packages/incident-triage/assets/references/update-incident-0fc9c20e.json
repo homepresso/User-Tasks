@@ -1,0 +1,124 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "0fc9c20e-2723-40c5-8906-2b5b5aefa786",
+  "asset": {
+    "id": "0fc9c20e-2723-40c5-8906-2b5b5aefa786",
+    "integration_id": "ac959fb4-04de-423e-b0d9-4c56dfb3b6a3",
+    "name": "Update incident",
+    "description": "Change the state, assignment or work notes of an incident.",
+    "tags": [
+      "incidents"
+    ],
+    "request_config": {
+      "method": "PATCH",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"state\":\"{{state}}\",\"assignment_group\":\"{{assignment_group}}\",\"assigned_to\":\"{{assigned_to}}\",\"work_note\":\"{{work_note}}\"}",
+      "path_template": "/incidents/{{incident_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "f3a1c9e2-5b7d-4c11-9a8e-2d6b0c4e7f10"
+            },
+            {
+              "name": "number",
+              "type": "string",
+              "example": "INC0048213"
+            },
+            {
+              "name": "state",
+              "type": "string",
+              "example": "in_progress"
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "example": "2026-10-26T08:52:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "id": "f3a1c9e2-5b7d-4c11-9a8e-2d6b0c4e7f10",
+          "number": "INC0048213",
+          "state": "in_progress",
+          "updated_at": "2026-10-26T08:52:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "d4b27dec-c80d-4e16-8938-41dbe0e4adbd",
+        "name": "incident_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "5c29673d-1945-467c-b9dc-15b169f95c3d",
+        "name": "state",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "fab079cc-d074-4a7a-9541-5486c920a519",
+        "name": "assignment_group",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "ca6b77d5-49fd-4e32-811e-6aa87df8b2d3",
+        "name": "assigned_to",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "9a72a56c-57b3-452b-a95e-364b1621fef0",
+        "name": "work_note",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "944bfc64-29c5-4950-8e1e-b30faa1584c9",
+        "name": "state",
+        "path": "state",
+        "type": "string"
+      },
+      {
+        "id": "08ba997e-9771-4576-a2e2-8e08647b3a50",
+        "name": "updated_at",
+        "path": "updated_at",
+        "type": "string"
+      }
+    ]
+  }
+}

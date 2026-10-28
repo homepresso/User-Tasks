@@ -1,0 +1,134 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "9905ac80-7523-4db9-9efe-1ccb14c9f947",
+  "asset": {
+    "id": "9905ac80-7523-4db9-9efe-1ccb14c9f947",
+    "integration_id": "dbe05925-f2bd-4ac7-8884-3c403cfcb123",
+    "name": "Resolve case",
+    "description": "Close the case with the root cause, resolution summary and any compensation.",
+    "tags": [
+      "cases"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"root_cause\":\"{{root_cause}}\",\"resolution_summary\":\"{{resolution_summary}}\",\"compensation_amount\":{{compensation_amount}},\"customer_contacted\":{{customer_contacted}},\"approved_by\":\"{{approved_by}}\"}",
+      "path_template": "/cases/{{case_id}}/resolution",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "case_id",
+              "type": "string",
+              "example": "CASE-90321"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "resolved"
+            },
+            {
+              "name": "resolved_at",
+              "type": "string",
+              "example": "2026-10-28T15:02:00Z"
+            },
+            {
+              "name": "within_sla",
+              "type": "boolean",
+              "example": true
+            }
+          ]
+        },
+        "sample": {
+          "case_id": "CASE-90321",
+          "status": "resolved",
+          "resolved_at": "2026-10-28T15:02:00Z",
+          "within_sla": true
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "981e41c5-ca9d-4e3e-8948-9c4e57098046",
+        "name": "case_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "559d7db6-2d51-455c-84ac-d9bc21643aee",
+        "name": "root_cause",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "cdaeedf8-0048-471f-886c-82cc997e5796",
+        "name": "resolution_summary",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "f2b18d24-0a83-4640-a730-9b375582474e",
+        "name": "compensation_amount",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c3393021-7336-475b-bf1b-3e67d185c5e2",
+        "name": "customer_contacted",
+        "type": "boolean",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "00116bab-23d3-4b83-b7d6-b256882f7558",
+        "name": "approved_by",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "52bdf48b-7680-483e-95f6-b58d1194336f",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "544c7b83-98b6-485a-8aa7-7ef145e468d8",
+        "name": "resolved_at",
+        "path": "resolved_at",
+        "type": "string"
+      }
+    ]
+  }
+}

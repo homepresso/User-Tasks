@@ -1,0 +1,47 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "71aa58ec-9493-517f-8d13-f8acfbfd849e",
+  "asset": {
+    "id": "71aa58ec-9493-517f-8d13-f8acfbfd849e",
+    "name": "Training records rows",
+    "rows": [
+      {
+        "id": "e982a17b-da52-5965-aa3e-27ec5ae83396",
+        "data": {
+          "record_ref": "TR-20260915-4F2A",
+          "trainee_name": "Noah Williams",
+          "trainee_email": "noah.williams@example.com",
+          "course_code": "HS-101",
+          "course_title": "Workplace first aid",
+          "completed_on": "2026-09-12",
+          "evidence_link": "https://lms.example.com/certificates/HS101-88231",
+          "hours": 8,
+          "status": "signed off",
+          "assessment": "Competent",
+          "trainer_comments": "Confident with CPR and the AED.",
+          "signed_off_on": "2026-09-15",
+          "expires_on": "2028-09-12"
+        }
+      },
+      {
+        "id": "52ad04d9-3789-5ff9-ba65-01afd18f4fdc",
+        "data": {
+          "record_ref": "TR-20261002-9B7C",
+          "trainee_name": "Isla Brown",
+          "trainee_email": "isla.brown@example.com",
+          "course_code": "CP-201",
+          "course_title": "Privacy and data protection essentials",
+          "completed_on": "2026-10-01",
+          "evidence_link": "https://lms.example.com/certificates/CP201-77120",
+          "score": 92,
+          "hours": 1.5,
+          "status": "signed off",
+          "assessment": "Competent",
+          "signed_off_on": "2026-10-02",
+          "expires_on": "2027-10-01"
+        }
+      }
+    ]
+  }
+}

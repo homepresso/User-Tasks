@@ -1,0 +1,84 @@
+{
+  "id": "f9fdec5b-8fa6-4d7d-b7a5-efbcdf81b088",
+  "slug": "quote-approval-discount-tiers",
+  "title": "Quote approval with discount tiers",
+  "category": "customer-sales",
+  "summary": "Sales reps submit a quote; a discount authority table sets who approves, and each approver can approve, reject or counter before the CPQ is updated.",
+  "description": "Quote approval with discount tiers enforces your discount authority without chasing approvals over chat. The sales rep fills in the start form: quote id, customer, product, annual list price, discount, term, payment terms and a justification.\n\nThe workflow works out the net annual price and the deal value over the term, then evaluates the Discount authority decision table. Up to 10% is approved automatically; above that the sales manager approves, above 20% the VP sales as well, and above 30% (or on very large deals) the deal desk and the CFO join. Approvals run in sequence, each with a one-day due date, a reminder and escalation, and each approver can approve (adjusting the approved discount), reject or make a counter-offer.\n\nThe final decision is written to the quote in your CPQ system and the rep gets an email: approved with the discount and conditions, rejected with the reason, or the counter-offer to take back to the customer. Adapt the thresholds, the approver chain and the CPQ call to your sales policy.",
+  "trigger": "form",
+  "entry_workflow": "9a24b9e5-3b61-4308-aacf-4d8956402be8",
+  "start": "Starts from a form: the sales rep submits the quote details (Run dialog in the app, or a button in your CPQ posting to the start API).",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "quotes",
+    "discounts",
+    "approvals",
+    "cpq",
+    "decision table"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: a themed start form with a grid and header, and Approve / Reject / Counter-offer buttons with a grid and header on every approval tier."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "CPQ system: set the base URL and API token of your CPQ or CRM quoting API. Record quote approval posts to /quotes/{quote_id}/approval; adjust the path and body in Integrations.",
+    "Assignees: pick the default sales manager, VP sales, deal desk analyst and CFO (runs can pass sales_manager_id, vp_sales_id, deal_desk_id and cfo_id, for example from the rep's team).",
+    "Edit the Discount authority rules to your delegation of authority (discount bands, deal size, short terms).",
+    "Email: configure EMAIL_PROVIDER so reps receive the decision emails (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Quote submitted",
+      "body": "The start form collects the quote id, customer, product, list price, discount, term, payment terms and justification."
+    },
+    {
+      "title": "Price the deal",
+      "body": "The net annual price and the deal value over the term are calculated."
+    },
+    {
+      "title": "Find the approval path",
+      "body": "The Discount authority decision table returns which approvers are needed: none, sales manager, VP sales, deal desk and CFO."
+    },
+    {
+      "title": "Approve in sequence",
+      "body": "Each required approver approves (and can lower the approved discount), rejects or makes a counter-offer."
+    },
+    {
+      "title": "Update the CPQ",
+      "body": "The decision and approved discount are recorded on the quote in the CPQ system."
+    },
+    {
+      "title": "Tell the rep",
+      "body": "The rep is emailed the approval, the rejection reason or the counter-offer."
+    }
+  ],
+  "sample_input": {
+    "quote_id": "Q-2026-0457",
+    "customer": "Fourth Coffee",
+    "product": "Platform Professional",
+    "list_price": 60000,
+    "currency": "USD",
+    "discount_pct": 18,
+    "term_months": 24,
+    "payment_terms": "Annual in advance",
+    "justification": "Competitive evaluation against an incumbent; two-year commitment with annual prepayment.",
+    "rep_email": "sam.patel@example.com"
+  },
+  "expect": "waiting",
+  "icon": "badge-percent"
+}

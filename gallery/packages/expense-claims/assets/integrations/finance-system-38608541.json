@@ -1,0 +1,22 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "38608541-ea8e-4bf2-825a-a43d1eb771ee",
+  "asset": {
+    "id": "38608541-ea8e-4bf2-825a-a43d1eb771ee",
+    "name": "Finance system",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://finance.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "finance"
+    ]
+  }
+}

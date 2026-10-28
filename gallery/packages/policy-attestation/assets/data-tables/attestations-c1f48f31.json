@@ -1,0 +1,93 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "c1f48f31-2ca4-4b4a-802d-b6d7e8232425",
+  "asset": {
+    "id": "c1f48f31-2ca4-4b4a-802d-b6d7e8232425",
+    "name": "Attestations",
+    "description": "One row per employee and policy attested in a campaign: the evidence trail for auditors.",
+    "columns": [
+      {
+        "id": "c5ee3a7f-d12f-4ed1-85ca-b4c9e3e67ef6",
+        "required": true,
+        "key": "campaign_id",
+        "name": "Campaign",
+        "type": "text"
+      },
+      {
+        "id": "08900457-07da-4b1e-995c-01b8334f35db",
+        "required": true,
+        "key": "policy_id",
+        "name": "Policy ID",
+        "type": "text"
+      },
+      {
+        "id": "6990f72c-e811-494e-a147-3a5ae9436f0c",
+        "required": false,
+        "key": "policy",
+        "name": "Policy",
+        "type": "text"
+      },
+      {
+        "id": "0e8ca7ae-a7b6-4940-a78f-e71ff47a30f0",
+        "required": false,
+        "key": "version",
+        "name": "Version",
+        "type": "text"
+      },
+      {
+        "id": "014cbc86-6357-4058-a8a6-d89cb9ca01ae",
+        "required": true,
+        "key": "employee_id",
+        "name": "Employee ID",
+        "type": "text"
+      },
+      {
+        "id": "aed436c6-4bf4-4546-8233-c28e675b4944",
+        "required": false,
+        "key": "employee_name",
+        "name": "Employee",
+        "type": "text"
+      },
+      {
+        "id": "233551bd-ebd1-4b16-b544-d282d68a750d",
+        "required": false,
+        "key": "employee_email",
+        "name": "Email",
+        "type": "text"
+      },
+      {
+        "id": "456a5485-afc7-4807-89d3-839fc56a5181",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "text"
+      },
+      {
+        "id": "f7515a7a-919c-4fa3-a2a0-5e40aecc70d6",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "attested",
+          "exempt"
+        ]
+      },
+      {
+        "id": "710a7a79-a6e9-48ff-abda-35675aa0a531",
+        "required": false,
+        "key": "attested_at",
+        "name": "Attested at",
+        "type": "date"
+      },
+      {
+        "id": "d85dc796-7039-41f6-9b88-1a0ab0501d28",
+        "required": false,
+        "key": "comments",
+        "name": "Comments",
+        "type": "text"
+      }
+    ]
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "0c83a56b-aa77-401d-ae8a-821f337ac97f",
+  "asset": {
+    "id": "0c83a56b-aa77-401d-ae8a-821f337ac97f",
+    "integration_id": "285b74e5-6be0-4221-85e3-a9f23db1673b",
+    "name": "Record quote approval",
+    "description": "Write the approval decision back to the quote in the CPQ system: approved (with the approved discount), rejected or counter-offer.",
+    "tags": [
+      "quotes"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"decision\":\"{{decision}}\",\"approved_discount_pct\":{{approved_discount_pct}},\"approval_path\":\"{{approval_path}}\",\"approved_by\":\"{{approved_by}}\",\"conditions\":\"{{conditions}}\",\"comment\":\"{{comment}}\"}",
+      "path_template": "/quotes/{{quote_id}}/approval",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "quote_id",
+              "type": "string",
+              "example": "Q-2026-0457"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "approved"
+            },
+            {
+              "name": "quote_url",
+              "type": "string",
+              "example": "https://cpq.example.com/quotes/Q-2026-0457"
+            },
+            {
+              "name": "valid_until",
+              "type": "string",
+              "example": "2026-11-25"
+            },
+            {
+              "name": "net_price",
+              "type": "integer",
+              "example": 98400
+            },
+            {
+              "name": "approved_discount_pct",
+              "type": "integer",
+              "example": 18
+            }
+          ]
+        },
+        "sample": {
+          "quote_id": "Q-2026-0457",
+          "status": "approved",
+          "quote_url": "https://cpq.example.com/quotes/Q-2026-0457",
+          "valid_until": "2026-11-25",
+          "net_price": 98400,
+          "approved_discount_pct": 18
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "58b81104-856f-489f-be21-e4b85a5ffd77",
+        "name": "quote_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Quote id in the CPQ system",
+        "default_value": ""
+      },
+      {
+        "id": "3c4ae44c-58f8-4f1d-8d9b-fffd0168501d",
+        "name": "decision",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "approved, rejected or counter_offer",
+        "default_value": ""
+      },
+      {
+        "id": "cc8f157c-b650-4d5e-b0cb-daa4b18d820a",
+        "name": "approved_discount_pct",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "78bad1ef-84e0-4fa8-a65a-334d9fad1175",
+        "name": "approval_path",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "0a885d99-d3b4-493f-9c97-098c736698bd",
+        "name": "approved_by",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "d77a9378-e0a1-466c-a6af-59518064bab6",
+        "name": "conditions",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "7c63c0f8-9e90-44dc-ae39-b6d388012106",
+        "name": "comment",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "7eee92bb-42a5-4f10-91d7-d380b912b881",
+        "name": "quote_status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "07d0b2ef-04de-4965-a439-4cf6aab013e1",
+        "name": "quote_url",
+        "path": "quote_url",
+        "type": "string"
+      },
+      {
+        "id": "a8c7d786-80f0-4487-950c-4591fc035321",
+        "name": "valid_until",
+        "path": "valid_until",
+        "type": "string"
+      },
+      {
+        "id": "23254dba-1f1a-42e1-994e-1e2c356609d9",
+        "name": "net_price",
+        "path": "net_price",
+        "type": "number"
+      }
+    ]
+  }
+}

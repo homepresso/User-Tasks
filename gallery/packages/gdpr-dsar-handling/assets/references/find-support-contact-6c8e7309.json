@@ -1,0 +1,121 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "6c8e7309-0b98-4b26-b6b8-04950768bb05",
+  "asset": {
+    "id": "6c8e7309-0b98-4b26-b6b8-04950768bb05",
+    "integration_id": "52ddc1d0-c223-4f8b-8601-65e3bc8d39d3",
+    "name": "Find support contact",
+    "description": "Support desk contact and ticket history for the subject's email.",
+    "tags": [
+      "dsar"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/contacts",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "count",
+              "type": "integer",
+              "example": 1
+            },
+            {
+              "name": "results",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "id",
+                    "type": "string",
+                    "example": "SD-99120"
+                  },
+                  {
+                    "name": "email",
+                    "type": "string",
+                    "example": "robin.james@example.com"
+                  },
+                  {
+                    "name": "name",
+                    "type": "string",
+                    "example": "Robin James"
+                  },
+                  {
+                    "name": "ticket_count",
+                    "type": "integer",
+                    "example": 6
+                  },
+                  {
+                    "name": "last_ticket_at",
+                    "type": "string",
+                    "example": "2026-08-14"
+                  },
+                  {
+                    "name": "attachments",
+                    "type": "integer",
+                    "example": 3
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "sample": {
+          "count": 1,
+          "results": [
+            {
+              "id": "SD-99120",
+              "email": "robin.james@example.com",
+              "name": "Robin James",
+              "ticket_count": 6,
+              "last_ticket_at": "2026-08-14",
+              "attachments": 3
+            }
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "e84ddc18-8591-4d1f-8260-f5eaf7a11ff1",
+        "name": "email",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "Data subject email",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "6ae2cfe9-8b0a-4c73-89a0-d1cc0de65d80",
+        "name": "match_count",
+        "path": "count",
+        "type": "number"
+      },
+      {
+        "id": "bb695455-6bec-4d02-813e-4a9aba390c50",
+        "name": "contact_id",
+        "path": "results.0.id",
+        "type": "string"
+      },
+      {
+        "id": "a649e7c7-077b-4280-a4a4-d80acb8cf7bc",
+        "name": "ticket_count",
+        "path": "results.0.ticket_count",
+        "type": "number"
+      }
+    ]
+  }
+}

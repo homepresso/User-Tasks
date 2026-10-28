@@ -1,0 +1,140 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "72efcbbf-484c-58cd-9f50-454769c9b627",
+  "asset": {
+    "id": "72efcbbf-484c-58cd-9f50-454769c9b627",
+    "integration_id": "55b8dad9-6e91-5ac6-a9e4-74cc61cbe7b2",
+    "name": "Create Temporary Access Pass",
+    "description": "Create a Temporary Access Pass for the first sign-in (POST /users/{id}/authentication/temporaryAccessPassMethods). Needs the TAP authentication method policy enabled.",
+    "tags": [
+      "authentication"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"startDateTime\":\"{{start}}\",\"lifetimeInMinutes\":{{lifetime}},\"isUsableOnce\":false}",
+      "path_template": "/users/{{user_id}}/authentication/temporaryAccessPassMethods",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "@odata.context",
+              "type": "string",
+              "example": "https://graph.microsoft.example.com/v1.0/$metadata#users('6e7b768e-07e2-4810-8459-485f84f8f204')/authentication/temporaryAccessPassMethods/$entity"
+            },
+            {
+              "name": "id",
+              "type": "string",
+              "example": "4c1a2d3e-5f60-4718-9a2b-3c4d5e6f7a8b"
+            },
+            {
+              "name": "temporaryAccessPass",
+              "type": "string",
+              "example": "TAPRocks!7b2"
+            },
+            {
+              "name": "createdDateTime",
+              "type": "string",
+              "example": "2026-10-28T10:02:00Z"
+            },
+            {
+              "name": "startDateTime",
+              "type": "string",
+              "example": "2026-11-09T08:00:00Z"
+            },
+            {
+              "name": "lifetimeInMinutes",
+              "type": "integer",
+              "example": 480
+            },
+            {
+              "name": "isUsableOnce",
+              "type": "boolean",
+              "example": false
+            },
+            {
+              "name": "isUsable",
+              "type": "boolean",
+              "example": false
+            },
+            {
+              "name": "methodUsabilityReason",
+              "type": "string",
+              "example": "NotYetValid"
+            }
+          ]
+        },
+        "sample": {
+          "@odata.context": "https://graph.microsoft.example.com/v1.0/$metadata#users('6e7b768e-07e2-4810-8459-485f84f8f204')/authentication/temporaryAccessPassMethods/$entity",
+          "id": "4c1a2d3e-5f60-4718-9a2b-3c4d5e6f7a8b",
+          "temporaryAccessPass": "TAPRocks!7b2",
+          "createdDateTime": "2026-10-28T10:02:00Z",
+          "startDateTime": "2026-11-09T08:00:00Z",
+          "lifetimeInMinutes": 480,
+          "isUsableOnce": false,
+          "isUsable": false,
+          "methodUsabilityReason": "NotYetValid"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "5411b12e-9d5e-5082-a1bb-050a7d39f078",
+        "name": "user_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Entra object id",
+        "default_value": ""
+      },
+      {
+        "id": "b3748f04-85d5-5d06-af22-1b79f5b8eced",
+        "name": "start",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "ISO start time (the start date, 08:00 UTC)",
+        "default_value": ""
+      },
+      {
+        "id": "5d5b72ba-df80-5ccb-ac87-ab8e40710874",
+        "name": "lifetime",
+        "type": "number",
+        "source": "static",
+        "location": "body",
+        "required": false,
+        "description": "Minutes",
+        "default_value": "480"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "a0f01332-400f-5b31-b25e-73c27a6393c9",
+        "name": "tap",
+        "path": "temporaryAccessPass",
+        "type": "string"
+      },
+      {
+        "id": "9b1bf26f-42de-5208-965f-2ec8e1d5fe82",
+        "name": "tap_start",
+        "path": "startDateTime",
+        "type": "string"
+      },
+      {
+        "id": "3024bf01-b173-5ae5-bd0f-77eb08a71109",
+        "name": "tap_minutes",
+        "path": "lifetimeInMinutes",
+        "type": "number"
+      }
+    ]
+  }
+}

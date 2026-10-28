@@ -1,0 +1,538 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "c0ccf69e-dcc3-4ef0-9e91-ed0780fd1b1a",
+  "asset": {
+    "id": "c0ccf69e-dcc3-4ef0-9e91-ed0780fd1b1a",
+    "name": "Load staged order",
+    "description": "When a row is created in Orders staging, normalise it, convert the amount to the base currency, load it into the warehouse and write the load status back to the row.",
+    "trigger_type": "data_table_event",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "data_table_event",
+        "label": "Order staged",
+        "position": {
+          "x": 580,
+          "y": 60
+        },
+        "config": {
+          "table_id": "e5fd715c-5114-4e53-8639-10151b9c4477",
+          "table_name": "Orders staging",
+          "event_types": [
+            "created"
+          ]
+        }
+      },
+      {
+        "id": "keep_id",
+        "type": "set_variable",
+        "label": "Staging row id",
+        "position": {
+          "x": 580,
+          "y": 220
+        },
+        "config": {
+          "name": "staging_row_id",
+          "expression": "{{row_id}}"
+        }
+      },
+      {
+        "id": "already",
+        "type": "condition",
+        "label": "Already loaded?",
+        "position": {
+          "x": 580,
+          "y": 380
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Loaded",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{row.load_status}}",
+                  "operator": "equals",
+                  "value": "loaded"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "skip",
+        "type": "log",
+        "label": "Skip loaded row",
+        "position": {
+          "x": 340,
+          "y": 560
+        },
+        "config": {
+          "message": "Order {{row.order_ref}} is already loaded; nothing to do",
+          "level": "info"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 820,
+          "y": 560
+        },
+        "config": {
+          "title": "ETL: order {{row.order_ref}}"
+        }
+      },
+      {
+        "id": "ccy",
+        "type": "modify_string",
+        "label": "Currency code",
+        "position": {
+          "x": 820,
+          "y": 720
+        },
+        "config": {
+          "input": "{{row.currency}}",
+          "operation": "uppercase",
+          "output_var": "currency_code"
+        }
+      },
+      {
+        "id": "email",
+        "type": "modify_string",
+        "label": "Normalise email",
+        "position": {
+          "x": 820,
+          "y": 880
+        },
+        "config": {
+          "input": "{{row.customer_email}}",
+          "operation": "lowercase",
+          "output_var": "customer_email_norm"
+        }
+      },
+      {
+        "id": "name",
+        "type": "modify_string",
+        "label": "Trim customer name",
+        "position": {
+          "x": 820,
+          "y": 1040
+        },
+        "config": {
+          "input": "{{row.customer_name}}",
+          "operation": "trim",
+          "output_var": "customer_name_norm"
+        }
+      },
+      {
+        "id": "date",
+        "type": "format_date",
+        "label": "Order date (ISO)",
+        "position": {
+          "x": 820,
+          "y": 1200
+        },
+        "config": {
+          "date": "{{row.order_date}}",
+          "format": "custom",
+          "custom_format": "YYYY-MM-DD",
+          "output_var": "order_date_iso"
+        }
+      },
+      {
+        "id": "rate",
+        "type": "update_data_table",
+        "label": "Look up FX rate",
+        "position": {
+          "x": 820,
+          "y": 1360
+        },
+        "config": {
+          "table_id": "3d960201-f081-4fc9-8479-71412634dd07",
+          "table_name": "Currency rates",
+          "operation": "get",
+          "match_column": "currency",
+          "match_value": "{{currency_code}}",
+          "output_row_var": "fx",
+          "output_row_id_var": "fx_row_id"
+        }
+      },
+      {
+        "id": "has_rate",
+        "type": "condition",
+        "label": "Rate found?",
+        "position": {
+          "x": 820,
+          "y": 1520
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "No rate",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{fx.rate_to_base}}",
+                  "operator": "is_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "no_rate",
+        "type": "update_data_table",
+        "label": "Mark failed: no rate",
+        "position": {
+          "x": 580,
+          "y": 1700
+        },
+        "config": {
+          "table_id": "e5fd715c-5114-4e53-8639-10151b9c4477",
+          "table_name": "Orders staging",
+          "operation": "update",
+          "row_id": "{{staging_row_id}}",
+          "column_values": {
+            "load_status": "failed",
+            "load_message": "No exchange rate for {{currency_code}} in Currency rates"
+          }
+        }
+      },
+      {
+        "id": "base",
+        "type": "set_variable",
+        "label": "Amount in base currency",
+        "position": {
+          "x": 1060,
+          "y": 1700
+        },
+        "config": {
+          "name": "amount_base",
+          "expression": "{{=ROUND(MULTIPLY(row.amount, fx.rate_to_base), 2)}}"
+        }
+      },
+      {
+        "id": "record",
+        "type": "json_build_object",
+        "label": "Warehouse record",
+        "position": {
+          "x": 1060,
+          "y": 1860
+        },
+        "config": {
+          "output_var": "warehouse_record",
+          "fields": [
+            {
+              "key": "order_ref",
+              "value": "{{row.order_ref}}"
+            },
+            {
+              "key": "order_date",
+              "value": "{{order_date_iso}}"
+            },
+            {
+              "key": "customer_name",
+              "value": "{{customer_name_norm}}"
+            },
+            {
+              "key": "customer_email",
+              "value": "{{customer_email_norm}}"
+            },
+            {
+              "key": "channel",
+              "value": "{{row.channel}}"
+            },
+            {
+              "key": "currency",
+              "value": "{{currency_code}}"
+            },
+            {
+              "key": "amount",
+              "value": "{{row.amount}}"
+            },
+            {
+              "key": "fx_rate",
+              "value": "{{fx.rate_to_base}}"
+            },
+            {
+              "key": "amount_base",
+              "value": "{{amount_base}}"
+            },
+            {
+              "key": "base_currency",
+              "value": "{{fx.base_currency}}"
+            },
+            {
+              "key": "source_row_id",
+              "value": "{{staging_row_id}}"
+            },
+            {
+              "key": "loaded_at",
+              "value": "{{=NOW()}}"
+            }
+          ]
+        }
+      },
+      {
+        "id": "load",
+        "type": "call_reference",
+        "label": "Ingest order",
+        "position": {
+          "x": 1060,
+          "y": 2020
+        },
+        "config": {
+          "reference_id": "0f3de8b0-22cb-4c8f-882b-80c13443a385",
+          "reference_name": "Ingest order",
+          "reference_method": "POST",
+          "input_mappings": {
+            "record": "{{=TO_JSON(warehouse_record)}}"
+          },
+          "output_mappings": {
+            "warehouse_id": {
+              "enabled": true,
+              "variableName": "warehouse_id"
+            }
+          }
+        }
+      },
+      {
+        "id": "load_ok",
+        "type": "condition",
+        "label": "Load failed?",
+        "position": {
+          "x": 1060,
+          "y": 2180
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Failed",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{status}}",
+                  "operator": "gte",
+                  "value": "400"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "load_fail",
+        "type": "update_data_table",
+        "label": "Mark failed: HTTP error",
+        "position": {
+          "x": 1220,
+          "y": 2360
+        },
+        "config": {
+          "table_id": "e5fd715c-5114-4e53-8639-10151b9c4477",
+          "table_name": "Orders staging",
+          "operation": "update",
+          "row_id": "{{staging_row_id}}",
+          "column_values": {
+            "load_status": "failed",
+            "load_message": "Warehouse returned HTTP {{status}}"
+          }
+        }
+      },
+      {
+        "id": "loaded",
+        "type": "update_data_table",
+        "label": "Mark loaded",
+        "position": {
+          "x": 900,
+          "y": 2360
+        },
+        "config": {
+          "table_id": "e5fd715c-5114-4e53-8639-10151b9c4477",
+          "table_name": "Orders staging",
+          "operation": "update",
+          "row_id": "{{staging_row_id}}",
+          "column_values": {
+            "load_status": "loaded",
+            "warehouse_id": "{{warehouse_id}}",
+            "load_message": "Loaded {{amount_base}} {{fx.base_currency}} at {{=NOW()}}"
+          }
+        }
+      },
+      {
+        "id": "log_ok",
+        "type": "log",
+        "label": "Log loaded",
+        "position": {
+          "x": 900,
+          "y": 2520
+        },
+        "config": {
+          "message": "Order {{row.order_ref}} loaded as {{warehouse_id}} ({{row.amount}} {{currency_code}} = {{amount_base}} {{fx.base_currency}})",
+          "level": "info"
+        }
+      },
+      {
+        "id": "log_fail",
+        "type": "log",
+        "label": "Log failure",
+        "position": {
+          "x": 580,
+          "y": 2520
+        },
+        "config": {
+          "message": "Order {{row.order_ref}} not loaded (status {{status}})",
+          "level": "warn"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Done",
+        "position": {
+          "x": 580,
+          "y": 2680
+        },
+        "config": {
+          "reason": "Order {{row.order_ref}} processed"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-keep_id",
+        "source": "trigger",
+        "target": "keep_id"
+      },
+      {
+        "id": "e-keep_id-already",
+        "source": "keep_id",
+        "target": "already"
+      },
+      {
+        "id": "e-already-skip-loaded",
+        "source": "already",
+        "target": "skip",
+        "label": "Loaded"
+      },
+      {
+        "id": "e-skip-done",
+        "source": "skip",
+        "target": "done"
+      },
+      {
+        "id": "e-already-title-else",
+        "source": "already",
+        "target": "title",
+        "label": "Else"
+      },
+      {
+        "id": "e-title-ccy",
+        "source": "title",
+        "target": "ccy"
+      },
+      {
+        "id": "e-ccy-email",
+        "source": "ccy",
+        "target": "email"
+      },
+      {
+        "id": "e-email-name",
+        "source": "email",
+        "target": "name"
+      },
+      {
+        "id": "e-name-date",
+        "source": "name",
+        "target": "date"
+      },
+      {
+        "id": "e-date-rate",
+        "source": "date",
+        "target": "rate"
+      },
+      {
+        "id": "e-rate-has_rate",
+        "source": "rate",
+        "target": "has_rate"
+      },
+      {
+        "id": "e-has_rate-no_rate-no-rate",
+        "source": "has_rate",
+        "target": "no_rate",
+        "label": "No rate"
+      },
+      {
+        "id": "e-no_rate-log_fail",
+        "source": "no_rate",
+        "target": "log_fail"
+      },
+      {
+        "id": "e-has_rate-base-else",
+        "source": "has_rate",
+        "target": "base",
+        "label": "Else"
+      },
+      {
+        "id": "e-base-record",
+        "source": "base",
+        "target": "record"
+      },
+      {
+        "id": "e-record-load",
+        "source": "record",
+        "target": "load"
+      },
+      {
+        "id": "e-load-load_ok",
+        "source": "load",
+        "target": "load_ok"
+      },
+      {
+        "id": "e-load_ok-load_fail-failed",
+        "source": "load_ok",
+        "target": "load_fail",
+        "label": "Failed"
+      },
+      {
+        "id": "e-load_fail-log_fail",
+        "source": "load_fail",
+        "target": "log_fail"
+      },
+      {
+        "id": "e-load_ok-loaded-else",
+        "source": "load_ok",
+        "target": "loaded",
+        "label": "Else"
+      },
+      {
+        "id": "e-loaded-log_ok",
+        "source": "loaded",
+        "target": "log_ok"
+      },
+      {
+        "id": "e-log_ok-done",
+        "source": "log_ok",
+        "target": "done"
+      },
+      {
+        "id": "e-log_fail-done",
+        "source": "log_fail",
+        "target": "done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

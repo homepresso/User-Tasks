@@ -1,0 +1,172 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "c7ff6fd4-6ef1-4d25-9e2c-997bb1798b03",
+  "asset": {
+    "id": "c7ff6fd4-6ef1-4d25-9e2c-997bb1798b03",
+    "integration_id": "2cd1b4d3-fe71-4921-b42f-f4da76057a1e",
+    "name": "Register document",
+    "description": "Register a generated document in the DMS: the file is fetched from its URL and filed with its metadata and retention period.",
+    "tags": [
+      "documents"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"file_url\":\"{{file_url}}\",\"file_name\":\"{{file_name}}\",\"content_type\":\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"attachments\":{{attachments}},\"folder\":\"{{folder}}\",\"retention_days\":{{retention_days}},\"metadata\":{\"doc_type\":\"{{doc_type}}\",\"reference\":\"{{reference}}\",\"customer\":\"{{customer}}\"}}",
+      "path_template": "/documents",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "document_id",
+              "type": "string",
+              "example": "DOC-58213"
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "example": "https://dms.example.com/documents/DOC-58213"
+            },
+            {
+              "name": "version",
+              "type": "integer",
+              "example": 1
+            },
+            {
+              "name": "retain_until",
+              "type": "string",
+              "example": "2033-10-26"
+            },
+            {
+              "name": "folder",
+              "type": "string",
+              "example": "Contracts/Fourth Coffee"
+            }
+          ]
+        },
+        "sample": {
+          "document_id": "DOC-58213",
+          "url": "https://dms.example.com/documents/DOC-58213",
+          "version": 1,
+          "retain_until": "2033-10-26",
+          "folder": "Contracts/Fourth Coffee"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "f8741d66-140b-434c-8f9f-15b69042cd3d",
+        "name": "file_url",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "URL of the generated file",
+        "default_value": ""
+      },
+      {
+        "id": "02d93532-4cce-425b-ab57-564183e8394a",
+        "name": "file_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "34f2b335-fdce-411d-a64f-75b3abcad9f7",
+        "name": "attachments",
+        "type": "array",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "Extra files [{ name, url }]",
+        "default_value": ""
+      },
+      {
+        "id": "3ceb31c3-8218-494c-bcc2-fdde16909549",
+        "name": "folder",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "3bd19141-fed9-45d3-b42e-1bd61dc3b4a0",
+        "name": "retention_days",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "f9e46db6-b9c7-4b84-b29b-29535baf3080",
+        "name": "doc_type",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "436813d8-ed95-45dd-a549-f7cbb117309e",
+        "name": "reference",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "bcd0f525-9ab6-4729-9dbd-386c50a40888",
+        "name": "customer",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "56b7e667-c5a1-4379-b693-726a043fbb34",
+        "name": "document_id",
+        "path": "document_id",
+        "type": "string"
+      },
+      {
+        "id": "d163dea2-6070-41b5-a0ae-002db035a685",
+        "name": "document_url",
+        "path": "url",
+        "type": "string"
+      },
+      {
+        "id": "41862e0e-09b6-4c24-993a-c7f4f1c33e4e",
+        "name": "version",
+        "path": "version",
+        "type": "number"
+      },
+      {
+        "id": "00e68650-9470-490b-8e69-54f5e78421de",
+        "name": "retain_until",
+        "path": "retain_until",
+        "type": "string"
+      }
+    ]
+  }
+}

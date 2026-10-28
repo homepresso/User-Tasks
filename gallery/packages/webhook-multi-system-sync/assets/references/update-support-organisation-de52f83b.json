@@ -1,0 +1,113 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "de52f83b-26a3-443c-a161-b0f182bea88d",
+  "asset": {
+    "id": "de52f83b-26a3-443c-a161-b0f182bea88d",
+    "integration_id": "28d5a219-3dcd-4948-aa8a-250741f8a8dc",
+    "name": "Update support organisation",
+    "description": "Update the matching organisation in the support desk (name, status, account owner).",
+    "tags": [
+      "organisations"
+    ],
+    "request_config": {
+      "method": "PATCH",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{{payload}}",
+      "path_template": "/organizations/{{organization_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "organization",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "ACC-20117"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "example": "Harbour Logistics Ltd"
+                },
+                {
+                  "name": "external_id",
+                  "type": "string",
+                  "example": "ACC-20117"
+                },
+                {
+                  "name": "tags",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "example": "active"
+                  }
+                },
+                {
+                  "name": "updated_at",
+                  "type": "string",
+                  "example": "2026-10-26T07:14:11Z"
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "organization": {
+            "id": "ACC-20117",
+            "name": "Harbour Logistics Ltd",
+            "external_id": "ACC-20117",
+            "tags": [
+              "active"
+            ],
+            "updated_at": "2026-10-26T07:14:11Z"
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "10783b4b-ccc4-4ea4-a469-f4e3927f782e",
+        "name": "organization_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "07f68337-e757-44ed-aa60-9339d68aca99",
+        "name": "payload",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "JSON organisation fields",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "740e1160-3f3d-4dac-ad69-db91f3633d68",
+        "name": "organization_id",
+        "path": "organization.id",
+        "type": "string"
+      },
+      {
+        "id": "4114fa9d-609e-4745-8185-1e00174a2130",
+        "name": "updated_at",
+        "path": "organization.updated_at",
+        "type": "string"
+      }
+    ]
+  }
+}

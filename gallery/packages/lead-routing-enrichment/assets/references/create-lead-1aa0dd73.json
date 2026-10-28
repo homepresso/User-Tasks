@@ -1,0 +1,232 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "1aa0dd73-3a66-47a1-97da-f4944e24f85a",
+  "asset": {
+    "id": "1aa0dd73-3a66-47a1-97da-f4944e24f85a",
+    "integration_id": "4012492f-5494-4b14-b2a2-48f3ef65962c",
+    "name": "Create lead",
+    "description": "Create or update the lead in the CRM with its score, segment and owner.",
+    "tags": [
+      "leads"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"email\":\"{{email}}\",\"first_name\":\"{{first_name}}\",\"last_name\":\"{{last_name}}\",\"company\":\"{{company}}\",\"country\":\"{{country}}\",\"industry\":\"{{industry}}\",\"employees\":{{employees}},\"segment\":\"{{segment}}\",\"score\":{{score}},\"priority\":\"{{priority}}\",\"owner_email\":\"{{owner_email}}\",\"queue\":\"{{queue}}\",\"source\":\"{{source}}\",\"message\":\"{{message}}\"}",
+      "path_template": "/leads",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "LEAD-104233"
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "example": "https://crm.example.com/leads/LEAD-104233"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "new"
+            },
+            {
+              "name": "duplicate",
+              "type": "boolean",
+              "example": false
+            },
+            {
+              "name": "owner_email",
+              "type": "string",
+              "example": "mia.lopez@example.com"
+            }
+          ]
+        },
+        "sample": {
+          "id": "LEAD-104233",
+          "url": "https://crm.example.com/leads/LEAD-104233",
+          "status": "new",
+          "duplicate": false,
+          "owner_email": "mia.lopez@example.com"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "18d44873-1e6f-4fd5-860a-2e91fd4ecf80",
+        "name": "email",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "d69e53cb-1745-4dfb-b0df-3bc8595275c1",
+        "name": "first_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "cc9b87c5-5d6a-4d70-a7c1-1193b3ce21e3",
+        "name": "last_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "648d7ade-27df-41c7-9322-307bc7cb01a7",
+        "name": "company",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "37fab698-b553-456e-87aa-31aea4687606",
+        "name": "country",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "ec8c3479-0f52-483a-83eb-09c3ba2af581",
+        "name": "industry",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "dc582461-5aea-4582-92aa-bb09e392c5b0",
+        "name": "employees",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "524b78ff-bc95-4163-b0a6-c6be7b0dfdb5",
+        "name": "segment",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "1eb2447d-52f5-48a4-bb7f-b288a9181793",
+        "name": "score",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "6131e3db-db1d-4294-9bc9-928e1a47b3cf",
+        "name": "priority",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "74159fc3-7a6a-4169-9c64-56ec27b20275",
+        "name": "owner_email",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "844770d8-8682-45fa-bc10-2fb3f49bb5f9",
+        "name": "queue",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "5cacfe70-9d44-4560-a059-80b2c5022600",
+        "name": "source",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "4b3d932d-e376-4087-84e0-a10b7dd77197",
+        "name": "message",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "0ff586e0-37ac-4eb4-8e6a-2c6272397e95",
+        "name": "lead_id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "a9e9c232-5eac-4ce8-8968-0990ae5b1908",
+        "name": "lead_url",
+        "path": "url",
+        "type": "string"
+      },
+      {
+        "id": "42474201-3002-4358-b3c9-0dc92948a31e",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "b0359cf3-2a83-4c1f-9952-8b795cd13844",
+        "name": "duplicate",
+        "path": "duplicate",
+        "type": "boolean"
+      }
+    ]
+  }
+}

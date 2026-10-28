@@ -1,0 +1,81 @@
+{
+  "title": "Complaints tracker",
+  "category": "customer-sales",
+  "summary": "Log complaints against a simple customer CRM; tier and category set the priority and SLA, the customer is acknowledged and handlers resolve or escalate.",
+  "description": "Complaints tracker is a complete complaints process with its own lightweight CRM. The Customers table holds each account with its main contact, tier (Platinum, Gold, Silver, Standard), account manager and a count of open complaints; seven sample customers are included.\n\nCustomer care logs a complaint on the Log a complaint form page. Picking the customer fills in the contact, email, tier and account manager; the agent adds the category, channel, a summary, the details, the order number and what the customer wants, and chooses the handler and an escalation contact as Persons.\n\nThe workflow sets the priority and SLA hours with the Complaint priority decision table (staff conduct and Platinum customers are P1 within 24 hours, and so on), starts the SLA, logs the complaint in the Complaints table, acknowledges the customer by email and alerts the account manager for high-priority cases. The handler gets a resolution task with Resolve and Escalate buttons, a reminder four hours before the deadline and escalation to their manager after a day. Escalate hands the complaint to the team lead, who can resolve it or return it. Resolving records the root cause and any goodwill credit and emails the customer. No integrations needed.",
+  "trigger": "form",
+  "entry_workflow": "fc792565-c3ba-5cdd-b138-859d59ff84be",
+  "entry_form": "15b6898d-104a-5501-821f-f846dd0c15ff",
+  "start": "Starts from a form page: customer care opens the Log a complaint form (/f/<id>); each complaint starts the workflow.",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "complaints",
+    "customer service",
+    "crm",
+    "sla",
+    "decision table",
+    "no integrations"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Replace the sample rows in Customers with your accounts (or import a CSV): account number, company, contact, tier and account manager.",
+    "Review the Complaint priority decision table: priorities, SLA hours, call-back hours and which cases alert the account manager.",
+    "Edit the Complaint acknowledgement and Complaint resolved email templates with your tone and signature.",
+    "Optional: set EMAIL_PROVIDER so customer emails are delivered (the console provider logs them)."
+  ],
+  "steps": [
+    {
+      "title": "Log it",
+      "body": "Customer care picks the customer (contact, tier and account manager fill in) and records what happened and who handles it."
+    },
+    {
+      "title": "Priority and SLA",
+      "body": "The Complaint priority decision table sets the priority, resolution hours and call-back time from tier and category; the run gets an SLA."
+    },
+    {
+      "title": "Acknowledge",
+      "body": "The complaint is logged in the Complaints table and the customer gets an acknowledgement with the target date."
+    },
+    {
+      "title": "Account manager",
+      "body": "High-priority complaints and escalations email the account manager."
+    },
+    {
+      "title": "Resolve or escalate",
+      "body": "The handler resolves it or escalates to the team lead; unanswered tasks escalate to the handler's manager."
+    },
+    {
+      "title": "Close the loop",
+      "body": "Resolving records the root cause and goodwill credit and emails the customer the outcome."
+    }
+  ],
+  "sample_input": {
+    "customer": "C-10034",
+    "contact_name": "Tom Becker",
+    "contact_email": "tom.becker@example.com",
+    "category": "Delivery",
+    "channel": "Phone",
+    "summary": "Gloves delivery missed for the third time",
+    "details": "The weekly delivery of nitrile gloves did not arrive on Tuesday; the clinic had to buy locally at retail prices.",
+    "order_ref": "SO-48812",
+    "desired_outcome": "Credit",
+    "handler": "$owner",
+    "team_lead": "$owner"
+  },
+  "expect": "waiting",
+  "icon": "message-square-warning",
+  "id": "c4e38c91-a2a4-54f9-8444-e181bdf1a55a",
+  "slug": "complaints-tracker"
+}

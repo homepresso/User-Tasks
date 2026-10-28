@@ -1,0 +1,49 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "c6eeddb6-62fb-5d3f-ae54-5d81a7871d3d",
+  "asset": {
+    "id": "c6eeddb6-62fb-5d3f-ae54-5d81a7871d3d",
+    "name": "Complaints rows",
+    "rows": [
+      {
+        "id": "d3619cde-359b-5a43-aa34-d705adaebadd",
+        "data": {
+          "complaint_ref": "CMP-20261019-2RTA",
+          "account_no": "C-10034",
+          "company": "Harbourside Dental",
+          "contact_email": "tom.becker@example.com",
+          "tier": "Gold",
+          "category": "Delivery",
+          "summary": "Second late delivery of gloves this month",
+          "priority": "P2",
+          "received_on": "2026-10-19",
+          "respond_by": "2026-10-21T09:00:00Z",
+          "account_manager": "Ravi Patel",
+          "status": "open"
+        }
+      },
+      {
+        "id": "af39eb35-e300-593e-91cd-f18f3d8c56e3",
+        "data": {
+          "complaint_ref": "CMP-20261002-8XWE",
+          "account_no": "C-10052",
+          "company": "Maple Street Bakery",
+          "contact_email": "liam.murphy@example.com",
+          "tier": "Silver",
+          "category": "Billing",
+          "summary": "Charged twice for the September order",
+          "priority": "P2",
+          "received_on": "2026-10-02",
+          "respond_by": "2026-10-04T10:00:00Z",
+          "account_manager": "Sofia Rossi",
+          "status": "resolved",
+          "root_cause": "Billing error",
+          "resolution": "Duplicate charge refunded",
+          "goodwill": 25,
+          "resolved_on": "2026-10-03"
+        }
+      }
+    ]
+  }
+}

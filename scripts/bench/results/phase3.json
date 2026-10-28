@@ -1,0 +1,378 @@
+{
+  "label": "phase3",
+  "updatedAt": "2026-10-24T21:56:22.657Z",
+  "environment": {
+    "machine": "Apple M1 Pro",
+    "cpus": 10,
+    "memory_gb": 32,
+    "os": "darwin 27.0.0 arm64",
+    "node": "v20.19.5",
+    "git_commit": "36383b92",
+    "git_branch": "perf",
+    "supabase_cli": "2.84.4",
+    "postgres_server": "17.6",
+    "docker": "28.3.2"
+  },
+  "suites": {
+    "db": {
+      "data": {
+        "tasks_list.authenticated": {
+          "execution_ms": 36.31,
+          "planning_ms": 0.11,
+          "seq_scans": [
+            "tasks"
+          ],
+          "rows_scanned": 70000,
+          "rows_returned": 50,
+          "function_calls": {
+            "public.get_current_tenant_id": 2,
+            "public.rls_visible_tenant_ids": 1
+          }
+        },
+        "tasks_list.service_role": {
+          "execution_ms": 0.18,
+          "planning_ms": 0.07,
+          "seq_scans": [],
+          "rows_scanned": 327,
+          "rows_returned": 50,
+          "function_calls": {}
+        },
+        "runs_by_workflow.authenticated": {
+          "execution_ms": 0.32,
+          "planning_ms": 0.04,
+          "seq_scans": [],
+          "rows_scanned": 50,
+          "rows_returned": 50,
+          "function_calls": {
+            "public.get_user_tenant_ids": 1,
+            "public.rls_member_tenant_ids": 1
+          }
+        },
+        "runs_by_workflow.service_role": {
+          "execution_ms": 0.07,
+          "planning_ms": 0.04,
+          "seq_scans": [],
+          "rows_scanned": 50,
+          "rows_returned": 50,
+          "function_calls": {}
+        },
+        "queue_claim.service_role": {
+          "execution_ms": 0.02,
+          "planning_ms": 0.09,
+          "seq_scans": [],
+          "rows_scanned": 0,
+          "rows_returned": 0,
+          "function_calls": {}
+        },
+        "task_search.authenticated": {
+          "execution_ms": 40.81,
+          "planning_ms": 0.06,
+          "seq_scans": [
+            "tasks"
+          ],
+          "rows_scanned": 70000,
+          "rows_returned": 20,
+          "function_calls": {
+            "public.get_current_tenant_id": 2,
+            "public.rls_visible_tenant_ids": 1
+          }
+        },
+        "task_search.service_role": {
+          "execution_ms": 4.26,
+          "planning_ms": 0.18,
+          "seq_scans": [],
+          "rows_scanned": 721,
+          "rows_returned": 20,
+          "function_calls": {}
+        },
+        "logs_by_run.authenticated": {
+          "execution_ms": 0.16,
+          "planning_ms": 0.03,
+          "seq_scans": [],
+          "rows_scanned": 10,
+          "rows_returned": 10,
+          "function_calls": {
+            "public.get_current_tenant_id": 2,
+            "public.rls_visible_tenant_ids": 1
+          }
+        },
+        "logs_by_run.service_role": {
+          "execution_ms": 0.01,
+          "planning_ms": 0.02,
+          "seq_scans": [],
+          "rows_scanned": 10,
+          "rows_returned": 10,
+          "function_calls": {}
+        },
+        "event_cursor.authenticated": {
+          "error": "permission denied for table event_stream"
+        },
+        "event_cursor.service_role": {
+          "execution_ms": 0.04,
+          "planning_ms": 0.04,
+          "seq_scans": [],
+          "rows_scanned": 101,
+          "rows_returned": 101,
+          "function_calls": {}
+        }
+      },
+      "tables": [
+        {
+          "title": "Query plans (EXPLAIN ANALYZE, warm cache; authenticated = a member via RLS)",
+          "columns": [
+            "query",
+            "role",
+            "exec ms",
+            "seq scans",
+            "rows scanned / returned",
+            "fn calls",
+            "fn calls per scanned row (top)"
+          ],
+          "rows": [
+            [
+              "tasks list for a user (newest 50)",
+              "authenticated",
+              36.31,
+              "tasks",
+              "70000 / 50",
+              3,
+              "0 (public.get_current_tenant_id×2, public.rls_visible_tenant_ids×1)"
+            ],
+            [
+              "tasks list for a user (newest 50)",
+              "service_role",
+              0.18,
+              "none",
+              "327 / 50",
+              0,
+              "0"
+            ],
+            [
+              "runs list by workflow, newest 50 (select *)",
+              "authenticated",
+              0.32,
+              "none",
+              "50 / 50",
+              2,
+              "0.04 (public.get_user_tenant_ids×1, public.rls_member_tenant_ids×1)"
+            ],
+            [
+              "runs list by workflow, newest 50 (select *)",
+              "service_role",
+              0.07,
+              "none",
+              "50 / 50",
+              0,
+              "0"
+            ],
+            [
+              "queue claim (claim_next_job SELECT … FOR UPDATE SKIP LOCKED)",
+              "authenticated",
+              "n/a (service only)",
+              null,
+              null,
+              null,
+              null
+            ],
+            [
+              "queue claim (claim_next_job SELECT … FOR UPDATE SKIP LOCKED)",
+              "service_role",
+              0.02,
+              "none",
+              "0 / 0",
+              0,
+              "0"
+            ],
+            [
+              "task title ILIKE '%invoice 4%' (20)",
+              "authenticated",
+              40.81,
+              "tasks",
+              "70000 / 20",
+              3,
+              "0 (public.get_current_tenant_id×2, public.rls_visible_tenant_ids×1)"
+            ],
+            [
+              "task title ILIKE '%invoice 4%' (20)",
+              "service_role",
+              4.26,
+              "none",
+              "721 / 20",
+              0,
+              "0"
+            ],
+            [
+              "workflow_logs for one run",
+              "authenticated",
+              0.16,
+              "none",
+              "10 / 10",
+              3,
+              "0.3 (public.get_current_tenant_id×2, public.rls_visible_tenant_ids×1)"
+            ],
+            [
+              "workflow_logs for one run",
+              "service_role",
+              0.01,
+              "none",
+              "10 / 10",
+              0,
+              "0"
+            ],
+            [
+              "event_stream cursor read (101 after cursor)",
+              "authenticated",
+              "error: permission denied for table event_stream",
+              null,
+              null,
+              null,
+              null
+            ],
+            [
+              "event_stream cursor read (101 after cursor)",
+              "service_role",
+              0.04,
+              "none",
+              "101 / 101",
+              0,
+              "0"
+            ]
+          ]
+        }
+      ],
+      "notes": [
+        "Plans saved in scripts/bench/results/phase3/plans/.",
+        "Function calls = pg_stat_xact_user_functions delta (track_functions = all) for the EXPLAIN ANALYZE run."
+      ],
+      "ranAt": "2026-10-24T21:55:15.497Z",
+      "durationMs": 517
+    },
+    "api": {
+      "data": {
+        "tool_count": 154,
+        "tool_called": "workflows_list",
+        "GET /api/v1/workflows?active=false": {
+          "n": 100,
+          "p50": 82.2,
+          "p95": 93.1,
+          "max": 101.2,
+          "mean": 83.1,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 6188
+        },
+        "GET /api/v1/tasks": {
+          "n": 100,
+          "p50": 84.9,
+          "p95": 90.1,
+          "max": 105.5,
+          "mean": 85.4,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 32025
+        },
+        "GET /api/v1/me": {
+          "n": 100,
+          "p50": 80.6,
+          "p95": 90.6,
+          "max": 106.7,
+          "mean": 81.5,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 1227
+        },
+        "MCP tools/list": {
+          "n": 100,
+          "p50": 98.7,
+          "p95": 111.1,
+          "max": 124.7,
+          "mean": 100.4,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 125796
+        },
+        "MCP tools/call workflows_list": {
+          "n": 100,
+          "p50": 99.2,
+          "p95": 109.9,
+          "max": 122.2,
+          "mean": 100.6,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 10263
+        }
+      },
+      "tables": [
+        {
+          "title": "API latency (100 sequential requests each after 5 warm-ups, tenant API key, ms)",
+          "columns": [
+            "request",
+            "p50",
+            "p95",
+            "max",
+            "mean",
+            "statuses",
+            "response bytes"
+          ],
+          "rows": [
+            [
+              "GET /api/v1/workflows?active=false",
+              82.2,
+              93.1,
+              101.2,
+              83.1,
+              "200×100",
+              6188
+            ],
+            [
+              "GET /api/v1/tasks",
+              84.9,
+              90.1,
+              105.5,
+              85.4,
+              "200×100",
+              32025
+            ],
+            [
+              "GET /api/v1/me",
+              80.6,
+              90.6,
+              106.7,
+              81.5,
+              "200×100",
+              1227
+            ],
+            [
+              "MCP tools/list",
+              98.7,
+              111.1,
+              124.7,
+              100.4,
+              "200×100",
+              125796
+            ],
+            [
+              "MCP tools/call workflows_list",
+              99.2,
+              109.9,
+              122.2,
+              100.6,
+              "200×100",
+              10263
+            ]
+          ]
+        }
+      ],
+      "notes": [
+        "MCP server exposes 154 tools; tools/call used workflows_list with no arguments."
+      ],
+      "ranAt": "2026-10-24T21:56:23.696Z",
+      "durationMs": 48248
+    }
+  }
+}

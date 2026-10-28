@@ -1,0 +1,712 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "e86cfb1f-a600-5d9d-b9b5-749537a67194",
+  "asset": {
+    "id": "e86cfb1f-a600-5d9d-b9b5-749537a67194",
+    "name": "ServiceNow change approval",
+    "description": "ServiceNow posts a change request awaiting approval; the CI criticality and the Change risk route decide the approval, the CAB (or change manager) approves, rejects or asks for information, and the decision is written to the sysapproval_approver record.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Change sent for approval",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "get",
+        "type": "call_reference",
+        "label": "Get change request",
+        "position": {
+          "x": 400,
+          "y": 220
+        },
+        "config": {
+          "reference_id": "570f7e82-ebc3-5960-9b7c-53053c5f73e9",
+          "reference_name": "Get change request",
+          "reference_method": "GET",
+          "input_mappings": {
+            "sys_id": "{{sys_id}}"
+          },
+          "output_mappings": {
+            "number": {
+              "enabled": true,
+              "variableName": "number"
+            },
+            "short_description": {
+              "enabled": true,
+              "variableName": "short_description"
+            },
+            "description": {
+              "enabled": true,
+              "variableName": "description"
+            },
+            "change_type": {
+              "enabled": true,
+              "variableName": "change_type"
+            },
+            "risk": {
+              "enabled": true,
+              "variableName": "risk"
+            },
+            "impact": {
+              "enabled": true,
+              "variableName": "impact"
+            },
+            "cmdb_ci": {
+              "enabled": true,
+              "variableName": "cmdb_ci"
+            },
+            "assignment_group": {
+              "enabled": true,
+              "variableName": "assignment_group"
+            },
+            "requested_by": {
+              "enabled": true,
+              "variableName": "requested_by"
+            },
+            "start_date": {
+              "enabled": true,
+              "variableName": "start_date"
+            },
+            "end_date": {
+              "enabled": true,
+              "variableName": "end_date"
+            },
+            "implementation_plan": {
+              "enabled": true,
+              "variableName": "implementation_plan"
+            },
+            "backout_plan": {
+              "enabled": true,
+              "variableName": "backout_plan"
+            },
+            "test_plan": {
+              "enabled": true,
+              "variableName": "test_plan"
+            },
+            "conflict_status": {
+              "enabled": true,
+              "variableName": "conflict_status"
+            }
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 380
+        },
+        "config": {
+          "title": "{{number}} · {{short_description}}"
+        }
+      },
+      {
+        "id": "ci",
+        "type": "update_data_table",
+        "label": "Look up CI criticality",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "table_id": "d5b8ca3f-b869-5d23-a894-6be09de8a8ac",
+          "table_name": "CI criticality",
+          "operation": "get",
+          "match_column": "ci_name",
+          "match_value": "{{cmdb_ci}}",
+          "output_row_var": "ci_row"
+        }
+      },
+      {
+        "id": "crit",
+        "type": "set_variable",
+        "label": "CI criticality",
+        "position": {
+          "x": 400,
+          "y": 700
+        },
+        "config": {
+          "name": "ci_criticality",
+          "expression": "{{=COALESCE(ci_row.criticality, \"medium\")}}"
+        }
+      },
+      {
+        "id": "risk_dt",
+        "type": "decision_table",
+        "label": "Change risk route",
+        "position": {
+          "x": 400,
+          "y": 860
+        },
+        "config": {
+          "decision_table_id": "0d443b6f-ac9d-52cd-a51b-d5ee49055fe1",
+          "decision_table_name": "Change risk route",
+          "input_mappings": {
+            "change_type": "{{change_type}}",
+            "risk": "{{risk}}",
+            "ci_criticality": "{{ci_criticality}}"
+          }
+        }
+      },
+      {
+        "id": "find",
+        "type": "call_reference",
+        "label": "Find pending approval",
+        "position": {
+          "x": 400,
+          "y": 1020
+        },
+        "config": {
+          "reference_id": "ac6c80df-5b95-52cd-bd4e-12fc800f80db",
+          "reference_name": "Find pending approval",
+          "reference_method": "GET",
+          "input_mappings": {
+            "sysparm_query": "sysapproval={{sys_id}}^state=requested"
+          },
+          "output_mappings": {
+            "approval_sys_id": {
+              "enabled": true,
+              "variableName": "approval_sys_id"
+            },
+            "approval_state": {
+              "enabled": true,
+              "variableName": "approval_state"
+            }
+          }
+        }
+      },
+      {
+        "id": "review_needed",
+        "type": "condition",
+        "label": "Needs review?",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Review",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_review}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Decision SLA",
+        "position": {
+          "x": 400,
+          "y": 1340
+        },
+        "config": {
+          "sla_label": "Change decision",
+          "mode": "relative",
+          "amount": 48,
+          "unit": "hours",
+          "warning_amount": 24,
+          "warning_unit": "hours"
+        }
+      },
+      {
+        "id": "cab",
+        "type": "user_task",
+        "label": "CAB review",
+        "position": {
+          "x": 400,
+          "y": 1500
+        },
+        "config": {
+          "task_title": "{{route}}: {{number}} {{short_description}} (risk {{risk}})",
+          "task_description": "<p><strong>{{short_description}}</strong> ({{change_type}} change, risk <strong>{{risk}}</strong>, impact {{impact}}).</p><p>{{description}}</p><p>CI <strong>{{cmdb_ci}}</strong>: {{ci_criticality}} criticality, service {{ci_row.business_service}}. Window {{start_date}} to {{end_date}}. Conflicts: {{conflict_status}}. Requested by {{requested_by}} ({{assignment_group}}).</p><p><strong>Implementation:</strong> {{implementation_plan}}<br><strong>Backout:</strong> {{backout_plan}}<br><strong>Test:</strong> {{test_plan}}</p><p>Route rule “{{rule_label}}”: {{checks}}</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject",
+            "Request info"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "ff07893f-d1e1-592f-b62c-16a36067d8c6",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 2880,
+          "fields": [
+            {
+              "key": "h_checks",
+              "label": "Checks",
+              "type": "heading"
+            },
+            {
+              "key": "plans_ok",
+              "label": "Implementation, backout and test plans are adequate",
+              "type": "boolean"
+            },
+            {
+              "key": "window_ok",
+              "label": "Window and conflicts are acceptable",
+              "type": "boolean"
+            },
+            {
+              "key": "business_ok",
+              "label": "Business / service owner agrees",
+              "type": "boolean"
+            },
+            {
+              "key": "residual_risk",
+              "label": "Residual risk",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "Low",
+                "Moderate",
+                "High"
+              ],
+              "display": "radio"
+            },
+            {
+              "key": "conditions",
+              "label": "Approval conditions",
+              "type": "text",
+              "placeholder": "e.g. Service owner on the bridge during the window"
+            },
+            {
+              "key": "comments",
+              "label": "Comments for the change owner",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "h_checks",
+                    "span": 3
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "plans_ok",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "window_ok",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "business_ok",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "residual_risk",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "conditions",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "comments",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Change approval",
+            "align": "left",
+            "subtitle": "{{number}} · {{cmdb_ci}} · {{route}}"
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "info",
+              "label": "Request info",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Request info"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ]
+        }
+      },
+      {
+        "id": "approve",
+        "type": "call_reference",
+        "label": "Approve in ServiceNow",
+        "position": {
+          "x": 80,
+          "y": 1680
+        },
+        "config": {
+          "reference_id": "1a8661cb-ff2a-505a-aa71-a3824d03de1b",
+          "reference_name": "Set approval",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "approval_sys_id": "{{approval_sys_id}}",
+            "state": "approved",
+            "comments": "{{route}} approved via UserTasks. Residual risk {{task_data.residual_risk}}. {{task_data.conditions}} {{task_data.comments}}"
+          },
+          "output_mappings": {
+            "updated_on": {
+              "enabled": true,
+              "variableName": "updated_on"
+            }
+          }
+        }
+      },
+      {
+        "id": "lbl_a",
+        "type": "set_variable",
+        "label": "Decision: approved",
+        "position": {
+          "x": 80,
+          "y": 1840
+        },
+        "config": {
+          "name": "decision_label",
+          "expression": "approved by {{route}}"
+        }
+      },
+      {
+        "id": "reject",
+        "type": "call_reference",
+        "label": "Reject in ServiceNow",
+        "position": {
+          "x": 400,
+          "y": 1680
+        },
+        "config": {
+          "reference_id": "1a8661cb-ff2a-505a-aa71-a3824d03de1b",
+          "reference_name": "Set approval",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "approval_sys_id": "{{approval_sys_id}}",
+            "state": "rejected",
+            "comments": "{{route}} rejected via UserTasks. {{task_data.comments}}"
+          },
+          "output_mappings": {
+            "updated_on": {
+              "enabled": true,
+              "variableName": "updated_on"
+            }
+          }
+        }
+      },
+      {
+        "id": "lbl_r",
+        "type": "set_variable",
+        "label": "Decision: rejected",
+        "position": {
+          "x": 400,
+          "y": 1840
+        },
+        "config": {
+          "name": "decision_label",
+          "expression": "rejected by {{route}}"
+        }
+      },
+      {
+        "id": "info",
+        "type": "call_reference",
+        "label": "Ask for more information",
+        "position": {
+          "x": 720,
+          "y": 1680
+        },
+        "config": {
+          "reference_id": "c0cbf0df-0a6d-507e-87dc-efe28127de16",
+          "reference_name": "Add change work note",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "sys_id": "{{sys_id}}",
+            "work_notes": "{{route}} needs more information before deciding: {{task_data.comments}}"
+          },
+          "output_mappings": {
+            "updated_on": {
+              "enabled": true,
+              "variableName": "updated_on"
+            }
+          }
+        }
+      },
+      {
+        "id": "lbl_i",
+        "type": "set_variable",
+        "label": "Decision: more information",
+        "position": {
+          "x": 720,
+          "y": 1840
+        },
+        "config": {
+          "name": "decision_label",
+          "expression": "more information requested by {{route}}"
+        }
+      },
+      {
+        "id": "notify",
+        "type": "send_email",
+        "label": "Email the change team",
+        "position": {
+          "x": 400,
+          "y": 2000
+        },
+        "config": {
+          "to": "{{=COALESCE(notify_email, \"change-management@example.com\")}}",
+          "email_template_id": "96e2e26a-6886-5fb2-98ce-6a34b24e0710"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Decision recorded",
+        "position": {
+          "x": 400,
+          "y": 2160
+        },
+        "config": {
+          "reason": "{{number}} {{decision_label}}"
+        }
+      },
+      {
+        "id": "auto",
+        "type": "call_reference",
+        "label": "Auto-approve standard change",
+        "position": {
+          "x": 1040,
+          "y": 1340
+        },
+        "config": {
+          "reference_id": "1a8661cb-ff2a-505a-aa71-a3824d03de1b",
+          "reference_name": "Set approval",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "approval_sys_id": "{{approval_sys_id}}",
+            "state": "approved",
+            "comments": "Standard change: pre-approved model, approved automatically by UserTasks."
+          },
+          "output_mappings": {
+            "updated_on": {
+              "enabled": true,
+              "variableName": "updated_on"
+            }
+          }
+        }
+      },
+      {
+        "id": "auto_done",
+        "type": "end_workflow",
+        "label": "Pre-approved",
+        "position": {
+          "x": 1040,
+          "y": 1500
+        },
+        "config": {
+          "reason": "{{number}} standard change approved automatically"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-get",
+        "source": "trigger",
+        "target": "get"
+      },
+      {
+        "id": "e-get-title",
+        "source": "get",
+        "target": "title"
+      },
+      {
+        "id": "e-title-ci",
+        "source": "title",
+        "target": "ci"
+      },
+      {
+        "id": "e-ci-crit",
+        "source": "ci",
+        "target": "crit"
+      },
+      {
+        "id": "e-crit-risk_dt",
+        "source": "crit",
+        "target": "risk_dt"
+      },
+      {
+        "id": "e-risk_dt-find",
+        "source": "risk_dt",
+        "target": "find"
+      },
+      {
+        "id": "e-find-review_needed",
+        "source": "find",
+        "target": "review_needed"
+      },
+      {
+        "id": "e-review_needed-sla-review",
+        "source": "review_needed",
+        "target": "sla",
+        "label": "Review"
+      },
+      {
+        "id": "e-review_needed-auto-else",
+        "source": "review_needed",
+        "target": "auto",
+        "label": "Else"
+      },
+      {
+        "id": "e-auto-auto_done",
+        "source": "auto",
+        "target": "auto_done"
+      },
+      {
+        "id": "e-sla-cab",
+        "source": "sla",
+        "target": "cab"
+      },
+      {
+        "id": "e-cab-approve-approve",
+        "source": "cab",
+        "target": "approve",
+        "label": "Approve"
+      },
+      {
+        "id": "e-cab-reject-reject",
+        "source": "cab",
+        "target": "reject",
+        "label": "Reject"
+      },
+      {
+        "id": "e-cab-info-request-info",
+        "source": "cab",
+        "target": "info",
+        "label": "Request info"
+      },
+      {
+        "id": "e-approve-lbl_a",
+        "source": "approve",
+        "target": "lbl_a"
+      },
+      {
+        "id": "e-reject-lbl_r",
+        "source": "reject",
+        "target": "lbl_r"
+      },
+      {
+        "id": "e-info-lbl_i",
+        "source": "info",
+        "target": "lbl_i"
+      },
+      {
+        "id": "e-lbl_a-notify",
+        "source": "lbl_a",
+        "target": "notify"
+      },
+      {
+        "id": "e-lbl_r-notify",
+        "source": "lbl_r",
+        "target": "notify"
+      },
+      {
+        "id": "e-lbl_i-notify",
+        "source": "lbl_i",
+        "target": "notify"
+      },
+      {
+        "id": "e-notify-done",
+        "source": "notify",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-sys_id",
+        "name": "sys_id",
+        "type": "string",
+        "description": "The change_request sys_id (current.sys_id when the change reaches Authorize / an approval is requested)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Change sys_id"
+      },
+      {
+        "id": "v-number",
+        "name": "number",
+        "type": "string",
+        "description": "Optional: the change number (current.number)",
+        "defaultValue": "",
+        "required": false,
+        "label": "Change number"
+      },
+      {
+        "id": "v-notify_email",
+        "name": "notify_email",
+        "type": "string",
+        "description": "Optional: where the decision email goes (the change team or requester)",
+        "defaultValue": "change-management@example.com",
+        "required": false,
+        "label": "Notify",
+        "format": "email"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

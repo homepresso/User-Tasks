@@ -1,0 +1,40 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "3d960201-f081-4fc9-8479-71412634dd07",
+  "asset": {
+    "id": "3d960201-f081-4fc9-8479-71412634dd07",
+    "name": "Currency rates",
+    "description": "Exchange rates into the base currency used by the warehouse. Update them from your treasury source (or a scheduled workflow).",
+    "columns": [
+      {
+        "id": "12574983-8a90-468f-8d6b-c9b31644edf3",
+        "required": true,
+        "key": "currency",
+        "name": "Currency",
+        "type": "text"
+      },
+      {
+        "id": "3ac8d5df-f721-4195-8573-993ddcc54afb",
+        "required": true,
+        "key": "rate_to_base",
+        "name": "Rate to base",
+        "type": "number"
+      },
+      {
+        "id": "655f1a1d-7759-49a4-8009-3b5c780efb44",
+        "required": false,
+        "key": "base_currency",
+        "name": "Base currency",
+        "type": "text"
+      },
+      {
+        "id": "52028980-26fe-466d-a2d0-51e5a04d6556",
+        "required": false,
+        "key": "effective_date",
+        "name": "Effective date",
+        "type": "text"
+      }
+    ]
+  }
+}

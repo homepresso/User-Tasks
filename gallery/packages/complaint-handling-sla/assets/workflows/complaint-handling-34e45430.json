@@ -1,0 +1,906 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "34e45430-9557-4346-b5ae-b22949b1e931",
+  "asset": {
+    "id": "34e45430-9557-4346-b5ae-b22949b1e931",
+    "name": "Complaint handling",
+    "description": "A service agent logs a complaint; the CRM tier and the SLA matrix set response and resolution targets, a handler investigates under an SLA with reminders and escalation, larger compensation needs supervisor approval, and the case is resolved in the CRM.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Complaint logged",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "customer_email",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "order_number",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "category",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "severity",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "channel",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "description",
+                      "span": 3
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "handler_id",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "supervisor_id",
+                      "span": 2
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#DC2626",
+                    "background": "#FFFFFF",
+                    "text": "#1B1916",
+                    "page": "#FCEEEE"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "header": {
+                  "enabled": true,
+                  "title": "Log a complaint",
+                  "subtitle": "High and critical complaints get a shorter SLA and supervisor oversight."
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "customer",
+        "type": "call_reference",
+        "label": "Find customer",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "reference_id": "e14c40a6-93ca-4e9b-a178-5e4e9042ade7",
+          "reference_name": "Find customer by email",
+          "reference_method": "GET",
+          "input_mappings": {
+            "email": "{{customer_email}}"
+          },
+          "output_mappings": {
+            "customer_id": {
+              "enabled": true,
+              "variableName": "customer_id"
+            },
+            "customer_name": {
+              "enabled": true,
+              "variableName": "customer_name"
+            },
+            "tier": {
+              "enabled": true,
+              "variableName": "tier"
+            },
+            "lifetime_value": {
+              "enabled": true,
+              "variableName": "lifetime_value"
+            }
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "title": "Complaint: {{customer_name}} · {{category}} · {{severity}}"
+        }
+      },
+      {
+        "id": "matrix",
+        "type": "decision_table",
+        "label": "Complaint SLA matrix",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "decision_table_id": "38b0a730-086f-44bf-8900-4171c3dd70df",
+          "decision_table_name": "Complaint SLA matrix",
+          "input_mappings": {
+            "category": "{{category}}",
+            "severity": "{{severity}}",
+            "tier": "{{tier}}"
+          }
+        }
+      },
+      {
+        "id": "resp_due",
+        "type": "set_variable",
+        "label": "First response due",
+        "position": {
+          "x": 340,
+          "y": 700
+        },
+        "config": {
+          "name": "first_response_due",
+          "expression": "{{=ADD_HOURS(NOW(), first_response_hours)}}"
+        }
+      },
+      {
+        "id": "res_due",
+        "type": "set_variable",
+        "label": "Resolution due",
+        "position": {
+          "x": 340,
+          "y": 860
+        },
+        "config": {
+          "name": "resolution_due",
+          "expression": "{{=ADD_DAYS(NOW(), resolution_days)}}"
+        }
+      },
+      {
+        "id": "res_date",
+        "type": "set_variable",
+        "label": "Resolution date",
+        "position": {
+          "x": 340,
+          "y": 1020
+        },
+        "config": {
+          "name": "resolution_due_date",
+          "expression": "{{=FORMAT_DATE(resolution_due, \"DD/MM/YYYY\")}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Resolution SLA",
+        "position": {
+          "x": 340,
+          "y": 1180
+        },
+        "config": {
+          "sla_label": "Complaint resolution",
+          "mode": "exact",
+          "due_at": "{{resolution_due}}",
+          "warning_amount": 1,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "case",
+        "type": "call_reference",
+        "label": "Create case",
+        "position": {
+          "x": 340,
+          "y": 1340
+        },
+        "config": {
+          "reference_id": "3cbf243f-094d-4843-91a2-8f29513afe66",
+          "reference_name": "Create case",
+          "reference_method": "POST",
+          "input_mappings": {
+            "customer_id": "{{customer_id}}",
+            "order_number": "{{order_number}}",
+            "category": "{{category}}",
+            "severity": "{{severity}}",
+            "channel": "{{channel}}",
+            "description": "{{description}}",
+            "first_response_due": "{{first_response_due}}",
+            "resolution_due": "{{resolution_due}}"
+          },
+          "output_mappings": {
+            "case_id": {
+              "enabled": true,
+              "variableName": "case_id"
+            },
+            "case_number": {
+              "enabled": true,
+              "variableName": "case_number"
+            }
+          }
+        }
+      },
+      {
+        "id": "ack",
+        "type": "send_email",
+        "label": "Acknowledge customer",
+        "position": {
+          "x": 340,
+          "y": 1500
+        },
+        "config": {
+          "to": "{{customer_email}}",
+          "email_template_id": "a9f5de26-457e-42a7-b190-7261ab9dfaa7"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "investigate",
+        "type": "user_task",
+        "label": "Investigate and resolve",
+        "position": {
+          "x": 340,
+          "y": 1660
+        },
+        "config": {
+          "task_title": "{{case_number}}: {{category}} complaint from {{customer_name}} ({{severity}}, {{tier}})",
+          "task_description": "<p><strong>{{customer_name}}</strong> ({{tier}} customer, lifetime value {{lifetime_value}}) complained via {{channel}} about <strong>{{category}}</strong>{{=IF(IS_EMPTY(order_number), \"\", CONCAT(\" on order \", order_number))}}.</p><p>{{description}}</p><p>SLA rule “{{rule_label}}”: contact the customer within <strong>{{first_response_hours}} hours</strong>, resolve by <strong>{{resolution_due_date}}</strong>. Handler level: {{handler_level}}. You can offer up to {{compensation_limit}} without approval.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Resolved",
+            "Needs supervisor"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "77910c76-ebdc-4e4e-b6aa-1e234883f092",
+          "assignee_variable": "{{handler_id}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{resolution_due}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            },
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "individual",
+          "escalation_user_id": "319fbc4d-0fa6-4750-b79f-facfa41e98c9",
+          "escalate_after_minutes": 1440,
+          "fields": [
+            {
+              "key": "root_cause",
+              "label": "Root cause",
+              "type": "choice",
+              "options": [
+                "Carrier delay",
+                "Warehouse error",
+                "Product defect",
+                "Billing error",
+                "Process gap",
+                "Staff conduct",
+                "Customer misunderstanding",
+                "Other"
+              ],
+              "required": true
+            },
+            {
+              "key": "resolution_summary",
+              "label": "Resolution summary (sent to the customer)",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "compensation_amount",
+              "label": "Compensation amount",
+              "type": "number",
+              "default": "0"
+            },
+            {
+              "key": "customer_contacted",
+              "label": "Customer contacted",
+              "type": "boolean",
+              "required": true,
+              "default": "false"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "root_cause",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "compensation_amount",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "customer_contacted",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "resolution_summary",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "resolved",
+              "label": "Resolved",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Resolved"
+            },
+            {
+              "id": "needs_supervisor",
+              "label": "Needs supervisor",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Needs supervisor"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Complaint {{case_number}}",
+            "align": "left",
+            "subtitle": "{{customer_name}} · {{category}} · {{severity}} ({{tier}})"
+          }
+        }
+      },
+      {
+        "id": "summary",
+        "type": "set_variable",
+        "label": "Resolution summary",
+        "position": {
+          "x": 340,
+          "y": 1840
+        },
+        "config": {
+          "name": "resolution_summary",
+          "expression": "{{task_data.resolution_summary}}"
+        }
+      },
+      {
+        "id": "root",
+        "type": "set_variable",
+        "label": "Root cause",
+        "position": {
+          "x": 340,
+          "y": 2000
+        },
+        "config": {
+          "name": "root_cause",
+          "expression": "{{task_data.root_cause}}"
+        }
+      },
+      {
+        "id": "comp",
+        "type": "set_variable",
+        "label": "Compensation",
+        "position": {
+          "x": 340,
+          "y": 2160
+        },
+        "config": {
+          "name": "compensation_amount",
+          "expression": "{{task_data.compensation_amount}}"
+        }
+      },
+      {
+        "id": "contacted",
+        "type": "set_variable",
+        "label": "Customer contacted",
+        "position": {
+          "x": 340,
+          "y": 2320
+        },
+        "config": {
+          "name": "customer_contacted",
+          "expression": "{{task_data.customer_contacted}}"
+        }
+      },
+      {
+        "id": "over",
+        "type": "set_variable",
+        "label": "Over limit?",
+        "position": {
+          "x": 340,
+          "y": 2480
+        },
+        "config": {
+          "name": "needs_approval",
+          "expression": "{{=IF(compensation_amount > compensation_limit, true, false)}}"
+        }
+      },
+      {
+        "id": "check",
+        "type": "condition",
+        "label": "Supervisor needed?",
+        "position": {
+          "x": 340,
+          "y": 2640
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Over limit",
+              "logic": "or",
+              "rules": [
+                {
+                  "field": "{{needs_approval}}",
+                  "operator": "equals",
+                  "value": "true"
+                },
+                {
+                  "field": "{{outcome}}",
+                  "operator": "equals",
+                  "value": "Needs supervisor"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "approved_self",
+        "type": "set_variable",
+        "label": "Within handler limit",
+        "position": {
+          "x": 660,
+          "y": 2820
+        },
+        "config": {
+          "name": "approved_by",
+          "expression": "Handler (within limit)"
+        }
+      },
+      {
+        "id": "supervisor",
+        "type": "user_task",
+        "label": "Supervisor approval",
+        "position": {
+          "x": 340,
+          "y": 2820
+        },
+        "config": {
+          "task_title": "Approve resolution for {{case_number}} ({{customer_name}}): compensation {{compensation_amount}}",
+          "task_description": "<p>The handler proposes this resolution for <strong>{{customer_name}}</strong> ({{tier}}, lifetime value {{lifetime_value}}):</p><p>{{resolution_summary}}</p><p>Root cause: {{root_cause}}. Compensation <strong>{{compensation_amount}}</strong> (handler limit {{compensation_limit}}).</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Send back"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "319fbc4d-0fa6-4750-b79f-facfa41e98c9",
+          "assignee_variable": "{{supervisor_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 4,
+          "due_offset_unit": "hours",
+          "fields": [
+            {
+              "key": "approved_compensation",
+              "label": "Approved compensation",
+              "type": "number",
+              "required": true,
+              "default": "{{compensation_amount}}"
+            },
+            {
+              "key": "supervisor_note",
+              "label": "Note for the handler",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "approved_compensation",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "supervisor_note",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "send_back",
+              "label": "Send back",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Send back"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Approve resolution: {{case_number}}",
+            "align": "left",
+            "subtitle": "{{customer_name}} · compensation {{compensation_amount}}"
+          }
+        }
+      },
+      {
+        "id": "approved_comp",
+        "type": "set_variable",
+        "label": "Approved compensation",
+        "position": {
+          "x": 340,
+          "y": 3000
+        },
+        "config": {
+          "name": "compensation_amount",
+          "expression": "{{task_data.approved_compensation}}"
+        }
+      },
+      {
+        "id": "approved_sup",
+        "type": "set_variable",
+        "label": "Approved by supervisor",
+        "position": {
+          "x": 340,
+          "y": 3160
+        },
+        "config": {
+          "name": "approved_by",
+          "expression": "Supervisor"
+        }
+      },
+      {
+        "id": "back",
+        "type": "goto_activity",
+        "label": "Back to handler",
+        "position": {
+          "x": 660,
+          "y": 3000
+        },
+        "config": {
+          "target_node_id": "investigate",
+          "target_node_label": "Investigate and resolve"
+        }
+      },
+      {
+        "id": "resolve",
+        "type": "call_reference",
+        "label": "Resolve case",
+        "position": {
+          "x": 340,
+          "y": 3320
+        },
+        "config": {
+          "reference_id": "9905ac80-7523-4db9-9efe-1ccb14c9f947",
+          "reference_name": "Resolve case",
+          "reference_method": "POST",
+          "input_mappings": {
+            "case_id": "{{case_id}}",
+            "root_cause": "{{root_cause}}",
+            "resolution_summary": "{{resolution_summary}}",
+            "compensation_amount": "{{compensation_amount}}",
+            "customer_contacted": "{{customer_contacted}}",
+            "approved_by": "{{approved_by}}"
+          },
+          "output_mappings": {
+            "resolved_at": {
+              "enabled": true,
+              "variableName": "resolved_at"
+            }
+          }
+        }
+      },
+      {
+        "id": "notify",
+        "type": "send_email",
+        "label": "Email customer: resolved",
+        "position": {
+          "x": 340,
+          "y": 3480
+        },
+        "config": {
+          "to": "{{customer_email}}",
+          "email_template_id": "83582e1e-ef07-4deb-bbb2-8a36e084cba4"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Resolved",
+        "position": {
+          "x": 340,
+          "y": 3640
+        },
+        "config": {
+          "reason": "Case {{case_number}} resolved ({{root_cause}}, compensation {{compensation_amount}})"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-customer",
+        "source": "trigger",
+        "target": "customer"
+      },
+      {
+        "id": "e-customer-title",
+        "source": "customer",
+        "target": "title"
+      },
+      {
+        "id": "e-title-matrix",
+        "source": "title",
+        "target": "matrix"
+      },
+      {
+        "id": "e-matrix-resp_due",
+        "source": "matrix",
+        "target": "resp_due"
+      },
+      {
+        "id": "e-resp_due-res_due",
+        "source": "resp_due",
+        "target": "res_due"
+      },
+      {
+        "id": "e-res_due-res_date",
+        "source": "res_due",
+        "target": "res_date"
+      },
+      {
+        "id": "e-res_date-sla",
+        "source": "res_date",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-case",
+        "source": "sla",
+        "target": "case"
+      },
+      {
+        "id": "e-case-ack",
+        "source": "case",
+        "target": "ack"
+      },
+      {
+        "id": "e-ack-investigate",
+        "source": "ack",
+        "target": "investigate"
+      },
+      {
+        "id": "e-investigate-summary-resolved",
+        "source": "investigate",
+        "target": "summary",
+        "label": "Resolved"
+      },
+      {
+        "id": "e-investigate-summary-needs-supervisor",
+        "source": "investigate",
+        "target": "summary",
+        "label": "Needs supervisor"
+      },
+      {
+        "id": "e-summary-root",
+        "source": "summary",
+        "target": "root"
+      },
+      {
+        "id": "e-root-comp",
+        "source": "root",
+        "target": "comp"
+      },
+      {
+        "id": "e-comp-contacted",
+        "source": "comp",
+        "target": "contacted"
+      },
+      {
+        "id": "e-contacted-over",
+        "source": "contacted",
+        "target": "over"
+      },
+      {
+        "id": "e-over-check",
+        "source": "over",
+        "target": "check"
+      },
+      {
+        "id": "e-check-supervisor-over-limit",
+        "source": "check",
+        "target": "supervisor",
+        "label": "Over limit"
+      },
+      {
+        "id": "e-check-approved_self-else",
+        "source": "check",
+        "target": "approved_self",
+        "label": "Else"
+      },
+      {
+        "id": "e-supervisor-approved_comp-approve",
+        "source": "supervisor",
+        "target": "approved_comp",
+        "label": "Approve"
+      },
+      {
+        "id": "e-supervisor-back-send-back",
+        "source": "supervisor",
+        "target": "back",
+        "label": "Send back"
+      },
+      {
+        "id": "e-approved_comp-approved_sup",
+        "source": "approved_comp",
+        "target": "approved_sup"
+      },
+      {
+        "id": "e-approved_self-resolve",
+        "source": "approved_self",
+        "target": "resolve"
+      },
+      {
+        "id": "e-approved_sup-resolve",
+        "source": "approved_sup",
+        "target": "resolve"
+      },
+      {
+        "id": "e-resolve-notify",
+        "source": "resolve",
+        "target": "notify"
+      },
+      {
+        "id": "e-notify-done",
+        "source": "notify",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-customer_email",
+        "name": "customer_email",
+        "type": "string",
+        "description": "Customer email address (used to find them in the CRM)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Customer email",
+        "format": "email"
+      },
+      {
+        "id": "v-order_number",
+        "name": "order_number",
+        "type": "string",
+        "description": "Order or invoice number, if the complaint is about one",
+        "defaultValue": "",
+        "label": "Order number"
+      },
+      {
+        "id": "v-category",
+        "name": "category",
+        "type": "string",
+        "description": "What the complaint is about",
+        "defaultValue": "",
+        "required": true,
+        "label": "Category",
+        "options": [
+          "delivery",
+          "product quality",
+          "billing",
+          "service"
+        ]
+      },
+      {
+        "id": "v-severity",
+        "name": "severity",
+        "type": "string",
+        "description": "How serious it is for the customer",
+        "defaultValue": "medium",
+        "required": true,
+        "label": "Severity",
+        "options": [
+          "low",
+          "medium",
+          "high",
+          "critical"
+        ]
+      },
+      {
+        "id": "v-description",
+        "name": "description",
+        "type": "string",
+        "description": "What happened, in the customer's words",
+        "defaultValue": "",
+        "required": true,
+        "label": "Description"
+      },
+      {
+        "id": "v-channel",
+        "name": "channel",
+        "type": "string",
+        "description": "Where the complaint came in",
+        "defaultValue": "phone",
+        "label": "Channel",
+        "options": [
+          "phone",
+          "email",
+          "chat",
+          "social media",
+          "in store"
+        ]
+      },
+      {
+        "id": "v-handler_id",
+        "name": "handler_id",
+        "type": "string",
+        "description": "Optional: user id of the complaints handler (overrides the install-time default)",
+        "defaultValue": "",
+        "label": "Handler (user id)"
+      },
+      {
+        "id": "v-supervisor_id",
+        "name": "supervisor_id",
+        "type": "string",
+        "description": "Optional: user id of the supervisor who approves compensation",
+        "defaultValue": "",
+        "label": "Supervisor (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

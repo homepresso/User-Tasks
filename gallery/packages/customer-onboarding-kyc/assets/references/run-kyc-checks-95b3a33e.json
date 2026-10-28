@@ -1,0 +1,248 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "95b3a33e-cadf-45a1-9cd8-beffe5951f8e",
+  "asset": {
+    "id": "95b3a33e-cadf-45a1-9cd8-beffe5951f8e",
+    "integration_id": "2aad09dd-6904-4898-859f-b2ed73d5492c",
+    "name": "Run KYC checks",
+    "description": "Company registry, sanctions and PEP screening for the company and its directors. Returns an overall result: clear, review or fail.",
+    "tags": [
+      "screening"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"entity_type\":\"company\",\"name\":\"{{company_name}}\",\"registration_number\":\"{{registration_number}}\",\"country\":\"{{country}}\",\"checks\":[\"registry\",\"sanctions\",\"pep\"],\"reference\":\"{{reference}}\"}",
+      "path_template": "/kyc/checks",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "check_id",
+              "type": "string",
+              "example": "KYC-8F21C4"
+            },
+            {
+              "name": "result",
+              "type": "string",
+              "example": "review"
+            },
+            {
+              "name": "completed_at",
+              "type": "string",
+              "example": "2026-10-26T01:02:11Z"
+            },
+            {
+              "name": "registry",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "status",
+                  "type": "string",
+                  "example": "active"
+                },
+                {
+                  "name": "registered_name",
+                  "type": "string",
+                  "example": "Harbourside Logistics Limited"
+                },
+                {
+                  "name": "incorporated",
+                  "type": "string",
+                  "example": "2014-03-18"
+                },
+                {
+                  "name": "directors",
+                  "type": "integer",
+                  "example": 3
+                }
+              ]
+            },
+            {
+              "name": "sanctions",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "hits",
+                  "type": "integer",
+                  "example": 0
+                },
+                {
+                  "name": "lists_checked",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "example": "UN"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "pep",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "hits",
+                  "type": "integer",
+                  "example": 1
+                },
+                {
+                  "name": "matches",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "name",
+                        "type": "string",
+                        "example": "Director match"
+                      },
+                      {
+                        "name": "role",
+                        "type": "string",
+                        "example": "Former municipal councillor"
+                      },
+                      {
+                        "name": "confidence",
+                        "type": "number",
+                        "example": 0.82
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "report_url",
+              "type": "string",
+              "example": "https://kyc.example.com/reports/KYC-8F21C4"
+            }
+          ]
+        },
+        "sample": {
+          "check_id": "KYC-8F21C4",
+          "result": "review",
+          "completed_at": "2026-10-26T01:02:11Z",
+          "registry": {
+            "status": "active",
+            "registered_name": "Harbourside Logistics Limited",
+            "incorporated": "2014-03-18",
+            "directors": 3
+          },
+          "sanctions": {
+            "hits": 0,
+            "lists_checked": [
+              "UN",
+              "EU",
+              "OFAC"
+            ]
+          },
+          "pep": {
+            "hits": 1,
+            "matches": [
+              {
+                "name": "Director match",
+                "role": "Former municipal councillor",
+                "confidence": 0.82
+              }
+            ]
+          },
+          "report_url": "https://kyc.example.com/reports/KYC-8F21C4"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "acfdf1b5-aeaf-4083-b0b7-03a8e0640cc5",
+        "name": "company_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "cd965ff1-0939-430b-a765-54e02645fadc",
+        "name": "registration_number",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "d8754d1f-f508-4985-b7c4-4ea4e4246db5",
+        "name": "country",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "acfe455a-d654-4a84-bc81-6f839d6b8d0f",
+        "name": "reference",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "a4c526fd-be78-4581-8600-56288ce95f58",
+        "name": "check_id",
+        "path": "check_id",
+        "type": "string"
+      },
+      {
+        "id": "6f377356-2483-4b22-b7bd-54f701d59c55",
+        "name": "result",
+        "path": "result",
+        "type": "string"
+      },
+      {
+        "id": "9d0e2801-ca8b-4afa-9ddf-a9e6529b4f14",
+        "name": "registry_status",
+        "path": "registry.status",
+        "type": "string"
+      },
+      {
+        "id": "fa416505-aec6-4e46-b02d-960eeeaae9d4",
+        "name": "registered_name",
+        "path": "registry.registered_name",
+        "type": "string"
+      },
+      {
+        "id": "316b3367-7473-4152-8160-0c64b3bfa7a2",
+        "name": "sanctions_hits",
+        "path": "sanctions.hits",
+        "type": "number"
+      },
+      {
+        "id": "a28453fe-e526-4b0e-ace0-d671853a3262",
+        "name": "pep_hits",
+        "path": "pep.hits",
+        "type": "number"
+      },
+      {
+        "id": "f090dac0-eae9-4cca-a83c-92ade00a56a5",
+        "name": "report_url",
+        "path": "report_url",
+        "type": "string"
+      }
+    ]
+  }
+}

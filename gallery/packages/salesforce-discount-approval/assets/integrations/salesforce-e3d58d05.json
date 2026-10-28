@@ -1,0 +1,26 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "e3d58d05-b9c4-589d-b1df-20fcb1b3c7a0",
+  "asset": {
+    "id": "e3d58d05-b9c4-589d-b1df-20fcb1b3c7a0",
+    "name": "Salesforce",
+    "description": "Salesforce REST API (/services/data/v61.0). Use an OAuth access token from a connected app (client credentials or JWT bearer flow) for an integration user that can read opportunities and edit the discount approval fields.",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://acme.my.salesforce.example.com/services/data/v61.0",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {
+        "Accept": "application/json"
+      }
+    },
+    "is_active": true,
+    "tags": [
+      "crm",
+      "salesforce"
+    ]
+  }
+}

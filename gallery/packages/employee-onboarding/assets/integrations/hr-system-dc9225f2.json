@@ -1,0 +1,22 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "dc9225f2-3c51-49ab-b380-af4790eb773d",
+  "asset": {
+    "id": "dc9225f2-3c51-49ab-b380-af4790eb773d",
+    "name": "HR system",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://hris.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "hr"
+    ]
+  }
+}

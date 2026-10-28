@@ -1,0 +1,30 @@
+{
+  "name": "@usertasks/admin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "usertasks-admin: server-side administration for UserTasks installs (provider status, doctor, switch and rollback; database migrations on any PostgreSQL)",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "usertasks-admin": "./dist/admin.cjs"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "tsx src/bin.ts",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "pg": "^8.20.0",
+    "pg-connection-string": "^2.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/pg": "^8.20.0",
+    "esbuild": "^0.27.7",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  }
+}

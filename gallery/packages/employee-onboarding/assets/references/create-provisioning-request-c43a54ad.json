@@ -1,0 +1,160 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "c43a54ad-c5c8-4105-b707-ad48fa68d0bf",
+  "asset": {
+    "id": "c43a54ad-c5c8-4105-b707-ad48fa68d0bf",
+    "integration_id": "85e89251-e301-4fa2-9e35-f922ea5aede4",
+    "name": "Create provisioning request",
+    "description": "Record the completed IT setup (asset, accounts, shipping) as a provisioning request in the IT service desk.",
+    "tags": [
+      "provisioning"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"employee_id\":\"{{employee_id}}\",\"full_name\":\"{{full_name}}\",\"asset_tag\":\"{{asset_tag}}\",\"laptop_model\":\"{{laptop_model}}\",\"systems\":\"{{systems}}\",\"accounts_created\":{{accounts_created}},\"shipped_date\":\"{{shipped_date}}\",\"ready_by\":\"{{ready_by}}\"}",
+      "path_template": "/it/provisioning-requests",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "request_id",
+              "type": "string",
+              "example": "REQ-40912"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "fulfilled"
+            },
+            {
+              "name": "employee_id",
+              "type": "string",
+              "example": "E-1187"
+            },
+            {
+              "name": "asset_tag",
+              "type": "string",
+              "example": "LT-02231"
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "example": "2026-11-10T14:03:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "request_id": "REQ-40912",
+          "status": "fulfilled",
+          "employee_id": "E-1187",
+          "asset_tag": "LT-02231",
+          "created_at": "2026-11-10T14:03:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "9430af52-2937-4745-9b34-f1c370797efc",
+        "name": "employee_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "339a02aa-8814-42cf-80e6-5abb641450ee",
+        "name": "full_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c067028a-8d93-4a99-81eb-cd6c3405b175",
+        "name": "asset_tag",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "22608fb4-6b1b-4538-aed0-349ebc394250",
+        "name": "laptop_model",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "18a1fa91-ae3e-4e68-a21f-9cc4c9fb210d",
+        "name": "systems",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c358a0ef-e1cf-4452-a94b-cd7b0ccf59f6",
+        "name": "accounts_created",
+        "type": "boolean",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c8c0c369-b554-4131-9fd1-1d7e6161941a",
+        "name": "shipped_date",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "a49bec6a-e5d2-4f15-8d0c-8fdba850e8fb",
+        "name": "ready_by",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "45761fd2-a824-46d9-96b0-060df81725e4",
+        "name": "request_id",
+        "path": "request_id",
+        "type": "string"
+      },
+      {
+        "id": "0e49f4f2-d4de-4abf-b5e1-c45d2b6f4f96",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      }
+    ]
+  }
+}

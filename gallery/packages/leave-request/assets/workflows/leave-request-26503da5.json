@@ -1,0 +1,1059 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "26503da5-3687-44c3-9402-204608bf1a0a",
+  "asset": {
+    "id": "26503da5-3687-44c3-9402-204608bf1a0a",
+    "name": "Leave request",
+    "description": "An employee requests leave; the balance, leave-type rules and approval policy decide whether it is approved automatically or goes to the manager (and HR), then the booking is made in the HR system.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Leave requested",
+        "position": {
+          "x": 1060,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "employee_id",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "leave_type",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "start_date",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "end_date",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "days",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "reason",
+                      "span": 3
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "manager_id",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "employee_user_id",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "hr_owner_id",
+                      "span": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#0E9F6E",
+                    "background": "#FFFFFF",
+                    "text": "#1B1916",
+                    "page": "#E9F7F1"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "header": {
+                  "enabled": true,
+                  "title": "Request leave",
+                  "subtitle": "Single days of annual leave with two weeks notice are approved automatically."
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "reference",
+        "type": "set_variable",
+        "label": "Request reference",
+        "position": {
+          "x": 1060,
+          "y": 220
+        },
+        "config": {
+          "name": "request_reference",
+          "expression": "LV-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 6))}}"
+        }
+      },
+      {
+        "id": "balance",
+        "type": "call_reference",
+        "label": "Get leave balance",
+        "position": {
+          "x": 1060,
+          "y": 380
+        },
+        "config": {
+          "reference_id": "c19511ef-b3ea-4546-821b-0ddefd96fb22",
+          "reference_name": "Get leave balance",
+          "reference_method": "GET",
+          "input_mappings": {
+            "employee_id": "{{employee_id}}",
+            "leave_type": "{{leave_type}}"
+          },
+          "output_mappings": {
+            "employee_name": {
+              "enabled": true,
+              "variableName": "employee_name"
+            },
+            "employee_email": {
+              "enabled": true,
+              "variableName": "employee_email"
+            },
+            "manager_name": {
+              "enabled": true,
+              "variableName": "manager_name"
+            },
+            "balance_days": {
+              "enabled": true,
+              "variableName": "balance_days"
+            }
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 1060,
+          "y": 540
+        },
+        "config": {
+          "title": "Leave: {{employee_name}} · {{leave_type}} · {{start_date}} to {{end_date}} ({{days}} d)"
+        }
+      },
+      {
+        "id": "rules",
+        "type": "update_data_table",
+        "label": "Leave type rules",
+        "position": {
+          "x": 1060,
+          "y": 700
+        },
+        "config": {
+          "table_id": "d53bbab5-ec9a-48d7-8567-ffe8ce173999",
+          "table_name": "Leave types",
+          "operation": "get",
+          "match_column": "leave_type",
+          "match_value": "{{leave_type}}",
+          "output_row_var": "leave_rule"
+        }
+      },
+      {
+        "id": "after",
+        "type": "set_variable",
+        "label": "Balance after",
+        "position": {
+          "x": 1060,
+          "y": 860
+        },
+        "config": {
+          "name": "balance_after",
+          "expression": "{{=IF(leave_rule.deducts_balance, SUBTRACT(balance_days, days), balance_days)}}"
+        }
+      },
+      {
+        "id": "notice",
+        "type": "set_variable",
+        "label": "Notice given",
+        "position": {
+          "x": 1060,
+          "y": 1020
+        },
+        "config": {
+          "name": "notice_given_days",
+          "expression": "{{=DAY_DIFF(TODAY(), start_date)}}"
+        }
+      },
+      {
+        "id": "short",
+        "type": "set_variable",
+        "label": "Short notice?",
+        "position": {
+          "x": 1060,
+          "y": 1180
+        },
+        "config": {
+          "name": "short_notice",
+          "expression": "{{=IF(notice_given_days < leave_rule.notice_days, true, false)}}"
+        }
+      },
+      {
+        "id": "within",
+        "type": "set_variable",
+        "label": "Within auto limit?",
+        "position": {
+          "x": 1060,
+          "y": 1340
+        },
+        "config": {
+          "name": "within_auto_limit",
+          "expression": "{{=IF(days <= leave_rule.auto_approve_up_to, true, false)}}"
+        }
+      },
+      {
+        "id": "policy",
+        "type": "decision_table",
+        "label": "Leave approval",
+        "position": {
+          "x": 1060,
+          "y": 1500
+        },
+        "config": {
+          "decision_table_id": "7439fe1f-e758-454a-ab5c-45644f9b4dc9",
+          "decision_table_name": "Leave approval",
+          "input_mappings": {
+            "leave_type": "{{leave_type}}",
+            "days": "{{days}}",
+            "balance_after": "{{balance_after}}",
+            "within_auto_limit": "{{within_auto_limit}}",
+            "short_notice": "{{short_notice}}"
+          }
+        }
+      },
+      {
+        "id": "auto",
+        "type": "condition",
+        "label": "Auto-approve?",
+        "position": {
+          "x": 1060,
+          "y": 1660
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Auto-approve",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{auto_approve}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "auto_by",
+        "type": "set_variable",
+        "label": "Approved by policy",
+        "position": {
+          "x": 340,
+          "y": 1840
+        },
+        "config": {
+          "name": "approved_by",
+          "expression": "Leave policy (automatic)"
+        }
+      },
+      {
+        "id": "manager",
+        "type": "user_task",
+        "label": "Approve leave",
+        "position": {
+          "x": 1060,
+          "y": 1840
+        },
+        "config": {
+          "task_title": "Approve leave for {{employee_name}}: {{leave_type}}, {{start_date}} to {{end_date}} ({{days}} days)",
+          "task_description": "<p><strong>{{employee_name}}</strong> asks for <strong>{{days}} days</strong> of {{leave_type}} leave from {{start_date}} to {{end_date}}.</p><p>Reason: {{reason}}</p><p>Balance now {{balance_days}} days, after this request <strong>{{balance_after}}</strong>. Notice given: {{notice_given_days}} days (policy {{leave_rule.notice_days}}).</p><p>Policy rule “{{rule_label}}” ({{approver_level}}): {{decision_note}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Decline",
+            "Ask for change"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "d890f6fb-736f-4804-a9bd-a9de4632f845",
+          "assignee_variable": "{{manager_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "cover_arranged",
+              "label": "Cover arranged",
+              "type": "boolean",
+              "default": "false"
+            },
+            {
+              "key": "comment",
+              "label": "Comment for the employee",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "cover_arranged",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "comment",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "decline",
+              "label": "Decline",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Decline"
+            },
+            {
+              "id": "ask_for_change",
+              "label": "Ask for change",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Ask for change"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Leave request: {{employee_name}}",
+            "align": "left",
+            "subtitle": "{{leave_type}} · {{start_date}} to {{end_date}} · {{days}} days"
+          }
+        }
+      },
+      {
+        "id": "manager_by",
+        "type": "set_variable",
+        "label": "Approved by manager",
+        "position": {
+          "x": 820,
+          "y": 2020
+        },
+        "config": {
+          "name": "approved_by",
+          "expression": "{{manager_name}}"
+        }
+      },
+      {
+        "id": "needs_hr",
+        "type": "condition",
+        "label": "HR involved?",
+        "position": {
+          "x": 820,
+          "y": 2200
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "HR review",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{hr_involved}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "hr",
+        "type": "user_task",
+        "label": "Confirm leave arrangements",
+        "position": {
+          "x": 580,
+          "y": 2380
+        },
+        "config": {
+          "task_title": "HR: confirm {{leave_type}} leave for {{employee_name}} ({{start_date}} to {{end_date}})",
+          "task_description": "<p>{{manager_name}} approved {{days}} days of <strong>{{leave_type}}</strong> leave for {{employee_name}}.</p><p>Policy: {{decision_note}} Balance after: {{balance_after}}. Certificate required: {{leave_rule.certificate_required}}.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Confirm",
+            "Decline"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "a0857350-84ab-4942-b4fc-4c9aa8297a4f",
+          "assignee_variable": "{{hr_owner_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "leave_rule",
+              "label": "Leave type",
+              "type": "lookup",
+              "required": true,
+              "default": "{{leave_type}}",
+              "help_text": "The Leave types rule for this request",
+              "lookup": {
+                "source": "table",
+                "table_id": "d53bbab5-ec9a-48d7-8567-ffe8ce173999",
+                "search_columns": [
+                  "leave_type",
+                  "notes"
+                ],
+                "display_columns": [
+                  "leave_type",
+                  "notes"
+                ],
+                "value_column": "leave_type",
+                "fill": [
+                  {
+                    "from": "paid",
+                    "to": "leave_paid"
+                  },
+                  {
+                    "from": "certificate_required",
+                    "to": "certificate_needed"
+                  }
+                ]
+              }
+            },
+            {
+              "key": "leave_paid",
+              "label": "Paid leave",
+              "type": "boolean",
+              "read_only": true
+            },
+            {
+              "key": "certificate_needed",
+              "label": "Certificate required",
+              "type": "boolean",
+              "read_only": true
+            },
+            {
+              "key": "pay_arrangement",
+              "label": "Pay arrangement",
+              "type": "choice",
+              "options": [
+                "Full pay",
+                "Statutory pay",
+                "Leave in advance",
+                "Unpaid"
+              ],
+              "required": true
+            },
+            {
+              "key": "certificate_received",
+              "label": "Certificate received",
+              "type": "boolean",
+              "default": "false"
+            },
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "leave_rule",
+                    "span": 2
+                  },
+                  {
+                    "field_key": "leave_paid",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "certificate_needed",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "pay_arrangement",
+                    "span": 2
+                  },
+                  {
+                    "field_key": "certificate_received",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 4
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "confirm",
+              "label": "Confirm",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Confirm"
+            },
+            {
+              "id": "decline",
+              "label": "Decline",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Decline"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Confirm leave arrangements",
+            "align": "left",
+            "subtitle": "{{employee_name}} · {{leave_type}} · {{start_date}} to {{end_date}}"
+          }
+        }
+      },
+      {
+        "id": "change",
+        "type": "user_task",
+        "label": "Change leave request",
+        "position": {
+          "x": 1300,
+          "y": 2020
+        },
+        "config": {
+          "task_title": "Change your leave request ({{start_date}} to {{end_date}})",
+          "task_description": "<p>{{manager_name}} asked for a change: {{task_data.comment}}</p><p>Update the dates and days, then resubmit.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Resubmit",
+            "Withdraw"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "04330259-165e-4266-91e4-8b71376f1d9e",
+          "assignee_variable": "{{employee_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "start_date",
+              "label": "Start date",
+              "type": "date",
+              "required": true,
+              "default": "{{start_date}}"
+            },
+            {
+              "key": "end_date",
+              "label": "End date",
+              "type": "date",
+              "required": true,
+              "default": "{{end_date}}"
+            },
+            {
+              "key": "days",
+              "label": "Working days",
+              "type": "number",
+              "required": true,
+              "default": "{{days}}"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "start_date",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "end_date",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "days",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "resubmit",
+              "label": "Resubmit",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Resubmit"
+            },
+            {
+              "id": "withdraw",
+              "label": "Withdraw",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Withdraw"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Change your leave request",
+            "align": "left",
+            "subtitle": "Your manager asked for a change"
+          }
+        }
+      },
+      {
+        "id": "back",
+        "type": "goto_activity",
+        "label": "Re-check the request",
+        "position": {
+          "x": 1300,
+          "y": 2200
+        },
+        "config": {
+          "target_node_id": "after",
+          "target_node_label": "Balance after",
+          "input_overrides": {
+            "start_date": "{{task_data.start_date}}",
+            "end_date": "{{task_data.end_date}}",
+            "days": "{{task_data.days}}"
+          }
+        }
+      },
+      {
+        "id": "book",
+        "type": "call_reference",
+        "label": "Book leave",
+        "position": {
+          "x": 340,
+          "y": 2560
+        },
+        "config": {
+          "reference_id": "5f9bd618-7851-4af0-96e1-9f64302d9281",
+          "reference_name": "Create leave booking",
+          "reference_method": "POST",
+          "input_mappings": {
+            "employee_id": "{{employee_id}}",
+            "leave_type": "{{leave_type}}",
+            "start_date": "{{start_date}}",
+            "end_date": "{{end_date}}",
+            "days": "{{days}}",
+            "approved_by": "{{approved_by}}",
+            "request_reference": "{{request_reference}}"
+          },
+          "output_mappings": {
+            "booking_id": {
+              "enabled": true,
+              "variableName": "booking_id"
+            },
+            "balance_after": {
+              "enabled": true,
+              "variableName": "balance_after"
+            }
+          }
+        }
+      },
+      {
+        "id": "calendar",
+        "type": "call_reference",
+        "label": "Team calendar entry",
+        "position": {
+          "x": 340,
+          "y": 2720
+        },
+        "config": {
+          "reference_id": "9146b009-5f0b-44dc-9ca7-37d6cf0c5cdd",
+          "reference_name": "Add team calendar entry",
+          "reference_method": "POST",
+          "input_mappings": {
+            "employee_id": "{{employee_id}}",
+            "title": "{{employee_name}} away ({{leave_type}})",
+            "start_date": "{{start_date}}",
+            "end_date": "{{end_date}}"
+          },
+          "output_mappings": {
+            "entry_id": {
+              "enabled": true,
+              "variableName": "calendar_entry_id"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "notify_ok",
+        "type": "send_email",
+        "label": "Email employee: approved",
+        "position": {
+          "x": 340,
+          "y": 2880
+        },
+        "config": {
+          "to": "{{employee_email}}",
+          "email_template_id": "731c61db-fe10-4964-af2a-94cc982035c9"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "notify_no",
+        "type": "send_email",
+        "label": "Email employee: declined",
+        "position": {
+          "x": 820,
+          "y": 2560
+        },
+        "config": {
+          "to": "{{employee_email}}",
+          "email_template_id": "f13de444-8fdc-41f1-8b3b-196fe1b587e9"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "withdrawn",
+        "type": "log",
+        "label": "Request withdrawn",
+        "position": {
+          "x": 1620,
+          "y": 2200
+        },
+        "config": {
+          "message": "Leave request {{request_reference}} withdrawn by {{employee_name}}",
+          "level": "info"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Booked",
+        "position": {
+          "x": 340,
+          "y": 3040
+        },
+        "config": {
+          "reason": "Leave {{request_reference}} booked ({{booking_id}})"
+        }
+      },
+      {
+        "id": "closed",
+        "type": "end_workflow",
+        "label": "Closed",
+        "position": {
+          "x": 820,
+          "y": 2720
+        },
+        "config": {
+          "reason": "Leave {{request_reference}} closed without booking"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-reference",
+        "source": "trigger",
+        "target": "reference"
+      },
+      {
+        "id": "e-reference-balance",
+        "source": "reference",
+        "target": "balance"
+      },
+      {
+        "id": "e-balance-title",
+        "source": "balance",
+        "target": "title"
+      },
+      {
+        "id": "e-title-rules",
+        "source": "title",
+        "target": "rules"
+      },
+      {
+        "id": "e-rules-after",
+        "source": "rules",
+        "target": "after"
+      },
+      {
+        "id": "e-after-notice",
+        "source": "after",
+        "target": "notice"
+      },
+      {
+        "id": "e-notice-short",
+        "source": "notice",
+        "target": "short"
+      },
+      {
+        "id": "e-short-within",
+        "source": "short",
+        "target": "within"
+      },
+      {
+        "id": "e-within-policy",
+        "source": "within",
+        "target": "policy"
+      },
+      {
+        "id": "e-policy-auto",
+        "source": "policy",
+        "target": "auto"
+      },
+      {
+        "id": "e-auto-auto_by-auto-approve",
+        "source": "auto",
+        "target": "auto_by",
+        "label": "Auto-approve"
+      },
+      {
+        "id": "e-auto-manager-else",
+        "source": "auto",
+        "target": "manager",
+        "label": "Else"
+      },
+      {
+        "id": "e-manager-manager_by-approve",
+        "source": "manager",
+        "target": "manager_by",
+        "label": "Approve"
+      },
+      {
+        "id": "e-manager-notify_no-decline",
+        "source": "manager",
+        "target": "notify_no",
+        "label": "Decline"
+      },
+      {
+        "id": "e-manager-change-ask-for-change",
+        "source": "manager",
+        "target": "change",
+        "label": "Ask for change"
+      },
+      {
+        "id": "e-manager_by-needs_hr",
+        "source": "manager_by",
+        "target": "needs_hr"
+      },
+      {
+        "id": "e-needs_hr-hr-hr-review",
+        "source": "needs_hr",
+        "target": "hr",
+        "label": "HR review"
+      },
+      {
+        "id": "e-needs_hr-book-else",
+        "source": "needs_hr",
+        "target": "book",
+        "label": "Else"
+      },
+      {
+        "id": "e-hr-book-confirm",
+        "source": "hr",
+        "target": "book",
+        "label": "Confirm"
+      },
+      {
+        "id": "e-hr-notify_no-decline",
+        "source": "hr",
+        "target": "notify_no",
+        "label": "Decline"
+      },
+      {
+        "id": "e-change-back-resubmit",
+        "source": "change",
+        "target": "back",
+        "label": "Resubmit"
+      },
+      {
+        "id": "e-change-withdrawn-withdraw",
+        "source": "change",
+        "target": "withdrawn",
+        "label": "Withdraw"
+      },
+      {
+        "id": "e-auto_by-book",
+        "source": "auto_by",
+        "target": "book"
+      },
+      {
+        "id": "e-book-calendar",
+        "source": "book",
+        "target": "calendar"
+      },
+      {
+        "id": "e-calendar-notify_ok",
+        "source": "calendar",
+        "target": "notify_ok"
+      },
+      {
+        "id": "e-notify_ok-done",
+        "source": "notify_ok",
+        "target": "done"
+      },
+      {
+        "id": "e-notify_no-closed",
+        "source": "notify_no",
+        "target": "closed"
+      },
+      {
+        "id": "e-withdrawn-closed",
+        "source": "withdrawn",
+        "target": "closed"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-employee_id",
+        "name": "employee_id",
+        "type": "string",
+        "description": "Employee number in the HR system (E-1001…)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Employee number"
+      },
+      {
+        "id": "v-leave_type",
+        "name": "leave_type",
+        "type": "string",
+        "description": "Type of leave (see the Leave types table)",
+        "defaultValue": "annual",
+        "required": true,
+        "label": "Leave type",
+        "options": [
+          "annual",
+          "sick",
+          "parental",
+          "bereavement",
+          "unpaid"
+        ]
+      },
+      {
+        "id": "v-start_date",
+        "name": "start_date",
+        "type": "string",
+        "description": "First day of leave",
+        "defaultValue": "",
+        "required": true,
+        "label": "Start date",
+        "format": "date"
+      },
+      {
+        "id": "v-end_date",
+        "name": "end_date",
+        "type": "string",
+        "description": "Last day of leave",
+        "defaultValue": "",
+        "required": true,
+        "label": "End date",
+        "format": "date"
+      },
+      {
+        "id": "v-days",
+        "name": "days",
+        "type": "number",
+        "description": "Working days of leave (half days allowed, e.g. 2.5)",
+        "defaultValue": "1",
+        "required": true,
+        "label": "Working days"
+      },
+      {
+        "id": "v-reason",
+        "name": "reason",
+        "type": "string",
+        "description": "Optional: anything your manager should know",
+        "defaultValue": "",
+        "label": "Reason"
+      },
+      {
+        "id": "v-manager_id",
+        "name": "manager_id",
+        "type": "string",
+        "description": "Optional: user id of the approving manager (overrides the install-time default)",
+        "defaultValue": "",
+        "label": "Manager (user id)"
+      },
+      {
+        "id": "v-employee_user_id",
+        "name": "employee_user_id",
+        "type": "string",
+        "description": "Optional: user id of the employee, for change requests",
+        "defaultValue": "",
+        "label": "Employee (user id)"
+      },
+      {
+        "id": "v-hr_owner_id",
+        "name": "hr_owner_id",
+        "type": "string",
+        "description": "Optional: user id of the HR partner for HR reviews",
+        "defaultValue": "",
+        "label": "HR partner (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

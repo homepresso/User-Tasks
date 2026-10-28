@@ -1,0 +1,77 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "48ac6936-af97-54b3-a7e0-dd757852be4c",
+  "asset": {
+    "id": "48ac6936-af97-54b3-a7e0-dd757852be4c",
+    "integration_id": "6f1f1c79-952c-5684-8f42-968ee0adef0e",
+    "name": "End old bank detail",
+    "description": "API_BUSINESS_PARTNER: PATCH the old A_BusinessPartnerBank entry so it ends the day before the new one starts (SAP answers 204 No Content).",
+    "tags": [
+      "sap",
+      "supplier",
+      "bank"
+    ],
+    "request_config": {
+      "method": "PATCH",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"ValidityEndDate\":\"{{valid_to}}T00:00:00\"}",
+      "path_template": "/API_BUSINESS_PARTNER/A_BusinessPartnerBank(BusinessPartner='{{supplier}}',BankIdentification='{{bank_id}}')",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": []
+        },
+        "sample": {},
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "637f6edc-fd71-5b6f-a399-e1276c6b2854",
+        "name": "supplier",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "36a6c8ca-f94a-5812-a5d5-30247f6a3a04",
+        "name": "bank_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "17b2d52a-7ebc-5d97-b025-0e983e0c4701",
+        "name": "valid_to",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "29cee2e5-e4ff-5fc7-b1fa-3bce08b24510",
+        "name": "x-csrf-token",
+        "type": "string",
+        "source": "variable",
+        "location": "header",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": []
+  }
+}

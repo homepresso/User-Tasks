@@ -1,0 +1,108 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "17642cf3-cc67-48c2-9062-4842805fdbfd",
+  "asset": {
+    "id": "17642cf3-cc67-48c2-9062-4842805fdbfd",
+    "name": "Controls",
+    "description": "Your control set: framework, reference, evidence type and owner. Automated controls are collected from the Evidence API; manual controls ask the owner for a link.",
+    "columns": [
+      {
+        "id": "b62c6948-8bf3-46ac-8f20-55a75a95267e",
+        "required": true,
+        "key": "control_id",
+        "name": "Control ID",
+        "type": "text"
+      },
+      {
+        "id": "e8b26684-44c0-4230-9098-9f6fdf59c856",
+        "required": false,
+        "key": "framework",
+        "name": "Framework",
+        "type": "select",
+        "options": [
+          "SOC 2",
+          "ISO 27001"
+        ]
+      },
+      {
+        "id": "e600d696-3159-4113-961a-1bd89694a0dc",
+        "required": false,
+        "key": "framework_ref",
+        "name": "Framework reference",
+        "type": "text"
+      },
+      {
+        "id": "61c9e2e9-9f36-45db-820a-0e8150304551",
+        "required": true,
+        "key": "title",
+        "name": "Control",
+        "type": "text"
+      },
+      {
+        "id": "dbbc05ae-36f2-4cbc-b620-538bb8ff2719",
+        "required": true,
+        "key": "evidence_type",
+        "name": "Evidence type",
+        "type": "select",
+        "options": [
+          "automated",
+          "manual"
+        ]
+      },
+      {
+        "id": "256f814d-9410-488b-989e-dea855ddba01",
+        "required": false,
+        "key": "system",
+        "name": "System",
+        "type": "text"
+      },
+      {
+        "id": "dea8aa5c-0919-4812-b1c8-7426708a5849",
+        "required": false,
+        "key": "evidence_source",
+        "name": "Evidence feed (automated)",
+        "type": "text"
+      },
+      {
+        "id": "029daac7-7646-4b63-909a-59dc7854e048",
+        "required": false,
+        "key": "owner_role",
+        "name": "Owner role",
+        "type": "text"
+      },
+      {
+        "id": "1b73ffdd-469b-48fa-832a-bc76b2c5e92f",
+        "required": false,
+        "key": "owner_email",
+        "name": "Owner email",
+        "type": "text"
+      },
+      {
+        "id": "a4357d25-4b9c-4887-bf67-1dc6c093a4ae",
+        "required": false,
+        "key": "owner_user_id",
+        "name": "Owner user id (optional)",
+        "type": "text"
+      },
+      {
+        "id": "a066e2c6-29e3-4e37-88b8-c9ea71b93444",
+        "required": false,
+        "key": "frequency",
+        "name": "Frequency",
+        "type": "select",
+        "options": [
+          "monthly",
+          "quarterly"
+        ]
+      },
+      {
+        "id": "fa9a75f0-a878-483f-b6ff-209b32be6d28",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "07e1c86f-6529-473e-bd84-777d6d2f4922",
+  "asset": {
+    "id": "07e1c86f-6529-473e-bd84-777d6d2f4922",
+    "name": "Change approved",
+    "description": "Sent to the change requester when the change is approved and scheduled.",
+    "subject": "Approved: {{change_number}} {{change_title}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your change is approved</h2>\n  <p>Hi {{requester_name}},</p>\n  <p><strong>{{change_number}} {{change_title}}</strong> on {{system}} is approved ({{approved_by}}) and scheduled for {{window_start}} to {{window_end}}.</p>\n  <p>Conditions: {{approval_conditions}}</p>\n  <p style=\"color:#6E6759\">Risk {{risk_level}} · {{rule_label}}</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your change management workflow</p>\n</div>",
+    "text_body": "Your change is approved\n  Hi {{requester_name}},\n  {{change_number}} {{change_title}} on {{system}} is approved ({{approved_by}}) and scheduled for {{window_start}} to {{window_end}}.\n  Conditions: {{approval_conditions}}\n  Risk {{risk_level}} · {{rule_label}}\n  Sent by your change management workflow",
+    "is_default": false
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "0ebe81e1-25f1-43cd-ac67-e372d3745746",
+  "asset": {
+    "id": "0ebe81e1-25f1-43cd-ac67-e372d3745746",
+    "name": "Billing system",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://billing.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "privacy",
+      "billing"
+    ]
+  }
+}

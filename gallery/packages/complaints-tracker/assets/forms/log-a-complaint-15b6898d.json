@@ -1,0 +1,346 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "15b6898d-104a-5501-821f-f846dd0c15ff",
+  "asset": {
+    "id": "15b6898d-104a-5501-821f-f846dd0c15ff",
+    "name": "Log a complaint",
+    "description": "Customer care logs a complaint against a customer account; the customer's details, tier and account manager fill in from the Customers table.",
+    "tags": [
+      "complaints",
+      "customer care"
+    ],
+    "fields": [
+      {
+        "key": "customer",
+        "label": "Customer",
+        "type": "lookup",
+        "required": true,
+        "help_text": "Search by company, account number or contact.",
+        "lookup": {
+          "source": "table",
+          "table_id": "08830b82-40c8-5d97-8484-e047dbef377b",
+          "search_columns": [
+            "company",
+            "account_no",
+            "contact_name"
+          ],
+          "display_columns": [
+            "company",
+            "account_no",
+            "tier"
+          ],
+          "value_column": "account_no",
+          "fill": [
+            {
+              "from": "contact_name",
+              "to": "contact_name"
+            },
+            {
+              "from": "contact_email",
+              "to": "contact_email"
+            },
+            {
+              "from": "tier",
+              "to": "tier"
+            },
+            {
+              "from": "account_manager",
+              "to": "account_manager"
+            },
+            {
+              "from": "account_manager_email",
+              "to": "account_manager_email"
+            },
+            {
+              "from": "company",
+              "to": "company"
+            }
+          ],
+          "filters": [
+            {
+              "column": "active",
+              "operator": "eq",
+              "value": "true"
+            }
+          ],
+          "sort": {
+            "column": "company",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "company",
+        "label": "Company",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "tier",
+        "label": "Tier",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "contact_name",
+        "label": "Contact",
+        "type": "text",
+        "help_text": "Change it if someone else complained."
+      },
+      {
+        "key": "contact_email",
+        "label": "Contact email",
+        "type": "email",
+        "help_text": "The acknowledgement goes here."
+      },
+      {
+        "key": "account_manager",
+        "label": "Account manager",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "account_manager_email",
+        "label": "Account manager email",
+        "type": "email",
+        "read_only": true
+      },
+      {
+        "key": "category",
+        "label": "Category",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Delivery",
+          "Product quality",
+          "Billing",
+          "Service",
+          "Staff conduct",
+          "Website or app"
+        ]
+      },
+      {
+        "key": "channel",
+        "label": "Received via",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Phone",
+          "Email",
+          "Chat",
+          "Social media",
+          "In person"
+        ],
+        "default": "Phone"
+      },
+      {
+        "key": "summary",
+        "label": "Summary",
+        "type": "text",
+        "required": true,
+        "max_length": 140,
+        "placeholder": "One line: what went wrong"
+      },
+      {
+        "key": "details",
+        "label": "What happened",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "key": "order_ref",
+        "label": "Order or invoice number",
+        "type": "text"
+      },
+      {
+        "key": "desired_outcome",
+        "label": "What the customer wants",
+        "type": "choice",
+        "options": [
+          "Refund",
+          "Replacement",
+          "Credit",
+          "Apology",
+          "Explanation",
+          "Other"
+        ]
+      },
+      {
+        "key": "handler",
+        "label": "Complaint handler",
+        "type": "user",
+        "required": true,
+        "help_text": "Who owns the complaint until it is resolved."
+      },
+      {
+        "key": "team_lead",
+        "label": "Escalation contact",
+        "type": "user",
+        "required": true,
+        "help_text": "Team lead who takes over if the handler escalates."
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "customer",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "company",
+              "span": 1
+            },
+            {
+              "field_key": "tier",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "contact_name",
+              "span": 1
+            },
+            {
+              "field_key": "contact_email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "account_manager",
+              "span": 1
+            },
+            {
+              "field_key": "account_manager_email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "category",
+              "span": 1
+            },
+            {
+              "field_key": "channel",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "summary",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "details",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "order_ref",
+              "span": 1
+            },
+            {
+              "field_key": "desired_outcome",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "handler",
+              "span": 1
+            },
+            {
+              "field_key": "team_lead",
+              "span": 1
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#7C3AED",
+            "background": "#FFFFFF",
+            "text": "#1E1530",
+            "page": "#F3EFFD",
+            "page_to": "#FBFAFF"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Nunito Sans"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Log complaint",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Complaint logged",
+            "screen_button": "submit_another",
+            "text": "{{customer_item.company}} will get an acknowledgement at {{contact_email}}. {{handler}} owns it now.",
+            "screen_button_label": "Log another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Log a complaint",
+      "align": "left",
+      "subtitle": "Capture it once: the customer is acknowledged straight away and the SLA starts."
+    }
+  }
+}

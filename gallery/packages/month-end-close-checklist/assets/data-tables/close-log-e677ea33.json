@@ -1,0 +1,103 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "e677ea33-373c-4f86-a6e0-4bc7443cc49e",
+  "asset": {
+    "id": "e677ea33-373c-4f86-a6e0-4bc7443cc49e",
+    "name": "Close log",
+    "description": "One row per close task per period: status, evidence and sign-off notes. This is the audit trail of each close.",
+    "columns": [
+      {
+        "id": "42de4756-50ac-4b11-8f62-3bd1b66083bf",
+        "required": true,
+        "key": "log_key",
+        "name": "Key",
+        "type": "text"
+      },
+      {
+        "id": "4a0c063a-a15f-4d3b-ad98-2f1b98138432",
+        "required": true,
+        "key": "period",
+        "name": "Period",
+        "type": "text"
+      },
+      {
+        "id": "0f8f0b32-ca5e-402b-881a-8bf09762f902",
+        "required": false,
+        "key": "entity",
+        "name": "Entity",
+        "type": "text"
+      },
+      {
+        "id": "857d3908-1145-4228-ab9b-81013a6ad30f",
+        "required": false,
+        "key": "task_code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "d3067330-2fc4-4e66-b3d6-6651e1470058",
+        "required": false,
+        "key": "task",
+        "name": "Task",
+        "type": "text"
+      },
+      {
+        "id": "a1867cb9-b46e-4a73-b3de-a5ecad91e035",
+        "required": false,
+        "key": "area",
+        "name": "Area",
+        "type": "text"
+      },
+      {
+        "id": "267518cd-57b7-459f-80a1-bfe2d0231918",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "done",
+          "blocked",
+          "not applicable",
+          "close started"
+        ]
+      },
+      {
+        "id": "0b009a85-d9f8-4592-968c-856c096b9456",
+        "required": false,
+        "key": "due_date",
+        "name": "Due",
+        "type": "text"
+      },
+      {
+        "id": "04a33392-6c47-4bbb-8f65-fc02a22a3d27",
+        "required": false,
+        "key": "evidence_link",
+        "name": "Evidence",
+        "type": "text"
+      },
+      {
+        "id": "d3ac5556-5bfc-46a1-a119-fd7ebc0d68d8",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      },
+      {
+        "id": "192f8dda-9049-43b5-880e-8e5c7b1cbf4e",
+        "required": false,
+        "key": "completed_at",
+        "name": "Completed at",
+        "type": "text"
+      },
+      {
+        "id": "7872d3c9-f30f-4b0b-9baf-765c524294ed",
+        "required": false,
+        "key": "close_id",
+        "name": "ERP close id",
+        "type": "text"
+      }
+    ]
+  }
+}

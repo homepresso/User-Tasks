@@ -1,0 +1,40 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "d4ab2dcb-4009-4931-98b0-787b42e8c197",
+  "asset": {
+    "id": "d4ab2dcb-4009-4931-98b0-787b42e8c197",
+    "name": "Country risk",
+    "description": "Country risk used in the customer risk rating, and whether enhanced due diligence is required. Base it on your AML risk assessment.",
+    "columns": [
+      {
+        "id": "d4c72548-a042-46cd-8c0e-457ccbcf481e",
+        "required": true,
+        "key": "country",
+        "name": "Country",
+        "type": "text"
+      },
+      {
+        "id": "27a0d5d7-f58e-4138-a908-6331f18747e1",
+        "required": true,
+        "key": "risk",
+        "name": "Risk",
+        "type": "text"
+      },
+      {
+        "id": "57d4220e-07c6-426d-a256-231bbc40fdf5",
+        "required": false,
+        "key": "enhanced_due_diligence",
+        "name": "Enhanced due diligence",
+        "type": "boolean"
+      },
+      {
+        "id": "dc0c9447-7499-4c8f-afea-6aeef7a249bf",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      }
+    ]
+  }
+}

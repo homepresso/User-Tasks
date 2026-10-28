@@ -1,0 +1,171 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "787f72af-7ead-4ff7-9ec7-df75c37fc975",
+  "asset": {
+    "id": "787f72af-7ead-4ff7-9ec7-df75c37fc975",
+    "integration_id": "2d97bbf4-496c-47f9-bc67-0c01765c0585",
+    "name": "Create signature request",
+    "description": "Send the document for electronic signature to the signer and return the envelope and signing link.",
+    "tags": [
+      "signature"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"document_url\":\"{{document_url}}\",\"document_name\":\"{{document_name}}\",\"signer\":{\"name\":\"{{signer_name}}\",\"email\":\"{{signer_email}}\"},\"subject\":\"{{subject}}\",\"external_id\":\"{{external_id}}\",\"expires_in_days\":14}",
+      "path_template": "/signature-requests",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "envelope_id",
+              "type": "string",
+              "example": "ENV-9F31C2"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "sent"
+            },
+            {
+              "name": "expires_at",
+              "type": "string",
+              "example": "2026-11-09T00:00:00Z"
+            },
+            {
+              "name": "signers",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "email",
+                    "type": "string",
+                    "example": "robin.diaz@fourthcoffee.example.com"
+                  },
+                  {
+                    "name": "status",
+                    "type": "string",
+                    "example": "sent"
+                  },
+                  {
+                    "name": "signing_url",
+                    "type": "string",
+                    "example": "https://esign.example.com/sign/ENV-9F31C2"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "sample": {
+          "envelope_id": "ENV-9F31C2",
+          "status": "sent",
+          "expires_at": "2026-11-09T00:00:00Z",
+          "signers": [
+            {
+              "email": "robin.diaz@fourthcoffee.example.com",
+              "status": "sent",
+              "signing_url": "https://esign.example.com/sign/ENV-9F31C2"
+            }
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "1959c741-ce86-4d2a-8032-53590e47315c",
+        "name": "document_url",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "b02e9541-ab82-4bdb-b197-6b79823eee20",
+        "name": "document_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "850e646e-7687-4fe7-a871-03055e8cafbd",
+        "name": "signer_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "f2094428-861b-4b0f-920b-874980893e3e",
+        "name": "signer_email",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "7dedb49d-f8d0-4cba-95c3-b96c61e66e5c",
+        "name": "subject",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "184b2317-6293-4c7d-8a11-c281aa67fa99",
+        "name": "external_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "cbe92e5d-8499-4679-bc74-cdef545ccdc6",
+        "name": "envelope_id",
+        "path": "envelope_id",
+        "type": "string"
+      },
+      {
+        "id": "fbe101f7-bccb-48a1-9e61-d525b4266517",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "a263d512-0997-4278-b9fa-d8193daa5158",
+        "name": "signing_url",
+        "path": "signers.0.signing_url",
+        "type": "string"
+      },
+      {
+        "id": "44bc0af2-b30d-48b3-b2de-4c81d6d96fa8",
+        "name": "expires_at",
+        "path": "expires_at",
+        "type": "string"
+      }
+    ]
+  }
+}

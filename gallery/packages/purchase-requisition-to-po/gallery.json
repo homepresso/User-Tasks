@@ -1,0 +1,84 @@
+{
+  "id": "4325cc9e-2020-4d11-a6a6-518982b2a906",
+  "slug": "purchase-requisition-to-po",
+  "title": "Purchase requisition to PO",
+  "category": "finance",
+  "summary": "Requesters submit a requisition; the purchasing policy sets approvals and quotes, and approved requests become a purchase order sent to the supplier.",
+  "description": "Purchase requisition to PO takes a request from \"I need this\" to an issued purchase order. The requester fills in the start form: what they need, quantity, unit price, supplier, category, cost centre, the date they need it and a business justification.\n\nThe workflow totals the request, looks the supplier up in the Approved suppliers table (preferred status, payment terms, contract) and evaluates the Purchasing approval decision table, which sets the approver level and how many quotes procurement must collect. The manager approves or rejects with the cost centre and budget line. When quotes are needed, a buyer records up to three quotes and the selected supplier and amount.\n\nThe purchase order is then raised in your ERP with the supplier's terms and contract reference. The requester gets a confirmation and the supplier's orders address gets the PO. Edit the suppliers, the policy thresholds and the ERP request to match your purchasing rules.",
+  "trigger": "form",
+  "entry_workflow": "de46cd10-0dc6-476e-b3d4-6fa063ca24f1",
+  "start": "Starts from a form: the requester fills in the requisition (Run dialog in the app, or your intranet posting to the start API).",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "purchasing",
+    "procurement",
+    "approvals",
+    "purchase orders",
+    "decision table"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: a themed start form with a grid and header, Approve / Reject buttons on the approval step, and a quote step whose selected supplier is a lookup into Approved suppliers that fills the supplier id, payment terms and orders email."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "ERP integration: set the base URL of your ERP API and an API token. Create purchase order posts to /purchase-orders; map the body and response to your ERP in Integrations.",
+    "Assignees: pick the default approving manager and the buyer who collects quotes (runs can pass manager_id and procurement_id).",
+    "Edit the Approved suppliers rows (supplier ids, terms, contracts, orders emails) and the Purchasing approval thresholds to your delegation of authority.",
+    "Email: configure EMAIL_PROVIDER so the requester and supplier emails are delivered (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Requisition submitted",
+      "body": "The start form collects the item, quantity, unit price, supplier, category, cost centre, needed-by date and justification."
+    },
+    {
+      "title": "Check the supplier",
+      "body": "The total is calculated and the Approved suppliers table says whether the supplier is preferred and which terms apply."
+    },
+    {
+      "title": "Apply the purchasing policy",
+      "body": "The Purchasing approval decision table sets the approver level and the number of quotes required."
+    },
+    {
+      "title": "Manager approval",
+      "body": "The manager approves or rejects, confirming the cost centre and budget line."
+    },
+    {
+      "title": "Collect quotes",
+      "body": "When the policy needs quotes, a buyer records them and picks the supplier and amount for the PO."
+    },
+    {
+      "title": "Raise and send the PO",
+      "body": "The PO is created in the ERP; the requester gets a confirmation and the supplier gets the order."
+    }
+  ],
+  "sample_input": {
+    "requester_email": "alex.morgan@example.com",
+    "item_description": "14-inch laptops for the new support team",
+    "quantity": 10,
+    "unit_price": 1450,
+    "currency": "NZD",
+    "supplier": "Contoso Computing",
+    "category": "it_hardware",
+    "cost_centre": "CC-310 Support",
+    "needed_by": "2026-11-20",
+    "justification": "Five new support hires start in November and five laptops are past their replacement date."
+  },
+  "expect": "waiting",
+  "icon": "shopping-cart"
+}

@@ -1,0 +1,309 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "27968e43-e65a-508d-b8d4-d4b4ffc8ec1a",
+  "asset": {
+    "id": "27968e43-e65a-508d-b8d4-d4b4ffc8ec1a",
+    "integration_id": "53fb48d5-47ba-5188-9ec4-f23a209b1c13",
+    "name": "Post supplier invoice",
+    "description": "API_SUPPLIERINVOICE_PROCESS_SRV A_SupplierInvoice: create the invoice with its purchase order reference line (to_SuplrInvcItemPurOrdRef) against the goods receipt. Returns SupplierInvoice and FiscalYear.",
+    "tags": [
+      "sap",
+      "accounts payable"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"CompanyCode\":\"{{company_code}}\",\"DocumentDate\":\"{{document_date}}T00:00:00\",\"PostingDate\":\"{{document_date}}T00:00:00\",\"SupplierInvoiceIDByInvcgParty\":\"{{invoice_reference}}\",\"InvoicingParty\":\"{{supplier}}\",\"DocumentCurrency\":\"{{currency}}\",\"InvoiceGrossAmount\":\"{{gross_amount}}\",\"TaxIsCalculatedAutomatically\":true,\"PaymentBlockingReason\":\"{{payment_block}}\",\"to_SuplrInvcItemPurOrdRef\":{\"results\":[{\"SupplierInvoiceItem\":\"1\",\"PurchaseOrder\":\"{{purchase_order}}\",\"PurchaseOrderItem\":\"{{po_item}}\",\"ReferenceDocument\":\"{{gr_document}}\",\"ReferenceDocumentFiscalYear\":\"{{gr_year}}\",\"ReferenceDocumentItem\":\"{{gr_doc_item}}\",\"TaxCode\":\"{{tax_code}}\",\"DocumentCurrency\":\"{{currency}}\",\"SupplierInvoiceItemAmount\":\"{{item_amount}}\",\"PurchaseOrderQuantityUnit\":\"{{unit}}\",\"QuantityInPurchaseOrderUnit\":\"{{quantity}}\"}]}}",
+      "path_template": "/API_SUPPLIERINVOICE_PROCESS_SRV/A_SupplierInvoice",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "d",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "__metadata",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "id",
+                      "type": "string",
+                      "example": "https://s4.sap.example.com/sap/opu/odata/sap/API_SUPPLIERINVOICE_PROCESS_SRV/A_SupplierInvoice(SupplierInvoice='5105600123',FiscalYear='2026')"
+                    },
+                    {
+                      "name": "type",
+                      "type": "string",
+                      "example": "API_SUPPLIERINVOICE_PROCESS_SRV.A_SupplierInvoiceType"
+                    }
+                  ]
+                },
+                {
+                  "name": "SupplierInvoice",
+                  "type": "string",
+                  "example": "5105600123"
+                },
+                {
+                  "name": "FiscalYear",
+                  "type": "string",
+                  "example": "2026"
+                },
+                {
+                  "name": "CompanyCode",
+                  "type": "string",
+                  "example": "1010"
+                },
+                {
+                  "name": "InvoicingParty",
+                  "type": "string",
+                  "example": "17300001"
+                },
+                {
+                  "name": "SupplierInvoiceIDByInvcgParty",
+                  "type": "string",
+                  "example": "NW-88213"
+                },
+                {
+                  "name": "DocumentCurrency",
+                  "type": "string",
+                  "example": "EUR"
+                },
+                {
+                  "name": "InvoiceGrossAmount",
+                  "type": "string",
+                  "example": "1535.10"
+                },
+                {
+                  "name": "SupplierInvoiceStatus",
+                  "type": "string",
+                  "example": "5"
+                },
+                {
+                  "name": "PaymentBlockingReason",
+                  "type": "string",
+                  "example": ""
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "d": {
+            "__metadata": {
+              "id": "https://s4.sap.example.com/sap/opu/odata/sap/API_SUPPLIERINVOICE_PROCESS_SRV/A_SupplierInvoice(SupplierInvoice='5105600123',FiscalYear='2026')",
+              "type": "API_SUPPLIERINVOICE_PROCESS_SRV.A_SupplierInvoiceType"
+            },
+            "SupplierInvoice": "5105600123",
+            "FiscalYear": "2026",
+            "CompanyCode": "1010",
+            "InvoicingParty": "17300001",
+            "SupplierInvoiceIDByInvcgParty": "NW-88213",
+            "DocumentCurrency": "EUR",
+            "InvoiceGrossAmount": "1535.10",
+            "SupplierInvoiceStatus": "5",
+            "PaymentBlockingReason": ""
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "725c3dce-9f47-5fed-86f7-025f16cbb5de",
+        "name": "company_code",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "0f2c1cf9-9a91-5f8e-a8c9-81ad7d0807a5",
+        "name": "document_date",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "ab6da480-6fab-59e7-9bad-9a1a73b3ead3",
+        "name": "invoice_reference",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "f24ff38e-b99a-5b81-8c7e-db15a27e9487",
+        "name": "supplier",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "27c33186-16e6-5f8b-83b9-6a60b81f74b0",
+        "name": "currency",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "04baed24-f12d-5151-8e2a-6ab2e3386518",
+        "name": "gross_amount",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "3b00af3c-89fc-53d6-8ceb-cf8d14ee7e0b",
+        "name": "payment_block",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "87bbeeab-fa02-5bcf-9dee-356a9d5d0ab0",
+        "name": "purchase_order",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "a3da35b2-bc05-55eb-82c8-a915d006f6b8",
+        "name": "po_item",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "7c8d7539-df4e-5e77-81e7-bb51c1ab7d24",
+        "name": "gr_document",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "32442cf3-f165-56f4-a671-70a17a249570",
+        "name": "gr_year",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "ceac325a-e761-5f53-aca1-aa9b28e26623",
+        "name": "gr_doc_item",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "227826dd-56e7-5dde-ba0d-934613fcf35d",
+        "name": "tax_code",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "89f30b49-48f9-56f6-8b2a-92e6efaa1d4b",
+        "name": "item_amount",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "f5d03772-4a0b-53c1-ab9f-37820951cbc7",
+        "name": "quantity",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "75e90a40-c8a3-56b6-a9f7-53a9ab5f52ef",
+        "name": "unit",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "4910e932-ace0-5ed2-a4e0-b642da320278",
+        "name": "x-csrf-token",
+        "type": "string",
+        "source": "variable",
+        "location": "header",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "2d517fc0-9f30-5c1e-8b2a-fc6b5a1ef165",
+        "name": "supplier_invoice",
+        "path": "d.SupplierInvoice",
+        "type": "string"
+      },
+      {
+        "id": "a3913de5-c46a-5bd5-9aeb-21d9b5e2b711",
+        "name": "fiscal_year",
+        "path": "d.FiscalYear",
+        "type": "string"
+      },
+      {
+        "id": "18bb0dae-51da-5ae9-9e33-a9fb80e07ff7",
+        "name": "invoice_status",
+        "path": "d.SupplierInvoiceStatus",
+        "type": "string"
+      }
+    ]
+  }
+}

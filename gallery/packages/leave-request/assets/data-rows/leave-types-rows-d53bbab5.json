@@ -1,0 +1,71 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "d53bbab5-ec9a-48d7-8567-ffe8ce173999",
+  "asset": {
+    "id": "d53bbab5-ec9a-48d7-8567-ffe8ce173999",
+    "name": "Leave types rows",
+    "rows": [
+      {
+        "id": "897aa2ab-ad15-4705-a613-6c7216b4d2ea",
+        "data": {
+          "leave_type": "annual",
+          "paid": true,
+          "certificate_required": false,
+          "notice_days": 14,
+          "auto_approve_up_to": 1,
+          "deducts_balance": true,
+          "notes": "Single days with two weeks notice are approved automatically"
+        }
+      },
+      {
+        "id": "8d80b25e-0065-4830-b1aa-2b0ec51d0957",
+        "data": {
+          "leave_type": "sick",
+          "paid": true,
+          "certificate_required": true,
+          "notice_days": 0,
+          "auto_approve_up_to": 2,
+          "deducts_balance": true,
+          "notes": "Medical certificate for more than two consecutive days"
+        }
+      },
+      {
+        "id": "4fe9c262-f8ef-4ee8-a3ce-c08d3918c0a8",
+        "data": {
+          "leave_type": "parental",
+          "paid": true,
+          "certificate_required": true,
+          "notice_days": 56,
+          "auto_approve_up_to": 0,
+          "deducts_balance": false,
+          "notes": "HR confirms pay arrangements and keeping-in-touch days"
+        }
+      },
+      {
+        "id": "d7483a91-701c-458a-b37e-671e45acb705",
+        "data": {
+          "leave_type": "bereavement",
+          "paid": true,
+          "certificate_required": false,
+          "notice_days": 0,
+          "auto_approve_up_to": 3,
+          "deducts_balance": false,
+          "notes": "Up to three days approved without review"
+        }
+      },
+      {
+        "id": "9a35f807-d4ba-4e0a-95cd-3a4bbf345356",
+        "data": {
+          "leave_type": "unpaid",
+          "paid": false,
+          "certificate_required": false,
+          "notice_days": 14,
+          "auto_approve_up_to": 0,
+          "deducts_balance": false,
+          "notes": "Always reviewed; payroll is told"
+        }
+      }
+    ]
+  }
+}

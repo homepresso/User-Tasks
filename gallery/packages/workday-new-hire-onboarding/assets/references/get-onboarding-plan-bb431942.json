@@ -1,0 +1,126 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "bb431942-fbe3-586e-bc97-573e919f93d1",
+  "asset": {
+    "id": "bb431942-fbe3-586e-bc97-573e919f93d1",
+    "integration_id": "eaebe1dc-00ae-59c8-bebc-b8b8cd1eca36",
+    "name": "Get onboarding plan",
+    "description": "Workday report-as-a-service (RaaS) JSON: the onboarding plan tasks assigned for the worker (Report_Entry rows).",
+    "tags": [
+      "workday",
+      "raas"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/service/customreport2/acme/ISU_UserTasks/Onboarding_Plan_Tasks?format=json",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "Report_Entry",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "Worker_ID",
+                    "type": "string",
+                    "example": "21508"
+                  },
+                  {
+                    "name": "Onboarding_Plan",
+                    "type": "string",
+                    "example": "Engineering New Hire Plan"
+                  },
+                  {
+                    "name": "Task",
+                    "type": "string",
+                    "example": "Complete Personal Information"
+                  },
+                  {
+                    "name": "Due_Date",
+                    "type": "string",
+                    "example": "2026-11-09"
+                  },
+                  {
+                    "name": "Status",
+                    "type": "string",
+                    "example": "Not Started"
+                  },
+                  {
+                    "name": "Assigned_To",
+                    "type": "string",
+                    "example": "Priya Raman"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "sample": {
+          "Report_Entry": [
+            {
+              "Worker_ID": "21508",
+              "Onboarding_Plan": "Engineering New Hire Plan",
+              "Task": "Complete Personal Information",
+              "Due_Date": "2026-11-09",
+              "Status": "Not Started",
+              "Assigned_To": "Priya Raman"
+            },
+            {
+              "Worker_ID": "21508",
+              "Onboarding_Plan": "Engineering New Hire Plan",
+              "Task": "Review Code of Conduct",
+              "Due_Date": "2026-11-16",
+              "Status": "Not Started",
+              "Assigned_To": "Priya Raman"
+            },
+            {
+              "Worker_ID": "21508",
+              "Onboarding_Plan": "Engineering New Hire Plan",
+              "Task": "Meet Your Team",
+              "Due_Date": "2026-11-18",
+              "Status": "Not Started",
+              "Assigned_To": "Sam Patel"
+            }
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "2833b1e3-92a0-5443-ab29-70fe657146c5",
+        "name": "Worker_ID",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "9d1fcc51-b6ad-5476-8ccf-1654f0067b5f",
+        "name": "plan_tasks",
+        "path": "Report_Entry",
+        "type": "array"
+      },
+      {
+        "id": "427703db-f2be-51de-a969-4b65463e9b2f",
+        "name": "plan_name",
+        "path": "Report_Entry[0].Onboarding_Plan",
+        "type": "string"
+      }
+    ]
+  }
+}

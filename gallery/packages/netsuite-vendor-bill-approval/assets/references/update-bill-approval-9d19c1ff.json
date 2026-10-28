@@ -1,0 +1,76 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "9d19c1ff-2617-554c-8be9-98a9110e229f",
+  "asset": {
+    "id": "9d19c1ff-2617-554c-8be9-98a9110e229f",
+    "integration_id": "8cbd54c5-5b79-5fcc-85da-8cfe036cad77",
+    "name": "Update bill approval",
+    "description": "Set the approval status on the vendor bill (PATCH /vendorBill/{id}): approvalStatus 1 = Pending Approval, 2 = Approved, 3 = Rejected; paymentHold and memo too. NetSuite answers 204 No Content.",
+    "tags": [
+      "vendor bill",
+      "approval"
+    ],
+    "request_config": {
+      "method": "PATCH",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"approvalStatus\":{\"id\":\"{{approval_status}}\"},\"paymentHold\":{{payment_hold}},\"memo\":\"{{memo}}\"}",
+      "path_template": "/vendorBill/{{bill_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": []
+        },
+        "sample": {},
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "f60706f7-ac92-571e-a0d9-13b75f860755",
+        "name": "bill_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Internal id of the vendor bill",
+        "default_value": ""
+      },
+      {
+        "id": "b38c52ce-22d2-5194-bcdc-ecb794bc9225",
+        "name": "approval_status",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "1 pending, 2 approved, 3 rejected",
+        "default_value": ""
+      },
+      {
+        "id": "5a022762-b6f2-543b-9318-9c7172961178",
+        "name": "payment_hold",
+        "type": "boolean",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "true to hold payment",
+        "default_value": ""
+      },
+      {
+        "id": "17bb1526-2586-5c3a-adec-1d5d6b7950e7",
+        "name": "memo",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "Memo (approval note appended)",
+        "default_value": ""
+      }
+    ],
+    "outputs": []
+  }
+}

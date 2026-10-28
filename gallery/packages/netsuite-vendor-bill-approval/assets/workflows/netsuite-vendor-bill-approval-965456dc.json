@@ -1,0 +1,829 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "965456dc-19a7-58b1-bad3-b4f5d91e7464",
+  "asset": {
+    "id": "965456dc-19a7-58b1-bad3-b4f5d91e7464",
+    "name": "NetSuite vendor bill approval",
+    "description": "NetSuite posts a vendor bill id; the bill is read from the REST record API, the AP approval limits pick the approvers by subsidiary and amount, the AP approver codes the cost centre and approves, rejects or holds, and the approval status goes back to NetSuite.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Bill posted from NetSuite",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "get",
+        "type": "call_reference",
+        "label": "Get vendor bill",
+        "position": {
+          "x": 400,
+          "y": 220
+        },
+        "config": {
+          "reference_id": "950a9bae-ecb2-58b4-bbee-eac38e890bce",
+          "reference_name": "Get vendor bill",
+          "reference_method": "GET",
+          "input_mappings": {
+            "bill_id": "{{bill_id}}"
+          },
+          "output_mappings": {
+            "tran_id": {
+              "enabled": true,
+              "variableName": "tran_id"
+            },
+            "tran_date": {
+              "enabled": true,
+              "variableName": "tran_date"
+            },
+            "due_date": {
+              "enabled": true,
+              "variableName": "due_date"
+            },
+            "vendor_id": {
+              "enabled": true,
+              "variableName": "vendor_id"
+            },
+            "vendor_name": {
+              "enabled": true,
+              "variableName": "vendor_name"
+            },
+            "subsidiary": {
+              "enabled": true,
+              "variableName": "subsidiary"
+            },
+            "currency": {
+              "enabled": true,
+              "variableName": "currency"
+            },
+            "total": {
+              "enabled": true,
+              "variableName": "total"
+            },
+            "tax_total": {
+              "enabled": true,
+              "variableName": "tax_total"
+            },
+            "approval_status": {
+              "enabled": true,
+              "variableName": "approval_status"
+            },
+            "memo": {
+              "enabled": true,
+              "variableName": "memo"
+            },
+            "terms": {
+              "enabled": true,
+              "variableName": "terms"
+            },
+            "bill_department": {
+              "enabled": true,
+              "variableName": "bill_department"
+            },
+            "item_lines": {
+              "enabled": true,
+              "variableName": "item_lines"
+            },
+            "expense_lines": {
+              "enabled": true,
+              "variableName": "expense_lines"
+            },
+            "item_count": {
+              "enabled": true,
+              "variableName": "item_count"
+            },
+            "expense_count": {
+              "enabled": true,
+              "variableName": "expense_count"
+            }
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 380
+        },
+        "config": {
+          "title": "Bill {{tran_id}} · {{vendor_name}} · {{currency}} {{total}}"
+        }
+      },
+      {
+        "id": "days",
+        "type": "set_variable",
+        "label": "Days to due date",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "name": "days_to_due",
+          "expression": "{{=ROUND(DAY_DIFF(TODAY(), due_date), 0)}}"
+        }
+      },
+      {
+        "id": "limits",
+        "type": "decision_table",
+        "label": "AP approval limits",
+        "position": {
+          "x": 400,
+          "y": 700
+        },
+        "config": {
+          "decision_table_id": "e39b90da-02e4-59d1-9742-595b6d5b7a08",
+          "decision_table_name": "AP approval limits",
+          "input_mappings": {
+            "subsidiary": "{{subsidiary}}",
+            "amount": "{{total}}"
+          }
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Approval SLA",
+        "position": {
+          "x": 400,
+          "y": 860
+        },
+        "config": {
+          "sla_label": "Bill approval",
+          "mode": "relative",
+          "amount": 3,
+          "unit": "days",
+          "warning_amount": 2,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "ap",
+        "type": "user_task",
+        "label": "AP approval",
+        "position": {
+          "x": 400,
+          "y": 1020
+        },
+        "config": {
+          "task_title": "Approve bill {{tran_id}}: {{vendor_name}} {{currency}} {{total}} (due {{due_date}})",
+          "task_description": "<p><strong>{{vendor_name}}</strong> bill <strong>{{tran_id}}</strong> dated {{tran_date}}, {{subsidiary}}, terms {{terms}}, due <strong>{{due_date}}</strong> ({{days_to_due}} days).</p><p>Total <strong>{{currency}} {{total}}</strong> incl. tax {{tax_total}}: {{item_count}} item line(s), {{expense_count}} expense line(s). Memo: {{memo}}.</p><p>Items: {{=JOIN(\"; \", PLUCK(item_lines, \"description\"))}}<br>Expenses: {{=JOIN(\"; \", PLUCK(expense_lines, \"memo\"))}}</p><p>Limit rule “{{rule_label}}”: {{approver_level}}{{=IF(second_approval, CONCAT(\", then \", second_approver), \"\")}}.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject",
+            "Hold"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "60e06c7d-97a7-5fde-b271-af14b3c2360a",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320,
+          "fields": [
+            {
+              "key": "cost_centre",
+              "label": "Cost centre",
+              "type": "lookup",
+              "required": true,
+              "help_text": "Search by code or name",
+              "lookup": {
+                "source": "table",
+                "table_id": "202cb15c-2ec6-50a7-96ed-54d4b8818f87",
+                "search_columns": [
+                  "code",
+                  "name"
+                ],
+                "display_columns": [
+                  "code",
+                  "name",
+                  "budget_owner"
+                ],
+                "value_column": "code",
+                "fill": [
+                  {
+                    "from": "name",
+                    "to": "cost_centre_name"
+                  },
+                  {
+                    "from": "budget_owner",
+                    "to": "budget_owner"
+                  },
+                  {
+                    "from": "ns_department_id",
+                    "to": "ns_department_id"
+                  }
+                ],
+                "filters": [
+                  {
+                    "column": "active",
+                    "operator": "eq",
+                    "value": "true"
+                  }
+                ],
+                "sort": {
+                  "column": "code",
+                  "direction": "asc"
+                }
+              }
+            },
+            {
+              "key": "cost_centre_name",
+              "label": "Cost centre name",
+              "type": "text",
+              "read_only": true
+            },
+            {
+              "key": "budget_owner",
+              "label": "Budget owner",
+              "type": "text",
+              "read_only": true
+            },
+            {
+              "key": "ns_department_id",
+              "label": "NetSuite department id",
+              "type": "text",
+              "read_only": true
+            },
+            {
+              "key": "po_matched",
+              "label": "Matches the PO and receipt",
+              "type": "boolean"
+            },
+            {
+              "key": "hold_reason",
+              "label": "Hold reason",
+              "type": "choice",
+              "options": [
+                "Awaiting goods receipt",
+                "Price query with vendor",
+                "Missing PO",
+                "Duplicate suspected",
+                "Bank details check"
+              ],
+              "visible_when": {
+                "field": "po_matched",
+                "operator": "not_equals",
+                "value": "true"
+              }
+            },
+            {
+              "key": "comments",
+              "label": "Comments",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "cost_centre",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "cost_centre_name",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "budget_owner",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "ns_department_id",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "po_matched",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "hold_reason",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "comments",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Vendor bill approval",
+            "align": "left",
+            "subtitle": "{{vendor_name}} · {{tran_id}} · {{currency}} {{total}}"
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "hold",
+              "label": "Hold",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Hold"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ]
+        }
+      },
+      {
+        "id": "ap_data",
+        "type": "json_build_object",
+        "label": "AP decision",
+        "position": {
+          "x": 80,
+          "y": 1180
+        },
+        "config": {
+          "output_var": "ap",
+          "fields": [
+            {
+              "key": "cost_centre",
+              "value": "{{task_data.cost_centre}}"
+            },
+            {
+              "key": "comments",
+              "value": "{{task_data.comments}}"
+            }
+          ]
+        }
+      },
+      {
+        "id": "second",
+        "type": "condition",
+        "label": "Second approval?",
+        "position": {
+          "x": 80,
+          "y": 1340
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Second approval",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{second_approval}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "cfo",
+        "type": "user_task",
+        "label": "Second approval",
+        "position": {
+          "x": 80,
+          "y": 1500
+        },
+        "config": {
+          "task_title": "{{second_approver}} approval: bill {{tran_id}} {{vendor_name}} {{currency}} {{total}}",
+          "task_description": "<p>AP approved <strong>{{vendor_name}}</strong> bill {{tran_id}} for <strong>{{currency}} {{total}}</strong> ({{subsidiary}}), cost centre {{ap.cost_centre}}, due {{due_date}}.</p><p>AP comments: {{ap.comments}}</p><p>The {{subsidiary}} limit needs {{second_approver}} approval.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "34ddb5b7-6e6b-592c-9acf-01471dc08234",
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 720
+            }
+          ],
+          "fields": [
+            {
+              "key": "comments",
+              "label": "Comments",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "comments",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Second approval",
+            "align": "left",
+            "subtitle": "{{vendor_name}} · {{tran_id}} · {{currency}} {{total}}"
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ]
+        }
+      },
+      {
+        "id": "o_ok",
+        "type": "json_build_object",
+        "label": "Approved",
+        "position": {
+          "x": 400,
+          "y": 1660
+        },
+        "config": {
+          "output_var": "o",
+          "fields": [
+            {
+              "key": "status",
+              "value": "2"
+            },
+            {
+              "key": "label",
+              "value": "Approved"
+            },
+            {
+              "key": "hold",
+              "value": "false"
+            },
+            {
+              "key": "decision",
+              "value": "approved"
+            }
+          ]
+        }
+      },
+      {
+        "id": "o_rej",
+        "type": "json_build_object",
+        "label": "Rejected",
+        "position": {
+          "x": 720,
+          "y": 1660
+        },
+        "config": {
+          "output_var": "o",
+          "fields": [
+            {
+              "key": "status",
+              "value": "3"
+            },
+            {
+              "key": "label",
+              "value": "Rejected"
+            },
+            {
+              "key": "hold",
+              "value": "false"
+            },
+            {
+              "key": "decision",
+              "value": "rejected"
+            }
+          ]
+        }
+      },
+      {
+        "id": "o_hold",
+        "type": "json_build_object",
+        "label": "On hold",
+        "position": {
+          "x": 1040,
+          "y": 1180
+        },
+        "config": {
+          "output_var": "o",
+          "fields": [
+            {
+              "key": "status",
+              "value": "1"
+            },
+            {
+              "key": "label",
+              "value": "Pending Approval"
+            },
+            {
+              "key": "hold",
+              "value": "true"
+            },
+            {
+              "key": "decision",
+              "value": "on hold"
+            }
+          ]
+        }
+      },
+      {
+        "id": "v_status",
+        "type": "set_variable",
+        "label": "Status",
+        "position": {
+          "x": 400,
+          "y": 1820
+        },
+        "config": {
+          "name": "status_label",
+          "expression": "{{o.label}}"
+        }
+      },
+      {
+        "id": "v_hold",
+        "type": "set_variable",
+        "label": "Hold?",
+        "position": {
+          "x": 400,
+          "y": 1980
+        },
+        "config": {
+          "name": "hold",
+          "expression": "{{=TO_BOOLEAN(o.hold)}}"
+        }
+      },
+      {
+        "id": "v_dec",
+        "type": "set_variable",
+        "label": "Decision",
+        "position": {
+          "x": 400,
+          "y": 2140
+        },
+        "config": {
+          "name": "decision",
+          "expression": "{{o.decision}}"
+        }
+      },
+      {
+        "id": "patch",
+        "type": "call_reference",
+        "label": "Update bill in NetSuite",
+        "position": {
+          "x": 400,
+          "y": 2300
+        },
+        "config": {
+          "reference_id": "9d19c1ff-2617-554c-8be9-98a9110e229f",
+          "reference_name": "Update bill approval",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "bill_id": "{{bill_id}}",
+            "approval_status": "{{o.status}}",
+            "payment_hold": "{{hold}}",
+            "memo": "{{memo}} | UserTasks: {{decision}} by {{approver_level}}, CC {{task_data.cost_centre}}"
+          },
+          "output_mappings": {}
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email AP",
+        "position": {
+          "x": 400,
+          "y": 2460
+        },
+        "config": {
+          "to": "{{=COALESCE(ap_email, \"accounts.payable@example.com\")}}",
+          "email_template_id": "e961450e-596f-55a0-842d-107940fd087c"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Bill decided",
+        "position": {
+          "x": 400,
+          "y": 2620
+        },
+        "config": {
+          "reason": "Bill {{tran_id}} ({{vendor_name}}) {{decision}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-get",
+        "source": "trigger",
+        "target": "get"
+      },
+      {
+        "id": "e-get-title",
+        "source": "get",
+        "target": "title"
+      },
+      {
+        "id": "e-title-days",
+        "source": "title",
+        "target": "days"
+      },
+      {
+        "id": "e-days-limits",
+        "source": "days",
+        "target": "limits"
+      },
+      {
+        "id": "e-limits-sla",
+        "source": "limits",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-ap",
+        "source": "sla",
+        "target": "ap"
+      },
+      {
+        "id": "e-ap-ap_data-approve",
+        "source": "ap",
+        "target": "ap_data",
+        "label": "Approve"
+      },
+      {
+        "id": "e-ap-o_rej-reject",
+        "source": "ap",
+        "target": "o_rej",
+        "label": "Reject"
+      },
+      {
+        "id": "e-ap-o_hold-hold",
+        "source": "ap",
+        "target": "o_hold",
+        "label": "Hold"
+      },
+      {
+        "id": "e-ap_data-second",
+        "source": "ap_data",
+        "target": "second"
+      },
+      {
+        "id": "e-second-cfo-second-approval",
+        "source": "second",
+        "target": "cfo",
+        "label": "Second approval"
+      },
+      {
+        "id": "e-second-o_ok-else",
+        "source": "second",
+        "target": "o_ok",
+        "label": "Else"
+      },
+      {
+        "id": "e-cfo-o_ok-approve",
+        "source": "cfo",
+        "target": "o_ok",
+        "label": "Approve"
+      },
+      {
+        "id": "e-cfo-o_rej-reject",
+        "source": "cfo",
+        "target": "o_rej",
+        "label": "Reject"
+      },
+      {
+        "id": "e-o_ok-v_status",
+        "source": "o_ok",
+        "target": "v_status"
+      },
+      {
+        "id": "e-o_rej-v_status",
+        "source": "o_rej",
+        "target": "v_status"
+      },
+      {
+        "id": "e-o_hold-v_status",
+        "source": "o_hold",
+        "target": "v_status"
+      },
+      {
+        "id": "e-v_status-v_hold",
+        "source": "v_status",
+        "target": "v_hold"
+      },
+      {
+        "id": "e-v_hold-v_dec",
+        "source": "v_hold",
+        "target": "v_dec"
+      },
+      {
+        "id": "e-v_dec-patch",
+        "source": "v_dec",
+        "target": "patch"
+      },
+      {
+        "id": "e-patch-mail",
+        "source": "patch",
+        "target": "mail"
+      },
+      {
+        "id": "e-mail-done",
+        "source": "mail",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-bill_id",
+        "name": "bill_id",
+        "type": "string",
+        "description": "Internal id of the vendor bill (record.id in the SuiteScript / workflow action)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Vendor bill id"
+      },
+      {
+        "id": "v-tran_id",
+        "name": "tran_id",
+        "type": "string",
+        "description": "Optional: the vendor's invoice number (tranId), for logs",
+        "defaultValue": "",
+        "required": false,
+        "label": "Bill number"
+      },
+      {
+        "id": "v-ap_email",
+        "name": "ap_email",
+        "type": "string",
+        "description": "Where the decision email goes",
+        "defaultValue": "accounts.payable@example.com",
+        "required": false,
+        "label": "AP mailbox",
+        "format": "email"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

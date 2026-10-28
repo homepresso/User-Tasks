@@ -1,0 +1,380 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "35fe982c-2df3-5325-bfd9-d8eb8ef711ee",
+  "asset": {
+    "id": "35fe982c-2df3-5325-bfd9-d8eb8ef711ee",
+    "name": "Report a workplace incident",
+    "description": "Report an injury, near miss, property damage or environmental incident. Anyone can use it; it takes about two minutes.",
+    "tags": [
+      "health and safety",
+      "incidents"
+    ],
+    "fields": [
+      {
+        "key": "h_where",
+        "label": "Where and when",
+        "type": "heading"
+      },
+      {
+        "key": "site",
+        "label": "Site",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "6e0dcd36-3cbf-5554-84c6-106e05a4fb99",
+          "search_columns": [
+            "name",
+            "site_code",
+            "region"
+          ],
+          "display_columns": [
+            "name",
+            "region"
+          ],
+          "value_column": "site_code",
+          "fill": [
+            {
+              "from": "site_manager",
+              "to": "site_manager"
+            },
+            {
+              "from": "site_manager_email",
+              "to": "site_manager_email"
+            }
+          ],
+          "filters": [
+            {
+              "column": "active",
+              "operator": "eq",
+              "value": "true"
+            }
+          ],
+          "sort": {
+            "column": "name",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "occurred_at",
+        "label": "When did it happen?",
+        "type": "datetime",
+        "required": true
+      },
+      {
+        "key": "location_detail",
+        "label": "Exact location",
+        "type": "text",
+        "required": true,
+        "placeholder": "e.g. Loading bay 3, kitchen on level 2"
+      },
+      {
+        "key": "site_manager",
+        "label": "Site manager",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "site_manager_email",
+        "label": "Site manager email",
+        "type": "email",
+        "read_only": true
+      },
+      {
+        "key": "div1",
+        "label": "Divider",
+        "type": "divider"
+      },
+      {
+        "key": "h_what",
+        "label": "What happened",
+        "type": "heading"
+      },
+      {
+        "key": "incident_type",
+        "label": "Type of incident",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Injury",
+          "Near miss",
+          "Property damage",
+          "Environmental",
+          "Vehicle",
+          "Security",
+          "Other"
+        ]
+      },
+      {
+        "key": "injury_level",
+        "label": "Worst injury",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "None",
+          "First aid",
+          "Medical treatment",
+          "Lost time",
+          "Serious / hospital"
+        ],
+        "help_text": "Choose None for near misses and damage only."
+      },
+      {
+        "key": "people_involved",
+        "label": "People involved",
+        "type": "text",
+        "placeholder": "Names, or \"contractor\", \"member of the public\""
+      },
+      {
+        "key": "witnesses",
+        "label": "Witnesses",
+        "type": "text"
+      },
+      {
+        "key": "description",
+        "label": "Describe what happened",
+        "type": "textarea",
+        "required": true,
+        "help_text": "Facts only: what, how, the equipment involved."
+      },
+      {
+        "key": "immediate_action",
+        "label": "What was done straight away?",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "key": "div2",
+        "label": "Divider",
+        "type": "divider"
+      },
+      {
+        "key": "h_you",
+        "label": "About you",
+        "type": "heading"
+      },
+      {
+        "key": "reporter_name",
+        "label": "Your name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "reporter_email",
+        "label": "Your email",
+        "type": "email",
+        "required": true
+      },
+      {
+        "key": "area_safe",
+        "label": "The area has been made safe",
+        "type": "boolean"
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_where",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "site",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "occurred_at",
+              "span": 1
+            },
+            {
+              "field_key": "location_detail",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "site_manager",
+              "span": 1
+            },
+            {
+              "field_key": "site_manager_email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "div1",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_what",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "incident_type",
+              "span": 1
+            },
+            {
+              "field_key": "injury_level",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "people_involved",
+              "span": 1
+            },
+            {
+              "field_key": "witnesses",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "description",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "immediate_action",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "div2",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_you",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "reporter_name",
+              "span": 1
+            },
+            {
+              "field_key": "reporter_email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "area_safe",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#C2410C",
+            "background": "#FFFFFF",
+            "text": "#2B1608",
+            "page": "#FFF4E5",
+            "page_to": "#FFFBF5"
+          }
+        },
+        "radius": 8,
+        "density": "comfortable",
+        "button_placement": "full",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit report",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Thank you, your report is in",
+            "screen_button": "submit_another",
+            "text": "The site manager has been told. If you remember anything else, submit another report and mention the first one.",
+            "screen_button_label": "Report another incident"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Report an incident",
+      "align": "left",
+      "subtitle": "If anyone is in danger, call emergency services first. Then tell us what happened.",
+      "banner": true
+    }
+  }
+}

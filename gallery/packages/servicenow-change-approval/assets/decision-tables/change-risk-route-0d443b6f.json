@@ -1,0 +1,165 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "0d443b6f-ac9d-52cd-a51b-d5ee49055fe1",
+  "asset": {
+    "id": "0d443b6f-ac9d-52cd-a51b-d5ee49055fe1",
+    "name": "Change risk route",
+    "description": "Which approval a change needs, from its type (normal / standard / emergency), the ServiceNow risk and the criticality of the CI. First matching rule wins.",
+    "inputs": [
+      {
+        "key": "change_type",
+        "label": "Change type",
+        "type": "text",
+        "id": "eb21d08a-df0a-5ba2-a030-6931e41f2ccd"
+      },
+      {
+        "key": "risk",
+        "label": "Risk",
+        "type": "text",
+        "id": "3ccddbc1-abab-54d7-8bd9-05ead92bec6f"
+      },
+      {
+        "key": "ci_criticality",
+        "label": "CI criticality",
+        "type": "text",
+        "id": "1318128a-ab6f-5aab-a4ac-840086ac8117"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "route",
+        "label": "Approval route",
+        "type": "text",
+        "id": "0936f5ab-e526-5883-b5a1-fe40280428ce"
+      },
+      {
+        "key": "needs_review",
+        "label": "Needs a human review",
+        "type": "boolean",
+        "id": "3e6c5c26-ed6b-59d6-81ff-ac7aa032b01f"
+      },
+      {
+        "key": "review_hours",
+        "label": "Decision within (hours)",
+        "type": "number",
+        "id": "a041a567-88ac-5b19-a903-b0af803b09fa"
+      },
+      {
+        "key": "checks",
+        "label": "Reviewer checks",
+        "type": "text",
+        "id": "fe35b3dc-8548-5ffc-b0a4-91dc81aa41d4"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Emergency change",
+        "conditions": [
+          {
+            "inputKey": "change_type",
+            "operator": "equals",
+            "value": "emergency",
+            "id": "e2360fe2-fe43-5b40-865c-f2466ec47963"
+          }
+        ],
+        "outputs": {
+          "route": "ECAB",
+          "needs_review": true,
+          "review_hours": 2,
+          "checks": "Confirm the outage or risk being fixed, the backout and a post-implementation review."
+        },
+        "id": "e8029b2f-3f83-566d-b473-c643dd923aa0",
+        "enabled": true
+      },
+      {
+        "label": "Standard change (pre-approved model)",
+        "conditions": [
+          {
+            "inputKey": "change_type",
+            "operator": "equals",
+            "value": "standard",
+            "id": "8a6f4b27-2688-5470-85ef-91d3ba5f37c0"
+          }
+        ],
+        "outputs": {
+          "route": "Pre-approved",
+          "needs_review": false,
+          "review_hours": 0,
+          "checks": "Standard change template: approved automatically."
+        },
+        "id": "ac4ea2c9-538a-50e1-9629-a4fd347c8469",
+        "enabled": true
+      },
+      {
+        "label": "High or very high risk",
+        "conditions": [
+          {
+            "inputKey": "risk",
+            "operator": "contains",
+            "value": "High",
+            "id": "4e452675-695b-5729-a5d9-5eaca12863d1"
+          }
+        ],
+        "outputs": {
+          "route": "CAB",
+          "needs_review": true,
+          "review_hours": 48,
+          "checks": "Full CAB review: test evidence, backout rehearsal, comms and business sign-off."
+        },
+        "id": "28afb0bf-9a18-5de1-ab49-06c19ec8beb3",
+        "enabled": true
+      },
+      {
+        "label": "Critical CI",
+        "conditions": [
+          {
+            "inputKey": "ci_criticality",
+            "operator": "equals",
+            "value": "critical",
+            "id": "73524708-96d3-5a95-805b-3f86d4481526"
+          }
+        ],
+        "outputs": {
+          "route": "CAB",
+          "needs_review": true,
+          "review_hours": 48,
+          "checks": "Critical CI: confirm the window avoids peak trading and the service owner agrees."
+        },
+        "id": "164ee6cf-0c3b-51b8-8cfd-ceffd522b185",
+        "enabled": true
+      },
+      {
+        "label": "Moderate risk",
+        "conditions": [
+          {
+            "inputKey": "risk",
+            "operator": "equals",
+            "value": "Moderate",
+            "id": "393b4167-e339-5e7c-a013-c729e9202581"
+          }
+        ],
+        "outputs": {
+          "route": "Change manager",
+          "needs_review": true,
+          "review_hours": 24,
+          "checks": "Check the plans, the window and conflicts."
+        },
+        "id": "d0ed9a60-3a32-53e6-8e58-6835753f8790",
+        "enabled": true
+      },
+      {
+        "label": "Low risk normal change",
+        "conditions": [],
+        "outputs": {
+          "route": "Change manager",
+          "needs_review": true,
+          "review_hours": 24,
+          "checks": "Quick review of the plans and window."
+        },
+        "id": "09c7e85b-0c11-57a5-aa3b-6e155ec40771",
+        "enabled": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,188 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "ac6e55ee-9abd-4c73-9f81-827509a53450",
+  "asset": {
+    "id": "ac6e55ee-9abd-4c73-9f81-827509a53450",
+    "integration_id": "17cc9910-7d93-4205-8992-59facf731018",
+    "name": "Create change request",
+    "description": "Register the RFC in the ITSM change module with its type, risk and planned window.",
+    "tags": [
+      "changes"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"short_description\":\"{{short_description}}\",\"description\":\"{{description}}\",\"configuration_item\":\"{{system}}\",\"type\":\"{{type}}\",\"risk\":\"{{risk}}\",\"planned_start\":\"{{planned_start}}\",\"planned_end\":\"{{planned_end}}\",\"backout_plan\":\"{{backout_plan}}\",\"requested_by\":\"{{requested_by}}\"}",
+      "path_template": "/changes",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "9b2e4f71-3c8a-4d5e-b1f0-6a7c8d9e0f12"
+            },
+            {
+              "name": "number",
+              "type": "string",
+              "example": "CHG0031877"
+            },
+            {
+              "name": "state",
+              "type": "string",
+              "example": "assess"
+            },
+            {
+              "name": "type",
+              "type": "string",
+              "example": "normal"
+            },
+            {
+              "name": "risk",
+              "type": "string",
+              "example": "moderate"
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "example": "https://itsm.example.com/changes/CHG0031877"
+            }
+          ]
+        },
+        "sample": {
+          "id": "9b2e4f71-3c8a-4d5e-b1f0-6a7c8d9e0f12",
+          "number": "CHG0031877",
+          "state": "assess",
+          "type": "normal",
+          "risk": "moderate",
+          "url": "https://itsm.example.com/changes/CHG0031877"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "1dc582d2-7dd9-4d42-a2da-d0909321fe93",
+        "name": "short_description",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "bb313933-7ba9-4340-8c18-d0b06a52f612",
+        "name": "description",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "7f75c2a4-ea19-4638-b881-0c753c309bb8",
+        "name": "system",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c5a2263f-fc09-462b-99ab-c210f7f972fb",
+        "name": "type",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "5fcc33a3-7825-4784-bdd4-e55c928d7ad0",
+        "name": "risk",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "eb4ae3e2-b5a4-4110-9ec7-492a96484125",
+        "name": "planned_start",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "fe8155b5-f795-4416-99e7-dc420263db7c",
+        "name": "planned_end",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "0a23e91b-2b89-4ad8-9d05-1aa1ce5614d6",
+        "name": "backout_plan",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "2f309ba0-5ab3-4218-8b1c-5808ecea3e66",
+        "name": "requested_by",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "c2474a04-596c-4a4a-b93e-84ce6fa447dd",
+        "name": "id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "7432a5f2-5bc2-4fdb-82c1-aa058330b0b7",
+        "name": "number",
+        "path": "number",
+        "type": "string"
+      },
+      {
+        "id": "165499d2-ffe7-4d62-9f2f-1c305bb9dce3",
+        "name": "state",
+        "path": "state",
+        "type": "string"
+      },
+      {
+        "id": "b7fcab2b-3c5b-42dd-8226-b83644c2593f",
+        "name": "url",
+        "path": "url",
+        "type": "string"
+      }
+    ]
+  }
+}

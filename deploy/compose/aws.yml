@@ -1,0 +1,103 @@
+# Reference AWS profile (docs/deployment-profiles.md), emulated locally:
+#   Database   PostgreSQL 16 (RDS / Aurora in the cloud; IAM database auth,
+#              DATABASE_AUTH=aws, is not emulated: a password is used here)
+#   Identity   the ECS task role: container credentials over HTTPS from the
+#              mocks container (AWS_CONTAINER_CREDENTIALS_FULL_URI), so every
+#              AWS SDK call goes through the real credential chain
+#   Storage    S3 (LocalStack)
+#   Secrets    Secrets Manager (LocalStack): ENCRYPTION_KEY=secret://usertasks/encryption-key
+#   KMS        AWS KMS (LocalStack), key alias/usertasks
+#   Email      SES v2 SendEmail stand-in in the mocks container (LocalStack's
+#              community edition has SES v1 only)
+#   Log export CloudWatch Logs (LocalStack): the smoke test adds an
+#              aws_cloudwatch_logs destination with auth=instance_role
+#   Auth       built-in + a Cognito user pool OIDC stand-in (discovery only)
+#   Scheduler  external: the `tick` container calls /api/cron/tick every
+#              minute with CRON_SECRET, like an EventBridge API destination
+#   Realtime   built-in SSE
+#   Cache      Valkey standing in for ElastiCache (password auth; IAM auth,
+#              CACHE_REDIS_AUTH=aws_iam, is not emulated)
+# LocalStack (community) is seeded by deploy/compose/localstack/init-aws.sh;
+# the mocks' TLS certificate comes from `npm run stack -- init --profile aws`
+# (deploy/compose/.state/certs). Real AWS resources: deploy/aws/.
+
+x-state: &certs ${USERTASKS_STATE_DIR:-./deploy/compose/.state}/certs:/certs:ro
+
+services:
+  app:
+    volumes:
+      - *certs
+    depends_on: !override
+      migrate:
+        condition: service_completed_successfully
+      mocks:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+
+  postgres:
+    profiles: [standalone, aws]
+
+  valkey:
+    profiles: [standalone, aws]
+
+  migrate:
+    profiles: [standalone, aws]
+    volumes:
+      - *certs
+    depends_on: !override
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+      mocks:
+        condition: service_healthy
+
+  localstack:
+    profiles: [aws]
+    image: localstack/localstack:4.9
+    environment:
+      SERVICES: s3,secretsmanager,kms,logs,sts
+      AWS_DEFAULT_REGION: eu-west-1
+      MOCK_ENCRYPTION_KEY: ${MOCK_ENCRYPTION_KEY:-}
+    volumes:
+      - ./deploy/compose/localstack/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://127.0.0.1:4566/_localstack/init/ready | grep -q '\"completed\": true'"]
+      interval: 3s
+      timeout: 5s
+      retries: 60
+
+  mocks:
+    profiles: [aws]
+    image: node:22-alpine
+    command: ["node", "/mocks/cloud-mocks.mjs"]
+    environment:
+      MOCK_HTTP_PORT: "8080"
+      MOCK_HTTPS_PORT: "8443"
+      MOCK_ECS_AUTH_TOKEN: local-ecs-credentials-token
+    volumes:
+      - ./deploy/compose/mocks:/mocks:ro
+      - *certs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # EventBridge (rule → API destination): POST /api/cron/tick every minute.
+  tick:
+    profiles: [aws]
+    image: node:22-alpine
+    env_file:
+      - path: ${USERTASKS_ENV_FILE:-.env}
+        required: false
+    command: ["sh", "-c", "while true; do wget -q -O /dev/null --header \"Authorization: Bearer $$CRON_SECRET\" --post-data '' http://app:3000/api/cron/tick || echo tick failed; sleep 60; done"]
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped

@@ -1,0 +1,1101 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "950a9bae-ecb2-58b4-bbee-eac38e890bce",
+  "asset": {
+    "id": "950a9bae-ecb2-58b4-bbee-eac38e890bce",
+    "integration_id": "8cbd54c5-5b79-5fcc-85da-8cfe036cad77",
+    "name": "Get vendor bill",
+    "description": "Read the vendor bill with its item and expense sublists (GET /vendorBill/{id}?expandSubResources=true): vendor, subsidiary, currency, total, due date and approval status.",
+    "tags": [
+      "vendor bill"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/vendorBill/{{bill_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "links",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "rel",
+                    "type": "string",
+                    "example": "self"
+                  },
+                  {
+                    "name": "href",
+                    "type": "string",
+                    "example": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/vendorBill/48213"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "id",
+              "type": "string",
+              "example": "48213"
+            },
+            {
+              "name": "tranId",
+              "type": "string",
+              "example": "INV-77120"
+            },
+            {
+              "name": "tranDate",
+              "type": "string",
+              "example": "2026-10-24"
+            },
+            {
+              "name": "dueDate",
+              "type": "string",
+              "example": "2026-11-23"
+            },
+            {
+              "name": "postingPeriod",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "links",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "rel",
+                        "type": "string",
+                        "example": "self"
+                      },
+                      {
+                        "name": "href",
+                        "type": "string",
+                        "example": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/accountingPeriod/310"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "310"
+                },
+                {
+                  "name": "refName",
+                  "type": "string",
+                  "example": "Oct 2026"
+                }
+              ]
+            },
+            {
+              "name": "entity",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "links",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "rel",
+                        "type": "string",
+                        "example": "self"
+                      },
+                      {
+                        "name": "href",
+                        "type": "string",
+                        "example": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/vendor/1877"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "1877"
+                },
+                {
+                  "name": "refName",
+                  "type": "string",
+                  "example": "Northwind Industrial Supply"
+                }
+              ]
+            },
+            {
+              "name": "subsidiary",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "links",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "rel",
+                        "type": "string",
+                        "example": "self"
+                      },
+                      {
+                        "name": "href",
+                        "type": "string",
+                        "example": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/subsidiary/2"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "2"
+                },
+                {
+                  "name": "refName",
+                  "type": "string",
+                  "example": "Contoso Ltd (NZ)"
+                }
+              ]
+            },
+            {
+              "name": "currency",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "links",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "rel",
+                        "type": "string",
+                        "example": "self"
+                      },
+                      {
+                        "name": "href",
+                        "type": "string",
+                        "example": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/currency/5"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "5"
+                },
+                {
+                  "name": "refName",
+                  "type": "string",
+                  "example": "NZD"
+                }
+              ]
+            },
+            {
+              "name": "exchangeRate",
+              "type": "number",
+              "example": 1.0
+            },
+            {
+              "name": "account",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "links",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "rel",
+                        "type": "string",
+                        "example": "self"
+                      },
+                      {
+                        "name": "href",
+                        "type": "string",
+                        "example": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/account/111"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "111"
+                },
+                {
+                  "name": "refName",
+                  "type": "string",
+                  "example": "2000 Accounts Payable"
+                }
+              ]
+            },
+            {
+              "name": "terms",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "links",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "rel",
+                        "type": "string",
+                        "example": "self"
+                      },
+                      {
+                        "name": "href",
+                        "type": "string",
+                        "example": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/term/2"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "2"
+                },
+                {
+                  "name": "refName",
+                  "type": "string",
+                  "example": "Net 30"
+                }
+              ]
+            },
+            {
+              "name": "approvalStatus",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "links",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "1"
+                },
+                {
+                  "name": "refName",
+                  "type": "string",
+                  "example": "Pending Approval"
+                }
+              ]
+            },
+            {
+              "name": "paymentHold",
+              "type": "boolean",
+              "example": false
+            },
+            {
+              "name": "memo",
+              "type": "string",
+              "example": "October maintenance parts and on-site service"
+            },
+            {
+              "name": "userTotal",
+              "type": "number",
+              "example": 18975.0
+            },
+            {
+              "name": "total",
+              "type": "number",
+              "example": 18975.0
+            },
+            {
+              "name": "taxTotal",
+              "type": "number",
+              "example": 2475.0
+            },
+            {
+              "name": "department",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "links",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "rel",
+                        "type": "string",
+                        "example": "self"
+                      },
+                      {
+                        "name": "href",
+                        "type": "string",
+                        "example": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/department/7"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "7"
+                },
+                {
+                  "name": "refName",
+                  "type": "string",
+                  "example": "Operations"
+                }
+              ]
+            },
+            {
+              "name": "location",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "links",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "rel",
+                        "type": "string",
+                        "example": "self"
+                      },
+                      {
+                        "name": "href",
+                        "type": "string",
+                        "example": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/location/3"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "3"
+                },
+                {
+                  "name": "refName",
+                  "type": "string",
+                  "example": "Auckland DC"
+                }
+              ]
+            },
+            {
+              "name": "createdDate",
+              "type": "string",
+              "example": "2026-10-27T21:04:00Z"
+            },
+            {
+              "name": "lastModifiedDate",
+              "type": "string",
+              "example": "2026-10-27T21:04:00Z"
+            },
+            {
+              "name": "item",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "links",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "rel",
+                        "type": "string",
+                        "example": "self"
+                      },
+                      {
+                        "name": "href",
+                        "type": "string",
+                        "example": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/vendorBill/48213/item"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "items",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "links",
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      {
+                        "name": "line",
+                        "type": "integer",
+                        "example": 1
+                      },
+                      {
+                        "name": "item",
+                        "type": "object",
+                        "fields": [
+                          {
+                            "name": "links",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          {
+                            "name": "id",
+                            "type": "string",
+                            "example": "5521"
+                          },
+                          {
+                            "name": "refName",
+                            "type": "string",
+                            "example": "BRG-6204 Ball bearing 6204-2RS"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "description",
+                        "type": "string",
+                        "example": "Ball bearing 6204-2RS"
+                      },
+                      {
+                        "name": "quantity",
+                        "type": "number",
+                        "example": 400.0
+                      },
+                      {
+                        "name": "rate",
+                        "type": "number",
+                        "example": 12.5
+                      },
+                      {
+                        "name": "amount",
+                        "type": "number",
+                        "example": 5000.0
+                      },
+                      {
+                        "name": "department",
+                        "type": "object",
+                        "fields": [
+                          {
+                            "name": "links",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          {
+                            "name": "id",
+                            "type": "string",
+                            "example": "7"
+                          },
+                          {
+                            "name": "refName",
+                            "type": "string",
+                            "example": "Operations"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "class",
+                        "type": "object",
+                        "fields": [
+                          {
+                            "name": "links",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          {
+                            "name": "id",
+                            "type": "string",
+                            "example": "4"
+                          },
+                          {
+                            "name": "refName",
+                            "type": "string",
+                            "example": "Maintenance"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "orderDoc",
+                        "type": "object",
+                        "fields": [
+                          {
+                            "name": "links",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          {
+                            "name": "id",
+                            "type": "string",
+                            "example": "40912"
+                          },
+                          {
+                            "name": "refName",
+                            "type": "string",
+                            "example": "Purchase Order #PO-4500123"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "totalResults",
+                  "type": "integer",
+                  "example": 2
+                },
+                {
+                  "name": "count",
+                  "type": "integer",
+                  "example": 2
+                },
+                {
+                  "name": "hasMore",
+                  "type": "boolean",
+                  "example": false
+                },
+                {
+                  "name": "offset",
+                  "type": "integer",
+                  "example": 0
+                }
+              ]
+            },
+            {
+              "name": "expense",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "links",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "rel",
+                        "type": "string",
+                        "example": "self"
+                      },
+                      {
+                        "name": "href",
+                        "type": "string",
+                        "example": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/vendorBill/48213/expense"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "items",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "links",
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      {
+                        "name": "line",
+                        "type": "integer",
+                        "example": 1
+                      },
+                      {
+                        "name": "account",
+                        "type": "object",
+                        "fields": [
+                          {
+                            "name": "links",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          {
+                            "name": "id",
+                            "type": "string",
+                            "example": "6120"
+                          },
+                          {
+                            "name": "refName",
+                            "type": "string",
+                            "example": "6120 Repairs & Maintenance"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "amount",
+                        "type": "number",
+                        "example": 2500.0
+                      },
+                      {
+                        "name": "memo",
+                        "type": "string",
+                        "example": "On-site service, 2 technicians x 1 day"
+                      },
+                      {
+                        "name": "department",
+                        "type": "object",
+                        "fields": [
+                          {
+                            "name": "links",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          {
+                            "name": "id",
+                            "type": "string",
+                            "example": "7"
+                          },
+                          {
+                            "name": "refName",
+                            "type": "string",
+                            "example": "Operations"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "class",
+                        "type": "object",
+                        "fields": [
+                          {
+                            "name": "links",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          {
+                            "name": "id",
+                            "type": "string",
+                            "example": "4"
+                          },
+                          {
+                            "name": "refName",
+                            "type": "string",
+                            "example": "Maintenance"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "location",
+                        "type": "object",
+                        "fields": [
+                          {
+                            "name": "links",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          {
+                            "name": "id",
+                            "type": "string",
+                            "example": "3"
+                          },
+                          {
+                            "name": "refName",
+                            "type": "string",
+                            "example": "Auckland DC"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "totalResults",
+                  "type": "integer",
+                  "example": 1
+                },
+                {
+                  "name": "count",
+                  "type": "integer",
+                  "example": 1
+                },
+                {
+                  "name": "hasMore",
+                  "type": "boolean",
+                  "example": false
+                },
+                {
+                  "name": "offset",
+                  "type": "integer",
+                  "example": 0
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "links": [
+            {
+              "rel": "self",
+              "href": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/vendorBill/48213"
+            }
+          ],
+          "id": "48213",
+          "tranId": "INV-77120",
+          "tranDate": "2026-10-24",
+          "dueDate": "2026-11-23",
+          "postingPeriod": {
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/accountingPeriod/310"
+              }
+            ],
+            "id": "310",
+            "refName": "Oct 2026"
+          },
+          "entity": {
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/vendor/1877"
+              }
+            ],
+            "id": "1877",
+            "refName": "Northwind Industrial Supply"
+          },
+          "subsidiary": {
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/subsidiary/2"
+              }
+            ],
+            "id": "2",
+            "refName": "Contoso Ltd (NZ)"
+          },
+          "currency": {
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/currency/5"
+              }
+            ],
+            "id": "5",
+            "refName": "NZD"
+          },
+          "exchangeRate": 1.0,
+          "account": {
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/account/111"
+              }
+            ],
+            "id": "111",
+            "refName": "2000 Accounts Payable"
+          },
+          "terms": {
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/term/2"
+              }
+            ],
+            "id": "2",
+            "refName": "Net 30"
+          },
+          "approvalStatus": {
+            "links": [],
+            "id": "1",
+            "refName": "Pending Approval"
+          },
+          "paymentHold": false,
+          "memo": "October maintenance parts and on-site service",
+          "userTotal": 18975.0,
+          "total": 18975.0,
+          "taxTotal": 2475.0,
+          "department": {
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/department/7"
+              }
+            ],
+            "id": "7",
+            "refName": "Operations"
+          },
+          "location": {
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/location/3"
+              }
+            ],
+            "id": "3",
+            "refName": "Auckland DC"
+          },
+          "createdDate": "2026-10-27T21:04:00Z",
+          "lastModifiedDate": "2026-10-27T21:04:00Z",
+          "item": {
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/vendorBill/48213/item"
+              }
+            ],
+            "items": [
+              {
+                "links": [],
+                "line": 1,
+                "item": {
+                  "links": [],
+                  "id": "5521",
+                  "refName": "BRG-6204 Ball bearing 6204-2RS"
+                },
+                "description": "Ball bearing 6204-2RS",
+                "quantity": 400.0,
+                "rate": 12.5,
+                "amount": 5000.0,
+                "department": {
+                  "links": [],
+                  "id": "7",
+                  "refName": "Operations"
+                },
+                "class": {
+                  "links": [],
+                  "id": "4",
+                  "refName": "Maintenance"
+                },
+                "orderDoc": {
+                  "links": [],
+                  "id": "40912",
+                  "refName": "Purchase Order #PO-4500123"
+                }
+              },
+              {
+                "links": [],
+                "line": 2,
+                "item": {
+                  "links": [],
+                  "id": "5530",
+                  "refName": "MTR-0750 Electric motor 0.75 kW"
+                },
+                "description": "Electric motor 0.75 kW",
+                "quantity": 10.0,
+                "rate": 900.0,
+                "amount": 9000.0,
+                "department": {
+                  "links": [],
+                  "id": "7",
+                  "refName": "Operations"
+                },
+                "class": {
+                  "links": [],
+                  "id": "4",
+                  "refName": "Maintenance"
+                },
+                "orderDoc": {
+                  "links": [],
+                  "id": "40912",
+                  "refName": "Purchase Order #PO-4500123"
+                }
+              }
+            ],
+            "totalResults": 2,
+            "count": 2,
+            "hasMore": false,
+            "offset": 0
+          },
+          "expense": {
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1/vendorBill/48213/expense"
+              }
+            ],
+            "items": [
+              {
+                "links": [],
+                "line": 1,
+                "account": {
+                  "links": [],
+                  "id": "6120",
+                  "refName": "6120 Repairs & Maintenance"
+                },
+                "amount": 2500.0,
+                "memo": "On-site service, 2 technicians x 1 day",
+                "department": {
+                  "links": [],
+                  "id": "7",
+                  "refName": "Operations"
+                },
+                "class": {
+                  "links": [],
+                  "id": "4",
+                  "refName": "Maintenance"
+                },
+                "location": {
+                  "links": [],
+                  "id": "3",
+                  "refName": "Auckland DC"
+                }
+              }
+            ],
+            "totalResults": 1,
+            "count": 1,
+            "hasMore": false,
+            "offset": 0
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "c30e66b2-a940-5a6c-9508-723e124a6105",
+        "name": "bill_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Internal id of the vendor bill",
+        "default_value": ""
+      },
+      {
+        "id": "173ce25e-cc97-5456-b815-1550e76a3e30",
+        "name": "expandSubResources",
+        "type": "string",
+        "source": "static",
+        "location": "query",
+        "required": false,
+        "description": "Include item / expense sublist lines",
+        "default_value": "true"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "a195e550-12a9-59c5-a54b-3d29d2647085",
+        "name": "tran_id",
+        "path": "tranId",
+        "type": "string"
+      },
+      {
+        "id": "f2c6dd96-f89b-52f5-84c3-a4831c2ff26f",
+        "name": "tran_date",
+        "path": "tranDate",
+        "type": "string"
+      },
+      {
+        "id": "befa373c-dee5-5294-9a21-788707f3f3c0",
+        "name": "due_date",
+        "path": "dueDate",
+        "type": "string"
+      },
+      {
+        "id": "6929b538-9dbb-5623-9777-29700ff05a4e",
+        "name": "vendor_id",
+        "path": "entity.id",
+        "type": "string"
+      },
+      {
+        "id": "8b060e75-3cfc-53ed-b332-49917ff0a42b",
+        "name": "vendor_name",
+        "path": "entity.refName",
+        "type": "string"
+      },
+      {
+        "id": "960b306c-22d8-534b-a5f7-b7ddc70e2934",
+        "name": "subsidiary",
+        "path": "subsidiary.refName",
+        "type": "string"
+      },
+      {
+        "id": "18b8f6f9-40c1-58de-a4db-d3bf8c7c6217",
+        "name": "currency",
+        "path": "currency.refName",
+        "type": "string"
+      },
+      {
+        "id": "8af51742-dd41-5a3a-98f6-9ea7cf8ddc5d",
+        "name": "total",
+        "path": "total",
+        "type": "number"
+      },
+      {
+        "id": "90455c6b-820a-577b-82bd-b1af67eaf5b7",
+        "name": "tax_total",
+        "path": "taxTotal",
+        "type": "number"
+      },
+      {
+        "id": "c5b75cde-7437-5309-8f7a-8e76b6b53c5e",
+        "name": "approval_status",
+        "path": "approvalStatus.refName",
+        "type": "string"
+      },
+      {
+        "id": "b33103d6-0d58-5267-ae0f-cd6375d8145a",
+        "name": "memo",
+        "path": "memo",
+        "type": "string"
+      },
+      {
+        "id": "29710be4-2b9b-500d-8945-1bc1e105fc94",
+        "name": "terms",
+        "path": "terms.refName",
+        "type": "string"
+      },
+      {
+        "id": "cac9a2b1-e776-5773-9198-f98a098ffbdb",
+        "name": "bill_department",
+        "path": "department.refName",
+        "type": "string"
+      },
+      {
+        "id": "80585372-e0a1-574c-a3a7-5a3026ab31f7",
+        "name": "item_lines",
+        "path": "item.items",
+        "type": "array"
+      },
+      {
+        "id": "bb65b614-08ed-5c1b-911f-975cf59adbdd",
+        "name": "expense_lines",
+        "path": "expense.items",
+        "type": "array"
+      },
+      {
+        "id": "2aa36363-1202-526e-9f53-8da8003316aa",
+        "name": "item_count",
+        "path": "item.totalResults",
+        "type": "number"
+      },
+      {
+        "id": "5bc26802-8dec-531c-a86c-968870c0e58a",
+        "name": "expense_count",
+        "path": "expense.totalResults",
+        "type": "number"
+      }
+    ]
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "id": "d8c920f0-606f-417b-a367-036cbb062919",
+  "slug": "change-management-cab",
+  "title": "Change management with CAB",
+  "category": "it-security",
+  "summary": "An RFC form scores change risk, routes to pre-approval, CAB or emergency CAB, then tracks implementation and the post-implementation review in your ITSM.",
+  "description": "Change management with CAB runs the change lifecycle from request to closure. The requester fills in an RFC: the system, change type (standard, normal or emergency), a description, the risk questions (customer impact, rollback tested, out of hours), the planned window and the backout plan.\n\nThe Change risk decision table turns those answers into a risk level and an approval path. Standard changes with little or no customer impact are pre-approved, emergencies go to the emergency CAB with a two-hour decision time and escalation, and everything else goes to the CAB. The change is registered in the ITSM straight away and an SLA tracks the window end. The CAB can approve, approve with conditions, reject, or defer to the next meeting, which brings the review back a week later.\n\nApproved changes are marked scheduled and the requester is emailed. The implementer records the actual start and end and whether the change was implemented or rolled back, and the change manager completes the post-implementation review, which closes the change with a close code. Adapt the risk rules, the ITSM states and paths, and the people.",
+  "trigger": "form",
+  "entry_workflow": "3ee64fae-33cf-40b7-9a88-b1b804464ba2",
+  "start": "Starts from a form: the requester fills in the RFC (Run dialog, or your service portal posting to the start API).",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "change management",
+    "cab",
+    "itil",
+    "risk assessment",
+    "itsm"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: a themed start form with a grid and header, and outcome buttons (Approve / Approve with conditions / Reject / Defer, Implemented / Rolled back, Successful…) with grids and headers on the CAB, emergency CAB, implementation and review steps."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "IT service management integration: set the base URL of your ITSM API and an API token. The references expect POST /changes and PATCH /changes/{id}; map the states (assess, scheduled, review, closed, rejected, deferred) and fields to your change module in Integrations.",
+    "Assignees: pick the CAB chair, the emergency CAB approver, the default implementer and the change manager who runs post-implementation reviews. Runs can override the CAB chair and implementer with cab_user_id and implementer_user_id.",
+    "Review the Change risk rules against your change policy: which answers make a change high risk, and which standard changes are pre-approved.",
+    "Adjust the Wait for next CAB delay to your CAB meeting cadence.",
+    "Email: configure EMAIL_PROVIDER on the instance so the approved, rejected and closed emails are delivered (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Submit the RFC",
+      "body": "The start form collects the system, change type, description, risk questions, window and backout plan."
+    },
+    {
+      "title": "Assess risk",
+      "body": "The Change risk decision table sets the risk level, the approval path (Auto, CAB or ECAB) and whether to check the freeze calendar. The change is created in the ITSM."
+    },
+    {
+      "title": "Approve",
+      "body": "Standard low-risk changes are pre-approved. The CAB or emergency CAB approves, approves with conditions, rejects or defers; deferred changes return to the CAB a week later."
+    },
+    {
+      "title": "Schedule and implement",
+      "body": "Approved changes are marked scheduled and the requester is emailed. The implementer records the actual window and whether the change was implemented or rolled back."
+    },
+    {
+      "title": "Post-implementation review",
+      "body": "The change manager records whether objectives were met, incidents caused and lessons learned; the change is closed with a close code and the requester emailed."
+    }
+  ],
+  "sample_input": {
+    "requester_name": "Alex Morgan",
+    "requester_email": "alex.morgan@example.com",
+    "change_title": "Upgrade order database to PostgreSQL 16",
+    "system": "order-db-prod",
+    "change_type": "normal",
+    "description": "In-place major version upgrade of the order database cluster. Rehearsed twice in staging; read replicas upgraded first.",
+    "customer_impact": "minor",
+    "rollback_tested": true,
+    "out_of_hours": true,
+    "window_start": "2026-11-07T22:00:00Z",
+    "window_end": "2026-11-08T02:00:00Z",
+    "backout_plan": "Fail back to the untouched replica (15 minutes) and repoint the application connection string."
+  },
+  "expect": "waiting",
+  "icon": "git-pull-request"
+}

@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "72c5c5e8-2944-5c3f-a448-6199a40b50b3",
+  "asset": {
+    "id": "72c5c5e8-2944-5c3f-a448-6199a40b50b3",
+    "name": "Vendor change audit: 10 years",
+    "description": "Financial audit records: keep vendor change audit rows for 10 years, then purge. Apply it to the Vendor change audit log after install.",
+    "policy_mode": "purge_on",
+    "duration_value": 10,
+    "duration_unit": "years",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

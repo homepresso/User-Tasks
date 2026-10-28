@@ -1,0 +1,90 @@
+{
+  "id": "1b876360-7502-4f7b-ac22-b6ccd4b05166",
+  "slug": "document-generation-pipeline",
+  "title": "Document generation pipeline",
+  "category": "headless-integration",
+  "summary": "Turn contract data from any app into a filled Word contract and Excel fee schedule, file both in your DMS and send the contract for e-signature.",
+  "description": "Document generation pipeline produces contract documents without anyone opening Word. An application (your CRM, billing system or a back-office tool) posts the contract data: document type, customer, reference, start date, amount, term, signer and the URL of the Word template.\n\nThe Document templates table sets the title, file name pattern, DMS folder, retention period, body text and whether the document type needs a signature. The workflow fills the Word template's {{TITLE}}, {{CUSTOMER}}, {{DATE}}, {{AMOUNT}}, {{REFERENCE}} and {{BODY}} placeholders and, when an Excel template URL is passed, fills a fee schedule with the dates, total and monthly equivalent.\n\nBoth files are registered in your document management system with their metadata and retention. Document types that need a signature are sent to the signer through your e-signature service, and the signer gets an email with the signing link. Add rows for your own document types and point the two integrations at your DMS and e-signature provider.",
+  "trigger": "api",
+  "entry_workflow": "e07693e3-2c92-4650-9da3-b95b3d3958ac",
+  "start": "Headless: your application posts the contract data and template URL to the start API or an inbound webhook.",
+  "difficulty": "intermediate",
+  "setup_minutes": 20,
+  "tags": [
+    "documents",
+    "word",
+    "excel",
+    "e-signature",
+    "dms",
+    "contracts"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "documents",
+    "webhook"
+  ],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Word template: put {{TITLE}}, {{CUSTOMER}}, {{DATE}}, {{AMOUNT}}, {{REFERENCE}} and {{BODY}} in your contract template and store it where the workflow can fetch it by URL (pass it as template_url).",
+    "Excel schedule (optional): a workbook whose first sheet takes labels in A2:A9 and values in B2:B9 (customer, reference, start and end date, term, total, monthly equivalent, document type), passed as schedule_template_url. Change the cells on Fill fee schedule to match your layout.",
+    "Document management system: set the base URL and API token. Register document posts the generated file URL and metadata to /documents.",
+    "E-signature service: set the base URL and API token. Create signature request posts to /signature-requests.",
+    "Edit the Document templates rows: titles, file name patterns, folders, retention days, body text and which types need a signature.",
+    "Email (optional): configure EMAIL_PROVIDER so signers get the signing email (the step continues on error)."
+  ],
+  "steps": [
+    {
+      "title": "Contract data received",
+      "body": "The calling app posts the document type, customer, reference, start date, amount, term, signer and template URL."
+    },
+    {
+      "title": "Look up the document type",
+      "body": "The Document templates row gives the title, file name pattern, folder, retention, body text and signature rule."
+    },
+    {
+      "title": "Fill the Word template",
+      "body": "The six placeholders are replaced with the contract values, including the term dates."
+    },
+    {
+      "title": "Build the fee schedule",
+      "body": "When an Excel template is passed, the schedule is filled with the dates, total and monthly equivalent."
+    },
+    {
+      "title": "File in the DMS",
+      "body": "The contract and schedule are registered with their metadata, folder and retention period."
+    },
+    {
+      "title": "Send for signature",
+      "body": "Types that need a signature go to the e-signature service and the signer gets the signing link by email."
+    }
+  ],
+  "sample_input": {
+    "doc_type": "service_agreement",
+    "customer_name": "Fourth Coffee Limited",
+    "contract_reference": "CT-2026-118",
+    "start_date": "2026-11-01",
+    "amount": 48000,
+    "currency": "NZD",
+    "term_months": 24,
+    "signer_name": "Robin Diaz",
+    "signer_email": "robin.diaz@fourthcoffee.example.com"
+  },
+  "verify_mocks": {
+    "files": {
+      "template_url": "contract.docx",
+      "schedule_template_url": "schedule.xlsx"
+    }
+  },
+  "expect": "completed",
+  "icon": "file-text"
+}

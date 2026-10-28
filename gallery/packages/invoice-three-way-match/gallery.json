@@ -1,0 +1,103 @@
+{
+  "id": "2fed53ab-1eae-46a7-afcd-34a341d7552c",
+  "slug": "invoice-three-way-match",
+  "title": "Invoice three-way match",
+  "category": "finance",
+  "summary": "Match each incoming invoice to its purchase order and goods receipts, pay matches within tolerance and route exceptions to accounts payable.",
+  "description": "Invoice three-way match checks every vendor invoice against what was ordered and what was received before it is paid. Your AP or OCR capture system posts the invoice (number, vendor, PO number, total, currency and lines) to the workflow; there is no form to fill in.\n\nThe workflow reads the purchase order and the goods receipts from your ERP, works out the quantity variance (invoiced minus received) and the price variance against the received value, and evaluates the Match tolerance decision table with the vendor's risk rating. Exact matches and small variances are scheduled for payment on the due date from the vendor's payment terms, and the invoice is marked matched.\n\nAnything else becomes a \"Resolve match exception\" task for accounts payable, with a two-day SLA, a reminder and escalation to the clerk's manager. AP can approve the variance and pay, put the invoice on hold and email the vendor for a credit note, or reject it. Adapt the tolerance rules, the ERP paths and the vendor emails to your process.",
+  "trigger": "api",
+  "entry_workflow": "bb3107ae-9aca-4a51-9bf2-7978f9099c87",
+  "start": "Headless: your AP / OCR capture system posts each invoice to the start API or an inbound webhook. People only see the invoices that fail the match.",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "accounts payable",
+    "invoices",
+    "three-way match",
+    "decision table",
+    "erp"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: the match-exception step has Approve variance / Request credit note / Reject buttons, a grid and a header."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "webhook"
+  ],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "ERP integration: set the base URL of your ERP API and an API token. The references expect GET /purchase-orders/{po}, GET /goods-receipts?po=…, POST /payments and PATCH /invoices/{number}; adjust paths and response models to your ERP in Integrations.",
+    "Assignee: pick the default AP clerk who resolves match exceptions (callers can pass ap_clerk_id per invoice).",
+    "Edit the Match tolerance decision table to your tolerance policy (percentage and absolute limits, vendor risk handling).",
+    "Inbound webhook: create a webhook for the workflow and point your AP / OCR system at it, or call the start API.",
+    "Email (optional): configure EMAIL_PROVIDER so the credit note request and rejection emails reach vendors (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Invoice received",
+      "body": "The AP / OCR system posts the invoice number, vendor, PO number, total, currency, invoice date and lines."
+    },
+    {
+      "title": "Read the PO and receipts",
+      "body": "Get purchase order returns the vendor, risk rating and payment terms; Get goods receipts returns the quantity and value received."
+    },
+    {
+      "title": "Calculate the variances",
+      "body": "Quantity variance is invoiced minus received; price variance is the invoice total minus the received value, also as a percentage."
+    },
+    {
+      "title": "Apply the tolerance rules",
+      "body": "The Match tolerance decision table returns matched, within tolerance or exception, with the approver and a hold reason."
+    },
+    {
+      "title": "Pay the match",
+      "body": "Matched invoices are scheduled for payment on the due date from the payment terms and marked matched in the ERP."
+    },
+    {
+      "title": "Resolve exceptions",
+      "body": "AP approves the variance, holds the invoice and requests a credit note, or rejects it, and the vendor is emailed."
+    }
+  ],
+  "sample_input": {
+    "invoice_number": "INV-55410",
+    "vendor_id": "V-2001",
+    "po_number": "PO-4500123",
+    "invoice_total": 11500,
+    "currency": "NZD",
+    "invoice_date": "2026-10-20",
+    "lines": [
+      {
+        "line": 1,
+        "sku": "BRG-6204",
+        "description": "Ball bearing 6204-2RS",
+        "quantity": 200,
+        "unit_price": 12.5,
+        "amount": 2500
+      },
+      {
+        "line": 2,
+        "sku": "MTR-0750",
+        "description": "Electric motor 0.75 kW",
+        "quantity": 10,
+        "unit_price": 900,
+        "amount": 9000
+      }
+    ],
+    "document_url": "https://files.example.com/ap/inv-55410.pdf"
+  },
+  "expect": "completed",
+  "icon": "file-check"
+}

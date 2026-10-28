@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "f8649e24-a3d4-41b6-8221-f14bfb0bd12b",
+  "asset": {
+    "id": "f8649e24-a3d4-41b6-8221-f14bfb0bd12b",
+    "name": "Quote counter-offer",
+    "description": "Sent to the sales rep when an approver proposes a different discount.",
+    "subject": "Counter-offer on {{customer}} quote {{quote_id}}: {{task_data.approved_discount_pct}}%",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">An approver proposed a counter-offer</h2>\n  <p>Hi,</p>\n  <p>The {{decided_by}} did not approve {{discount_pct}}% on quote <strong>{{quote_id}}</strong> for {{customer}}, but will approve <strong>{{task_data.approved_discount_pct}}%</strong>.</p>\n  <p>Conditions: {{task_data.conditions}}</p>\n  <p>Comment: {{task_data.comment}}</p>\n  <p>The quote is updated in the CPQ system as a counter-offer. Take it back to the customer or resubmit with a new justification.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the quote approval workflow</p>\n</div>",
+    "text_body": "An approver proposed a counter-offer\n  Hi,\n  The {{decided_by}} did not approve {{discount_pct}}% on quote {{quote_id}} for {{customer}}, but will approve {{task_data.approved_discount_pct}}%.\n  Conditions: {{task_data.conditions}}\n  Comment: {{task_data.comment}}\n  The quote is updated in the CPQ system as a counter-offer. Take it back to the customer or resubmit with a new justification.\n  Sent by the quote approval workflow",
+    "is_default": false
+  }
+}

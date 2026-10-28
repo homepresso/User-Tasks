@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "d33d3bbf-c97b-54e0-af12-49c5935ced5c",
+  "asset": {
+    "id": "d33d3bbf-c97b-54e0-af12-49c5935ced5c",
+    "name": "Risk escalated",
+    "description": "Sent to the risk committee when a risk owner escalates a risk.",
+    "subject": "Escalated risk {{risk_id}}: {{form.title}} ({{rating}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1F1A1A\">\n  <h2 style=\"margin:0 0 12px;color:#B91C1C\">Risk escalated: {{form.title}}</h2>\n  <p><strong>{{risk_id}}</strong> · {{form.category}} · {{form.department}}</p>\n  <p>Score <strong>{{score}}</strong> (likelihood {{form.likelihood}} × impact {{form.impact}}), rated <strong>{{rating}}</strong>.</p>\n  <p>{{form.description}}</p>\n  <p><strong>Why the owner escalated it:</strong> {{task_data.response_note}}</p>\n  <p>Existing controls: {{form.controls}}</p>\n  <p style=\"color:#6B7280;font-size:13px\">Sent by the risk register workflow</p>\n</div>",
+    "text_body": "Risk escalated: {{risk_id}} {{form.title}} ({{rating}}, score {{score}}). Reason: {{task_data.response_note}}",
+    "is_default": false
+  }
+}

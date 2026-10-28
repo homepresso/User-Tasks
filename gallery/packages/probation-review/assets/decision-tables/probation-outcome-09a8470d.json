@@ -1,0 +1,153 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "09a8470d-869a-415e-b44e-f72facfe94d4",
+  "asset": {
+    "id": "09a8470d-869a-415e-b44e-f72facfe94d4",
+    "name": "Probation outcome",
+    "description": "Turns the manager's recommendation and rating into the probation action, the HR status and any extension. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "1093f831-10b2-4bb3-9aae-480dad69540e",
+        "key": "recommendation",
+        "label": "Recommendation",
+        "type": "text"
+      },
+      {
+        "id": "772551b1-a54a-4093-8b0b-55509f5c955f",
+        "key": "performance_rating",
+        "label": "Performance rating",
+        "type": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "f032f2b7-051c-4328-b376-0eb1ea35e090",
+        "key": "action",
+        "label": "Action",
+        "type": "text"
+      },
+      {
+        "id": "69884a92-7d2a-4b7b-9ebb-a16f8111adec",
+        "key": "probation_status",
+        "label": "HR status",
+        "type": "text"
+      },
+      {
+        "id": "f42c821e-34b4-4e65-bf97-4799cc7e9a43",
+        "key": "extension_weeks",
+        "label": "Extension (weeks)",
+        "type": "number"
+      },
+      {
+        "id": "e9ccd27a-5bfa-4c85-8fb9-feac65392f72",
+        "key": "hr_action",
+        "label": "HR follow-up",
+        "type": "text"
+      }
+    ],
+    "rules": [
+      {
+        "id": "a693d670-dd2b-466f-ad2d-a53be5bde844",
+        "label": "End employment",
+        "enabled": true,
+        "outputs": {
+          "action": "end",
+          "probation_status": "ended",
+          "extension_weeks": 0,
+          "hr_action": "Arrange the end-of-probation meeting and letter; check notice terms."
+        },
+        "conditions": [
+          {
+            "id": "3079255e-f2eb-4744-a561-a90358a688fe",
+            "inputKey": "recommendation",
+            "operator": "equals",
+            "value": "end"
+          }
+        ]
+      },
+      {
+        "id": "b5aca9b3-a681-46fa-a41d-6842e2ffd7e5",
+        "label": "Extend",
+        "enabled": true,
+        "outputs": {
+          "action": "extend",
+          "probation_status": "extended",
+          "extension_weeks": 8,
+          "hr_action": "Send the extension letter with objectives and a review date."
+        },
+        "conditions": [
+          {
+            "id": "7ec013bc-e2e9-4efe-afc6-9c0057cef9b7",
+            "inputKey": "recommendation",
+            "operator": "equals",
+            "value": "extend"
+          }
+        ]
+      },
+      {
+        "id": "8c6dd13a-7aa9-411b-9696-78a9282795ce",
+        "label": "Confirm despite low rating",
+        "enabled": true,
+        "outputs": {
+          "action": "extend",
+          "probation_status": "extended",
+          "extension_weeks": 4,
+          "hr_action": "Rating does not support confirmation: agree a short extension with the manager."
+        },
+        "conditions": [
+          {
+            "id": "c127f102-56c9-4ab5-95e6-06d7825707da",
+            "inputKey": "recommendation",
+            "operator": "equals",
+            "value": "confirm"
+          },
+          {
+            "id": "d0d16544-07a6-413f-ac3f-5f7c612c15ed",
+            "inputKey": "performance_rating",
+            "operator": "equals",
+            "value": "below expectations"
+          }
+        ]
+      },
+      {
+        "id": "22edda31-8859-4c8f-9d06-34e4ab09f8bc",
+        "label": "Confirm",
+        "enabled": true,
+        "outputs": {
+          "action": "confirm",
+          "probation_status": "passed",
+          "extension_weeks": 0,
+          "hr_action": "Send the confirmation letter."
+        },
+        "conditions": [
+          {
+            "id": "1385a8bb-15f1-4dbe-8dae-a8a141c5ee85",
+            "inputKey": "recommendation",
+            "operator": "equals",
+            "value": "confirm"
+          }
+        ]
+      },
+      {
+        "id": "ff713067-6e7a-46dd-81c9-8847e4665dde",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "action": "refer",
+          "probation_status": "under review",
+          "extension_weeks": 0,
+          "hr_action": "Review with the manager: the recommendation was unclear."
+        },
+        "conditions": [
+          {
+            "id": "f86477a6-0873-4923-8a4e-6ff8084db4cf",
+            "inputKey": "recommendation",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

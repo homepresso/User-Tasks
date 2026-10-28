@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "41980aa2-c722-5176-af32-0cd17eabf163",
+  "asset": {
+    "id": "41980aa2-c722-5176-af32-0cd17eabf163",
+    "name": "Room booking declined",
+    "description": "Sent to the organiser when facilities decline a booking.",
+    "subject": "Not approved: {{room}} on {{booking_date}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1E1B4B\">\n  <h2 style=\"margin:0 0 12px;color:#B91C1C\">Your booking was not approved</h2>\n  <p>Facilities could not approve <strong>{{meeting_title}}</strong> in {{room}}.</p>\n  <table style=\"border-collapse:collapse;font-size:14px\">\n    <tr><td style=\"padding:4px 12px 4px 0;color:#6B7280\">Room</td><td><strong>{{room}}</strong> (floor {{room_row.floor}}, {{room_row.capacity}} seats)</td></tr>\n    <tr><td style=\"padding:4px 12px 4px 0;color:#6B7280\">When</td><td>{{=FORMAT_DATE(booking_date, \"DD/MM/YYYY\")}} at {{start_time}} for {{duration_hours}} h</td></tr>\n    <tr><td style=\"padding:4px 12px 4px 0;color:#6B7280\">Attendees</td><td>{{attendees}}</td></tr>\n    <tr><td style=\"padding:4px 12px 4px 0;color:#6B7280\">Reference</td><td>{{booking_ref}}</td></tr>\n  </table>\n  <p><strong>Reason:</strong> {{facilities_note}}</p><p>Please submit a new request for another room or time.</p>\n  <p style=\"color:#6B7280;font-size:13px\">Sent by the meeting room booking workflow</p>\n</div>",
+    "text_body": "Not approved: {{room}} on {{booking_date}} ({{meeting_title}}). Reason: {{facilities_note}}. Reference {{booking_ref}}.",
+    "is_default": false
+  }
+}

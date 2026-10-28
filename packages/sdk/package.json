@@ -1,0 +1,58 @@
+{
+  "name": "@usertasks/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript client for the UserTasks REST API (/api/v1)",
+  "keywords": [
+    "usertasks",
+    "sdk",
+    "api-client",
+    "workflow",
+    "openapi"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/homepresso/User-Tasks.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://github.com/homepresso/User-Tasks/tree/main/packages/sdk#readme",
+  "bugs": {
+    "url": "https://github.com/homepresso/User-Tasks/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./openapi.json": "./openapi.json"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "openapi.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p .",
+    "generate": "tsx scripts/generate.ts",
+    "generate:check": "tsx scripts/generate.ts --check"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "openapi-typescript": "^7.13.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

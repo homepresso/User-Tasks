@@ -1,0 +1,84 @@
+{
+  "id": "ad3c59b2-a3b1-4325-b06a-38d00d3b43ce",
+  "slug": "employee-onboarding",
+  "title": "Employee onboarding",
+  "category": "hr-people",
+  "summary": "HR enters a new hire; the HR record, laptop, accounts, buddy and first-week plan are all arranged before day one, with a 30-day check-in.",
+  "description": "Employee onboarding takes a new hire from signed offer to settled in. HR fills in the start form: name, personal email, job title, department, start date, manager, location and employment type.\n\nThe workflow creates the employee in your HR system, reads the department's laptop, systems, buddy team and welcome pack from the Onboarding checklist table, and evaluates the Onboarding track decision table to work out how many days IT needs and whether orientation applies. It then starts the IT setup sub-workflow, which gives IT a task due on the ready-by date and records the provisioning request in your IT service desk, while the hiring manager picks a buddy and writes the first-week plan.\n\nWhen the manager is done, the new hire receives a welcome email with their work email, buddy, equipment and first-week plan. Thirty days later the manager gets a short check-in task. Adapt the checklist rows, the track rules and the two API paths to your systems.",
+  "trigger": "form",
+  "entry_workflow": "9a00c61e-8525-4c32-82c6-0621f9e3c7ce",
+  "start": "Starts from a form: HR fills in the new hire details (Run dialog in the app, or your recruiting system posting them to the start API or an inbound webhook).",
+  "difficulty": "intermediate",
+  "setup_minutes": 20,
+  "tags": [
+    "onboarding",
+    "new hire",
+    "it provisioning",
+    "sub-workflow",
+    "hr"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: a themed start form with a grid and header, outcome buttons with grids and headers on the manager, IT and day-30 steps, and a department-kit lookup into the Onboarding checklist on the IT step."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "HR system integration: set the base URL and API token. Create employee expects POST /employees returning id, employee_number and work_email; adjust the path, body and response model to your HR system.",
+    "IT service desk integration: set the base URL and API token. Create provisioning request posts to /it/provisioning-requests.",
+    "Assignees: pick the default hiring manager (runs can pass manager_id) and the default IT owner for the IT setup task (runs can pass it_owner_id).",
+    "Edit the Onboarding checklist rows (one per department) and the Onboarding track rules for your lead times.",
+    "Email: configure EMAIL_PROVIDER on the instance so the welcome and IT-blocked emails are delivered (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "New hire submitted",
+      "body": "HR enters the name, personal email, job title, department, start date, manager, location and employment type."
+    },
+    {
+      "title": "Create the employee",
+      "body": "The new hire is created in the HR system, which returns the employee number and work email."
+    },
+    {
+      "title": "Kit and track",
+      "body": "The Onboarding checklist row gives the laptop, systems and buddy team; the Onboarding track decision table sets the IT lead days and orientation."
+    },
+    {
+      "title": "IT setup in parallel",
+      "body": "The IT setup sub-workflow gives IT a task due on the ready-by date, then records the provisioning request in the IT service desk."
+    },
+    {
+      "title": "Manager prepares the first week",
+      "body": "The manager picks a buddy, writes the first-week plan and confirms whether a desk is needed."
+    },
+    {
+      "title": "Welcome and check-in",
+      "body": "The new hire gets a welcome email; 30 days later the manager records a short check-in."
+    }
+  ],
+  "sample_input": {
+    "new_hire_name": "Jordan Lee",
+    "personal_email": "jordan.lee@example.net",
+    "job_title": "Software Engineer",
+    "department": "engineering",
+    "start_date": "2026-11-16",
+    "manager_name": "Priya Shah",
+    "manager_email": "priya.shah@example.com",
+    "location": "remote",
+    "employment_type": "permanent"
+  },
+  "expect": "waiting",
+  "icon": "user-plus"
+}

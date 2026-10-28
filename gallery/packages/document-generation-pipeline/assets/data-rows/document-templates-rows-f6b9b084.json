@@ -1,0 +1,59 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "f6b9b084-c29b-4896-9c5a-88416c9408d0",
+  "asset": {
+    "id": "f6b9b084-c29b-4896-9c5a-88416c9408d0",
+    "name": "Document templates rows",
+    "rows": [
+      {
+        "id": "96f36aa9-3793-46e6-8d36-9a24ac2e4ad7",
+        "data": {
+          "doc_type": "service_agreement",
+          "doc_title": "Service Agreement",
+          "filename_pattern": "{reference} - {customer} Service Agreement.docx",
+          "dms_folder": "Contracts",
+          "retention_days": 2555,
+          "signature_required": true,
+          "body_text": "The supplier will provide the services described in Schedule 1 for the term and fees set out below, under the master terms agreed between the parties."
+        }
+      },
+      {
+        "id": "a2690091-6d54-4f60-b2e3-f607eda0b41d",
+        "data": {
+          "doc_type": "order_form",
+          "doc_title": "Order Form",
+          "filename_pattern": "{reference} - {customer} Order Form.docx",
+          "dms_folder": "Contracts/Order forms",
+          "retention_days": 2555,
+          "signature_required": true,
+          "body_text": "This order form is governed by the agreement referenced above. Fees are invoiced annually in advance."
+        }
+      },
+      {
+        "id": "64f1fd4e-6402-4107-a70e-cc71039afa2e",
+        "data": {
+          "doc_type": "renewal_letter",
+          "doc_title": "Renewal Notice",
+          "filename_pattern": "{reference} - {customer} Renewal Notice.docx",
+          "dms_folder": "Contracts/Renewals",
+          "retention_days": 1825,
+          "signature_required": false,
+          "body_text": "Your agreement renews on the start date below for the stated term unless either party gives notice."
+        }
+      },
+      {
+        "id": "56e1f3eb-5001-428b-88f6-a30c66bbe9ef",
+        "data": {
+          "doc_type": "nda",
+          "doc_title": "Mutual Non-Disclosure Agreement",
+          "filename_pattern": "{reference} - {customer} NDA.docx",
+          "dms_folder": "Legal/NDAs",
+          "retention_days": 3650,
+          "signature_required": true,
+          "body_text": "Each party will keep the other party's confidential information confidential and use it only to evaluate and perform the proposed business relationship."
+        }
+      }
+    ]
+  }
+}

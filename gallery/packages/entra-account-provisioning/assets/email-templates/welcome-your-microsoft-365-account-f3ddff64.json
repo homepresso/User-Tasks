@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "f3ddff64-40e0-53fa-a9da-82f9a8f24b6e",
+  "asset": {
+    "id": "f3ddff64-40e0-53fa-a9da-82f9a8f24b6e",
+    "name": "Welcome: your Microsoft 365 account",
+    "description": "Sent to the new starter's personal email with their sign-in name once the account exists.",
+    "subject": "Welcome to Contoso, {{form.given_name}}: your sign-in name",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\">\n  <div style=\"border-top:4px solid #0F6CBD;padding-top:16px\"><h2 style=\"margin:0 0 12px;font-size:20px\">Welcome, {{form.given_name}}</h2></div>\n  <p style=\"margin:0 0 12px\">Your work account is ready for your first day on <strong>{{=FORMAT_DATE(form.start_date, \"D MMMM YYYY\")}}</strong>.</p>\n  <p style=\"margin:0 0 12px\">Sign-in name: <strong>{{user_principal_name}}</strong></p>\n  <p style=\"margin:0 0 12px\">Your manager will give you a one-time pass for your first sign-in, when you will set up Microsoft Authenticator and your password.</p>\n  <p style=\"margin:0 0 12px\">Start at <a href=\"https://myaccount.microsoft.example.com\" style=\"color:#0F6CBD\">My Account</a> on your first day.</p>\n  <p style=\"color:#6E6759;font-size:13px;margin-top:20px\">Sent by the account provisioning workflow</p>\n</div>",
+    "text_body": "Welcome, {{form.given_name}}\nYour work account is ready.\nSign-in name: {{user_principal_name}}\nYour manager will give you a one-time pass for your first sign-in.",
+    "is_default": false
+  }
+}

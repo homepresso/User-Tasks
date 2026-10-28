@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "d038e606-aae9-47cd-b245-a3a95cf2a62c",
+  "asset": {
+    "id": "d038e606-aae9-47cd-b245-a3a95cf2a62c",
+    "name": "SIEM",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://siem.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "security",
+      "siem"
+    ]
+  }
+}

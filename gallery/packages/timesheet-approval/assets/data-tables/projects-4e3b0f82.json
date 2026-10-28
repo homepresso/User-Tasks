@@ -1,0 +1,75 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "4e3b0f82-14a6-5d39-84f2-3bc7220a2e4e",
+  "asset": {
+    "id": "4e3b0f82-14a6-5d39-84f2-3bc7220a2e4e",
+    "name": "Projects",
+    "description": "Projects people can book time to: client, whether the time is billable and the hours budget. The timesheet form looks projects up here.",
+    "columns": [
+      {
+        "id": "e5552039-264a-53ec-b01c-ebb7a6a73ea8",
+        "required": true,
+        "key": "code",
+        "name": "Project code",
+        "type": "text"
+      },
+      {
+        "id": "e5eead8f-0395-517f-812e-75db492f80b9",
+        "required": true,
+        "key": "name",
+        "name": "Project",
+        "type": "text"
+      },
+      {
+        "id": "9f6f3c14-ddea-5cca-bd49-069688fae353",
+        "required": false,
+        "key": "client",
+        "name": "Client",
+        "type": "text"
+      },
+      {
+        "id": "379ca55f-ba7d-5d07-833a-0794933e629f",
+        "required": false,
+        "key": "billable",
+        "name": "Billable",
+        "type": "boolean"
+      },
+      {
+        "id": "17cfc4e0-6c35-5588-801e-0e88a1682190",
+        "required": false,
+        "key": "rate",
+        "name": "Hourly rate",
+        "type": "number"
+      },
+      {
+        "id": "5c6efb15-1ccc-553c-be2a-151914c6ef5f",
+        "required": false,
+        "key": "budget_hours",
+        "name": "Budget (hours)",
+        "type": "number"
+      },
+      {
+        "id": "524c224d-ebb7-57da-a6a2-79991b1a8db3",
+        "required": false,
+        "key": "hours_logged",
+        "name": "Hours approved so far",
+        "type": "number"
+      },
+      {
+        "id": "4386f2ea-fc92-5409-952a-d3eda4f1bcf2",
+        "required": false,
+        "key": "project_manager",
+        "name": "Project manager",
+        "type": "text"
+      },
+      {
+        "id": "a170b833-404c-5bd9-be79-8089da82f69a",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

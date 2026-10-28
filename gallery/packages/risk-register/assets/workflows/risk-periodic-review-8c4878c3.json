@@ -1,0 +1,450 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "8c4878c3-4b45-53ef-a4cc-eba8d1a238c6",
+  "asset": {
+    "id": "8c4878c3-4b45-53ef-a4cc-eba8d1a238c6",
+    "name": "Risk periodic review",
+    "description": "One open risk that came due goes back to its owner: still valid, rating changed (re-rated by the matrix) or closed.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Risk due for review",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "title": "Periodic review {{risk_id}} · {{rating}} · {{title}}"
+        }
+      },
+      {
+        "id": "task",
+        "type": "user_task",
+        "label": "Periodic review",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "task_title": "Periodic review: {{risk_id}} {{title}} ({{rating}})",
+          "task_description": "<p>Risk <strong>{{risk_id}}</strong> \"{{title}}\" was due for review on {{next_review}}.</p><p>Rating {{rating}} (score {{score}}). Response: {{response}}. Plan: {{mitigation_plan}} (due {{target_date}}).</p><p>Is it still valid at this rating? Update the score if it changed, or close it if the risk has gone.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Still valid",
+            "Rating changed",
+            "Close risk"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{=COALESCE(owner_id, workflow_owner_id)}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "likelihood",
+              "label": "Likelihood now",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ],
+              "option_labels": {
+                "1": "1 · Rare",
+                "2": "2 · Unlikely",
+                "3": "3 · Possible",
+                "4": "4 · Likely",
+                "5": "5 · Almost certain"
+              },
+              "default": "{{likelihood}}"
+            },
+            {
+              "key": "impact",
+              "label": "Impact now",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ],
+              "option_labels": {
+                "1": "1 · Negligible",
+                "2": "2 · Minor",
+                "3": "3 · Moderate",
+                "4": "4 · Major",
+                "5": "5 · Severe"
+              },
+              "default": "{{impact}}"
+            },
+            {
+              "key": "review_note",
+              "label": "Review note",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "likelihood",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "impact",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "review_note",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "valid",
+              "label": "Still valid",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Still valid"
+            },
+            {
+              "id": "changed",
+              "label": "Rating changed",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Rating changed"
+            },
+            {
+              "id": "close",
+              "label": "Close risk",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Close risk"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Periodic review · {{risk_id}}",
+            "align": "left",
+            "subtitle": "{{title}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#B91C1C",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 6,
+              "density": "compact",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "same",
+        "type": "update_data_table",
+        "label": "Record: still valid",
+        "position": {
+          "x": 120,
+          "y": 500
+        },
+        "config": {
+          "table_id": "4c980ba2-6b7c-5876-b8d8-de42f0d147c5",
+          "table_name": "Risks",
+          "operation": "update",
+          "match_column": "risk_id",
+          "match_value": "{{risk_id}}",
+          "column_values": {
+            "last_reviewed": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "next_review": "{{=FORMAT_DATE(ADD_DAYS(TODAY(), 90), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "new_score",
+        "type": "set_variable",
+        "label": "New score",
+        "position": {
+          "x": 400,
+          "y": 500
+        },
+        "config": {
+          "name": "new_score",
+          "expression": "{{=task_data.likelihood * task_data.impact}}"
+        }
+      },
+      {
+        "id": "rerate",
+        "type": "decision_table",
+        "label": "Re-rate",
+        "position": {
+          "x": 400,
+          "y": 640
+        },
+        "config": {
+          "decision_table_id": "2057a304-c1e8-53e0-996e-288a17bb6b89",
+          "decision_table_name": "Risk rating",
+          "input_mappings": {
+            "score": "{{new_score}}"
+          }
+        }
+      },
+      {
+        "id": "changed",
+        "type": "update_data_table",
+        "label": "Record: new rating",
+        "position": {
+          "x": 400,
+          "y": 780
+        },
+        "config": {
+          "table_id": "4c980ba2-6b7c-5876-b8d8-de42f0d147c5",
+          "table_name": "Risks",
+          "operation": "update",
+          "match_column": "risk_id",
+          "match_value": "{{risk_id}}",
+          "column_values": {
+            "likelihood": "{{task_data.likelihood}}",
+            "impact": "{{task_data.impact}}",
+            "score": "{{new_score}}",
+            "rating": "{{rating}}",
+            "last_reviewed": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "next_review": "{{=FORMAT_DATE(ADD_DAYS(TODAY(), review_every_days), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "closed",
+        "type": "update_data_table",
+        "label": "Record: closed",
+        "position": {
+          "x": 680,
+          "y": 500
+        },
+        "config": {
+          "table_id": "4c980ba2-6b7c-5876-b8d8-de42f0d147c5",
+          "table_name": "Risks",
+          "operation": "update",
+          "match_column": "risk_id",
+          "match_value": "{{risk_id}}",
+          "column_values": {
+            "status": "closed",
+            "last_reviewed": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "next_review": ""
+          }
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Reviewed",
+        "position": {
+          "x": 400,
+          "y": 940
+        },
+        "config": {
+          "reason": "{{risk_id}} periodic review: {{outcome}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-task",
+        "source": "title",
+        "target": "task"
+      },
+      {
+        "id": "e-task-same-still-valid",
+        "source": "task",
+        "target": "same",
+        "label": "Still valid"
+      },
+      {
+        "id": "e-task-new_score-rating-changed",
+        "source": "task",
+        "target": "new_score",
+        "label": "Rating changed"
+      },
+      {
+        "id": "e-task-closed-close-risk",
+        "source": "task",
+        "target": "closed",
+        "label": "Close risk"
+      },
+      {
+        "id": "e-same-end",
+        "source": "same",
+        "target": "end"
+      },
+      {
+        "id": "e-new_score-rerate",
+        "source": "new_score",
+        "target": "rerate"
+      },
+      {
+        "id": "e-rerate-changed",
+        "source": "rerate",
+        "target": "changed"
+      },
+      {
+        "id": "e-changed-end",
+        "source": "changed",
+        "target": "end"
+      },
+      {
+        "id": "e-closed-end",
+        "source": "closed",
+        "target": "end"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-risk_id",
+        "name": "risk_id",
+        "type": "string",
+        "description": "Register id of the risk to review",
+        "defaultValue": "",
+        "required": true,
+        "label": "Risk ID"
+      },
+      {
+        "id": "v-title",
+        "name": "title",
+        "type": "string",
+        "description": "Risk title",
+        "defaultValue": "",
+        "required": false,
+        "label": "Risk"
+      },
+      {
+        "id": "v-rating",
+        "name": "rating",
+        "type": "string",
+        "description": "Current rating",
+        "defaultValue": "",
+        "required": false,
+        "label": "Rating"
+      },
+      {
+        "id": "v-likelihood",
+        "name": "likelihood",
+        "type": "number",
+        "description": "Current likelihood (1-5)",
+        "defaultValue": "",
+        "required": false,
+        "label": "Likelihood"
+      },
+      {
+        "id": "v-impact",
+        "name": "impact",
+        "type": "number",
+        "description": "Current impact (1-5)",
+        "defaultValue": "",
+        "required": false,
+        "label": "Impact"
+      },
+      {
+        "id": "v-score",
+        "name": "score",
+        "type": "number",
+        "description": "Current score",
+        "defaultValue": "",
+        "required": false,
+        "label": "Score"
+      },
+      {
+        "id": "v-owner_id",
+        "name": "owner_id",
+        "type": "string",
+        "description": "Risk owner; empty sends the review to the workflow owner",
+        "defaultValue": "",
+        "required": false,
+        "label": "Owner (user id)"
+      },
+      {
+        "id": "v-response",
+        "name": "response",
+        "type": "string",
+        "description": "Current response",
+        "defaultValue": "",
+        "required": false,
+        "label": "Response"
+      },
+      {
+        "id": "v-mitigation_plan",
+        "name": "mitigation_plan",
+        "type": "string",
+        "description": "Current plan",
+        "defaultValue": "",
+        "required": false,
+        "label": "Mitigation plan"
+      },
+      {
+        "id": "v-target_date",
+        "name": "target_date",
+        "type": "string",
+        "description": "Current target date",
+        "defaultValue": "",
+        "required": false,
+        "label": "Mitigation due"
+      },
+      {
+        "id": "v-next_review",
+        "name": "next_review",
+        "type": "string",
+        "description": "The review date that came due",
+        "defaultValue": "",
+        "required": false,
+        "label": "Was due"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

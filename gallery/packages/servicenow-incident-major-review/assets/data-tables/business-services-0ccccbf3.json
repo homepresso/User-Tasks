@@ -1,0 +1,54 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "0ccccbf3-d377-5cdd-bb11-7570fe2db385",
+  "asset": {
+    "id": "0ccccbf3-d377-5cdd-bb11-7570fe2db385",
+    "name": "Business services",
+    "description": "Business services / CIs with their service tier and who to tell when one has a major incident. The workflow looks the incident's CI up here by name.",
+    "columns": [
+      {
+        "id": "bd0ee370-54a8-5565-b995-b72f6777fc73",
+        "required": true,
+        "key": "ci_name",
+        "name": "CI / service",
+        "type": "text"
+      },
+      {
+        "id": "ac302018-430d-5c81-a9ac-a2e62b55887b",
+        "required": true,
+        "key": "tier",
+        "name": "Service tier",
+        "type": "number"
+      },
+      {
+        "id": "8c78cf04-72e5-57bd-9a4d-2367b0348442",
+        "required": false,
+        "key": "service_owner",
+        "name": "Service owner",
+        "type": "text"
+      },
+      {
+        "id": "bd427e2f-d4d6-58a1-9a03-385bd1ba99ef",
+        "required": false,
+        "key": "stakeholder_email",
+        "name": "Stakeholder list",
+        "type": "email"
+      },
+      {
+        "id": "1625acf3-c0be-5e5b-b64b-a08cb6c9c890",
+        "required": false,
+        "key": "status_page",
+        "name": "Status page component",
+        "type": "text"
+      },
+      {
+        "id": "d2b9888d-86e9-5126-9475-94bea9fbecda",
+        "required": false,
+        "key": "customer_facing",
+        "name": "Customer facing",
+        "type": "boolean"
+      }
+    ]
+  }
+}

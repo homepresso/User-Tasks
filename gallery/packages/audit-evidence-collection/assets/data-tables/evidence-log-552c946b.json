@@ -1,0 +1,110 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "552c946b-ab3b-4fd7-b0d2-a334bc4f14fb",
+  "asset": {
+    "id": "552c946b-ab3b-4fd7-b0d2-a334bc4f14fb",
+    "name": "Evidence log",
+    "description": "One row per control and period: what was collected or requested, the evidence link and its status. This is what you hand the auditor.",
+    "columns": [
+      {
+        "id": "cdefe937-f023-4d52-8c15-3d0b9104390d",
+        "required": true,
+        "key": "period",
+        "name": "Period",
+        "type": "text"
+      },
+      {
+        "id": "fce8ede3-9c36-483f-b081-690dd706bf9e",
+        "required": true,
+        "key": "control_id",
+        "name": "Control ID",
+        "type": "text"
+      },
+      {
+        "id": "e3b106e0-83c3-4b87-ac55-871d26a9569d",
+        "required": false,
+        "key": "framework",
+        "name": "Framework",
+        "type": "text"
+      },
+      {
+        "id": "ae7a4a40-96b3-4e60-b46d-c9544b4b49f4",
+        "required": false,
+        "key": "title",
+        "name": "Control",
+        "type": "text"
+      },
+      {
+        "id": "3c2e9a91-ec20-4d6f-bb07-ef0ee5c45e93",
+        "required": false,
+        "key": "evidence_type",
+        "name": "Evidence type",
+        "type": "text"
+      },
+      {
+        "id": "8ae8cf38-9b23-43ec-add0-064e9a1808d0",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "collected",
+          "requested",
+          "submitted",
+          "not applicable",
+          "failed"
+        ]
+      },
+      {
+        "id": "07ea4ffe-9eff-4d0b-b0b5-ab5fa43b64aa",
+        "required": false,
+        "key": "evidence_url",
+        "name": "Evidence link",
+        "type": "text"
+      },
+      {
+        "id": "eb921737-4972-4094-a460-f0ca2f7d9473",
+        "required": false,
+        "key": "record_count",
+        "name": "Records",
+        "type": "number"
+      },
+      {
+        "id": "293a03c2-5bed-4611-bcb3-31b816444760",
+        "required": false,
+        "key": "exceptions",
+        "name": "Exceptions",
+        "type": "number"
+      },
+      {
+        "id": "9d38f18c-726d-46d4-a191-afdf970bb5c7",
+        "required": false,
+        "key": "checksum",
+        "name": "Checksum",
+        "type": "text"
+      },
+      {
+        "id": "a7b490a0-ca54-4e49-8206-1baf8c870ef8",
+        "required": false,
+        "key": "collected_at",
+        "name": "Collected at",
+        "type": "date"
+      },
+      {
+        "id": "b656768a-988b-45c9-bbda-7c7f23514481",
+        "required": false,
+        "key": "owner_email",
+        "name": "Owner email",
+        "type": "text"
+      },
+      {
+        "id": "75ed64b9-87c8-41c4-9341-9321e5042411",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      }
+    ]
+  }
+}

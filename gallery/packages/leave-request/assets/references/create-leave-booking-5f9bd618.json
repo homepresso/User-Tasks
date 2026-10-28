@@ -1,0 +1,156 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "5f9bd618-7851-4af0-96e1-9f64302d9281",
+  "asset": {
+    "id": "5f9bd618-7851-4af0-96e1-9f64302d9281",
+    "integration_id": "008f8831-fadc-489c-8e18-c75547ba4365",
+    "name": "Create leave booking",
+    "description": "Book the approved leave in the HR system so it reduces the balance and shows in payroll.",
+    "tags": [
+      "leave"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"employee_id\":\"{{employee_id}}\",\"leave_type\":\"{{leave_type}}\",\"start_date\":\"{{start_date}}\",\"end_date\":\"{{end_date}}\",\"days\":{{days}},\"approved_by\":\"{{approved_by}}\",\"reference\":\"{{request_reference}}\"}",
+      "path_template": "/leave-bookings",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "booking_id",
+              "type": "string",
+              "example": "LB-58821"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "booked"
+            },
+            {
+              "name": "employee_id",
+              "type": "string",
+              "example": "E-1001"
+            },
+            {
+              "name": "days",
+              "type": "integer",
+              "example": 5
+            },
+            {
+              "name": "balance_after",
+              "type": "number",
+              "example": 9.5
+            }
+          ]
+        },
+        "sample": {
+          "booking_id": "LB-58821",
+          "status": "booked",
+          "employee_id": "E-1001",
+          "days": 5,
+          "balance_after": 9.5
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "0d19a029-463b-4e2f-a17e-cd995abdc3b3",
+        "name": "employee_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "15c9f017-d11c-4df9-ab74-477d34d7cde4",
+        "name": "leave_type",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "a4b96e40-f18b-48b5-8336-2846d3ea5213",
+        "name": "start_date",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "eaa55ef2-da3b-427d-8a06-cc4b02b7d179",
+        "name": "end_date",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "f7165109-3c26-4416-b02b-905f58d08d33",
+        "name": "days",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "6b5a4336-f6cb-4373-a7c3-d747cba7c52a",
+        "name": "approved_by",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c3668904-a576-439a-bd16-f42be19dee33",
+        "name": "request_reference",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "d846ee00-9c19-4159-a6f1-8c2074d66297",
+        "name": "booking_id",
+        "path": "booking_id",
+        "type": "string"
+      },
+      {
+        "id": "37ef9f95-442c-4d97-861d-901495872bc1",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "d496f448-6042-4146-a17b-390e297a8af7",
+        "name": "balance_after",
+        "path": "balance_after",
+        "type": "number"
+      }
+    ]
+  }
+}

@@ -1,0 +1,255 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "a2f9772b-5d48-4119-8f03-c6e21f1c07ec",
+  "asset": {
+    "id": "a2f9772b-5d48-4119-8f03-c6e21f1c07ec",
+    "name": "Probation review scheduler",
+    "description": "Every morning, find employees whose probation ends within the look-ahead window and start a Probation review for each one.",
+    "trigger_type": "schedule",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "schedule",
+        "label": "Every day 08:00",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {
+          "schedule_mode": "daily",
+          "time_of_day": "08:00",
+          "timezone": "UTC"
+        }
+      },
+      {
+        "id": "list",
+        "type": "call_reference",
+        "label": "List probations ending soon",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "reference_id": "b6507723-d732-4750-ae4e-f22a4410a3d7",
+          "reference_name": "List probations ending soon",
+          "reference_method": "GET",
+          "input_mappings": {
+            "probation_ends_within": "{{lookahead_days}}"
+          },
+          "output_mappings": {
+            "employees": {
+              "enabled": true,
+              "variableName": "employees"
+            }
+          }
+        }
+      },
+      {
+        "id": "count",
+        "type": "collection_count",
+        "label": "Count employees",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "collection": "{{employees}}",
+          "output_var": "due_count"
+        }
+      },
+      {
+        "id": "any",
+        "type": "condition",
+        "label": "Any due?",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Reviews due",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{due_count}}",
+                  "operator": "gt",
+                  "value": "0"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "loop",
+        "type": "loop",
+        "label": "Each employee",
+        "position": {
+          "x": 340,
+          "y": 720
+        },
+        "config": {
+          "items": "{{employees}}",
+          "item_var": "employee"
+        }
+      },
+      {
+        "id": "start",
+        "type": "call_sub_workflow",
+        "label": "Start probation review",
+        "position": {
+          "x": 660,
+          "y": 900
+        },
+        "config": {
+          "sub_workflow_id": "5c186e53-8150-4ff3-aad4-2ba0a052add8",
+          "sub_workflow_name": "Probation review",
+          "input_mappings": {
+            "employee_id": "{{employee.id}}",
+            "employee_name": "{{employee.name}}",
+            "employee_email": "{{employee.email}}",
+            "job_title": "{{employee.job_title}}",
+            "department": "{{employee.department}}",
+            "start_date": "{{employee.start_date}}",
+            "probation_end_date": "{{employee.probation_end_date}}",
+            "manager_name": "{{employee.manager.name}}",
+            "hr_email": "{{hr_email}}"
+          }
+        },
+        "executionMode": "async"
+      },
+      {
+        "id": "log_one",
+        "type": "log",
+        "label": "Log review started",
+        "position": {
+          "x": 660,
+          "y": 1060
+        },
+        "config": {
+          "message": "Probation review started for {{employee.name}} ({{employee.id}}), ends {{employee.probation_end_date}}",
+          "level": "info"
+        }
+      },
+      {
+        "id": "summary",
+        "type": "log",
+        "label": "Log summary",
+        "position": {
+          "x": 340,
+          "y": 1220
+        },
+        "config": {
+          "message": "Started {{due_count}} probation reviews (look-ahead {{lookahead_days}} days)",
+          "level": "info"
+        }
+      },
+      {
+        "id": "none",
+        "type": "log",
+        "label": "Nothing due",
+        "position": {
+          "x": 660,
+          "y": 720
+        },
+        "config": {
+          "message": "No probations end within {{lookahead_days}} days",
+          "level": "info"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Done",
+        "position": {
+          "x": 340,
+          "y": 1380
+        },
+        "config": {
+          "reason": "{{due_count}} probation reviews started"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-list",
+        "source": "trigger",
+        "target": "list"
+      },
+      {
+        "id": "e-list-count",
+        "source": "list",
+        "target": "count"
+      },
+      {
+        "id": "e-count-any",
+        "source": "count",
+        "target": "any"
+      },
+      {
+        "id": "e-any-loop-reviews-due",
+        "source": "any",
+        "target": "loop",
+        "label": "Reviews due"
+      },
+      {
+        "id": "e-any-none-else",
+        "source": "any",
+        "target": "none",
+        "label": "Else"
+      },
+      {
+        "id": "e-loop-start-each-item",
+        "source": "loop",
+        "target": "start",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-start-log_one",
+        "source": "start",
+        "target": "log_one"
+      },
+      {
+        "id": "e-loop-summary-done",
+        "source": "loop",
+        "target": "summary",
+        "label": "Done"
+      },
+      {
+        "id": "e-summary-done",
+        "source": "summary",
+        "target": "done"
+      },
+      {
+        "id": "e-none-done",
+        "source": "none",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-lookahead_days",
+        "name": "lookahead_days",
+        "type": "number",
+        "description": "Start reviews this many days before the probation end date",
+        "defaultValue": "21",
+        "label": "Look-ahead (days)"
+      },
+      {
+        "id": "v-hr_email",
+        "name": "hr_email",
+        "type": "string",
+        "description": "People team mailbox that receives each outcome",
+        "defaultValue": "people-team@example.com",
+        "label": "HR email",
+        "format": "email"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

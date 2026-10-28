@@ -1,0 +1,167 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "127fc508-5cb2-4946-a3c0-20242b998974",
+  "asset": {
+    "id": "127fc508-5cb2-4946-a3c0-20242b998974",
+    "integration_id": "94f5e74f-352f-48f3-915d-ab111135200a",
+    "name": "List active employees",
+    "description": "Active employees from the HR system with department and work email.",
+    "tags": [
+      "employees"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/employees",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "data",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "type": "string",
+                    "example": "E-1001",
+                    "name": "id"
+                  },
+                  {
+                    "type": "string",
+                    "example": "Sam Carter",
+                    "name": "name"
+                  },
+                  {
+                    "type": "string",
+                    "example": "sam.carter@example.com",
+                    "name": "email"
+                  },
+                  {
+                    "type": "string",
+                    "example": "Sales",
+                    "name": "department"
+                  },
+                  {
+                    "type": "string",
+                    "example": "Account manager",
+                    "name": "title"
+                  },
+                  {
+                    "type": "string",
+                    "example": "Auckland",
+                    "name": "location"
+                  },
+                  {
+                    "type": "string",
+                    "example": "priya.shah@example.com",
+                    "name": "manager_email"
+                  },
+                  {
+                    "type": "string",
+                    "example": "2023-02-13",
+                    "name": "start_date"
+                  },
+                  {
+                    "type": "string",
+                    "example": "active",
+                    "name": "status"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "total",
+              "type": "integer",
+              "example": 3
+            },
+            {
+              "name": "page",
+              "type": "integer",
+              "example": 1
+            },
+            {
+              "name": "page_size",
+              "type": "integer",
+              "example": 200
+            }
+          ]
+        },
+        "sample": {
+          "data": [
+            {
+              "id": "E-1001",
+              "name": "Sam Carter",
+              "email": "sam.carter@example.com",
+              "department": "Sales",
+              "title": "Account manager",
+              "location": "Auckland",
+              "manager_email": "priya.shah@example.com",
+              "start_date": "2023-02-13",
+              "status": "active"
+            },
+            {
+              "id": "E-1002",
+              "name": "Jordan Lee",
+              "email": "jordan.lee@example.com",
+              "department": "Finance",
+              "title": "Payroll specialist",
+              "location": "Wellington",
+              "manager_email": "casey.wong@example.com",
+              "start_date": "2021-08-02",
+              "status": "active"
+            },
+            {
+              "id": "E-1003",
+              "name": "Alex Morgan",
+              "email": "alex.morgan@example.com",
+              "department": "Engineering",
+              "title": "Platform engineer",
+              "location": "Remote",
+              "manager_email": "robin.james@example.com",
+              "start_date": "2024-05-20",
+              "status": "active"
+            }
+          ],
+          "total": 3,
+          "page": 1,
+          "page_size": 200
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "5a9ad5ee-e8b6-4cc4-a607-130ccf5e3f87",
+        "name": "status",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "Employment status filter, e.g. active",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "0d581b76-eeb7-4a40-8e05-279606cd3003",
+        "name": "employees",
+        "path": "data",
+        "type": "array"
+      },
+      {
+        "id": "71e09536-fd45-491a-9ee1-21570d01f775",
+        "name": "total",
+        "path": "total",
+        "type": "number"
+      }
+    ]
+  }
+}

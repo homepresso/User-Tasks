@@ -1,0 +1,232 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "c56d25bf-a419-54d7-a23f-34ff929f0c1c",
+  "asset": {
+    "id": "c56d25bf-a419-54d7-a23f-34ff929f0c1c",
+    "name": "Raise a risk",
+    "description": "Anyone can raise a risk: describe it, rate likelihood and impact, and name the owner who reviews it.",
+    "tags": [
+      "risk",
+      "compliance"
+    ],
+    "fields": [
+      {
+        "key": "title",
+        "label": "Risk title",
+        "type": "text",
+        "required": true,
+        "placeholder": "e.g. Single supplier for packaging materials",
+        "max_length": 120
+      },
+      {
+        "key": "category",
+        "label": "Category",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Operational",
+          "Financial",
+          "Compliance",
+          "Health & safety",
+          "Information security",
+          "Reputational",
+          "Strategic"
+        ]
+      },
+      {
+        "key": "department",
+        "label": "Department",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "description",
+        "label": "What could happen, and what would cause it?",
+        "type": "textarea",
+        "required": true,
+        "min_length": 20
+      },
+      {
+        "key": "likelihood",
+        "label": "Likelihood",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "option_labels": {
+          "1": "1 · Rare",
+          "2": "2 · Unlikely",
+          "3": "3 · Possible",
+          "4": "4 · Likely",
+          "5": "5 · Almost certain"
+        },
+        "display": "radio",
+        "help_text": "How likely in the next 12 months."
+      },
+      {
+        "key": "impact",
+        "label": "Impact",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "option_labels": {
+          "1": "1 · Negligible",
+          "2": "2 · Minor",
+          "3": "3 · Moderate",
+          "4": "4 · Major",
+          "5": "5 · Severe"
+        },
+        "display": "radio",
+        "help_text": "The worst credible outcome: money, safety, customers, compliance."
+      },
+      {
+        "key": "controls",
+        "label": "Existing controls",
+        "type": "textarea",
+        "help_text": "What already reduces the risk today."
+      },
+      {
+        "key": "owner",
+        "label": "Risk owner",
+        "type": "user",
+        "required": true,
+        "help_text": "The person accountable for the risk. They review it and choose the response."
+      },
+      {
+        "key": "raised_by_email",
+        "label": "Your email",
+        "type": "email",
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "title",
+              "span": 2
+            },
+            {
+              "field_key": "category",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "department",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "description",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "likelihood",
+              "span": 1
+            },
+            {
+              "field_key": "impact",
+              "span": 1
+            },
+            {
+              "field_key": "controls",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "owner",
+              "span": 2
+            },
+            {
+              "field_key": "raised_by_email",
+              "span": 1
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#B91C1C",
+            "background": "#FFFFFF",
+            "text": "#1F1A1A",
+            "page": "#FBEDED",
+            "page_to": "#FFF8F8"
+          }
+        },
+        "radius": 6,
+        "density": "compact",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "IBM Plex Sans"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit risk",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Risk submitted",
+            "screen_button": "submit_another",
+            "text": "Thanks. {{owner}} will review \"{{title}}\" and decide the response. You can see it in the risk register.",
+            "screen_button_label": "Raise another risk"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Raise a risk",
+      "align": "left",
+      "subtitle": "Spotted something that could hurt the business? Log it here and the owner will review it."
+    }
+  }
+}

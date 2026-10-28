@@ -1,0 +1,214 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "19ef99f1-33f7-41d8-8007-2665393e53de",
+  "asset": {
+    "id": "19ef99f1-33f7-41d8-8007-2665393e53de",
+    "name": "Triage routing",
+    "description": "Whether the AI reply can be sent automatically, and the queue and priority, from the agent confidence, urgency, category and plan tier. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "3ca2fe95-4c52-4c03-bc40-e9f9eaceb981",
+        "key": "confidence",
+        "label": "Confidence",
+        "type": "number"
+      },
+      {
+        "id": "5be4f21d-cf2e-409d-a2d9-f53399568a71",
+        "key": "urgency",
+        "label": "Urgency",
+        "type": "text"
+      },
+      {
+        "id": "c9ece8e9-9b9d-4801-9451-f076c7669f30",
+        "key": "category",
+        "label": "Category",
+        "type": "text"
+      },
+      {
+        "id": "fe84a705-87ac-4660-8d7a-fa7cfe2a2ef7",
+        "key": "tier",
+        "label": "Plan tier",
+        "type": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "e2eddc86-03b2-40da-8ec6-fc2b96e1eaf7",
+        "key": "auto_reply",
+        "label": "Auto-reply",
+        "type": "boolean"
+      },
+      {
+        "id": "2cb62a2e-b79e-4083-8150-68ae2afc9c25",
+        "key": "queue",
+        "label": "Queue",
+        "type": "text"
+      },
+      {
+        "id": "decbc9a2-2f3f-4f5d-a5ac-7d4109fb8d5f",
+        "key": "priority",
+        "label": "Priority",
+        "type": "text"
+      }
+    ],
+    "rules": [
+      {
+        "id": "d000cdcd-d9bd-4542-a941-f1fd27006438",
+        "label": "Security issue",
+        "enabled": true,
+        "outputs": {
+          "auto_reply": false,
+          "queue": "Security",
+          "priority": "critical"
+        },
+        "conditions": [
+          {
+            "id": "f9f0134f-6573-473f-bee8-5874b373fa87",
+            "inputKey": "category",
+            "operator": "equals",
+            "value": "security"
+          }
+        ]
+      },
+      {
+        "id": "b75254e1-735f-42e0-b63f-f8d7eca38c9e",
+        "label": "Critical urgency",
+        "enabled": true,
+        "outputs": {
+          "auto_reply": false,
+          "queue": "Incident desk",
+          "priority": "critical"
+        },
+        "conditions": [
+          {
+            "id": "dc336b7e-f4b1-4560-a6fa-31b63507ba50",
+            "inputKey": "urgency",
+            "operator": "equals",
+            "value": "critical"
+          }
+        ]
+      },
+      {
+        "id": "9aa7a88b-22c2-467b-9702-831ef469c96e",
+        "label": "Enterprise billing",
+        "enabled": true,
+        "outputs": {
+          "auto_reply": false,
+          "queue": "Account management",
+          "priority": "high"
+        },
+        "conditions": [
+          {
+            "id": "38614d80-b668-47d5-b397-ce8d91819d03",
+            "inputKey": "category",
+            "operator": "equals",
+            "value": "billing"
+          },
+          {
+            "id": "fa794c6c-c3bc-4b38-a37c-dbb9e290dd88",
+            "inputKey": "tier",
+            "operator": "equals",
+            "value": "enterprise"
+          }
+        ]
+      },
+      {
+        "id": "089ab957-ecde-408c-957e-40abebde08dc",
+        "label": "Confident how-to answer",
+        "enabled": true,
+        "outputs": {
+          "auto_reply": true,
+          "queue": "Self-service",
+          "priority": "low"
+        },
+        "conditions": [
+          {
+            "id": "13eecdc8-43db-4b0f-9c94-8237d710f8c8",
+            "inputKey": "category",
+            "operator": "equals",
+            "value": "how_to"
+          },
+          {
+            "id": "2fbeaf4f-fa66-4f05-824c-e2d4bd4a3483",
+            "inputKey": "confidence",
+            "operator": "greater_than_or_equal",
+            "value": "0.9"
+          },
+          {
+            "id": "a4ee0553-1ffb-4524-a5af-dfeadd6da878",
+            "inputKey": "urgency",
+            "operator": "not_equals",
+            "value": "high"
+          }
+        ]
+      },
+      {
+        "id": "bec9840d-f73d-408f-a2b7-500ecc60a67e",
+        "label": "Confident low-urgency answer",
+        "enabled": true,
+        "outputs": {
+          "auto_reply": true,
+          "queue": "Self-service",
+          "priority": "low"
+        },
+        "conditions": [
+          {
+            "id": "9907ae44-2a35-49cd-9cae-bf2432b03e62",
+            "inputKey": "confidence",
+            "operator": "greater_than_or_equal",
+            "value": "0.85"
+          },
+          {
+            "id": "923fe2b3-1ae8-447a-b799-445e67936541",
+            "inputKey": "urgency",
+            "operator": "equals",
+            "value": "low"
+          },
+          {
+            "id": "3930f883-b335-4aa9-8205-86f6db3e353a",
+            "inputKey": "tier",
+            "operator": "not_equals",
+            "value": "enterprise"
+          }
+        ]
+      },
+      {
+        "id": "3bcb8e8f-7472-4621-823b-678181490174",
+        "label": "High urgency",
+        "enabled": true,
+        "outputs": {
+          "auto_reply": false,
+          "queue": "Tier 2",
+          "priority": "high"
+        },
+        "conditions": [
+          {
+            "id": "373edb69-fa23-46d8-a37c-76f2a3647a36",
+            "inputKey": "urgency",
+            "operator": "equals",
+            "value": "high"
+          }
+        ]
+      },
+      {
+        "id": "d7a960fc-0f42-4e10-ba51-2cb5c3379445",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "auto_reply": false,
+          "queue": "Tier 1",
+          "priority": "medium"
+        },
+        "conditions": [
+          {
+            "id": "8c608cbf-6c34-4f82-a173-0c52b8b9400e",
+            "inputKey": "confidence",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

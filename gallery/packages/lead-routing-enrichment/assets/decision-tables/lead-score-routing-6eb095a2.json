@@ -1,0 +1,238 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "6eb095a2-fef0-450d-a7a8-c4e8091c29c6",
+  "asset": {
+    "id": "6eb095a2-fef0-450d-a7a8-c4e8091c29c6",
+    "name": "Lead score & routing",
+    "description": "Segment, score and priority for an inbound lead from company size, industry, region and lead source. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "e166aa1f-bd17-4932-95da-d9ded4652940",
+        "key": "employees",
+        "label": "Employees",
+        "type": "number"
+      },
+      {
+        "id": "a8af5248-cff3-4dfd-be5c-8fb93350253b",
+        "key": "industry",
+        "label": "Industry",
+        "type": "text"
+      },
+      {
+        "id": "2545c99a-b616-44d9-b9d6-6c3820027647",
+        "key": "region",
+        "label": "Region",
+        "type": "text"
+      },
+      {
+        "id": "58b985ae-d9bb-4401-85b1-947933ada8ca",
+        "key": "source",
+        "label": "Lead source",
+        "type": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "e95f3633-30d4-496b-a217-5a17465b2dcb",
+        "key": "segment",
+        "label": "Segment",
+        "type": "text"
+      },
+      {
+        "id": "830a86cc-4a2d-4af0-83ad-8953812a0628",
+        "key": "score",
+        "label": "Score",
+        "type": "number"
+      },
+      {
+        "id": "1d207d0e-c261-4ad4-9287-9f30a19c4d30",
+        "key": "priority",
+        "label": "Priority",
+        "type": "text"
+      }
+    ],
+    "rules": [
+      {
+        "id": "fd4dd187-59cc-46cd-8d74-e21ae370e0de",
+        "label": "Enterprise demo request",
+        "enabled": true,
+        "outputs": {
+          "segment": "Enterprise",
+          "score": 95,
+          "priority": "P1"
+        },
+        "conditions": [
+          {
+            "id": "45b59e80-e43d-44d4-bdb9-bade1e675989",
+            "inputKey": "employees",
+            "operator": "greater_than_or_equal",
+            "value": "1000"
+          },
+          {
+            "id": "a1dceb35-747b-4824-ba90-18063acee6d7",
+            "inputKey": "source",
+            "operator": "equals",
+            "value": "demo_request"
+          }
+        ]
+      },
+      {
+        "id": "e545ebfd-3849-489d-a49f-c597238a3fb6",
+        "label": "Enterprise",
+        "enabled": true,
+        "outputs": {
+          "segment": "Enterprise",
+          "score": 80,
+          "priority": "P1"
+        },
+        "conditions": [
+          {
+            "id": "f7847164-6d5e-478e-b891-bbed395ced8d",
+            "inputKey": "employees",
+            "operator": "greater_than_or_equal",
+            "value": "1000"
+          }
+        ]
+      },
+      {
+        "id": "50798bd8-2653-493d-8163-c11201717541",
+        "label": "Mid-market demo request",
+        "enabled": true,
+        "outputs": {
+          "segment": "Mid-market",
+          "score": 75,
+          "priority": "P2"
+        },
+        "conditions": [
+          {
+            "id": "c297424a-11ad-46bd-a6f1-f54af302cace",
+            "inputKey": "employees",
+            "operator": "greater_than_or_equal",
+            "value": "50"
+          },
+          {
+            "id": "b25d7913-97c5-441f-8fb9-a2a474215293",
+            "inputKey": "source",
+            "operator": "equals",
+            "value": "demo_request"
+          }
+        ]
+      },
+      {
+        "id": "07d4f6a3-3261-4223-b9a8-cce40091c86f",
+        "label": "Regulated mid-market",
+        "enabled": true,
+        "outputs": {
+          "segment": "Mid-market",
+          "score": 70,
+          "priority": "P2"
+        },
+        "conditions": [
+          {
+            "id": "110d718a-f8c0-4231-9e41-067b62191b70",
+            "inputKey": "employees",
+            "operator": "greater_than_or_equal",
+            "value": "200"
+          },
+          {
+            "id": "9e986042-0285-49ac-8458-1f992583053b",
+            "inputKey": "industry",
+            "operator": "contains",
+            "value": "financial"
+          }
+        ]
+      },
+      {
+        "id": "ac41117c-ba98-425f-bfbb-5b66779fcf55",
+        "label": "Mid-market",
+        "enabled": true,
+        "outputs": {
+          "segment": "Mid-market",
+          "score": 60,
+          "priority": "P2"
+        },
+        "conditions": [
+          {
+            "id": "45686a2d-8ade-4531-abc1-e065f33517fe",
+            "inputKey": "employees",
+            "operator": "greater_than_or_equal",
+            "value": "200"
+          }
+        ]
+      },
+      {
+        "id": "97bb0968-a3ba-44ca-9a0f-ff684e42f3ba",
+        "label": "Rest of world small business",
+        "enabled": true,
+        "outputs": {
+          "segment": "Partner",
+          "score": 30,
+          "priority": "P3"
+        },
+        "conditions": [
+          {
+            "id": "c524e39f-ebcb-40e8-88fa-8c05e7d2ec12",
+            "inputKey": "region",
+            "operator": "equals",
+            "value": "Rest of world"
+          }
+        ]
+      },
+      {
+        "id": "f7300b81-d6b3-440e-975f-af6ba54a8a1d",
+        "label": "Micro business",
+        "enabled": true,
+        "outputs": {
+          "segment": "Self-serve",
+          "score": 15,
+          "priority": "P4"
+        },
+        "conditions": [
+          {
+            "id": "f07033d4-bb7c-42d7-9342-5e62255e5ea5",
+            "inputKey": "employees",
+            "operator": "less_than",
+            "value": "10"
+          }
+        ]
+      },
+      {
+        "id": "9fed47a5-4c58-4093-a567-b30c1096fc97",
+        "label": "Webinar or content lead",
+        "enabled": true,
+        "outputs": {
+          "segment": "SMB",
+          "score": 40,
+          "priority": "P3"
+        },
+        "conditions": [
+          {
+            "id": "85a1f9e5-70be-4060-ba96-4534015814bd",
+            "inputKey": "source",
+            "operator": "equals",
+            "value": "webinar"
+          }
+        ]
+      },
+      {
+        "id": "9d88b043-a379-4335-becc-f0a71de6b0bc",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "segment": "SMB",
+          "score": 35,
+          "priority": "P3"
+        },
+        "conditions": [
+          {
+            "id": "8dd6a6af-b3e8-4ef1-88ff-a35b7d185fd2",
+            "inputKey": "employees",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

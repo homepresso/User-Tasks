@@ -1,0 +1,130 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "3400221e-b9d1-4587-a6cf-3812de09fad9",
+  "asset": {
+    "id": "3400221e-b9d1-4587-a6cf-3812de09fad9",
+    "name": "Expense approval policy",
+    "description": "Who approves an expense claim, by amount and category. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "162854b8-50d5-41ef-a8e4-c8957ab72386",
+        "key": "amount",
+        "label": "Amount",
+        "type": "number"
+      },
+      {
+        "id": "b5203290-1c6c-4678-a5f5-ee4caed3890c",
+        "key": "category",
+        "label": "Category",
+        "type": "text"
+      },
+      {
+        "id": "faec78aa-41fe-459f-b993-176ff47c4592",
+        "key": "over_limit",
+        "label": "Over category limit",
+        "type": "boolean"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "c400fd45-ab10-4c1a-ba95-786533736794",
+        "key": "approver_level",
+        "label": "Approver level",
+        "type": "text"
+      },
+      {
+        "id": "238b981f-f9ad-4d9a-a34f-4b6484034e94",
+        "key": "auto_approve",
+        "label": "Auto-approve",
+        "type": "boolean"
+      },
+      {
+        "id": "bf23afba-4bb2-4413-9236-d5adc1b18588",
+        "key": "sla_days",
+        "label": "Approval SLA (days)",
+        "type": "number"
+      }
+    ],
+    "rules": [
+      {
+        "id": "1df036c1-d23d-493f-b0f7-a7062ef2a7fc",
+        "label": "Over the category limit",
+        "enabled": true,
+        "outputs": {
+          "approver_level": "Finance manager",
+          "auto_approve": false,
+          "sla_days": 3
+        },
+        "conditions": [
+          {
+            "id": "a88968b5-7538-44d4-83c1-af0b6197f03b",
+            "inputKey": "over_limit",
+            "operator": "equals",
+            "value": "true"
+          }
+        ]
+      },
+      {
+        "id": "a55b81f0-74ab-4b1c-a8f3-54a2b38d53bd",
+        "label": "Small claim",
+        "enabled": true,
+        "outputs": {
+          "approver_level": "None",
+          "auto_approve": true,
+          "sla_days": 1
+        },
+        "conditions": [
+          {
+            "id": "dc47ba06-6405-422c-a3e5-dcdc4c9847e3",
+            "inputKey": "amount",
+            "operator": "less_than",
+            "value": "100"
+          },
+          {
+            "id": "b030b647-2c85-47b8-93f1-b204c5bf5c5d",
+            "inputKey": "category",
+            "operator": "not_equals",
+            "value": "equipment"
+          }
+        ]
+      },
+      {
+        "id": "eb8b1b0d-2708-42cf-b192-bb8256439d6d",
+        "label": "Large claim",
+        "enabled": true,
+        "outputs": {
+          "approver_level": "Finance manager",
+          "auto_approve": false,
+          "sla_days": 3
+        },
+        "conditions": [
+          {
+            "id": "8f541c8e-f3f5-4c19-ac00-cb8e8b3aae36",
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "2000"
+          }
+        ]
+      },
+      {
+        "id": "87a58165-cfea-4612-b053-3adce5943a0e",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "approver_level": "Line manager",
+          "auto_approve": false,
+          "sla_days": 2
+        },
+        "conditions": [
+          {
+            "id": "c1f1eaee-d64a-47ce-aa37-127e508fc0b0",
+            "inputKey": "category",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

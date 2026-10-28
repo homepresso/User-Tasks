@@ -1,0 +1,47 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "97ceae05-d174-4525-befd-f2c2ec0a80be",
+  "asset": {
+    "id": "97ceae05-d174-4525-befd-f2c2ec0a80be",
+    "name": "Expense categories",
+    "description": "Expense categories with their general-ledger code, per-claim limit and receipt rule. Edit the rows to match your chart of accounts.",
+    "columns": [
+      {
+        "id": "653ef850-352b-4395-9fc7-6c58352106f8",
+        "required": true,
+        "key": "category",
+        "name": "Category",
+        "type": "text"
+      },
+      {
+        "id": "4ee58c3c-0b85-40a1-8827-61d6d26fb02a",
+        "required": true,
+        "key": "gl_code",
+        "name": "GL code",
+        "type": "text"
+      },
+      {
+        "id": "6648825e-b7fd-42ea-b607-82fdbcce2bff",
+        "required": false,
+        "key": "claim_limit",
+        "name": "Per-claim limit",
+        "type": "number"
+      },
+      {
+        "id": "3a7a7095-2fac-41ac-8279-ec4b8b1552eb",
+        "required": false,
+        "key": "receipt_required",
+        "name": "Receipt required",
+        "type": "boolean"
+      },
+      {
+        "id": "968b15e0-3317-4eb4-9ca4-1fed8f1706e0",
+        "required": false,
+        "key": "notes",
+        "name": "Policy notes",
+        "type": "text"
+      }
+    ]
+  }
+}

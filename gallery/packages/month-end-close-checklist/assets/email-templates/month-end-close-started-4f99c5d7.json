@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "4f99c5d7-b329-4894-85ad-5845d66715f5",
+  "asset": {
+    "id": "4f99c5d7-b329-4894-85ad-5845d66715f5",
+    "name": "Month-end close started",
+    "description": "Sent to the finance team when the close starts, listing the tasks issued.",
+    "subject": "Month-end close {{period}} ({{entity}}) has started",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">The {{period}} close has started</h2>\n  <p>Hi team,</p>\n  <p>The {{period}} close for <strong>{{entity}}</strong> is open in the ERP ({{close_id}}). <strong>{{task_count}}</strong> close tasks were issued; the deadline is <strong>{{close_deadline}}</strong>.</p>\n  <p>Tasks: {{=JOIN(PLUCK(close_tasks, \"task_code\"), \", \")}}</p>\n  <p>Complete each task in UserTasks with the evidence link. Progress is recorded in the Close log.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the month-end close workflow</p>\n</div>",
+    "text_body": "The {{period}} close has started\n  Hi team,\n  The {{period}} close for {{entity}} is open in the ERP ({{close_id}}). {{task_count}} close tasks were issued; the deadline is {{close_deadline}}.\n  Tasks: {{=JOIN(PLUCK(close_tasks, \"task_code\"), \", \")}}\n  Complete each task in UserTasks with the evidence link. Progress is recorded in the Close log.\n  Sent by the month-end close workflow",
+    "is_default": false
+  }
+}

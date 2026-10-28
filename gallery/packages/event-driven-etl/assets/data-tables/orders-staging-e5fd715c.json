@@ -1,0 +1,87 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "e5fd715c-5114-4e53-8639-10151b9c4477",
+  "asset": {
+    "id": "e5fd715c-5114-4e53-8639-10151b9c4477",
+    "name": "Orders staging",
+    "description": "Raw orders land here (from an import, a form or another workflow). Each new row is loaded into the warehouse and its load status updated.",
+    "columns": [
+      {
+        "id": "c3ffddd8-33ad-4967-a328-c68a1c4ce4bf",
+        "required": true,
+        "key": "order_ref",
+        "name": "Order ref",
+        "type": "text"
+      },
+      {
+        "id": "70e8da9e-6d5c-4934-9c33-2e57cb26ab65",
+        "required": false,
+        "key": "customer_name",
+        "name": "Customer name",
+        "type": "text"
+      },
+      {
+        "id": "1901a097-0c27-49f9-bf32-8ea8056489e9",
+        "required": false,
+        "key": "customer_email",
+        "name": "Customer email",
+        "type": "text"
+      },
+      {
+        "id": "0db5cc2f-6136-4b7d-87d4-304af68a73c4",
+        "required": false,
+        "key": "order_date",
+        "name": "Order date",
+        "type": "text"
+      },
+      {
+        "id": "6c50bbd8-bf94-4dee-98bf-aa466b4f4632",
+        "required": false,
+        "key": "currency",
+        "name": "Currency",
+        "type": "text"
+      },
+      {
+        "id": "2092976e-1851-4b94-94f8-9ed52838ee97",
+        "required": false,
+        "key": "amount",
+        "name": "Amount",
+        "type": "number"
+      },
+      {
+        "id": "170d2925-9a77-41ab-bf40-e75a3241a122",
+        "required": false,
+        "key": "channel",
+        "name": "Channel",
+        "type": "text"
+      },
+      {
+        "id": "6566d5a7-453c-40fa-9ac2-c5df4d2ab1a5",
+        "required": false,
+        "key": "load_status",
+        "name": "Load status",
+        "type": "text",
+        "options": [
+          "pending",
+          "loaded",
+          "failed"
+        ]
+      },
+      {
+        "id": "786159a5-f829-45f2-8e1f-e5a5338d4c08",
+        "required": false,
+        "key": "warehouse_id",
+        "name": "Warehouse id",
+        "type": "text"
+      },
+      {
+        "id": "ebbd76bb-0d01-4d2e-9a0c-2742fa298ea3",
+        "required": false,
+        "key": "load_message",
+        "name": "Load message",
+        "type": "text"
+      }
+    ]
+  }
+}

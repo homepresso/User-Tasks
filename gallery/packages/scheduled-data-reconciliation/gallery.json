@@ -1,0 +1,70 @@
+{
+  "id": "3d62769c-567e-4203-8db1-98612f0eed73",
+  "slug": "scheduled-data-reconciliation",
+  "title": "Scheduled data reconciliation",
+  "category": "headless-integration",
+  "summary": "Every morning, yesterday's orders are matched to billing invoices; missing invoices and amount mismatches are recorded and a summary is sent.",
+  "description": "Scheduled data reconciliation checks that every order was billed correctly. Each morning at 05:30 it reads yesterday's orders from your order system and the invoices for the same date from your billing API (or any date you pass as as_of).\n\nFor each order it finds the invoice with the same order id and classifies the pair: matched, missing invoice, or amount mismatch (a difference larger than the tolerance). Exceptions are inserted into the Reconciliation exceptions table with the amounts and difference, ready for finance to work through.\n\nAt the end it counts the results, emails a summary to finance operations and posts the same totals to an ops webhook. Adapt the two list endpoints, the matching key and the tolerance; nothing in the run needs a person.",
+  "trigger": "schedule",
+  "entry_workflow": "40ba70c7-2e62-4ca4-974c-21e5277fade0",
+  "start": "Runs every day at 05:30 UTC (change it on the Schedule trigger). Run it on demand with as_of to reconcile a past date.",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "reconciliation",
+    "scheduled",
+    "finance ops",
+    "loop",
+    "headless"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api"
+  ],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Order system integration: set the base URL and API token. List orders by date calls GET /orders?date=YYYY-MM-DD and reads data[] (id, customer, total).",
+    "Billing API integration: set the base URL and API token. List invoices by date calls GET /invoices?date=YYYY-MM-DD and reads data[] (invoice_number, order_id, amount).",
+    "Ops webhook integration: set the base URL (and token if needed) of the channel or monitoring webhook that receives the summary.",
+    "Set finance_ops_email and amount_tolerance on the workflow variables.",
+    "Email (optional): configure EMAIL_PROVIDER on the instance for the summary email (the step continues on error)."
+  ],
+  "steps": [
+    {
+      "title": "Pick the date",
+      "body": "The run reconciles yesterday, or the as_of date when one is given."
+    },
+    {
+      "title": "Read both sides",
+      "body": "Orders come from the order system and invoices from the billing API for the same date."
+    },
+    {
+      "title": "Match each order",
+      "body": "For every order the invoice with the same order id is found and the amounts compared."
+    },
+    {
+      "title": "Record exceptions",
+      "body": "Missing invoices and amount mismatches are inserted into the Reconciliation exceptions table."
+    },
+    {
+      "title": "Report",
+      "body": "Totals are counted, emailed to finance operations and posted to the ops webhook."
+    }
+  ],
+  "sample_input": {
+    "as_of": "2026-10-25",
+    "finance_ops_email": "finance-ops@example.com",
+    "amount_tolerance": 0.01
+  },
+  "expect": "completed",
+  "icon": "scale"
+}

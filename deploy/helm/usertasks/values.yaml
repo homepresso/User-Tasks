@@ -1,0 +1,387 @@
+# UserTasks Helm chart values. Every key is described in README.md and
+# checked by values.schema.json. Ready-made files: examples/eval.yaml,
+# examples/onprem.yaml, examples/eks.yaml, examples/aks.yaml, examples/gke.yaml.
+
+global:
+  # A registry prefix for every image (the app and the bundled dependencies),
+  # e.g. registry.corp.example/usertasks for an air-gapped install.
+  imageRegistry: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  # The UserTasks image (the repository's Dockerfile). Air-gapped: the bundle's
+  # images pushed to your registry (docs/setup-air-gapped.md). Optional drivers
+  # (Snowflake, Oracle, MongoDB; the storage / email / secrets / KMS SDKs) are
+  # chosen when the image is built (INCLUDE_OPTIONAL_DB_DRIVERS,
+  # INCLUDE_STORAGE_SDKS, INCLUDE_PROVIDER_SDKS; docs/optional-drivers.md):
+  # build it with the ones your providers need.
+  repository: usertasks
+  # Defaults to the chart's appVersion.
+  tag: ""
+  # sha256:… pins the image (takes precedence over tag).
+  digest: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+# The public origin people open (no trailing slash): APP_URL and
+# NEXT_PUBLIC_APP_URL. Links in emails, OAuth / SSO redirect URIs.
+appUrl: "http://usertasks.local"
+
+# Instance administrators (Settings → Infrastructure): INSTANCE_ADMIN_EMAILS.
+instanceAdminEmails: []
+
+# Settings → Infrastructure provider changes (docs/switching-providers.md#from-the-ui).
+infrastructureUi:
+  # false: the page is read-only (INFRA_UI_SWITCHING=false); changes only with usertasks-admin.
+  switching: true
+  # BACKUP_DIR for switches started from the page (config snapshots, copied rows; keep it private).
+  # Point it at a mounted volume (extraVolumes / extraVolumeMounts) so backups outlive the pod.
+  backupDir: ""
+
+# ── Providers ────────────────────────────────────────────────────────────────
+# One block per infrastructure area (docs/infrastructure.md). `provider` sets
+# <AREA>_PROVIDER (empty: the app's default, i.e. Supabase / pg_cron / Resend /
+# env / memory). `options` are the provider's options by their instance-setting
+# names (the same names `usertasks-admin switch --set` takes); each becomes its
+# environment variable (files/provider-options.json lists them). Options the
+# app treats as secrets (passwords, keys, tokens) are refused here: put them in
+# the Secret (see `secrets`), or set the option to a secret://<name> reference.
+providers:
+  db:
+    # supabase | postgres
+    provider: ""
+    # url (DATABASE_URL), migration_url, auth (password | azure | gcp),
+    # pool_max, max_rows, supabase_url, supabase_anon_key, …
+    # With postgresql.enabled the bundled database fills url / migration_url.
+    options: {}
+  auth:
+    # supabase | builtin | oidc | saml
+    provider: ""
+    # sso_providers (a list; client secrets as secret:// references),
+    # allow_signup, require_email_confirmation, session_idle_hours, …
+    options: {}
+  storage:
+    # supabase | s3 | local | azure_blob | gcs
+    provider: ""
+    # endpoint, region, access_key_id, force_path_style, bucket_prefix,
+    # azure_account_name, azure_endpoint, gcs_project_id, local_root, …
+    options: {}
+  realtime:
+    # supabase | sse
+    provider: ""
+    # database_url (REALTIME_DATABASE_URL: a session connection, not PgBouncer
+    # transaction mode)
+    options: {}
+  scheduler:
+    # pg_cron | worker | external. worker: the worker Deployment (worker.*).
+    # external: the tick CronJob (tick.*) calls POST /api/cron/tick.
+    provider: ""
+    # database_url (leader lock; a session connection), oidc_audience,
+    # entra_tenant_id, tick_concurrency, …
+    options: {}
+  email:
+    # resend | smtp | ses | azure_communication | microsoft_graph | gmail | console
+    provider: ""
+    # from, reply_to, smtp_host, smtp_port, smtp_starttls, smtp_user,
+    # ses_region, acs_endpoint, graph_tenant_id, gmail_sender, …
+    options: {}
+  secrets:
+    # env | db | supabase_vault | hashicorp_vault | azure_key_vault |
+    # gcp_secret_manager | aws_secrets_manager
+    provider: ""
+    # vault_addr, vault_auth (kubernetes), vault_k8s_role, azure_key_vault_url,
+    # gcp_project_id, aws_region, files_dir, …
+    options: {}
+  cache:
+    # memory | postgres | redis. Use postgres or redis with more than one replica.
+    provider: ""
+    # redis_url, redis_auth (password | entra | gcp_iam), redis_username,
+    # redis_tls, key_prefix, … With valkey.enabled the bundled Valkey fills
+    # redis_url.
+    options: {}
+  kms:
+    # env | vault_transit | aws_kms | azure_key_vault | gcp_kms
+    provider: ""
+    # vault_transit_key, aws_kms_key_id, azure_key_id, gcp_kms_key_name, …
+    options: {}
+
+# Log export (per-workspace destinations; these are instance-level knobs).
+logExport:
+  # LOG_EXPORT_ALLOW_INSTANCE_IDENTITY: cloud destinations may use this pod's
+  # workload identity (single-tenant installs only).
+  allowInstanceIdentity: false
+  # LOG_EXPORT_DATADOG_URL, LOG_EXPORT_EVENT_HUBS_URL, LOG_EXPORT_GCP_LOGGING_URL,
+  # LOG_EXPORT_GCP_PUBSUB_URL, LOG_EXPORT_AZURE_AUTHORITY_URL, LOG_EXPORT_GCP_TOKEN_URL
+  # (private endpoints), by their names without the LOG_EXPORT_ prefix in lower case.
+  endpoints: {}
+
+# Directory sync is per workspace; LDAP / AD on a private address and log
+# destinations on the LAN need private egress.
+security:
+  # ALLOW_PRIVATE_EGRESS: integrations, LDAP and log destinations on private
+  # addresses (cloud metadata addresses stay blocked).
+  allowPrivateEgress: false
+  # ENABLE_CUSTOM_ACTIVITY_CODE (unsandboxed JavaScript activities).
+  enableCustomActivityCode: false
+  # ALLOW_QUERY_KEY_AUTH (?key= API keys for MCP connectors).
+  allowQueryKeyAuth: false
+  # MCP_ALLOWED_ORIGINS (CORS for /api/mcp).
+  mcpAllowedOrigins: []
+
+# Plain environment variables added to every UserTasks container (app,
+# worker, jobs). Secrets don't belong here.
+env: {}
+# Raw EnvVar / EnvFromSource lists (valueFrom, extra ConfigMaps or Secrets).
+extraEnv: []
+extraEnvFrom: []
+# Extra volumes and mounts for every UserTasks container (e.g. a PVC for
+# STORAGE_PROVIDER=local at STORAGE_LOCAL_ROOT; ReadWriteMany with replicas).
+extraVolumes: []
+extraVolumeMounts: []
+
+# A private CA bundle (database, SMTP, IdP, Vault, LDAP, log destinations):
+# mounted and set as NODE_EXTRA_CA_CERTS.
+caBundle:
+  # ConfigMap or Secret holding the PEM bundle.
+  configMap: ""
+  secret: ""
+  key: ca.crt
+
+# ── Secrets ──────────────────────────────────────────────────────────────────
+# Every secret value (ENCRYPTION_KEY, CRON_SECRET, DATABASE_URL with a
+# password, SMTP_PASSWORD, S3_SECRET_ACCESS_KEY, …) reaches the containers
+# from ONE Kubernetes Secret, as environment variables (envFrom). Where it
+# comes from, in order of preference:
+secrets:
+  # 1. A Secret you manage (kubectl, Sealed Secrets, SOPS, Vault Agent…).
+  existingSecret: ""
+  # 2. External Secrets Operator: an ExternalSecret that writes the Secret.
+  externalSecret:
+    enabled: false
+    # external-secrets.io/v1 (ESO 0.17+), or external-secrets.io/v1beta1 for older operators.
+    apiVersion: external-secrets.io/v1
+    secretStoreRef:
+      name: ""
+      kind: ClusterSecretStore
+    refreshInterval: 1h
+    # [{secretKey: ENCRYPTION_KEY, remoteRef: {key: usertasks/encryption-key}}]
+    data: []
+    # [{extract: {key: usertasks/env}}]
+    dataFrom: []
+  # 3. Created by the chart from `values` below (evaluation, CI). ENCRYPTION_KEY
+  #    and CRON_SECRET are generated when missing and kept across upgrades.
+  create: true
+  values: {}
+  # The Secrets Store CSI driver (Azure Key Vault, AWS Secrets Manager, GCP
+  # Secret Manager, Vault providers): mounted at mountPath and read as files
+  # (SECRETS_FILES_DIR, so secret://<name> resolves to <mountPath>/<name>).
+  csi:
+    enabled: false
+    # An existing SecretProviderClass, or `spec` to create one.
+    secretProviderClass: ""
+    spec: {}
+    mountPath: /mnt/secrets-store
+
+# The first workspace and its owner (post-install, through the configured
+# providers). The password comes from a Secret key (never from values).
+bootstrap:
+  enabled: false
+  email: ""
+  org: ""
+  name: ""
+  # Secret and key holding the owner's password (default: the main Secret,
+  # key BOOTSTRAP_PASSWORD).
+  passwordSecret: ""
+  passwordKey: BOOTSTRAP_PASSWORD
+
+# ── Workloads ────────────────────────────────────────────────────────────────
+
+app:
+  replicas: 2
+  command: ["node", "server.js"]
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { memory: 1Gi }
+  # Probes on GET /api/config/public (the image's healthcheck).
+  probes:
+    path: /api/config/public
+    startup: { periodSeconds: 5, failureThreshold: 60, timeoutSeconds: 5 }
+    readiness: { periodSeconds: 10, failureThreshold: 3, timeoutSeconds: 5 }
+    liveness: { periodSeconds: 20, failureThreshold: 6, timeoutSeconds: 5 }
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 0
+  pdb:
+    enabled: true
+    minAvailable: 1
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  priorityClassName: ""
+  terminationGracePeriodSeconds: 30
+
+# The scheduler worker (`node worker.cjs`), deployed when
+# providers.scheduler.provider is worker. Web pods then run with
+# SCHEDULER_IN_PROCESS=false. More than one replica: one leader ticks, the
+# others wait as standbys.
+worker:
+  enabled: true
+  replicas: 1
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 768Mi }
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  terminationGracePeriodSeconds: 90
+
+# The tick CronJob, deployed when providers.scheduler.provider is external.
+tick:
+  schedule: "* * * * *"
+  # http: POST /api/cron/tick on the Service with CRON_SECRET.
+  # worker-once: `node worker.cjs --once` in the job (no HTTP).
+  mode: http
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 512Mi }
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+
+# `usertasks-admin db migrate` (+ `storage init`) on every install and upgrade.
+migrate:
+  enabled: true
+  # hook: a pre-install / pre-upgrade Helm hook (needs the Secret to exist
+  #       before the release: secrets.existingSecret, and no bundled postgres).
+  # job:  a Job per release revision; app and worker pods wait for it.
+  # auto: hook when that is possible, else job.
+  mode: auto
+  storageInit: true
+  # Extra `db migrate` arguments, e.g. ["--owner", "usertasks_owner"].
+  args: []
+  backoffLimit: 6
+  activeDeadlineSeconds: 1800
+  ttlSecondsAfterFinished: 86400
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 1Gi }
+
+# App and worker pods wait until `db status` reports no pending migration.
+waitForMigrations: true
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+  # Cloud workload identity (keyless access to the cloud's database, storage,
+  # secrets, KMS, cache and email).
+  workloadIdentity:
+    # EKS IRSA: eks.amazonaws.com/role-arn
+    awsRoleArn: ""
+    # AKS workload identity: azure.workload.identity/client-id (+ the pod label)
+    azureClientId: ""
+    azureTenantId: ""
+    # GKE workload identity: iam.gke.io/gcp-service-account
+    gcpServiceAccount: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  # cert-manager: adds cert-manager.io/cluster-issuer (or issuer).
+  certManager:
+    clusterIssuer: ""
+    issuer: ""
+  # Defaults to appUrl's host.
+  host: ""
+  tls:
+    enabled: false
+    secretName: ""
+
+# Gateway API HTTPRoute (instead of, or as well as, the Ingress).
+gateway:
+  enabled: false
+  parentRefs: []
+  hostnames: []
+  annotations: {}
+
+networkPolicy:
+  enabled: false
+  ingress:
+    # Extra NetworkPolicyPeer entries allowed to reach the app (e.g. the
+    # ingress controller's namespace). Empty: any pod in the cluster.
+    from: []
+  egress:
+    # open: no egress rules. allowlist: DNS, the release's own pods (bundled
+    # dependencies) and the `allow` list only — nothing else, so no internet
+    # (the on-premises / air-gapped mode).
+    mode: open
+    # [{cidr: 10.0.0.0/8, ports: [5432, 6379, 636, 587]}]
+    allow: []
+    # The Kubernetes API (Vault Kubernetes auth needs it): CIDR of the API server.
+    kubeApiCidr: ""
+
+# ── Bundled dependencies (evaluation only; off by default) ──────────────────
+# Single-replica PostgreSQL, MinIO, Valkey and Mailpit. They fill the matching
+# provider options when those are empty. Use managed or HA services in production.
+postgresql:
+  enabled: false
+  image: postgres:16-alpine
+  database: usertasks
+  username: usertasks
+  persistence:
+    enabled: true
+    size: 8Gi
+    storageClass: ""
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 1Gi }
+minio:
+  enabled: false
+  image: pgsty/minio:latest
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { memory: 1Gi }
+valkey:
+  enabled: false
+  image: valkey/valkey:8-alpine
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 256Mi }
+mailpit:
+  enabled: false
+  image: axllent/mailpit:v1.27
+  resources:
+    requests: { cpu: 20m, memory: 32Mi }
+    limits: { memory: 128Mi }

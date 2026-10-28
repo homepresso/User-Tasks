@@ -1,0 +1,79 @@
+{
+  "title": "Salesforce opportunity discount approval",
+  "category": "customer-sales",
+  "summary": "A Salesforce Flow submits an opportunity discount; tiers decide the approvers, the sales manager then finance approve, and the status goes back to Salesforce.",
+  "description": "Salesforce opportunity discount approval gives your deal desk a clear, tiered approval without building approval processes in Salesforce. When a rep sets a discount and submits it, a record-triggered Flow (or a platform event subscriber) posts the Opportunity Id and the owner's email to the workflow.\n\nThe workflow reads the opportunity over the REST API (amount, stage, close date, term and the Discount_Percent__c / Discount_Approval_Status__c custom fields) and runs a SOQL query for its OpportunityLineItem records to see every product's list price, sales price and line discount. The Discount tiers decision table decides whether the discount is within the rep's authority, needs the sales manager or needs the sales manager and finance.\n\nThe sales manager's task has a Justification lookup from the Discount reason codes table, which fills in the normal ceiling and the evidence expected, and Approve / Reject buttons. Finance then confirms the approved discount for Tier 2 and Tier 3. The decision is written to the opportunity with PATCH (status, approved discount and notes) and the owner is emailed.",
+  "trigger": "api",
+  "entry_workflow": "e268e663-a674-526e-a91f-8e4e3e155a0a",
+  "start": "Starts from Salesforce: a record-triggered Flow on Opportunity (Discount_Approval_Status__c set to Submitted) calls the workflow webhook with the Opportunity Id and owner email.",
+  "difficulty": "intermediate",
+  "setup_minutes": 25,
+  "tags": [
+    "salesforce",
+    "discount approval",
+    "deal desk",
+    "opportunities",
+    "soql",
+    "decision table"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "webhook",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "Salesforce integration: base URL https://<my-domain>.my.salesforce.com/services/data/v61.0 and an OAuth access token from a connected app (client credentials flow for an integration user).",
+    "Create (or rename in the references) the custom fields on Opportunity: Discount_Percent__c (percent), Discount_Approval_Status__c (picklist: Draft, Submitted, Pending, Approved, Rejected), Discount_Reason__c, Contract_Term_Months__c, Approved_Discount_Percent__c and Discount_Approval_Notes__c.",
+    "Assignees: pick the sales manager and the finance approver.",
+    "In Salesforce, add a record-triggered Flow on Opportunity (status changes to Submitted) with an HTTP Callout or outbound message that posts {\"opportunity_id\", \"owner_email\", \"account_name\"} to the workflow webhook.",
+    "Edit the Discount tiers thresholds and the Discount reason codes to your pricing policy; configure EMAIL_PROVIDER for the owner emails."
+  ],
+  "steps": [
+    {
+      "title": "Discount submitted",
+      "body": "A Salesforce Flow posts the Opportunity Id and owner email when a rep submits a discount."
+    },
+    {
+      "title": "Read the deal",
+      "body": "GET /sobjects/Opportunity/{id} and a SOQL query on OpportunityLineItem give the amount, term and every product line."
+    },
+    {
+      "title": "Pick the tier",
+      "body": "The Discount tiers table decides: within rep authority, sales manager, or sales manager and finance."
+    },
+    {
+      "title": "Sales manager approves",
+      "body": "The manager picks a justification (its ceiling and evidence fill in), sets the approved discount and approves or rejects."
+    },
+    {
+      "title": "Finance confirms",
+      "body": "Tier 2 and 3 discounts go to finance with the manager's decision and notes."
+    },
+    {
+      "title": "Update Salesforce",
+      "body": "PATCH /sobjects/Opportunity/{id} sets Discount_Approval_Status__c and the approved discount; the owner is emailed."
+    }
+  ],
+  "sample_input": {
+    "opportunity_id": "0065g00000XyZ12AAB",
+    "owner_email": "sam.rivera@example.com",
+    "account_name": "Northwind Traders",
+    "submitted_by_name": "Sam Rivera"
+  },
+  "expect": "waiting",
+  "icon": "badge-percent",
+  "systems": [
+    "Salesforce"
+  ],
+  "id": "1075cd0a-d421-5dc0-8533-a0bee0635dbb",
+  "slug": "salesforce-discount-approval"
+}

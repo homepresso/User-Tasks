@@ -1,0 +1,139 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "e14c40a6-93ca-4e9b-a178-5e4e9042ade7",
+  "asset": {
+    "id": "e14c40a6-93ca-4e9b-a178-5e4e9042ade7",
+    "integration_id": "dbe05925-f2bd-4ac7-8884-3c403cfcb123",
+    "name": "Find customer by email",
+    "description": "Look the customer up by email: id, name, tier and lifetime value.",
+    "tags": [
+      "customers"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/customers",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "data",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "id",
+                    "type": "string",
+                    "example": "CUS-4410"
+                  },
+                  {
+                    "name": "name",
+                    "type": "string",
+                    "example": "Taylor Brooks"
+                  },
+                  {
+                    "name": "email",
+                    "type": "string",
+                    "example": "taylor.brooks@example.net"
+                  },
+                  {
+                    "name": "tier",
+                    "type": "string",
+                    "example": "gold"
+                  },
+                  {
+                    "name": "lifetime_value",
+                    "type": "integer",
+                    "example": 18450
+                  },
+                  {
+                    "name": "customer_since",
+                    "type": "string",
+                    "example": "2019-06-02"
+                  },
+                  {
+                    "name": "open_cases",
+                    "type": "integer",
+                    "example": 0
+                  }
+                ]
+              }
+            },
+            {
+              "name": "total",
+              "type": "integer",
+              "example": 1
+            }
+          ]
+        },
+        "sample": {
+          "data": [
+            {
+              "id": "CUS-4410",
+              "name": "Taylor Brooks",
+              "email": "taylor.brooks@example.net",
+              "tier": "gold",
+              "lifetime_value": 18450,
+              "customer_since": "2019-06-02",
+              "open_cases": 0
+            }
+          ],
+          "total": 1
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "87f32dd4-c215-49e1-8981-5a804ab6bb5e",
+        "name": "email",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "Customer email address",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "7fa87775-3686-4472-a97f-daccd47c3fa3",
+        "name": "customer_id",
+        "path": "data[0].id",
+        "type": "string"
+      },
+      {
+        "id": "09fe49d1-0486-4c38-98d2-cd9155524e30",
+        "name": "customer_name",
+        "path": "data[0].name",
+        "type": "string"
+      },
+      {
+        "id": "66ffe467-24c4-4d42-893d-e076c99e4962",
+        "name": "tier",
+        "path": "data[0].tier",
+        "type": "string"
+      },
+      {
+        "id": "74fd36fc-474f-49df-9be2-d68537ca7c4c",
+        "name": "lifetime_value",
+        "path": "data[0].lifetime_value",
+        "type": "number"
+      },
+      {
+        "id": "580f2227-1e7e-4b59-9b70-7c0aa9f791ed",
+        "name": "total",
+        "path": "total",
+        "type": "number"
+      }
+    ]
+  }
+}

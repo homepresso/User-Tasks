@@ -1,0 +1,9 @@
+# chart-testing (https://github.com/helm/chart-testing): `ct lint` / `ct install`
+# for deploy/helm (the release-gates workflow runs them).
+chart-dirs:
+  - deploy/helm
+target-branch: main
+validate-maintainers: false
+check-version-increment: false
+helm-extra-args: --timeout 900s
+lint-conf: deploy/helm/lintconf.yaml

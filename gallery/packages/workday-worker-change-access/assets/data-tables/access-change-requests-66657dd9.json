@@ -1,0 +1,96 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "66657dd9-f20b-5538-abe9-e1cc5482d358",
+  "asset": {
+    "id": "66657dd9-f20b-5538-abe9-e1cc5482d358",
+    "name": "Access change requests",
+    "description": "Every access change raised from a Workday worker change: bundles added and removed, the manager decision and when it was posted back to Workday.",
+    "columns": [
+      {
+        "id": "ca744908-7a04-56bb-803a-3f526c3d23aa",
+        "required": true,
+        "key": "change_ref",
+        "name": "Change reference",
+        "type": "text"
+      },
+      {
+        "id": "a505bef6-1b2b-5391-bbd1-45dcb07b5b6a",
+        "required": false,
+        "key": "worker_id",
+        "name": "Workday worker id",
+        "type": "text"
+      },
+      {
+        "id": "0264e87e-e012-5090-9d8c-02d99773998a",
+        "required": false,
+        "key": "worker_name",
+        "name": "Worker",
+        "type": "text"
+      },
+      {
+        "id": "82e28a57-6f91-5091-889f-d42bb54a1223",
+        "required": false,
+        "key": "event_type",
+        "name": "Event",
+        "type": "text"
+      },
+      {
+        "id": "cff8464a-0bfa-5719-a4e7-704c00782080",
+        "required": false,
+        "key": "effective_date",
+        "name": "Effective",
+        "type": "date"
+      },
+      {
+        "id": "daf158f4-d962-5844-9b8e-1c0acc53a7cb",
+        "required": false,
+        "key": "from_bundle",
+        "name": "Remove bundle",
+        "type": "text"
+      },
+      {
+        "id": "b6b14af3-24b0-5872-ae5d-1f599a814d44",
+        "required": false,
+        "key": "to_bundle",
+        "name": "Add bundle",
+        "type": "text"
+      },
+      {
+        "id": "7af73dea-333b-5c87-993b-70767720ce29",
+        "required": false,
+        "key": "remove_by",
+        "name": "Remove by",
+        "type": "date"
+      },
+      {
+        "id": "79d07159-44b3-5af2-8c6a-d25429be9e63",
+        "required": false,
+        "key": "decision",
+        "name": "Decision",
+        "type": "text"
+      },
+      {
+        "id": "d244598e-4b5f-5730-b5a8-904b721bfecf",
+        "required": false,
+        "key": "decided_by",
+        "name": "Decided by (user id)",
+        "type": "text"
+      },
+      {
+        "id": "f8ab009a-1567-5add-b02d-54a2f4311f8c",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      },
+      {
+        "id": "7004f069-8a76-5fb1-9258-6c5f67191e0c",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      }
+    ]
+  }
+}

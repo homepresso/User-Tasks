@@ -1,0 +1,184 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "3868683d-9a73-43d7-8f4e-b5993af3a145",
+  "asset": {
+    "id": "3868683d-9a73-43d7-8f4e-b5993af3a145",
+    "integration_id": "625aa13c-9c62-44c8-91e2-0b37d0e6865b",
+    "name": "Get control evidence",
+    "description": "Generates or fetches the evidence export for one control and period from the system that runs the control (access reviews, backups, vulnerability scans, change tickets).",
+    "tags": [
+      "evidence"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/evidence/{{evidence_source}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "control_id",
+              "type": "string",
+              "example": "AC-01"
+            },
+            {
+              "name": "source",
+              "type": "string",
+              "example": "access-reviews"
+            },
+            {
+              "name": "period",
+              "type": "string",
+              "example": "2026-10"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "complete"
+            },
+            {
+              "name": "generated_at",
+              "type": "string",
+              "example": "2026-10-01T06:02:11Z"
+            },
+            {
+              "name": "record_count",
+              "type": "integer",
+              "example": 214
+            },
+            {
+              "name": "exceptions",
+              "type": "integer",
+              "example": 2
+            },
+            {
+              "name": "summary",
+              "type": "string",
+              "example": "214 accounts reviewed, 2 revoked after review"
+            },
+            {
+              "name": "evidence_url",
+              "type": "string",
+              "example": "https://evidence.example.com/exports/ac-01/2026-10.pdf"
+            },
+            {
+              "name": "checksum",
+              "type": "string",
+              "example": "sha256:9f2c4e7a1b03d5e6"
+            },
+            {
+              "name": "system",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "name",
+                  "type": "string",
+                  "example": "Identity provider"
+                },
+                {
+                  "name": "environment",
+                  "type": "string",
+                  "example": "production"
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "control_id": "AC-01",
+          "source": "access-reviews",
+          "period": "2026-10",
+          "status": "complete",
+          "generated_at": "2026-10-01T06:02:11Z",
+          "record_count": 214,
+          "exceptions": 2,
+          "summary": "214 accounts reviewed, 2 revoked after review",
+          "evidence_url": "https://evidence.example.com/exports/ac-01/2026-10.pdf",
+          "checksum": "sha256:9f2c4e7a1b03d5e6",
+          "system": {
+            "name": "Identity provider",
+            "environment": "production"
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "1969f834-7a7d-4a7b-9929-cdddbeb066e6",
+        "name": "evidence_source",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Evidence feed, e.g. access-reviews, backups, vulnerability-scans, change-tickets",
+        "default_value": ""
+      },
+      {
+        "id": "58badf4f-8d38-4e43-bda5-c1ba98358d82",
+        "name": "control_id",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "Control id from the Controls table, e.g. AC-01",
+        "default_value": ""
+      },
+      {
+        "id": "07762346-83e1-42a2-a987-a2315413bd31",
+        "name": "period",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "Evidence period, YYYY-MM",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "6f05f67a-1d8e-43dc-bd5e-b8e64a60eb32",
+        "name": "evidence_url",
+        "path": "evidence_url",
+        "type": "string"
+      },
+      {
+        "id": "72aa80b2-cc0c-4a5c-91a0-a53913ee4250",
+        "name": "record_count",
+        "path": "record_count",
+        "type": "number"
+      },
+      {
+        "id": "315991c4-d7d0-4ed0-8609-c4939443d3ac",
+        "name": "exceptions",
+        "path": "exceptions",
+        "type": "number"
+      },
+      {
+        "id": "25170ef3-7bd3-43fa-957d-c3ebd85a82ca",
+        "name": "generated_at",
+        "path": "generated_at",
+        "type": "string"
+      },
+      {
+        "id": "fe0a64f7-60b8-46ec-8fa3-886ededb0735",
+        "name": "checksum",
+        "path": "checksum",
+        "type": "string"
+      },
+      {
+        "id": "aa0518b0-a132-4595-9e66-7d283fc9abc8",
+        "name": "summary",
+        "path": "summary",
+        "type": "string"
+      }
+    ]
+  }
+}

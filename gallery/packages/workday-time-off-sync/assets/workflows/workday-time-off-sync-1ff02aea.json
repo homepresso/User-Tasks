@@ -1,0 +1,597 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "1ff02aea-b42e-5c53-85c6-19f3d6b7bd7e",
+  "asset": {
+    "id": "1ff02aea-b42e-5c53-85c6-19f3d6b7bd7e",
+    "name": "Workday time off sync",
+    "description": "Every 30 minutes: time off requests updated in Workday are synced to the Team calendar; requests that need cover start a manager confirmation.",
+    "trigger_type": "schedule",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "schedule",
+        "label": "Every 30 minutes",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "schedule_mode": "every_minutes",
+          "interval_minutes": 30,
+          "timezone": "UTC"
+        }
+      },
+      {
+        "id": "since",
+        "type": "set_variable",
+        "label": "Updated since",
+        "position": {
+          "x": 400,
+          "y": 220
+        },
+        "config": {
+          "name": "updated_from",
+          "expression": "{{=FORMAT_DATE(ADD_HOURS(NOW(), 0 - COALESCE(lookback_hours, 2)), \"YYYY-MM-DDTHH:mm:ss\")}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 380
+        },
+        "config": {
+          "title": "Time off sync {{=FORMAT_DATE(NOW(), \"YYYY-MM-DD HH:mm\")}}"
+        }
+      },
+      {
+        "id": "fetch",
+        "type": "call_reference",
+        "label": "Get time off requests",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "reference_id": "c2aa4f8c-d84b-5068-a490-a4d73bf2878a",
+          "reference_name": "Get time off requests",
+          "reference_method": "GET",
+          "input_mappings": {
+            "Updated_From": "{{updated_from}}",
+            "Supervisory_Organization": "{{supervisory_org}}"
+          },
+          "output_mappings": {
+            "requests": {
+              "enabled": true,
+              "variableName": "requests"
+            }
+          }
+        }
+      },
+      {
+        "id": "count",
+        "type": "collection_count",
+        "label": "Count requests",
+        "position": {
+          "x": 400,
+          "y": 700
+        },
+        "config": {
+          "collection": "{{requests}}",
+          "output_var": "request_count"
+        }
+      },
+      {
+        "id": "n0",
+        "type": "set_variable",
+        "label": "New = 0",
+        "position": {
+          "x": 400,
+          "y": 860
+        },
+        "config": {
+          "name": "new_count",
+          "expression": "0"
+        }
+      },
+      {
+        "id": "c0",
+        "type": "set_variable",
+        "label": "Cover checks = 0",
+        "position": {
+          "x": 400,
+          "y": 1020
+        },
+        "config": {
+          "name": "cover_count",
+          "expression": "0"
+        }
+      },
+      {
+        "id": "loop",
+        "type": "loop",
+        "label": "Each request",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "items": "{{requests}}",
+          "item_var": "req"
+        }
+      },
+      {
+        "id": "clear",
+        "type": "set_variable",
+        "label": "Clear previous match",
+        "position": {
+          "x": 720,
+          "y": 1340
+        },
+        "config": {
+          "name": "existing",
+          "expression": ""
+        }
+      },
+      {
+        "id": "find",
+        "type": "update_data_table",
+        "label": "Find in calendar",
+        "position": {
+          "x": 720,
+          "y": 1500
+        },
+        "config": {
+          "table_id": "18aa17ec-9dbd-56fa-a285-2e9f5ae13747",
+          "table_name": "Team calendar",
+          "operation": "get",
+          "match_column": "request_id",
+          "match_value": "{{req.Request_ID}}",
+          "output_row_var": "existing"
+        }
+      },
+      {
+        "id": "known",
+        "type": "condition",
+        "label": "Already synced?",
+        "position": {
+          "x": 720,
+          "y": 1660
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "New",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{existing}}",
+                  "operator": "is_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "ins",
+        "type": "update_data_table",
+        "label": "Add to calendar",
+        "position": {
+          "x": 560,
+          "y": 1820
+        },
+        "config": {
+          "table_id": "18aa17ec-9dbd-56fa-a285-2e9f5ae13747",
+          "table_name": "Team calendar",
+          "operation": "insert",
+          "column_values": {
+            "request_id": "{{req.Request_ID}}",
+            "worker_id": "{{req.Worker_ID}}",
+            "worker": "{{req.Worker}}",
+            "team": "{{req.Supervisory_Organization}}",
+            "manager": "{{req.Manager}}",
+            "time_off_type": "{{req.Time_Off_Type}}",
+            "start_date": "{{req.Start_Date}}",
+            "end_date": "{{req.End_Date}}",
+            "days": "{{req.Total_Units}}",
+            "status": "{{req.Status}}",
+            "cover_status": "pending",
+            "last_synced": "{{=NOW()}}"
+          }
+        }
+      },
+      {
+        "id": "inc_new",
+        "type": "math",
+        "label": "New + 1",
+        "position": {
+          "x": 560,
+          "y": 1980
+        },
+        "config": {
+          "expression": "{{new_count}} + 1",
+          "output_var": "new_count"
+        }
+      },
+      {
+        "id": "upd",
+        "type": "update_data_table",
+        "label": "Update calendar row",
+        "position": {
+          "x": 880,
+          "y": 1820
+        },
+        "config": {
+          "table_id": "18aa17ec-9dbd-56fa-a285-2e9f5ae13747",
+          "table_name": "Team calendar",
+          "operation": "update",
+          "match_column": "request_id",
+          "match_value": "{{req.Request_ID}}",
+          "column_values": {
+            "start_date": "{{req.Start_Date}}",
+            "end_date": "{{req.End_Date}}",
+            "days": "{{req.Total_Units}}",
+            "status": "{{req.Status}}",
+            "last_synced": "{{=NOW()}}"
+          }
+        }
+      },
+      {
+        "id": "rules",
+        "type": "decision_table",
+        "label": "Cover check rules",
+        "position": {
+          "x": 720,
+          "y": 2140
+        },
+        "config": {
+          "decision_table_id": "9c17318a-d422-5337-b745-2956f2cbbc0f",
+          "decision_table_name": "Cover check",
+          "input_mappings": {
+            "status": "{{req.Status}}",
+            "time_off_type": "{{req.Time_Off_Type}}",
+            "days": "{{req.Total_Units}}",
+            "critical_role": "{{req.Critical_Role}}"
+          }
+        }
+      },
+      {
+        "id": "need",
+        "type": "condition",
+        "label": "Cover check needed?",
+        "position": {
+          "x": 720,
+          "y": 2300
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Check cover",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_cover}}",
+                  "operator": "is_true",
+                  "value": ""
+                },
+                {
+                  "field": "{{existing.cover_status}}",
+                  "operator": "not_equals",
+                  "value": "confirmed"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "pending",
+        "type": "update_data_table",
+        "label": "Mark cover pending",
+        "position": {
+          "x": 560,
+          "y": 2460
+        },
+        "config": {
+          "table_id": "18aa17ec-9dbd-56fa-a285-2e9f5ae13747",
+          "table_name": "Team calendar",
+          "operation": "update",
+          "match_column": "request_id",
+          "match_value": "{{req.Request_ID}}",
+          "column_values": {
+            "cover_status": "awaiting manager"
+          }
+        }
+      },
+      {
+        "id": "ask",
+        "type": "call_sub_workflow",
+        "label": "Ask manager to confirm cover",
+        "position": {
+          "x": 560,
+          "y": 2620
+        },
+        "config": {
+          "sub_workflow_id": "31c5ac33-7616-57e0-bc8a-bc3a31c76d12",
+          "sub_workflow_name": "Confirm time off cover",
+          "input_mappings": {
+            "request_id": "{{req.Request_ID}}",
+            "worker": "{{req.Worker}}",
+            "team": "{{req.Supervisory_Organization}}",
+            "time_off_type": "{{req.Time_Off_Type}}",
+            "start_date": "{{req.Start_Date}}",
+            "end_date": "{{req.End_Date}}",
+            "days": "{{req.Total_Units}}",
+            "cover_reason": "{{cover_reason}}",
+            "manager_user_id": "{{manager_user_id}}"
+          }
+        },
+        "executionMode": "async"
+      },
+      {
+        "id": "inc_cover",
+        "type": "math",
+        "label": "Cover checks + 1",
+        "position": {
+          "x": 560,
+          "y": 2780
+        },
+        "config": {
+          "expression": "{{cover_count}} + 1",
+          "output_var": "cover_count"
+        }
+      },
+      {
+        "id": "known_skip",
+        "type": "condition",
+        "label": "Row needs a cover value?",
+        "position": {
+          "x": 880,
+          "y": 2460
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Not needed",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{existing}}",
+                  "operator": "is_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "not_needed",
+        "type": "update_data_table",
+        "label": "Mark cover not needed",
+        "position": {
+          "x": 880,
+          "y": 2620
+        },
+        "config": {
+          "table_id": "18aa17ec-9dbd-56fa-a285-2e9f5ae13747",
+          "table_name": "Team calendar",
+          "operation": "update",
+          "match_column": "request_id",
+          "match_value": "{{req.Request_ID}}",
+          "column_values": {
+            "cover_status": "not needed"
+          }
+        }
+      },
+      {
+        "id": "unchanged",
+        "type": "log",
+        "label": "Cover unchanged",
+        "position": {
+          "x": 1200,
+          "y": 2620
+        },
+        "config": {
+          "message": "{{req.Request_ID}}: cover {{existing.cover_status}} kept ({{cover_reason}})",
+          "level": "info"
+        }
+      },
+      {
+        "id": "summary",
+        "type": "log",
+        "label": "Sync summary",
+        "position": {
+          "x": 400,
+          "y": 2940
+        },
+        "config": {
+          "message": "Time off sync: {{request_count}} requests since {{updated_from}}, {{new_count}} new, {{cover_count}} cover checks started",
+          "level": "info"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Synced",
+        "position": {
+          "x": 400,
+          "y": 3100
+        },
+        "config": {
+          "reason": "{{request_count}} requests synced, {{cover_count}} cover checks"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-since",
+        "source": "trigger",
+        "target": "since"
+      },
+      {
+        "id": "e-since-title",
+        "source": "since",
+        "target": "title"
+      },
+      {
+        "id": "e-title-fetch",
+        "source": "title",
+        "target": "fetch"
+      },
+      {
+        "id": "e-fetch-count",
+        "source": "fetch",
+        "target": "count"
+      },
+      {
+        "id": "e-count-n0",
+        "source": "count",
+        "target": "n0"
+      },
+      {
+        "id": "e-n0-c0",
+        "source": "n0",
+        "target": "c0"
+      },
+      {
+        "id": "e-c0-loop",
+        "source": "c0",
+        "target": "loop"
+      },
+      {
+        "id": "e-loop-clear-each-item",
+        "source": "loop",
+        "target": "clear",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-clear-find",
+        "source": "clear",
+        "target": "find"
+      },
+      {
+        "id": "e-find-known",
+        "source": "find",
+        "target": "known"
+      },
+      {
+        "id": "e-known-ins-new",
+        "source": "known",
+        "target": "ins",
+        "label": "New"
+      },
+      {
+        "id": "e-known-upd-else",
+        "source": "known",
+        "target": "upd",
+        "label": "Else"
+      },
+      {
+        "id": "e-ins-inc_new",
+        "source": "ins",
+        "target": "inc_new"
+      },
+      {
+        "id": "e-inc_new-rules",
+        "source": "inc_new",
+        "target": "rules"
+      },
+      {
+        "id": "e-upd-rules",
+        "source": "upd",
+        "target": "rules"
+      },
+      {
+        "id": "e-rules-need",
+        "source": "rules",
+        "target": "need"
+      },
+      {
+        "id": "e-need-pending-check-cover",
+        "source": "need",
+        "target": "pending",
+        "label": "Check cover"
+      },
+      {
+        "id": "e-pending-ask",
+        "source": "pending",
+        "target": "ask"
+      },
+      {
+        "id": "e-ask-inc_cover",
+        "source": "ask",
+        "target": "inc_cover"
+      },
+      {
+        "id": "e-need-known_skip-else",
+        "source": "need",
+        "target": "known_skip",
+        "label": "Else"
+      },
+      {
+        "id": "e-known_skip-not_needed-not-needed",
+        "source": "known_skip",
+        "target": "not_needed",
+        "label": "Not needed"
+      },
+      {
+        "id": "e-known_skip-unchanged-else",
+        "source": "known_skip",
+        "target": "unchanged",
+        "label": "Else"
+      },
+      {
+        "id": "e-loop-summary-done",
+        "source": "loop",
+        "target": "summary",
+        "label": "Done"
+      },
+      {
+        "id": "e-summary-done",
+        "source": "summary",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-lookback_hours",
+        "name": "lookback_hours",
+        "type": "number",
+        "description": "Sync requests updated in the last N hours (default 2, so a missed run is caught up)",
+        "defaultValue": "2",
+        "required": false,
+        "label": "Look back (hours)"
+      },
+      {
+        "id": "v-supervisory_org",
+        "name": "supervisory_org",
+        "type": "string",
+        "description": "Optional: only this organization (passed to the report prompt)",
+        "defaultValue": "",
+        "required": false,
+        "label": "Supervisory organization"
+      },
+      {
+        "id": "v-manager_user_id",
+        "name": "manager_user_id",
+        "type": "string",
+        "description": "Optional: who confirms cover; the install-time default otherwise",
+        "defaultValue": "",
+        "required": false,
+        "label": "Manager (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

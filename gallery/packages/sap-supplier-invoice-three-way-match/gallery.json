@@ -1,0 +1,84 @@
+{
+  "title": "SAP supplier invoice posting with 3-way match",
+  "category": "finance",
+  "summary": "A captured supplier invoice is matched to the SAP PO and goods receipts; variances outside tolerance go to AP, and matched invoices are posted to S/4HANA.",
+  "description": "SAP supplier invoice posting with 3-way match takes invoices from your capture or OCR tool into SAP S/4HANA without blind posting. The capture tool posts the invoice header and line (supplier, invoice number, PO and item, quantity, unit price, gross amount) to the workflow.\n\nThe workflow reads the purchase order item from API_PURCHASEORDER_PROCESS_SRV and every goods receipt for it from API_MATERIAL_DOCUMENT_SRV (movement type 101), totals the received quantity and computes the quantity, unit price and amount variances. The Invoice tolerance decision table, modelled on SAP tolerance keys, decides whether the invoice is within tolerance.\n\nMatched invoices are posted straight to A_SupplierInvoice with the PO and goods receipt reference, and the SAP invoice number and fiscal year are logged. Exceptions go to accounts payable on a task form showing PO, received and invoiced side by side, with a reason code lookup and Approve variance, Hold and Reject buttons; approved variances are posted with the chosen payment block.",
+  "trigger": "api",
+  "entry_workflow": "9132762d-a9cc-5e15-9da3-57a3f0b951c3",
+  "start": "Starts when your invoice capture / OCR tool posts the extracted invoice to the workflow start API or inbound webhook.",
+  "difficulty": "advanced",
+  "setup_minutes": 35,
+  "tags": [
+    "accounts payable",
+    "three-way match",
+    "sap",
+    "odata",
+    "invoices",
+    "decision table"
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "webhook"
+  ],
+  "setup": [
+    "SAP S/4HANA integration: base URL https://<host>/sap/opu/odata/sap, Basic authentication with the communication user of arrangements for SAP_COM_0053 (purchase orders), SAP_COM_0108 (material documents) and SAP_COM_0057 (supplier invoices); set sap-client in the integration headers.",
+    "CSRF: posting A_SupplierInvoice needs an x-csrf-token. Call SAP through API Management or a BTP destination that fetches it, or fetch it (GET with x-csrf-token: Fetch) and pass it to the optional x-csrf-token header input of Post supplier invoice.",
+    "Assignees: pick the default AP person who handles exceptions (runs can pass ap_user_id).",
+    "Set the Invoice tolerance rules to your tolerance keys and edit the Variance reason codes; point your capture tool at the start API."
+  ],
+  "steps": [
+    {
+      "title": "Invoice captured",
+      "body": "The capture tool posts the supplier, invoice number, PO line, quantity, unit price and gross amount."
+    },
+    {
+      "title": "PO and goods receipts",
+      "body": "A_PurchaseOrderItem gives the ordered quantity and price; A_MaterialDocumentItem lists the goods receipts, which are totalled."
+    },
+    {
+      "title": "Variances",
+      "body": "Quantity over receipt, price variance % and amount variance are computed and logged."
+    },
+    {
+      "title": "Tolerance",
+      "body": "The Invoice tolerance decision table decides whether the invoice is within tolerance."
+    },
+    {
+      "title": "Exception review",
+      "body": "Outside tolerance, AP gets a task form with a reason code lookup and Approve variance / Hold / Reject."
+    },
+    {
+      "title": "Post to SAP",
+      "body": "Matched or approved invoices are posted to A_SupplierInvoice; the SupplierInvoice and FiscalYear are logged."
+    }
+  ],
+  "sample_input": {
+    "invoice_reference": "NW-88213",
+    "supplier": "17300001",
+    "company_code": "1010",
+    "document_date": "2026-10-27",
+    "purchase_order": "4500001245",
+    "po_item": "10",
+    "invoiced_quantity": 100,
+    "invoiced_unit_price": 12.9,
+    "gross_amount": 1535.1,
+    "currency": "EUR",
+    "capture_id": "CAP-2026-10-27-0042"
+  },
+  "expect": "waiting",
+  "icon": "receipt",
+  "systems": [
+    "SAP S/4HANA"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "id": "94537178-7a8a-56b7-908b-81a548e5af0b",
+  "slug": "sap-supplier-invoice-three-way-match"
+}

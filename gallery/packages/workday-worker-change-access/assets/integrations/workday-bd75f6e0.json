@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "bd75f6e0-512e-5150-b896-936f390bfc06",
+  "asset": {
+    "id": "bd75f6e0-512e-5150-b896-936f390bfc06",
+    "name": "Workday",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://wd-impl.workday.example.com/ccx",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "hr",
+      "workday"
+    ]
+  }
+}

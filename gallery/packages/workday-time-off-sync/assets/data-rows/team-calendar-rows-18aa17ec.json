@@ -1,0 +1,47 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "18aa17ec-9dbd-56fa-a285-2e9f5ae13747",
+  "asset": {
+    "id": "18aa17ec-9dbd-56fa-a285-2e9f5ae13747",
+    "name": "Team calendar rows",
+    "rows": [
+      {
+        "id": "499a8294-c7e1-53fb-b81c-a4909cf4d499",
+        "data": {
+          "request_id": "TOR-000950",
+          "worker_id": "20410",
+          "worker": "Chloe Martin",
+          "team": "People Partners (Lena Ortiz)",
+          "manager": "Lena Ortiz",
+          "time_off_type": "Annual Leave",
+          "start_date": "2026-11-02",
+          "end_date": "2026-11-06",
+          "days": 5,
+          "status": "Approved",
+          "cover_status": "confirmed",
+          "cover_person": "Emma Novak",
+          "last_synced": "2026-10-27T22:00:00Z"
+        }
+      },
+      {
+        "id": "96f573a2-b1d2-52ce-bb10-a70f282132a2",
+        "data": {
+          "request_id": "TOR-000962",
+          "worker_id": "20533",
+          "worker": "Ben Carter",
+          "team": "Data Platform (Sam Patel)",
+          "manager": "Sam Patel",
+          "time_off_type": "Floating Holiday",
+          "start_date": "2026-11-11",
+          "end_date": "2026-11-11",
+          "days": 1,
+          "status": "Approved",
+          "cover_status": "not needed",
+          "cover_person": "",
+          "last_synced": "2026-10-27T22:00:00Z"
+        }
+      }
+    ]
+  }
+}

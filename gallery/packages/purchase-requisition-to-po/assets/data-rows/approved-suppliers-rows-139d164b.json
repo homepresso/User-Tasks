@@ -1,0 +1,95 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "139d164b-0570-42c4-bf9a-bb6583d6cef3",
+  "asset": {
+    "id": "139d164b-0570-42c4-bf9a-bb6583d6cef3",
+    "name": "Approved suppliers rows",
+    "rows": [
+      {
+        "id": "ad072ffa-649b-44fc-93b5-37db12ef0798",
+        "data": {
+          "supplier_name": "Contoso Computing",
+          "supplier_id": "S-1001",
+          "supplier_category": "it_hardware",
+          "payment_terms": "Net 30",
+          "preferred": true,
+          "contract_ref": "MSA-2025-014",
+          "orders_email": "orders@contoso.example.com"
+        }
+      },
+      {
+        "id": "797ccb9e-2ed1-431e-b4ef-3558154ea860",
+        "data": {
+          "supplier_name": "Fabrikam Software",
+          "supplier_id": "S-1002",
+          "supplier_category": "software",
+          "payment_terms": "Annual in advance",
+          "preferred": true,
+          "contract_ref": "EA-2026-003",
+          "orders_email": "licensing@fabrikam.example.com"
+        }
+      },
+      {
+        "id": "c3ac40e0-4354-4a5c-a194-67a8029ae9b0",
+        "data": {
+          "supplier_name": "Tailspin Consulting",
+          "supplier_id": "S-1003",
+          "supplier_category": "professional_services",
+          "payment_terms": "Net 20",
+          "preferred": false,
+          "contract_ref": "SOW-FRAMEWORK-07",
+          "orders_email": "engagements@tailspin.example.com"
+        }
+      },
+      {
+        "id": "476eca06-2a2f-4ac2-8f4f-721370fc5bff",
+        "data": {
+          "supplier_name": "Wide World Office",
+          "supplier_id": "S-1004",
+          "supplier_category": "office_supplies",
+          "payment_terms": "Net 30",
+          "preferred": true,
+          "contract_ref": "PA-2024-022",
+          "orders_email": "orders@wideworld.example.com"
+        }
+      },
+      {
+        "id": "fa645da2-b51f-42e6-8a10-90c44d87f750",
+        "data": {
+          "supplier_name": "Litware Facilities",
+          "supplier_id": "S-1005",
+          "supplier_category": "facilities",
+          "payment_terms": "Net 45",
+          "preferred": false,
+          "contract_ref": "",
+          "orders_email": "service@litware.example.com"
+        }
+      },
+      {
+        "id": "dadb101e-a1ae-43f4-beac-24fe28278ab9",
+        "data": {
+          "supplier_name": "Adventure Media",
+          "supplier_id": "S-1006",
+          "supplier_category": "marketing",
+          "payment_terms": "Net 30",
+          "preferred": false,
+          "contract_ref": "MSA-2026-009",
+          "orders_email": "accounts@adventure.example.com"
+        }
+      },
+      {
+        "id": "647ad5fe-11d1-46e1-8a4b-7ac9814987c6",
+        "data": {
+          "supplier_name": "Proseware Hardware",
+          "supplier_id": "S-1007",
+          "supplier_category": "it_hardware",
+          "payment_terms": "Net 30",
+          "preferred": false,
+          "contract_ref": "",
+          "orders_email": "sales@proseware.example.com"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "8d0172b0-25c2-5e94-9d8a-66eb69f6634c",
+  "asset": {
+    "id": "8d0172b0-25c2-5e94-9d8a-66eb69f6634c",
+    "name": "Discount reason codes rows",
+    "rows": [
+      {
+        "id": "897923c9-e997-5dc6-9066-33af3528f4a7",
+        "data": {
+          "code": "COMP",
+          "reason": "Competitive match",
+          "max_discount": 25,
+          "evidence": "Competitor quote or written offer attached to the opportunity",
+          "finance_note": "Check the competitor price is like for like"
+        }
+      },
+      {
+        "id": "9edb7b4a-3406-5781-aadd-d2bf1d36f1b2",
+        "data": {
+          "code": "MULTI",
+          "reason": "Multi-year commitment",
+          "max_discount": 20,
+          "evidence": "Signed term of 24+ months, annual billing in advance",
+          "finance_note": "Confirm the term in the order form"
+        }
+      },
+      {
+        "id": "ee18db7e-63cf-556b-82b8-51ab268dfbb3",
+        "data": {
+          "code": "VOL",
+          "reason": "Volume / seat expansion",
+          "max_discount": 18,
+          "evidence": "Seat count at least 1.5x the current contract",
+          "finance_note": "Check the ramp schedule"
+        }
+      },
+      {
+        "id": "f3a71a7a-dd63-5e3a-a5af-2c6210dc0253",
+        "data": {
+          "code": "LOGO",
+          "reason": "Strategic logo / reference",
+          "max_discount": 30,
+          "evidence": "Case study and reference rights agreed with marketing",
+          "finance_note": "Marketing budget may fund part of the discount"
+        }
+      },
+      {
+        "id": "bc941f06-6a84-55f1-bafc-fa4d3cb9231c",
+        "data": {
+          "code": "EOQ",
+          "reason": "End of quarter close",
+          "max_discount": 10,
+          "evidence": "Close date this quarter, signature committed",
+          "finance_note": "Revenue timing only"
+        }
+      }
+    ]
+  }
+}

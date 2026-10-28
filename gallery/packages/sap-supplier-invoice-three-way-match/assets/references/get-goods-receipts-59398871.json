@@ -1,0 +1,214 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "59398871-ad1a-5e15-ac44-22599cb28793",
+  "asset": {
+    "id": "59398871-ad1a-5e15-ac44-22599cb28793",
+    "integration_id": "53fb48d5-47ba-5188-9ec4-f23a209b1c13",
+    "name": "Get goods receipts",
+    "description": "API_MATERIAL_DOCUMENT_SRV A_MaterialDocumentItem: goods receipt lines (movement type 101) posted for the purchase order item.",
+    "tags": [
+      "sap",
+      "inventory"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/API_MATERIAL_DOCUMENT_SRV/A_MaterialDocumentItem?$filter=PurchaseOrder eq '{{purchase_order}}' and PurchaseOrderItem eq '{{po_item}}' and GoodsMovementType eq '101' and GoodsMovementIsCancelled eq false",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "d",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "results",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "__metadata",
+                        "type": "object",
+                        "fields": [
+                          {
+                            "name": "type",
+                            "type": "string",
+                            "example": "API_MATERIAL_DOCUMENT_SRV.A_MaterialDocumentItemType"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "MaterialDocumentYear",
+                        "type": "string",
+                        "example": "2026"
+                      },
+                      {
+                        "name": "MaterialDocument",
+                        "type": "string",
+                        "example": "5000000456"
+                      },
+                      {
+                        "name": "MaterialDocumentItem",
+                        "type": "string",
+                        "example": "1"
+                      },
+                      {
+                        "name": "Material",
+                        "type": "string",
+                        "example": "BRG-6204"
+                      },
+                      {
+                        "name": "Plant",
+                        "type": "string",
+                        "example": "1010"
+                      },
+                      {
+                        "name": "StorageLocation",
+                        "type": "string",
+                        "example": "101A"
+                      },
+                      {
+                        "name": "GoodsMovementType",
+                        "type": "string",
+                        "example": "101"
+                      },
+                      {
+                        "name": "PurchaseOrder",
+                        "type": "string",
+                        "example": "4500001245"
+                      },
+                      {
+                        "name": "PurchaseOrderItem",
+                        "type": "string",
+                        "example": "10"
+                      },
+                      {
+                        "name": "QuantityInEntryUnit",
+                        "type": "string",
+                        "example": "60"
+                      },
+                      {
+                        "name": "EntryUnit",
+                        "type": "string",
+                        "example": "EA"
+                      },
+                      {
+                        "name": "PostingDate",
+                        "type": "string",
+                        "example": "/Date(1760918400000)/"
+                      },
+                      {
+                        "name": "GoodsMovementIsCancelled",
+                        "type": "boolean",
+                        "example": false
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "d": {
+            "results": [
+              {
+                "__metadata": {
+                  "type": "API_MATERIAL_DOCUMENT_SRV.A_MaterialDocumentItemType"
+                },
+                "MaterialDocumentYear": "2026",
+                "MaterialDocument": "5000000456",
+                "MaterialDocumentItem": "1",
+                "Material": "BRG-6204",
+                "Plant": "1010",
+                "StorageLocation": "101A",
+                "GoodsMovementType": "101",
+                "PurchaseOrder": "4500001245",
+                "PurchaseOrderItem": "10",
+                "QuantityInEntryUnit": "60",
+                "EntryUnit": "EA",
+                "PostingDate": "/Date(1760918400000)/",
+                "GoodsMovementIsCancelled": false
+              },
+              {
+                "__metadata": {
+                  "type": "API_MATERIAL_DOCUMENT_SRV.A_MaterialDocumentItemType"
+                },
+                "MaterialDocumentYear": "2026",
+                "MaterialDocument": "5000000489",
+                "MaterialDocumentItem": "1",
+                "Material": "BRG-6204",
+                "Plant": "1010",
+                "StorageLocation": "101A",
+                "GoodsMovementType": "101",
+                "PurchaseOrder": "4500001245",
+                "PurchaseOrderItem": "10",
+                "QuantityInEntryUnit": "30",
+                "EntryUnit": "EA",
+                "PostingDate": "/Date(1761523200000)/",
+                "GoodsMovementIsCancelled": false
+              }
+            ]
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "4f8fa751-22e1-5e88-8b2c-cc43b6f2ac7d",
+        "name": "purchase_order",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c4d293ad-07b8-5911-8556-60fa67cd3736",
+        "name": "po_item",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "e0b64f01-a422-5b00-b1b4-4a4e024f8197",
+        "name": "receipts",
+        "path": "d.results",
+        "type": "array"
+      },
+      {
+        "id": "5634c350-d97c-509b-aa18-cd9f55762c8e",
+        "name": "gr_document",
+        "path": "d.results[0].MaterialDocument",
+        "type": "string"
+      },
+      {
+        "id": "df0a370a-da7a-5406-ad3b-d0955c222a5f",
+        "name": "gr_year",
+        "path": "d.results[0].MaterialDocumentYear",
+        "type": "string"
+      },
+      {
+        "id": "3f38af3d-fadd-5018-81d5-f5d623bf794c",
+        "name": "gr_doc_item",
+        "path": "d.results[0].MaterialDocumentItem",
+        "type": "string"
+      }
+    ]
+  }
+}

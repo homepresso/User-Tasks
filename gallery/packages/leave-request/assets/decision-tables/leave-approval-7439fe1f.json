@@ -1,0 +1,209 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "7439fe1f-e758-454a-ab5c-45644f9b4dc9",
+  "asset": {
+    "id": "7439fe1f-e758-454a-ab5c-45644f9b4dc9",
+    "name": "Leave approval",
+    "description": "Whether a leave request is approved automatically, who approves it and whether HR is involved. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "11eb423e-a771-4b76-8110-e9bc2aee9b50",
+        "key": "leave_type",
+        "label": "Leave type",
+        "type": "text"
+      },
+      {
+        "id": "f0f75bd2-657f-4edb-94c5-a147f540ad7a",
+        "key": "days",
+        "label": "Days",
+        "type": "number"
+      },
+      {
+        "id": "2c5dbf7b-8090-4962-bf52-f978b304fb9b",
+        "key": "balance_after",
+        "label": "Balance after",
+        "type": "number"
+      },
+      {
+        "id": "2c2a3f53-766e-4504-a688-b3c5f434c1e8",
+        "key": "within_auto_limit",
+        "label": "Within auto-approve limit",
+        "type": "boolean"
+      },
+      {
+        "id": "818e6770-dc06-4827-9e9e-390014025fb6",
+        "key": "short_notice",
+        "label": "Short notice",
+        "type": "boolean"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "edfe8dee-7d27-48e1-bc2c-da42ad940fc0",
+        "key": "auto_approve",
+        "label": "Auto-approve",
+        "type": "boolean"
+      },
+      {
+        "id": "d2f084d1-de01-49fe-9512-516c3b5a4b40",
+        "key": "approver_level",
+        "label": "Approver level",
+        "type": "text"
+      },
+      {
+        "id": "abb5aa79-b290-47fa-a545-79438a28f53d",
+        "key": "hr_involved",
+        "label": "HR involved",
+        "type": "boolean"
+      },
+      {
+        "id": "d1a964d4-9853-47ea-b5b7-bcb78a670ef6",
+        "key": "decision_note",
+        "label": "Note for the approver",
+        "type": "text"
+      }
+    ],
+    "rules": [
+      {
+        "id": "3af8213d-1475-4cd6-a94c-0509da2fe3ce",
+        "label": "Not enough balance",
+        "enabled": true,
+        "outputs": {
+          "auto_approve": false,
+          "approver_level": "Line manager",
+          "hr_involved": true,
+          "decision_note": "The request exceeds the balance: HR must agree leave in advance or unpaid days."
+        },
+        "conditions": [
+          {
+            "id": "4ba4d4a3-994e-4fac-a34b-bdb30f74ff04",
+            "inputKey": "balance_after",
+            "operator": "less_than",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "id": "e0379e4e-6dc3-48d9-a282-dfeb05b0f80d",
+        "label": "Parental leave",
+        "enabled": true,
+        "outputs": {
+          "auto_approve": false,
+          "approver_level": "Line manager",
+          "hr_involved": true,
+          "decision_note": "HR confirms statutory pay and keeping-in-touch days."
+        },
+        "conditions": [
+          {
+            "id": "b4eed6c1-e05a-465f-9508-a439507c4055",
+            "inputKey": "leave_type",
+            "operator": "equals",
+            "value": "parental"
+          }
+        ]
+      },
+      {
+        "id": "e55fb09c-4bca-44df-a3a2-c2e7820c549a",
+        "label": "Unpaid leave",
+        "enabled": true,
+        "outputs": {
+          "auto_approve": false,
+          "approver_level": "Line manager",
+          "hr_involved": true,
+          "decision_note": "Unpaid leave: HR tells payroll."
+        },
+        "conditions": [
+          {
+            "id": "8283d246-7aae-4df1-8896-25352d34541e",
+            "inputKey": "leave_type",
+            "operator": "equals",
+            "value": "unpaid"
+          }
+        ]
+      },
+      {
+        "id": "9fe6c77d-bb9f-4423-b20d-9ea481c18db3",
+        "label": "Within the automatic limit",
+        "enabled": true,
+        "outputs": {
+          "auto_approve": true,
+          "approver_level": "None",
+          "hr_involved": false,
+          "decision_note": "Approved automatically under the leave policy."
+        },
+        "conditions": [
+          {
+            "id": "03b08dc0-c928-4c01-9660-3be00dac45f9",
+            "inputKey": "within_auto_limit",
+            "operator": "equals",
+            "value": "true"
+          },
+          {
+            "id": "f982e22f-668e-47e5-a4be-7f13f0758ff1",
+            "inputKey": "short_notice",
+            "operator": "equals",
+            "value": "false"
+          }
+        ]
+      },
+      {
+        "id": "36430aef-6386-4f1f-8118-cb3e63dfdfbe",
+        "label": "Long absence",
+        "enabled": true,
+        "outputs": {
+          "auto_approve": false,
+          "approver_level": "Senior manager",
+          "hr_involved": false,
+          "decision_note": "Ten or more days: check team cover across the period."
+        },
+        "conditions": [
+          {
+            "id": "b83637d9-9802-4297-bc93-9340ef475a40",
+            "inputKey": "days",
+            "operator": "greater_than_or_equal",
+            "value": "10"
+          }
+        ]
+      },
+      {
+        "id": "8d9c4cdd-1ef0-463c-be6f-25d01cd893f3",
+        "label": "Short notice",
+        "enabled": true,
+        "outputs": {
+          "auto_approve": false,
+          "approver_level": "Line manager",
+          "hr_involved": false,
+          "decision_note": "Less notice than the policy asks for."
+        },
+        "conditions": [
+          {
+            "id": "24e0eb49-7f01-43ca-84fc-38551a1a2e07",
+            "inputKey": "short_notice",
+            "operator": "equals",
+            "value": "true"
+          }
+        ]
+      },
+      {
+        "id": "3f33da39-1859-4cbb-9040-71d4e35ec38f",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "auto_approve": false,
+          "approver_level": "Line manager",
+          "hr_involved": false,
+          "decision_note": "Standard approval."
+        },
+        "conditions": [
+          {
+            "id": "1fcc0f13-07bf-4b02-a2f7-81a2ae285695",
+            "inputKey": "leave_type",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

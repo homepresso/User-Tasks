@@ -1,0 +1,291 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "7b9418d6-3183-5173-a9b0-fe0efb5be159",
+  "asset": {
+    "id": "7b9418d6-3183-5173-a9b0-fe0efb5be159",
+    "integration_id": "bd75f6e0-512e-5150-b896-936f390bfc06",
+    "name": "Get worker",
+    "description": "Workday Staffing REST: the worker as they are now (after the change): job profile, family, supervisory organization, manager and status.",
+    "tags": [
+      "workday",
+      "staffing"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/api/staffing/v6/acme/workers/{{worker_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "8d2f6e1a4b7c4e0f9a3d5c7b1e2f4a6c"
+            },
+            {
+              "name": "descriptor",
+              "type": "string",
+              "example": "Marco Rossi"
+            },
+            {
+              "name": "href",
+              "type": "string",
+              "example": "https://wd-impl.workday.example.com/ccx/api/staffing/v6/acme/workers/8d2f6e1a4b7c4e0f9a3d5c7b1e2f4a6c"
+            },
+            {
+              "name": "workerId",
+              "type": "string",
+              "example": "20177"
+            },
+            {
+              "name": "primaryWorkEmail",
+              "type": "string",
+              "example": "marco.rossi@example.com"
+            },
+            {
+              "name": "businessTitle",
+              "type": "string",
+              "example": "Finance Manager"
+            },
+            {
+              "name": "isManager",
+              "type": "boolean",
+              "example": true
+            },
+            {
+              "name": "workerType",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "a2b6b8f9b4c64f3b9a1d0c4e1f1e2a01"
+                },
+                {
+                  "name": "descriptor",
+                  "type": "string",
+                  "example": "Employee"
+                }
+              ]
+            },
+            {
+              "name": "primaryJob",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "6b5a4f3e2d1c4b0a9f8e7d6c5b4a3f2e"
+                },
+                {
+                  "name": "descriptor",
+                  "type": "string",
+                  "example": "Finance Manager - Marco Rossi"
+                },
+                {
+                  "name": "jobProfile",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "id",
+                      "type": "string",
+                      "example": "f0e1d2c3b4a5968778695a4b3c2d1e0f"
+                    },
+                    {
+                      "name": "descriptor",
+                      "type": "string",
+                      "example": "Finance Manager"
+                    },
+                    {
+                      "name": "jobFamily",
+                      "type": "object",
+                      "fields": [
+                        {
+                          "name": "id",
+                          "type": "string",
+                          "example": "11aa22bb33cc44dd55ee66ff77889900"
+                        },
+                        {
+                          "name": "descriptor",
+                          "type": "string",
+                          "example": "Finance"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "supervisoryOrganization",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f"
+                },
+                {
+                  "name": "descriptor",
+                  "type": "string",
+                  "example": "Financial Planning & Analysis (Ana Lopez)"
+                }
+              ]
+            },
+            {
+              "name": "manager",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f80"
+                },
+                {
+                  "name": "descriptor",
+                  "type": "string",
+                  "example": "Ana Lopez"
+                },
+                {
+                  "name": "primaryWorkEmail",
+                  "type": "string",
+                  "example": "ana.lopez@example.com"
+                }
+              ]
+            },
+            {
+              "name": "location",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "4f5e6d7c8b9a0f1e2d3c4b5a69788796"
+                },
+                {
+                  "name": "descriptor",
+                  "type": "string",
+                  "example": "Wellington Office"
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "id": "8d2f6e1a4b7c4e0f9a3d5c7b1e2f4a6c",
+          "descriptor": "Marco Rossi",
+          "href": "https://wd-impl.workday.example.com/ccx/api/staffing/v6/acme/workers/8d2f6e1a4b7c4e0f9a3d5c7b1e2f4a6c",
+          "workerId": "20177",
+          "primaryWorkEmail": "marco.rossi@example.com",
+          "businessTitle": "Finance Manager",
+          "isManager": true,
+          "workerType": {
+            "id": "a2b6b8f9b4c64f3b9a1d0c4e1f1e2a01",
+            "descriptor": "Employee"
+          },
+          "primaryJob": {
+            "id": "6b5a4f3e2d1c4b0a9f8e7d6c5b4a3f2e",
+            "descriptor": "Finance Manager - Marco Rossi",
+            "jobProfile": {
+              "id": "f0e1d2c3b4a5968778695a4b3c2d1e0f",
+              "descriptor": "Finance Manager",
+              "jobFamily": {
+                "id": "11aa22bb33cc44dd55ee66ff77889900",
+                "descriptor": "Finance"
+              }
+            }
+          },
+          "supervisoryOrganization": {
+            "id": "2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f",
+            "descriptor": "Financial Planning & Analysis (Ana Lopez)"
+          },
+          "manager": {
+            "id": "3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f80",
+            "descriptor": "Ana Lopez",
+            "primaryWorkEmail": "ana.lopez@example.com"
+          },
+          "location": {
+            "id": "4f5e6d7c8b9a0f1e2d3c4b5a69788796",
+            "descriptor": "Wellington Office"
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "d22147b8-978b-5288-9d51-9f8dc3bd95f5",
+        "name": "worker_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "61adb805-bb3b-57aa-98e6-72bf2027b9d2",
+        "name": "worker_name",
+        "path": "descriptor",
+        "type": "string"
+      },
+      {
+        "id": "ea87e68e-893c-55cc-bb25-d66aa6c07e76",
+        "name": "employee_id",
+        "path": "workerId",
+        "type": "string"
+      },
+      {
+        "id": "7f17c336-61a8-576e-bd94-864b46706a2a",
+        "name": "work_email",
+        "path": "primaryWorkEmail",
+        "type": "string"
+      },
+      {
+        "id": "ade8be78-5aff-517d-a4d3-d50cf9003bf8",
+        "name": "business_title",
+        "path": "businessTitle",
+        "type": "string"
+      },
+      {
+        "id": "ef1f68a8-a8ef-528e-a31b-14a4b92f9551",
+        "name": "job_profile",
+        "path": "primaryJob.jobProfile.descriptor",
+        "type": "string"
+      },
+      {
+        "id": "4ec688f5-faa6-5216-a203-e2205576fd34",
+        "name": "job_family",
+        "path": "primaryJob.jobProfile.jobFamily.descriptor",
+        "type": "string"
+      },
+      {
+        "id": "6410cebc-37ea-5a00-8a1f-2f72abea4397",
+        "name": "supervisory_org",
+        "path": "supervisoryOrganization.descriptor",
+        "type": "string"
+      },
+      {
+        "id": "07e4eddd-9cd6-5dc5-8587-3eb6e2a8a4aa",
+        "name": "manager_name",
+        "path": "manager.descriptor",
+        "type": "string"
+      },
+      {
+        "id": "f663fd9b-f4db-5567-97c5-e655bf7db5ac",
+        "name": "manager_email",
+        "path": "manager.primaryWorkEmail",
+        "type": "string"
+      }
+    ]
+  }
+}

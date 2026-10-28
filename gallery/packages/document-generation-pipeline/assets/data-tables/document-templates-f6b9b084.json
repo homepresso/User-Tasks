@@ -1,0 +1,61 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "f6b9b084-c29b-4896-9c5a-88416c9408d0",
+  "asset": {
+    "id": "f6b9b084-c29b-4896-9c5a-88416c9408d0",
+    "name": "Document templates",
+    "description": "One row per document type: the title printed on the document, the file name pattern ({reference}, {customer}), the DMS folder, how long to keep it and whether it needs a signature.",
+    "columns": [
+      {
+        "id": "e5006171-97a9-42af-b449-ff6ba3ccb5eb",
+        "required": true,
+        "key": "doc_type",
+        "name": "Document type",
+        "type": "text"
+      },
+      {
+        "id": "7cec4097-56e0-46ad-9625-1444015543fa",
+        "required": true,
+        "key": "doc_title",
+        "name": "Title",
+        "type": "text"
+      },
+      {
+        "id": "be764198-4f1e-4524-9cb1-17f2e3ef3d6a",
+        "required": true,
+        "key": "filename_pattern",
+        "name": "File name pattern",
+        "type": "text"
+      },
+      {
+        "id": "f7c364be-da12-42b8-a3e2-1136347c4ba1",
+        "required": false,
+        "key": "dms_folder",
+        "name": "DMS folder",
+        "type": "text"
+      },
+      {
+        "id": "c18f8b43-7bfe-4289-b9b4-903887c06b80",
+        "required": false,
+        "key": "retention_days",
+        "name": "Retention (days)",
+        "type": "number"
+      },
+      {
+        "id": "a283e6a0-6799-4ad5-954d-837519c0873e",
+        "required": false,
+        "key": "signature_required",
+        "name": "Signature required",
+        "type": "boolean"
+      },
+      {
+        "id": "56684f05-b9aa-4702-ac0f-3d718ced014f",
+        "required": false,
+        "key": "body_text",
+        "name": "Body text",
+        "type": "text"
+      }
+    ]
+  }
+}

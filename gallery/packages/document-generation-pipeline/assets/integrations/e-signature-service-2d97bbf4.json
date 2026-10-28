@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "2d97bbf4-496c-47f9-bc67-0c01765c0585",
+  "asset": {
+    "id": "2d97bbf4-496c-47f9-bc67-0c01765c0585",
+    "name": "E-signature service",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://esign.example.com/v1",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "documents",
+      "signature"
+    ]
+  }
+}

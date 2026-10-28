@@ -1,0 +1,148 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "db62fc26-732a-47a8-b2bd-6fb4559f7fde",
+  "asset": {
+    "id": "db62fc26-732a-47a8-b2bd-6fb4559f7fde",
+    "name": "Onboarding track",
+    "description": "The onboarding track by employment type and location: how many days IT needs before the start date and whether the new hire joins company orientation. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "9ea09883-a338-4f3b-9559-452802df3465",
+        "key": "employment_type",
+        "label": "Employment type",
+        "type": "text"
+      },
+      {
+        "id": "fb9b702f-76eb-4c37-9b73-10bd07da1037",
+        "key": "location",
+        "label": "Location",
+        "type": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "f42804ff-d9c8-4594-a135-288af194aaee",
+        "key": "track",
+        "label": "Track",
+        "type": "text"
+      },
+      {
+        "id": "aed6c4b3-2ad0-42bb-b6d4-286a6e7fbd8b",
+        "key": "it_lead_days",
+        "label": "IT lead days",
+        "type": "number"
+      },
+      {
+        "id": "4c781def-3706-4d20-8a0b-9a49c0b12015",
+        "key": "orientation_needed",
+        "label": "Orientation needed",
+        "type": "boolean"
+      }
+    ],
+    "rules": [
+      {
+        "id": "cb4d5544-cb71-426d-8ac5-8f604e9df73b",
+        "label": "Remote contractor",
+        "enabled": true,
+        "outputs": {
+          "track": "Contractor (remote)",
+          "it_lead_days": 5,
+          "orientation_needed": false
+        },
+        "conditions": [
+          {
+            "id": "8c302946-8e46-403c-8026-c59018600ba8",
+            "inputKey": "employment_type",
+            "operator": "equals",
+            "value": "contractor"
+          },
+          {
+            "id": "8833a01a-035b-43ad-8a8b-5698c5b0d49e",
+            "inputKey": "location",
+            "operator": "equals",
+            "value": "remote"
+          }
+        ]
+      },
+      {
+        "id": "5a3fa052-c808-45e8-9b23-c8b32be4a2b0",
+        "label": "Office contractor",
+        "enabled": true,
+        "outputs": {
+          "track": "Contractor (office)",
+          "it_lead_days": 2,
+          "orientation_needed": false
+        },
+        "conditions": [
+          {
+            "id": "47f7127e-7a67-4fae-9d3d-e7a58f955a51",
+            "inputKey": "employment_type",
+            "operator": "equals",
+            "value": "contractor"
+          }
+        ]
+      },
+      {
+        "id": "5fd953a6-33e8-4d93-8f73-02dc816921d3",
+        "label": "Remote fixed-term",
+        "enabled": true,
+        "outputs": {
+          "track": "Fixed-term (remote)",
+          "it_lead_days": 7,
+          "orientation_needed": true
+        },
+        "conditions": [
+          {
+            "id": "8e2329bd-3632-4b81-bde5-dd3d5bdb02af",
+            "inputKey": "employment_type",
+            "operator": "equals",
+            "value": "fixed-term"
+          },
+          {
+            "id": "d0217704-d4da-4fad-9f83-129f8916c812",
+            "inputKey": "location",
+            "operator": "equals",
+            "value": "remote"
+          }
+        ]
+      },
+      {
+        "id": "429a22b0-aee6-4c39-b9b1-64037bacebcd",
+        "label": "Remote permanent",
+        "enabled": true,
+        "outputs": {
+          "track": "Standard (remote)",
+          "it_lead_days": 10,
+          "orientation_needed": true
+        },
+        "conditions": [
+          {
+            "id": "a5b21214-afd8-45a3-963e-fd6916648008",
+            "inputKey": "location",
+            "operator": "equals",
+            "value": "remote"
+          }
+        ]
+      },
+      {
+        "id": "135d5116-77be-4ecf-9957-f5cdc4ac714e",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "track": "Standard (office)",
+          "it_lead_days": 5,
+          "orientation_needed": true
+        },
+        "conditions": [
+          {
+            "id": "faa29db2-e537-4561-9595-3cee062e3025",
+            "inputKey": "employment_type",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,178 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "3cc5f45d-29ba-46e5-a19e-e5d7d5b9c193",
+  "asset": {
+    "id": "3cc5f45d-29ba-46e5-a19e-e5d7d5b9c193",
+    "name": "Purchasing approval",
+    "description": "Approval level and number of quotes for a requisition, by amount, category and whether the supplier is preferred. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "807c4736-f37d-4c7c-ad73-54cec91c44b5",
+        "key": "amount",
+        "label": "Amount",
+        "type": "number"
+      },
+      {
+        "id": "af42f030-e77e-4166-84fb-f7cee655e0be",
+        "key": "category",
+        "label": "Category",
+        "type": "text"
+      },
+      {
+        "id": "bd60bb05-7545-45e2-9f39-b489bd0eab51",
+        "key": "preferred_supplier",
+        "label": "Preferred supplier",
+        "type": "boolean"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aa4ae9d4-a863-43c6-8091-6d9d22077d7a",
+        "key": "approver_level",
+        "label": "Approver level",
+        "type": "text"
+      },
+      {
+        "id": "48eae230-91ca-49ab-bbc2-a4352651cae6",
+        "key": "quotes_required",
+        "label": "Quotes required",
+        "type": "number"
+      },
+      {
+        "id": "b54539a0-5ad6-45ef-8f25-f92e70656560",
+        "key": "approval_days",
+        "label": "Approval SLA (days)",
+        "type": "number"
+      }
+    ],
+    "rules": [
+      {
+        "id": "65a1dee9-097f-4282-abf1-2552ef10b9e6",
+        "label": "Major spend",
+        "enabled": true,
+        "outputs": {
+          "approver_level": "CFO",
+          "quotes_required": 3,
+          "approval_days": 5
+        },
+        "conditions": [
+          {
+            "id": "cee362db-982b-4146-aec5-37c9f1127bbc",
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "50000"
+          }
+        ]
+      },
+      {
+        "id": "7355a144-018f-466f-abc5-de5f8cb8f732",
+        "label": "Professional services over 10k",
+        "enabled": true,
+        "outputs": {
+          "approver_level": "Department head",
+          "quotes_required": 3,
+          "approval_days": 3
+        },
+        "conditions": [
+          {
+            "id": "6c91dcd5-4f64-424a-8062-dc72736464d7",
+            "inputKey": "category",
+            "operator": "equals",
+            "value": "professional_services"
+          },
+          {
+            "id": "27fb59f2-4cbd-46e1-83fc-bed981a44584",
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "10000"
+          }
+        ]
+      },
+      {
+        "id": "4847d569-3197-4ae1-afe4-fd1338e0294b",
+        "label": "Non-preferred supplier over 5k",
+        "enabled": true,
+        "outputs": {
+          "approver_level": "Department head",
+          "quotes_required": 3,
+          "approval_days": 3
+        },
+        "conditions": [
+          {
+            "id": "99217ae0-d926-4387-a51a-138b5046fbf4",
+            "inputKey": "preferred_supplier",
+            "operator": "equals",
+            "value": "false"
+          },
+          {
+            "id": "5445b7bf-29da-4a04-9e8b-d3650f6feb46",
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "5000"
+          }
+        ]
+      },
+      {
+        "id": "e968dd17-6322-4fed-914c-5c2b6b96849c",
+        "label": "Over 10k",
+        "enabled": true,
+        "outputs": {
+          "approver_level": "Department head",
+          "quotes_required": 2,
+          "approval_days": 3
+        },
+        "conditions": [
+          {
+            "id": "14e70e92-97a6-46ee-970a-87ef3e63afec",
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "10000"
+          }
+        ]
+      },
+      {
+        "id": "564be2c1-2bc8-4c3c-9d63-98c22771d516",
+        "label": "Non-preferred supplier over 1k",
+        "enabled": true,
+        "outputs": {
+          "approver_level": "Line manager",
+          "quotes_required": 2,
+          "approval_days": 2
+        },
+        "conditions": [
+          {
+            "id": "8a352457-7a09-4d8d-b064-7378533405a7",
+            "inputKey": "preferred_supplier",
+            "operator": "equals",
+            "value": "false"
+          },
+          {
+            "id": "689d5a63-143f-4c4d-b48e-5101bde449d8",
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "1000"
+          }
+        ]
+      },
+      {
+        "id": "b42df5f6-7dcd-4daf-b3c8-53a5c9985fa4",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "approver_level": "Line manager",
+          "quotes_required": 0,
+          "approval_days": 2
+        },
+        "conditions": [
+          {
+            "id": "a4cd714a-e801-46bd-8dfa-c6379237f78e",
+            "inputKey": "amount",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "fe89cfc7-3587-5eea-961a-4ff4fbd258b1",
+  "asset": {
+    "id": "fe89cfc7-3587-5eea-961a-4ff4fbd258b1",
+    "name": "ServiceNow",
+    "description": "ServiceNow Table API (/api/now). Use an OAuth bearer token (or switch to Basic auth) for an integration user with itil and the major incident roles.",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://acme.service-now.example.com/api/now",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {
+        "Accept": "application/json"
+      }
+    },
+    "is_active": true,
+    "tags": [
+      "itsm",
+      "servicenow"
+    ]
+  }
+}

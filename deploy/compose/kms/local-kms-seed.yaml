@@ -1,0 +1,13 @@
+# local-kms seed (deploy/compose/kms.yml, kms-aws): one symmetric key, aliased
+# alias/usertasks. A TEST key — its backing material is public, here.
+Keys:
+  Symmetric:
+    Aes:
+      - Metadata:
+          KeyId: 00000000-0000-4000-8000-000000000001
+        BackingKeys:
+          - 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+
+Aliases:
+  - AliasName: alias/usertasks
+    TargetKeyId: 00000000-0000-4000-8000-000000000001

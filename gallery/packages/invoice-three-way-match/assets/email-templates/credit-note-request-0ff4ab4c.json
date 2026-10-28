@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "0ff4ab4c-c102-4188-9fef-0ec9da2a27ae",
+  "asset": {
+    "id": "0ff4ab4c-c102-4188-9fef-0ec9da2a27ae",
+    "name": "Credit note request",
+    "description": "Sent to the vendor when AP asks for a credit note to cover a match variance.",
+    "subject": "Credit note request: invoice {{invoice_number}} (PO {{po_number}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Please send a credit note</h2>\n  <p>Hello {{vendor_name}},</p>\n  <p>Invoice <strong>{{invoice_number}}</strong> for {{currency}} {{=FORMAT_NUMBER(invoice_total, 2)}} does not match purchase order {{po_number}} and the goods we received.</p>\n  <p>Please send a credit note for <strong>{{currency}} {{=FORMAT_NUMBER(task_data.credit_note_amount, 2)}}</strong>. The invoice is on hold until we receive it.</p>\n  <p style=\"color:#6E6759\">Note from AP: {{task_data.resolution_note}}</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the accounts payable team at your company</p>\n</div>",
+    "text_body": "Please send a credit note\n  Hello {{vendor_name}},\n  Invoice {{invoice_number}} for {{currency}} {{=FORMAT_NUMBER(invoice_total, 2)}} does not match purchase order {{po_number}} and the goods we received.\n  Please send a credit note for {{currency}} {{=FORMAT_NUMBER(task_data.credit_note_amount, 2)}}. The invoice is on hold until we receive it.\n  Note from AP: {{task_data.resolution_note}}\n  Sent by the accounts payable team at your company",
+    "is_default": false
+  }
+}

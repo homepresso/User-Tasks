@@ -1,0 +1,353 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "b1729d39-b03e-5077-a2da-778ba04a70fd",
+  "asset": {
+    "id": "b1729d39-b03e-5077-a2da-778ba04a70fd",
+    "name": "Visitor arrival",
+    "description": "A visitor signs in on the reception form: the visit is logged, the host is emailed and, when confidential information is involved, reception confirms the NDA.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Visitor signed in",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "form_id": "523968d3-46a7-5400-bec4-4275f5655a6d",
+          "form_name": "Visitor sign-in"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Visit reference",
+        "position": {
+          "x": 400,
+          "y": 220
+        },
+        "config": {
+          "name": "visit_ref",
+          "expression": "VIS-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "badge",
+        "type": "set_variable",
+        "label": "Badge number",
+        "position": {
+          "x": 400,
+          "y": 380
+        },
+        "config": {
+          "name": "badge",
+          "expression": "{{=IF(form.purpose == \"Contractor work\", \"C-\", \"V-\")}}{{=UPPER(LEFT(GUID(), 3))}}"
+        }
+      },
+      {
+        "id": "host",
+        "type": "set_variable",
+        "label": "Host name",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "name": "host_name",
+          "expression": "{{form.host_item.name}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 700
+        },
+        "config": {
+          "title": "Visitor: {{form.visitor_name}} for {{host_name}}"
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Add to visitor log",
+        "position": {
+          "x": 400,
+          "y": 860
+        },
+        "config": {
+          "table_id": "0140e05f-218a-5126-b9cb-61730dcc32a8",
+          "table_name": "Visitor log",
+          "operation": "insert",
+          "column_values": {
+            "visit_ref": "{{visit_ref}}",
+            "visitor_name": "{{form.visitor_name}}",
+            "company": "{{form.company}}",
+            "visitor_email": "{{form.visitor_email}}",
+            "host_name": "{{host_name}}",
+            "host_email": "{{form.host_email}}",
+            "purpose": "{{form.purpose}}",
+            "arrived_at": "{{=TODAY()}}",
+            "nda_required": "{{form.nda_required}}",
+            "nda_signed": "false",
+            "badge": "{{badge}}",
+            "status": "on site"
+          }
+        }
+      },
+      {
+        "id": "notify",
+        "type": "send_email",
+        "label": "Email the host",
+        "position": {
+          "x": 400,
+          "y": 1020
+        },
+        "config": {
+          "to": "{{form.host_email}}",
+          "email_template_id": "917787d7-32d1-5f92-9de6-7a9e32fe1b3b"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "nda",
+        "type": "condition",
+        "label": "NDA needed?",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "NDA",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{form.nda_required}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "sign",
+        "type": "user_task",
+        "label": "Confirm NDA signed",
+        "position": {
+          "x": 400,
+          "y": 1340
+        },
+        "config": {
+          "task_title": "NDA for {{form.visitor_name}} ({{form.company}})",
+          "task_description": "<p>{{form.visitor_name}} is visiting {{host_name}} and will see confidential information. Ask them to sign the visitor NDA before they go through.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Signed",
+            "Refused"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{submitted_by}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 30,
+          "due_offset_unit": "minutes",
+          "fields": [
+            {
+              "key": "nda_version",
+              "label": "NDA version",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "Standard visitor NDA v3",
+                "Mutual NDA",
+                "Customer-specific"
+              ]
+            },
+            {
+              "key": "witness",
+              "label": "Witnessed by",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "notes",
+              "label": "Notes",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "nda_version",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "witness",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "signed",
+              "label": "NDA signed",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Signed"
+            },
+            {
+              "id": "refused",
+              "label": "Visitor refused",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Refused"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Visitor NDA",
+            "align": "left",
+            "subtitle": "{{form.visitor_name}} · {{form.company}}"
+          }
+        }
+      },
+      {
+        "id": "no_nda",
+        "type": "end_workflow",
+        "label": "No NDA needed",
+        "position": {
+          "x": 720,
+          "y": 1340
+        },
+        "config": {}
+      },
+      {
+        "id": "signed",
+        "type": "update_data_table",
+        "label": "Record NDA",
+        "position": {
+          "x": 240,
+          "y": 1500
+        },
+        "config": {
+          "table_id": "0140e05f-218a-5126-b9cb-61730dcc32a8",
+          "table_name": "Visitor log",
+          "operation": "update",
+          "match_column": "visit_ref",
+          "match_value": "{{visit_ref}}",
+          "column_values": {
+            "nda_signed": "true"
+          }
+        }
+      },
+      {
+        "id": "refused",
+        "type": "update_data_table",
+        "label": "Mark refused",
+        "position": {
+          "x": 560,
+          "y": 1500
+        },
+        "config": {
+          "table_id": "0140e05f-218a-5126-b9cb-61730dcc32a8",
+          "table_name": "Visitor log",
+          "operation": "update",
+          "match_column": "visit_ref",
+          "match_value": "{{visit_ref}}",
+          "column_values": {
+            "status": "refused entry"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-badge",
+        "source": "ref",
+        "target": "badge"
+      },
+      {
+        "id": "e-badge-host",
+        "source": "badge",
+        "target": "host"
+      },
+      {
+        "id": "e-host-title",
+        "source": "host",
+        "target": "title"
+      },
+      {
+        "id": "e-title-row",
+        "source": "title",
+        "target": "row"
+      },
+      {
+        "id": "e-row-notify",
+        "source": "row",
+        "target": "notify"
+      },
+      {
+        "id": "e-notify-nda",
+        "source": "notify",
+        "target": "nda"
+      },
+      {
+        "id": "e-nda-sign-nda",
+        "source": "nda",
+        "target": "sign",
+        "label": "NDA"
+      },
+      {
+        "id": "e-nda-no_nda-else",
+        "source": "nda",
+        "target": "no_nda",
+        "label": "Else"
+      },
+      {
+        "id": "e-sign-signed-signed",
+        "source": "sign",
+        "target": "signed",
+        "label": "Signed"
+      },
+      {
+        "id": "e-sign-refused-refused",
+        "source": "sign",
+        "target": "refused",
+        "label": "Refused"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "542c404b-2fe9-48e8-9df7-32f8a4362237",
+  "asset": {
+    "id": "542c404b-2fe9-48e8-9df7-32f8a4362237",
+    "integration_id": "757de745-9f02-46c3-8f8e-ad50d62ed8d6",
+    "name": "Enrich company",
+    "description": "Firmographics for a company from its email domain: industry, size band, employee count, revenue and LinkedIn page.",
+    "tags": [
+      "leads"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"domain\":\"{{domain}}\",\"company_name\":\"{{company}}\"}",
+      "path_template": "/enrichment/company",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "domain",
+              "type": "string",
+              "example": "tailwindtraders.example.com"
+            },
+            {
+              "name": "confidence",
+              "type": "number",
+              "example": 0.92
+            },
+            {
+              "name": "company",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "name",
+                  "type": "string",
+                  "example": "Tailwind Traders"
+                },
+                {
+                  "name": "industry",
+                  "type": "string",
+                  "example": "Retail"
+                },
+                {
+                  "name": "size_band",
+                  "type": "string",
+                  "example": "501-1000"
+                },
+                {
+                  "name": "employees",
+                  "type": "integer",
+                  "example": 650
+                },
+                {
+                  "name": "annual_revenue",
+                  "type": "integer",
+                  "example": 180000000
+                },
+                {
+                  "name": "linkedin_url",
+                  "type": "string",
+                  "example": "https://www.linkedin.com/company/example-tailwind"
+                },
+                {
+                  "name": "hq_country",
+                  "type": "string",
+                  "example": "AU"
+                },
+                {
+                  "name": "founded",
+                  "type": "integer",
+                  "example": 2009
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "domain": "tailwindtraders.example.com",
+          "confidence": 0.92,
+          "company": {
+            "name": "Tailwind Traders",
+            "industry": "Retail",
+            "size_band": "501-1000",
+            "employees": 650,
+            "annual_revenue": 180000000,
+            "linkedin_url": "https://www.linkedin.com/company/example-tailwind",
+            "hq_country": "AU",
+            "founded": 2009
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "a945709d-ce88-4596-9f57-d4b022683938",
+        "name": "domain",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Email domain, e.g. contoso.example.com",
+        "default_value": ""
+      },
+      {
+        "id": "9e9e1bbc-1763-46c4-8ab3-37d2f76a36d6",
+        "name": "company",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "a212a452-10ba-469f-aa0d-86727c2c370c",
+        "name": "industry",
+        "path": "company.industry",
+        "type": "string"
+      },
+      {
+        "id": "dd5cef9e-0a6b-4ba2-89f3-7e793a82a060",
+        "name": "size_band",
+        "path": "company.size_band",
+        "type": "string"
+      },
+      {
+        "id": "22abb50b-ae6c-407c-a192-5b91887ab3e6",
+        "name": "employees",
+        "path": "company.employees",
+        "type": "number"
+      },
+      {
+        "id": "05bb737d-5fa1-43af-866d-3a0bfa84a66c",
+        "name": "annual_revenue",
+        "path": "company.annual_revenue",
+        "type": "number"
+      },
+      {
+        "id": "1c071ba6-9493-4753-9447-37b4151caa61",
+        "name": "linkedin_url",
+        "path": "company.linkedin_url",
+        "type": "string"
+      },
+      {
+        "id": "a3955e5f-0265-4235-b566-da95f16a2d1e",
+        "name": "company_name",
+        "path": "company.name",
+        "type": "string"
+      },
+      {
+        "id": "d0cc9bfc-b250-42b9-9936-fa24c417bdb7",
+        "name": "confidence",
+        "path": "confidence",
+        "type": "number"
+      }
+    ]
+  }
+}

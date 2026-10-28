@@ -1,0 +1,76 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "7db7a313-d524-5cb7-9748-ecb1d38af388",
+  "asset": {
+    "id": "7db7a313-d524-5cb7-9748-ecb1d38af388",
+    "name": "Cost centres rows",
+    "rows": [
+      {
+        "id": "5aef2339-7d53-5a0e-b661-ffe1761b610c",
+        "data": {
+          "cost_center": "10101301",
+          "name": "Customer Support",
+          "company_code": "1010",
+          "controlling_area": "A000",
+          "responsible": "Chloe Martin",
+          "gl_account": "61008000",
+          "budget_remaining": 48000,
+          "active": true
+        }
+      },
+      {
+        "id": "18ddc020-33b7-57bf-bf90-1e56834b0a3a",
+        "data": {
+          "cost_center": "10101401",
+          "name": "IT Infrastructure",
+          "company_code": "1010",
+          "controlling_area": "A000",
+          "responsible": "Ben Carter",
+          "gl_account": "61008000",
+          "budget_remaining": 125000,
+          "active": true
+        }
+      },
+      {
+        "id": "8027848e-544a-519f-8cd5-45784851af02",
+        "data": {
+          "cost_center": "10101501",
+          "name": "Finance",
+          "company_code": "1010",
+          "controlling_area": "A000",
+          "responsible": "Ana Lopez",
+          "gl_account": "61003000",
+          "budget_remaining": 22000,
+          "active": true
+        }
+      },
+      {
+        "id": "167c6697-15eb-5ea1-ad91-bc0655d68eb9",
+        "data": {
+          "cost_center": "10101601",
+          "name": "Marketing",
+          "company_code": "1010",
+          "controlling_area": "A000",
+          "responsible": "Daniel Okafor",
+          "gl_account": "65008000",
+          "budget_remaining": 60500,
+          "active": true
+        }
+      },
+      {
+        "id": "b20b5918-d57b-586a-baba-cf980e4a61fc",
+        "data": {
+          "cost_center": "10101701",
+          "name": "Facilities",
+          "company_code": "1010",
+          "controlling_area": "A000",
+          "responsible": "Farid Haddad",
+          "gl_account": "62005000",
+          "budget_remaining": 31000,
+          "active": true
+        }
+      }
+    ]
+  }
+}

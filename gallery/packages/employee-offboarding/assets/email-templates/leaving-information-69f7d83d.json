@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "69f7d83d-06c4-4567-8570-053bb8a07ca9",
+  "asset": {
+    "id": "69f7d83d-06c4-4567-8570-053bb8a07ca9",
+    "name": "Leaving information",
+    "description": "Sent to the leaver with their last day, final pay date and what to return.",
+    "subject": "Your last day and final pay",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Information for your last day</h2>\n  <p>Hi {{employee_name}},</p>\n  <p>This confirms your last working day is <strong>{{last_working_day}}</strong>. Your final pay, including {{leave_payout_days}} days of untaken leave, will be paid on <strong>{{final_pay_date}}</strong>.</p>\n  <p>Please return: {{devices}}.</p>\n  <p>Thank you for your work with the team. Contact the people team if any of these details look wrong.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your employee offboarding workflow</p>\n</div>",
+    "text_body": "Information for your last day\n  Hi {{employee_name}},\n  This confirms your last working day is {{last_working_day}}. Your final pay, including {{leave_payout_days}} days of untaken leave, will be paid on {{final_pay_date}}.\n  Please return: {{devices}}.\n  Thank you for your work with the team. Contact the people team if any of these details look wrong.\n  Sent by your employee offboarding workflow",
+    "is_default": false
+  }
+}

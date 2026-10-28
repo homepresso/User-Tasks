@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "67b50444-1479-427f-87d8-add24622633e",
+  "asset": {
+    "id": "67b50444-1479-427f-87d8-add24622633e",
+    "name": "Ticket escalated",
+    "description": "Sent to the escalation contact when a reviewer escalates a ticket.",
+    "subject": "Escalated: {{ticket_id}} {{subject}} ({{priority}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">A ticket was escalated</h2>\n  <p>Ticket <strong>{{ticket_id}}</strong> from {{customer_email}} ({{tier}} plan, via {{channel}}) was escalated by the reviewer.</p>\n  <p><strong>{{subject}}</strong></p>\n  <p>AI summary: {{summary}}</p>\n  <p>Category {{task_data.category}}, urgency {{urgency}}, sentiment {{sentiment}}. Reviewer note: {{task_data.note}}</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the support triage workflow</p>\n</div>",
+    "text_body": "A ticket was escalated\n  Ticket {{ticket_id}} from {{customer_email}} ({{tier}} plan, via {{channel}}) was escalated by the reviewer.\n  {{subject}}\n  AI summary: {{summary}}\n  Category {{task_data.category}}, urgency {{urgency}}, sentiment {{sentiment}}. Reviewer note: {{task_data.note}}\n  Sent by the support triage workflow",
+    "is_default": false
+  }
+}

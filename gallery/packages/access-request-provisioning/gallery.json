@@ -1,0 +1,82 @@
+{
+  "id": "0c7fcde7-c43c-43ac-baa3-d76613bc0def",
+  "slug": "access-request-provisioning",
+  "title": "Access request and provisioning",
+  "category": "it-security",
+  "summary": "People request application access from a form; risk-based approvals route it, the grant is provisioned automatically and time-boxed access is revoked on expiry.",
+  "description": "Access request and provisioning takes an application access request from a form through to a live grant. The requester picks the application, the role or entitlement, how long the access is needed (30 days, 90 days or permanent), who it is for and why.\n\nThe workflow looks the person up in the identity platform, reads the application from the Application catalogue (owner, risk level, privileged flag, provisioning group) and evaluates the Access approval path decision table. Every request goes to the line manager; medium-risk applications also need the application owner, and high-risk or privileged roles add a security review. Approvals run in sequence and any rejection stops the request and emails the requester.\n\nOnce approved, the grant is created through the identity API and the requester is emailed. For time-boxed access a sub-workflow waits 30 or 90 days and revokes the grant, so temporary access never outlives its approval. Adapt the catalogue, the approval rules and the identity API paths to your platform.",
+  "trigger": "form",
+  "entry_workflow": "4380e46a-b660-48a0-923c-95a476fb41e1",
+  "start": "Starts from a form: the requester fills in the application, role, duration and justification (Run dialog, or your service portal posting to the start API).",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "access management",
+    "provisioning",
+    "approvals",
+    "least privilege",
+    "identity"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: a themed start form with a grid and header, Approve / Reject buttons with grids and headers on the manager, owner and security steps, and a provisioning-group lookup into the Application catalogue."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "Identity platform integration: set the base URL of your identity / IGA API and an API token. The references expect GET /users/{id}, POST /access-grants and POST /access-grants/{id}/revoke; adjust paths and response models in Integrations.",
+    "Assignees: pick the default line manager, application owner and security reviewer. Runs can override them with manager_user_id, app_owner_user_id and security_user_id.",
+    "Edit the Application catalogue rows: your applications, owners, risk levels, privileged flags and the directory groups that grant access. Keep the application names in sync with the start form options.",
+    "Review the Access approval path rules against your access control policy (which risk levels need owner or security sign-off).",
+    "Email: configure EMAIL_PROVIDER on the instance so the granted, declined and expired emails are delivered (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Request access",
+      "body": "The start form collects the application, role, duration, justification and the employee id of the person who needs it."
+    },
+    {
+      "title": "Look up user and application",
+      "body": "Get user returns the person and department; the Application catalogue gives the risk level, privileged flag and provisioning group."
+    },
+    {
+      "title": "Decide the approval path",
+      "body": "The Access approval path decision table chooses manager only, manager and owner, or manager, owner and security, and sets the request SLA."
+    },
+    {
+      "title": "Approve in sequence",
+      "body": "The manager, then the application owner and security reviewer where required, approve or reject. Any rejection emails the requester and closes the request."
+    },
+    {
+      "title": "Provision the grant",
+      "body": "The identity API adds the user to the provisioning group and returns a grant id; the requester is emailed."
+    },
+    {
+      "title": "Revoke on expiry",
+      "body": "For 30- or 90-day access, the Revoke access on expiry sub-workflow waits out the period, revokes the grant and tells the requester."
+    }
+  ],
+  "sample_input": {
+    "requester_name": "Morgan Ellis",
+    "requester_email": "morgan.ellis@example.com",
+    "employee_id": "E-2040",
+    "application": "Finance ERP",
+    "role": "Accounts payable clerk",
+    "justification": "Covering supplier invoice processing during the quarter-end close",
+    "duration": "90 days"
+  },
+  "expect": "waiting",
+  "icon": "key-round"
+}

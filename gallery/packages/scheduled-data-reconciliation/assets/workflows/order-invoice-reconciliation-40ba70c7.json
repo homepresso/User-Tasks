@@ -1,0 +1,535 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "40ba70c7-2e62-4ca4-974c-21e5277fade0",
+  "asset": {
+    "id": "40ba70c7-2e62-4ca4-974c-21e5277fade0",
+    "name": "Order-invoice reconciliation",
+    "description": "Every morning, compare yesterday's orders with the invoices billed for them; record missing invoices and amount mismatches and send a summary.",
+    "trigger_type": "schedule",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "schedule",
+        "label": "Every day 05:30",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {
+          "schedule_mode": "daily",
+          "time_of_day": "05:30",
+          "timezone": "UTC"
+        }
+      },
+      {
+        "id": "date",
+        "type": "set_variable",
+        "label": "Business date",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "name": "date",
+          "expression": "{{=IF(IS_EMPTY(as_of), FORMAT_DATE(YESTERDAY(), \"YYYY-MM-DD\"), as_of)}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "title": "Reconciliation {{date}}"
+        }
+      },
+      {
+        "id": "orders",
+        "type": "call_reference",
+        "label": "List orders",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "reference_id": "6a89fcaa-a2f1-4d4b-914c-c39e24d331f0",
+          "reference_name": "List orders by date",
+          "reference_method": "GET",
+          "input_mappings": {
+            "date": "{{date}}"
+          },
+          "output_mappings": {
+            "orders": {
+              "enabled": true,
+              "variableName": "orders"
+            }
+          }
+        }
+      },
+      {
+        "id": "invoices",
+        "type": "call_reference",
+        "label": "List invoices",
+        "position": {
+          "x": 340,
+          "y": 700
+        },
+        "config": {
+          "reference_id": "eac82d05-02d6-43ed-bab1-0e76b980ce99",
+          "reference_name": "List invoices by date",
+          "reference_method": "GET",
+          "input_mappings": {
+            "date": "{{date}}"
+          },
+          "output_mappings": {
+            "invoices": {
+              "enabled": true,
+              "variableName": "invoices"
+            }
+          }
+        }
+      },
+      {
+        "id": "count_orders",
+        "type": "collection_count",
+        "label": "Count orders",
+        "position": {
+          "x": 340,
+          "y": 860
+        },
+        "config": {
+          "collection": "{{orders}}",
+          "output_var": "order_count"
+        }
+      },
+      {
+        "id": "init_matched",
+        "type": "set_variable",
+        "label": "Matched = 0",
+        "position": {
+          "x": 340,
+          "y": 1020
+        },
+        "config": {
+          "name": "matched_count",
+          "expression": "0"
+        }
+      },
+      {
+        "id": "init_missing",
+        "type": "set_variable",
+        "label": "Missing = 0",
+        "position": {
+          "x": 340,
+          "y": 1180
+        },
+        "config": {
+          "name": "missing_count",
+          "expression": "0"
+        }
+      },
+      {
+        "id": "init_mismatch",
+        "type": "set_variable",
+        "label": "Mismatch = 0",
+        "position": {
+          "x": 340,
+          "y": 1340
+        },
+        "config": {
+          "name": "mismatch_count",
+          "expression": "0"
+        }
+      },
+      {
+        "id": "loop",
+        "type": "loop",
+        "label": "Each order",
+        "position": {
+          "x": 340,
+          "y": 1500
+        },
+        "config": {
+          "items": "{{orders}}",
+          "item_var": "order"
+        }
+      },
+      {
+        "id": "find",
+        "type": "set_variable",
+        "label": "Find invoice",
+        "position": {
+          "x": 660,
+          "y": 1680
+        },
+        "config": {
+          "name": "invoice",
+          "expression": "{{=FIND_WHERE(invoices, \"order_id\", order.id)}}"
+        }
+      },
+      {
+        "id": "diff",
+        "type": "set_variable",
+        "label": "Difference",
+        "position": {
+          "x": 660,
+          "y": 1840
+        },
+        "config": {
+          "name": "difference",
+          "expression": "{{=IF(IS_EMPTY(invoice), 0, ROUND(ABS(SUBTRACT(order.total, invoice.amount)), 2))}}"
+        }
+      },
+      {
+        "id": "classify",
+        "type": "condition",
+        "label": "Classify",
+        "position": {
+          "x": 660,
+          "y": 2000
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Missing invoice",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{invoice}}",
+                  "operator": "is_empty",
+                  "value": ""
+                }
+              ]
+            },
+            {
+              "label": "Amount mismatch",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{difference}}",
+                  "operator": "gt",
+                  "value": "{{amount_tolerance}}"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "ins_missing",
+        "type": "update_data_table",
+        "label": "Record missing invoice",
+        "position": {
+          "x": 660,
+          "y": 2180
+        },
+        "config": {
+          "table_id": "d5e4d01d-b151-473a-ae3a-dd949206a6cf",
+          "table_name": "Reconciliation exceptions",
+          "operation": "insert",
+          "column_values": {
+            "run_date": "{{date}}",
+            "order_id": "{{order.id}}",
+            "customer": "{{order.customer}}",
+            "exception_type": "missing invoice",
+            "order_total": "{{order.total}}",
+            "difference": "{{order.total}}",
+            "status": "open"
+          }
+        }
+      },
+      {
+        "id": "inc_missing",
+        "type": "math",
+        "label": "Missing + 1",
+        "position": {
+          "x": 660,
+          "y": 2340
+        },
+        "config": {
+          "expression": "{{missing_count}} + 1",
+          "output_var": "missing_count"
+        }
+      },
+      {
+        "id": "ins_mismatch",
+        "type": "update_data_table",
+        "label": "Record amount mismatch",
+        "position": {
+          "x": 980,
+          "y": 2180
+        },
+        "config": {
+          "table_id": "d5e4d01d-b151-473a-ae3a-dd949206a6cf",
+          "table_name": "Reconciliation exceptions",
+          "operation": "insert",
+          "column_values": {
+            "run_date": "{{date}}",
+            "order_id": "{{order.id}}",
+            "customer": "{{order.customer}}",
+            "exception_type": "amount mismatch",
+            "order_total": "{{order.total}}",
+            "invoice_number": "{{invoice.invoice_number}}",
+            "invoice_amount": "{{invoice.amount}}",
+            "difference": "{{difference}}",
+            "status": "open"
+          }
+        }
+      },
+      {
+        "id": "inc_mismatch",
+        "type": "math",
+        "label": "Mismatch + 1",
+        "position": {
+          "x": 980,
+          "y": 2340
+        },
+        "config": {
+          "expression": "{{mismatch_count}} + 1",
+          "output_var": "mismatch_count"
+        }
+      },
+      {
+        "id": "inc_matched",
+        "type": "math",
+        "label": "Matched + 1",
+        "position": {
+          "x": 1300,
+          "y": 2180
+        },
+        "config": {
+          "expression": "{{matched_count}} + 1",
+          "output_var": "matched_count"
+        }
+      },
+      {
+        "id": "exceptions",
+        "type": "math",
+        "label": "Total exceptions",
+        "position": {
+          "x": 340,
+          "y": 2500
+        },
+        "config": {
+          "expression": "{{missing_count}} + {{mismatch_count}}",
+          "output_var": "exception_count"
+        }
+      },
+      {
+        "id": "email",
+        "type": "send_email",
+        "label": "Email finance ops",
+        "position": {
+          "x": 340,
+          "y": 2660
+        },
+        "config": {
+          "to": "{{finance_ops_email}}",
+          "email_template_id": "5e2bb23f-900b-4c0b-b53c-0171f1a73797"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "post",
+        "type": "call_reference",
+        "label": "Post summary",
+        "position": {
+          "x": 340,
+          "y": 2820
+        },
+        "config": {
+          "reference_id": "9afb9baf-f5e6-444e-9de7-1491ce7ac375",
+          "reference_name": "Post reconciliation summary",
+          "reference_method": "POST",
+          "input_mappings": {
+            "date": "{{date}}",
+            "orders": "{{order_count}}",
+            "matched": "{{matched_count}}",
+            "missing_invoice": "{{missing_count}}",
+            "amount_mismatch": "{{mismatch_count}}",
+            "text": "Reconciliation {{date}}: {{order_count}} orders, {{matched_count}} matched, {{missing_count}} missing invoice, {{mismatch_count}} amount mismatch"
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "summary",
+        "type": "log",
+        "label": "Log summary",
+        "position": {
+          "x": 340,
+          "y": 2980
+        },
+        "config": {
+          "message": "Reconciliation {{date}}: {{order_count}} orders, {{matched_count}} matched, {{missing_count}} missing, {{mismatch_count}} mismatched",
+          "level": "info"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Done",
+        "position": {
+          "x": 340,
+          "y": 3140
+        },
+        "config": {
+          "reason": "{{exception_count}} exceptions for {{date}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-date",
+        "source": "trigger",
+        "target": "date"
+      },
+      {
+        "id": "e-date-title",
+        "source": "date",
+        "target": "title"
+      },
+      {
+        "id": "e-title-orders",
+        "source": "title",
+        "target": "orders"
+      },
+      {
+        "id": "e-orders-invoices",
+        "source": "orders",
+        "target": "invoices"
+      },
+      {
+        "id": "e-invoices-count_orders",
+        "source": "invoices",
+        "target": "count_orders"
+      },
+      {
+        "id": "e-count_orders-init_matched",
+        "source": "count_orders",
+        "target": "init_matched"
+      },
+      {
+        "id": "e-init_matched-init_missing",
+        "source": "init_matched",
+        "target": "init_missing"
+      },
+      {
+        "id": "e-init_missing-init_mismatch",
+        "source": "init_missing",
+        "target": "init_mismatch"
+      },
+      {
+        "id": "e-init_mismatch-loop",
+        "source": "init_mismatch",
+        "target": "loop"
+      },
+      {
+        "id": "e-loop-find-each-item",
+        "source": "loop",
+        "target": "find",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-find-diff",
+        "source": "find",
+        "target": "diff"
+      },
+      {
+        "id": "e-diff-classify",
+        "source": "diff",
+        "target": "classify"
+      },
+      {
+        "id": "e-classify-ins_missing-missing-invoice",
+        "source": "classify",
+        "target": "ins_missing",
+        "label": "Missing invoice"
+      },
+      {
+        "id": "e-ins_missing-inc_missing",
+        "source": "ins_missing",
+        "target": "inc_missing"
+      },
+      {
+        "id": "e-classify-ins_mismatch-amount-mismatch",
+        "source": "classify",
+        "target": "ins_mismatch",
+        "label": "Amount mismatch"
+      },
+      {
+        "id": "e-ins_mismatch-inc_mismatch",
+        "source": "ins_mismatch",
+        "target": "inc_mismatch"
+      },
+      {
+        "id": "e-classify-inc_matched-else",
+        "source": "classify",
+        "target": "inc_matched",
+        "label": "Else"
+      },
+      {
+        "id": "e-loop-exceptions-done",
+        "source": "loop",
+        "target": "exceptions",
+        "label": "Done"
+      },
+      {
+        "id": "e-exceptions-email",
+        "source": "exceptions",
+        "target": "email"
+      },
+      {
+        "id": "e-email-post",
+        "source": "email",
+        "target": "post"
+      },
+      {
+        "id": "e-post-summary",
+        "source": "post",
+        "target": "summary"
+      },
+      {
+        "id": "e-summary-done",
+        "source": "summary",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-as_of",
+        "name": "as_of",
+        "type": "string",
+        "description": "Optional business date to reconcile (YYYY-MM-DD); defaults to yesterday",
+        "defaultValue": "",
+        "label": "As of",
+        "format": "date"
+      },
+      {
+        "id": "v-finance_ops_email",
+        "name": "finance_ops_email",
+        "type": "string",
+        "description": "Who receives the daily summary",
+        "defaultValue": "finance-ops@example.com",
+        "label": "Finance ops email",
+        "format": "email"
+      },
+      {
+        "id": "v-amount_tolerance",
+        "name": "amount_tolerance",
+        "type": "number",
+        "description": "Differences up to this amount count as matched (rounding)",
+        "defaultValue": "0.01",
+        "label": "Tolerance"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

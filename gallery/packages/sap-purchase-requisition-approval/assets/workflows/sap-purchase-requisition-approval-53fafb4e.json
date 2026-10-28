@@ -1,0 +1,950 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "53fafb4e-dee4-5d36-ac4f-3215171eeff8",
+  "asset": {
+    "id": "53fafb4e-dee4-5d36-ac4f-3215171eeff8",
+    "name": "SAP purchase requisition approval",
+    "description": "A released SAP purchase requisition is read over OData, routed by the approval matrix to one or two approvers who pick the cost centre, and converted into a purchase order.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Requisition released for approval",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "hdr",
+        "type": "call_reference",
+        "label": "Get purchase requisition",
+        "position": {
+          "x": 400,
+          "y": 220
+        },
+        "config": {
+          "reference_id": "35e52afe-a361-59e4-be28-966a0b8b7844",
+          "reference_name": "Get purchase requisition",
+          "reference_method": "GET",
+          "input_mappings": {
+            "purchase_requisition": "{{purchase_requisition}}"
+          },
+          "output_mappings": {
+            "pr_type": {
+              "enabled": true,
+              "variableName": "pr_type"
+            },
+            "pr_description": {
+              "enabled": true,
+              "variableName": "pr_description"
+            }
+          }
+        }
+      },
+      {
+        "id": "items",
+        "type": "call_reference",
+        "label": "Get requisition items",
+        "position": {
+          "x": 400,
+          "y": 380
+        },
+        "config": {
+          "reference_id": "4d915069-abc8-5ce4-bc83-b615be99bf64",
+          "reference_name": "Get requisition items",
+          "reference_method": "GET",
+          "input_mappings": {
+            "purchase_requisition": "{{purchase_requisition}}"
+          },
+          "output_mappings": {
+            "items": {
+              "enabled": true,
+              "variableName": "items"
+            },
+            "material_group": {
+              "enabled": true,
+              "variableName": "material_group"
+            },
+            "plant": {
+              "enabled": true,
+              "variableName": "plant"
+            },
+            "company_code": {
+              "enabled": true,
+              "variableName": "company_code"
+            },
+            "purchasing_org": {
+              "enabled": true,
+              "variableName": "purchasing_org"
+            },
+            "purchasing_group": {
+              "enabled": true,
+              "variableName": "purchasing_group"
+            },
+            "supplier": {
+              "enabled": true,
+              "variableName": "supplier"
+            },
+            "currency": {
+              "enabled": true,
+              "variableName": "currency"
+            },
+            "created_by": {
+              "enabled": true,
+              "variableName": "created_by"
+            }
+          }
+        }
+      },
+      {
+        "id": "t0",
+        "type": "set_variable",
+        "label": "Total = 0",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "name": "amount",
+          "expression": "0"
+        }
+      },
+      {
+        "id": "loop",
+        "type": "loop",
+        "label": "Each item",
+        "position": {
+          "x": 400,
+          "y": 700
+        },
+        "config": {
+          "items": "{{items}}",
+          "item_var": "it"
+        }
+      },
+      {
+        "id": "line",
+        "type": "math",
+        "label": "Item value",
+        "position": {
+          "x": 720,
+          "y": 860
+        },
+        "config": {
+          "expression": "{{it.RequestedQuantity}} * {{it.PurchaseRequisitionPrice}} / {{it.PurReqnPriceQuantity}}",
+          "output_var": "line_value"
+        }
+      },
+      {
+        "id": "sum",
+        "type": "math",
+        "label": "Add to total",
+        "position": {
+          "x": 720,
+          "y": 1020
+        },
+        "config": {
+          "expression": "{{amount}} + {{line_value}}",
+          "output_var": "amount"
+        }
+      },
+      {
+        "id": "summary_add",
+        "type": "json_add_to_array",
+        "label": "Item summary",
+        "position": {
+          "x": 720,
+          "y": 1180
+        },
+        "config": {
+          "array_var": "item_lines",
+          "value": "{{it.PurchaseRequisitionItem}}: {{it.RequestedQuantity}} {{it.BaseUnit}} {{it.PurchaseRequisitionItemText}} @ {{it.PurchaseRequisitionPrice}}"
+        }
+      },
+      {
+        "id": "total",
+        "type": "set_variable",
+        "label": "Round total",
+        "position": {
+          "x": 400,
+          "y": 1340
+        },
+        "config": {
+          "name": "amount",
+          "expression": "{{=ROUND(amount, 2)}}"
+        }
+      },
+      {
+        "id": "lines",
+        "type": "set_variable",
+        "label": "Item lines",
+        "position": {
+          "x": 400,
+          "y": 1500
+        },
+        "config": {
+          "name": "item_text",
+          "expression": "{{=JOIN(\"; \", item_lines)}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 1660
+        },
+        "config": {
+          "title": "PR {{purchase_requisition}} · {{pr_description}} · {{currency}} {{amount}}"
+        }
+      },
+      {
+        "id": "matrix",
+        "type": "decision_table",
+        "label": "PR approval matrix",
+        "position": {
+          "x": 400,
+          "y": 1820
+        },
+        "config": {
+          "decision_table_id": "8954194a-c000-5132-af48-7ecc1235ac38",
+          "decision_table_name": "PR approval matrix",
+          "input_mappings": {
+            "amount": "{{amount}}",
+            "material_group": "{{material_group}}",
+            "plant": "{{plant}}"
+          }
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Approval SLA",
+        "position": {
+          "x": 400,
+          "y": 1980
+        },
+        "config": {
+          "sla_label": "PR approval",
+          "mode": "relative",
+          "amount": 5,
+          "unit": "days",
+          "warning_amount": 3,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Log requisition",
+        "position": {
+          "x": 400,
+          "y": 2140
+        },
+        "config": {
+          "table_id": "d234c4d8-1e65-5aec-b20d-931ad5830f4e",
+          "table_name": "Requisition approvals",
+          "operation": "insert",
+          "column_values": {
+            "purchase_requisition": "{{purchase_requisition}}",
+            "description": "{{pr_description}}",
+            "amount": "{{amount}}",
+            "currency": "{{currency}}",
+            "material_group": "{{material_group}}",
+            "plant": "{{plant}}",
+            "approver_level": "{{approver_level}}",
+            "status": "awaiting approval"
+          }
+        }
+      },
+      {
+        "id": "approve",
+        "type": "user_task",
+        "label": "Approve requisition",
+        "position": {
+          "x": 400,
+          "y": 2300
+        },
+        "config": {
+          "task_title": "Approve PR {{purchase_requisition}}: {{pr_description}} ({{currency}} {{amount}})",
+          "task_description": "<p>SAP purchase requisition <strong>{{purchase_requisition}}</strong> ({{pr_type}}) for <strong>{{currency}} {{amount}}</strong>, plant {{plant}}, material group {{material_group}}, supplier {{supplier}}.</p><p>Items: {{item_text}}</p><p>Approval matrix rule “{{rule_label}}”: <strong>{{approver_level}}</strong>{{=IF(two_step, \", then finance\", \"\")}}. Pick the cost centre to charge.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "38163ccf-43f3-5d95-a2e9-ead5d855bce1",
+          "assignee_variable": "{{approver_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320,
+          "fields": [
+            {
+              "key": "cost_center",
+              "label": "Cost centre",
+              "type": "lookup",
+              "required": true,
+              "help_text": "Search by number or name",
+              "lookup": {
+                "source": "table",
+                "table_id": "7db7a313-d524-5cb7-9748-ecb1d38af388",
+                "search_columns": [
+                  "cost_center",
+                  "name"
+                ],
+                "display_columns": [
+                  "cost_center",
+                  "name",
+                  "responsible"
+                ],
+                "value_column": "cost_center",
+                "fill": [
+                  {
+                    "from": "name",
+                    "to": "cost_center_name"
+                  },
+                  {
+                    "from": "responsible",
+                    "to": "cost_center_owner"
+                  },
+                  {
+                    "from": "budget_remaining",
+                    "to": "budget_remaining"
+                  },
+                  {
+                    "from": "gl_account",
+                    "to": "gl_account"
+                  }
+                ],
+                "filters": [
+                  {
+                    "column": "active",
+                    "operator": "eq",
+                    "value": "true"
+                  }
+                ],
+                "sort": {
+                  "column": "cost_center",
+                  "direction": "asc"
+                }
+              }
+            },
+            {
+              "key": "cost_center_name",
+              "label": "Name",
+              "type": "text",
+              "read_only": true
+            },
+            {
+              "key": "cost_center_owner",
+              "label": "Responsible",
+              "type": "text",
+              "read_only": true
+            },
+            {
+              "key": "budget_remaining",
+              "label": "Budget remaining (EUR)",
+              "type": "currency",
+              "read_only": true
+            },
+            {
+              "key": "gl_account",
+              "label": "G/L account",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "cost_center",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "cost_center_name",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "cost_center_owner",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "budget_remaining",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "gl_account",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Purchase requisition {{purchase_requisition}}",
+            "align": "left",
+            "subtitle": "{{pr_description}} · {{currency}} {{amount}} · {{approver_level}}"
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ]
+        }
+      },
+      {
+        "id": "cc",
+        "type": "set_variable",
+        "label": "Approved cost centre",
+        "position": {
+          "x": 240,
+          "y": 2480
+        },
+        "config": {
+          "name": "cost_center",
+          "expression": "{{task_data.cost_center}}"
+        }
+      },
+      {
+        "id": "gl",
+        "type": "set_variable",
+        "label": "Approved G/L account",
+        "position": {
+          "x": 240,
+          "y": 2640
+        },
+        "config": {
+          "name": "gl_account",
+          "expression": "{{task_data.gl_account}}"
+        }
+      },
+      {
+        "id": "two",
+        "type": "condition",
+        "label": "Finance approval needed?",
+        "position": {
+          "x": 240,
+          "y": 2800
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Finance",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{two_step}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "finance",
+        "type": "user_task",
+        "label": "Finance approval",
+        "position": {
+          "x": 80,
+          "y": 2960
+        },
+        "config": {
+          "task_title": "Finance approval: PR {{purchase_requisition}} ({{currency}} {{amount}}) on {{cost_center}}",
+          "task_description": "<p>{{approver_level}} approved <strong>{{currency}} {{amount}}</strong> for {{pr_description}} on cost centre <strong>{{cost_center}}</strong> (G/L {{gl_account}}).</p><p>Items: {{item_text}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "27052add-0839-5397-878f-8a51dc3decc9",
+          "assignee_variable": "{{finance_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "budget_checked",
+              "label": "Budget availability checked",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "budget_checked",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Finance approval",
+            "align": "left",
+            "subtitle": "PR {{purchase_requisition}} · cost centre {{cost_center}}"
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ]
+        }
+      },
+      {
+        "id": "po_items0",
+        "type": "set_variable",
+        "label": "Start PO items",
+        "position": {
+          "x": 240,
+          "y": 3140
+        },
+        "config": {
+          "name": "po_items",
+          "expression": ""
+        }
+      },
+      {
+        "id": "po_loop",
+        "type": "loop",
+        "label": "Each requisition item",
+        "position": {
+          "x": 240,
+          "y": 3300
+        },
+        "config": {
+          "items": "{{items}}",
+          "item_var": "it"
+        }
+      },
+      {
+        "id": "po_line",
+        "type": "json_add_to_array",
+        "label": "PO item",
+        "position": {
+          "x": 560,
+          "y": 3460
+        },
+        "config": {
+          "array_var": "po_items",
+          "fields": [
+            {
+              "key": "Material",
+              "value": "{{it.Material}}"
+            },
+            {
+              "key": "Plant",
+              "value": "{{it.Plant}}"
+            },
+            {
+              "key": "OrderQuantity",
+              "value": "{{it.RequestedQuantity}}"
+            },
+            {
+              "key": "PurchaseOrderQuantityUnit",
+              "value": "{{it.BaseUnit}}"
+            },
+            {
+              "key": "NetPriceAmount",
+              "value": "{{it.PurchaseRequisitionPrice}}"
+            },
+            {
+              "key": "PurchaseRequisition",
+              "value": "{{it.PurchaseRequisition}}"
+            },
+            {
+              "key": "PurchaseRequisitionItem",
+              "value": "{{it.PurchaseRequisitionItem}}"
+            },
+            {
+              "key": "AccountAssignmentCategory",
+              "value": "K"
+            },
+            {
+              "key": "CostCenter",
+              "value": "{{cost_center}}"
+            },
+            {
+              "key": "GLAccount",
+              "value": "{{gl_account}}"
+            }
+          ]
+        }
+      },
+      {
+        "id": "po",
+        "type": "call_reference",
+        "label": "Create purchase order",
+        "position": {
+          "x": 240,
+          "y": 3620
+        },
+        "config": {
+          "reference_id": "a7e4d936-e285-5f72-8ab8-e283c5366742",
+          "reference_name": "Create purchase order",
+          "reference_method": "POST",
+          "input_mappings": {
+            "company_code": "{{company_code}}",
+            "supplier": "{{supplier}}",
+            "purchasing_org": "{{purchasing_org}}",
+            "purchasing_group": "{{purchasing_group}}",
+            "currency": "{{currency}}",
+            "items": "{{po_items}}"
+          },
+          "output_mappings": {
+            "purchase_order": {
+              "enabled": true,
+              "variableName": "purchase_order"
+            },
+            "processing_status": {
+              "enabled": true,
+              "variableName": "po_status"
+            }
+          }
+        }
+      },
+      {
+        "id": "done_row",
+        "type": "update_data_table",
+        "label": "Record PO",
+        "position": {
+          "x": 240,
+          "y": 3780
+        },
+        "config": {
+          "table_id": "d234c4d8-1e65-5aec-b20d-931ad5830f4e",
+          "table_name": "Requisition approvals",
+          "operation": "update",
+          "match_column": "purchase_requisition",
+          "match_value": "{{purchase_requisition}}",
+          "column_values": {
+            "status": "PO created",
+            "purchase_order": "{{purchase_order}}",
+            "cost_center": "{{cost_center}}"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "PO created",
+        "position": {
+          "x": 240,
+          "y": 3940
+        },
+        "config": {
+          "reason": "PR {{purchase_requisition}} → PO {{purchase_order}} ({{currency}} {{amount}})"
+        }
+      },
+      {
+        "id": "rej_row",
+        "type": "update_data_table",
+        "label": "Record rejection",
+        "position": {
+          "x": 720,
+          "y": 2640
+        },
+        "config": {
+          "table_id": "d234c4d8-1e65-5aec-b20d-931ad5830f4e",
+          "table_name": "Requisition approvals",
+          "operation": "update",
+          "match_column": "purchase_requisition",
+          "match_value": "{{purchase_requisition}}",
+          "column_values": {
+            "status": "rejected",
+            "notes": "{{task_data.comment}}"
+          }
+        }
+      },
+      {
+        "id": "rejected",
+        "type": "end_workflow",
+        "label": "Rejected",
+        "position": {
+          "x": 720,
+          "y": 2800
+        },
+        "config": {
+          "reason": "PR {{purchase_requisition}} rejected"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-hdr",
+        "source": "trigger",
+        "target": "hdr"
+      },
+      {
+        "id": "e-hdr-items",
+        "source": "hdr",
+        "target": "items"
+      },
+      {
+        "id": "e-items-t0",
+        "source": "items",
+        "target": "t0"
+      },
+      {
+        "id": "e-t0-loop",
+        "source": "t0",
+        "target": "loop"
+      },
+      {
+        "id": "e-loop-line-each-item",
+        "source": "loop",
+        "target": "line",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-line-sum",
+        "source": "line",
+        "target": "sum"
+      },
+      {
+        "id": "e-sum-summary_add",
+        "source": "sum",
+        "target": "summary_add"
+      },
+      {
+        "id": "e-loop-total-done",
+        "source": "loop",
+        "target": "total",
+        "label": "Done"
+      },
+      {
+        "id": "e-total-lines",
+        "source": "total",
+        "target": "lines"
+      },
+      {
+        "id": "e-lines-title",
+        "source": "lines",
+        "target": "title"
+      },
+      {
+        "id": "e-title-matrix",
+        "source": "title",
+        "target": "matrix"
+      },
+      {
+        "id": "e-matrix-sla",
+        "source": "matrix",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-log",
+        "source": "sla",
+        "target": "log"
+      },
+      {
+        "id": "e-log-approve",
+        "source": "log",
+        "target": "approve"
+      },
+      {
+        "id": "e-approve-cc-approve",
+        "source": "approve",
+        "target": "cc",
+        "label": "Approve"
+      },
+      {
+        "id": "e-approve-rej_row-reject",
+        "source": "approve",
+        "target": "rej_row",
+        "label": "Reject"
+      },
+      {
+        "id": "e-cc-gl",
+        "source": "cc",
+        "target": "gl"
+      },
+      {
+        "id": "e-gl-two",
+        "source": "gl",
+        "target": "two"
+      },
+      {
+        "id": "e-two-finance-finance",
+        "source": "two",
+        "target": "finance",
+        "label": "Finance"
+      },
+      {
+        "id": "e-two-po_items0-else",
+        "source": "two",
+        "target": "po_items0",
+        "label": "Else"
+      },
+      {
+        "id": "e-finance-po_items0-approve",
+        "source": "finance",
+        "target": "po_items0",
+        "label": "Approve"
+      },
+      {
+        "id": "e-finance-rej_row-reject",
+        "source": "finance",
+        "target": "rej_row",
+        "label": "Reject"
+      },
+      {
+        "id": "e-po_items0-po_loop",
+        "source": "po_items0",
+        "target": "po_loop"
+      },
+      {
+        "id": "e-po_loop-po_line-each-item",
+        "source": "po_loop",
+        "target": "po_line",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-po_loop-po-done",
+        "source": "po_loop",
+        "target": "po",
+        "label": "Done"
+      },
+      {
+        "id": "e-po-done_row",
+        "source": "po",
+        "target": "done_row"
+      },
+      {
+        "id": "e-done_row-done",
+        "source": "done_row",
+        "target": "done"
+      },
+      {
+        "id": "e-rej_row-rejected",
+        "source": "rej_row",
+        "target": "rejected"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-purchase_requisition",
+        "name": "purchase_requisition",
+        "type": "string",
+        "description": "SAP purchase requisition number (BANFN), e.g. 10000123",
+        "defaultValue": "",
+        "required": true,
+        "label": "Purchase requisition"
+      },
+      {
+        "id": "v-approver_user_id",
+        "name": "approver_user_id",
+        "type": "string",
+        "description": "Optional: UserTasks user id of the first approver; the install-time default otherwise",
+        "defaultValue": "",
+        "required": false,
+        "label": "Approver (user id)"
+      },
+      {
+        "id": "v-finance_user_id",
+        "name": "finance_user_id",
+        "type": "string",
+        "description": "Optional: UserTasks user id of the finance approver for two-step approvals",
+        "defaultValue": "",
+        "required": false,
+        "label": "Finance approver (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

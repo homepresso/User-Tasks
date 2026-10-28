@@ -1,0 +1,793 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "5733065a-39c5-50e5-85e4-e766d4b12e29",
+  "asset": {
+    "id": "5733065a-39c5-50e5-85e4-e766d4b12e29",
+    "name": "Workday worker change access update",
+    "description": "A Workday job change, org move or termination maps the old and new job to access bundles, logs the change request and has the manager approve it; the decision is posted back to the Workday event.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Workday worker change",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Change reference",
+        "position": {
+          "x": 400,
+          "y": 220
+        },
+        "config": {
+          "name": "change_ref",
+          "expression": "ACC-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "worker",
+        "type": "call_reference",
+        "label": "Get worker",
+        "position": {
+          "x": 400,
+          "y": 380
+        },
+        "config": {
+          "reference_id": "7b9418d6-3183-5173-a9b0-fe0efb5be159",
+          "reference_name": "Get worker",
+          "reference_method": "GET",
+          "input_mappings": {
+            "worker_id": "{{worker_id}}"
+          },
+          "output_mappings": {
+            "worker_name": {
+              "enabled": true,
+              "variableName": "worker_name"
+            },
+            "employee_id": {
+              "enabled": true,
+              "variableName": "employee_id"
+            },
+            "work_email": {
+              "enabled": true,
+              "variableName": "work_email"
+            },
+            "business_title": {
+              "enabled": true,
+              "variableName": "business_title"
+            },
+            "job_profile": {
+              "enabled": true,
+              "variableName": "job_profile"
+            },
+            "job_family": {
+              "enabled": true,
+              "variableName": "job_family"
+            },
+            "supervisory_org": {
+              "enabled": true,
+              "variableName": "supervisory_org"
+            },
+            "manager_name": {
+              "enabled": true,
+              "variableName": "manager_name"
+            },
+            "manager_email": {
+              "enabled": true,
+              "variableName": "manager_email"
+            }
+          }
+        }
+      },
+      {
+        "id": "history",
+        "type": "call_reference",
+        "label": "Get job history",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "reference_id": "53d85d76-633c-50c8-a36e-d31c1f3e4566",
+          "reference_name": "Get worker job history",
+          "reference_method": "GET",
+          "input_mappings": {
+            "worker_id": "{{worker_id}}"
+          },
+          "output_mappings": {
+            "history": {
+              "enabled": true,
+              "variableName": "history"
+            },
+            "change_type": {
+              "enabled": true,
+              "variableName": "change_type"
+            },
+            "change_reason": {
+              "enabled": true,
+              "variableName": "change_reason"
+            },
+            "effective_date": {
+              "enabled": true,
+              "variableName": "effective_date"
+            },
+            "previous_job_profile": {
+              "enabled": true,
+              "variableName": "previous_job_profile"
+            },
+            "previous_org": {
+              "enabled": true,
+              "variableName": "previous_org"
+            }
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 700
+        },
+        "config": {
+          "title": "Access change {{change_ref}}: {{worker_name}} ({{event_type}}, effective {{effective_date}})"
+        }
+      },
+      {
+        "id": "new_map",
+        "type": "decision_table",
+        "label": "Bundle for the new job",
+        "position": {
+          "x": 400,
+          "y": 860
+        },
+        "config": {
+          "decision_table_id": "4275b281-4897-50d5-8288-fea8243790f2",
+          "decision_table_name": "Access bundle mapping",
+          "input_mappings": {
+            "event_type": "{{event_type}}",
+            "job_profile": "{{job_profile}}",
+            "organization": "{{supervisory_org}}"
+          }
+        }
+      },
+      {
+        "id": "new_b",
+        "type": "set_variable",
+        "label": "New bundle",
+        "position": {
+          "x": 400,
+          "y": 1020
+        },
+        "config": {
+          "name": "to_bundle",
+          "expression": "{{bundle_code}}"
+        }
+      },
+      {
+        "id": "review",
+        "type": "set_variable",
+        "label": "Review level",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "name": "review",
+          "expression": "{{review_level}}"
+        }
+      },
+      {
+        "id": "old_map",
+        "type": "decision_table",
+        "label": "Bundle for the previous job",
+        "position": {
+          "x": 400,
+          "y": 1340
+        },
+        "config": {
+          "decision_table_id": "4275b281-4897-50d5-8288-fea8243790f2",
+          "decision_table_name": "Access bundle mapping",
+          "input_mappings": {
+            "event_type": "job_change",
+            "job_profile": "{{previous_job_profile}}",
+            "organization": "{{previous_org}}"
+          }
+        }
+      },
+      {
+        "id": "old_b",
+        "type": "set_variable",
+        "label": "Previous bundle",
+        "position": {
+          "x": 400,
+          "y": 1500
+        },
+        "config": {
+          "name": "from_bundle",
+          "expression": "{{bundle_code}}"
+        }
+      },
+      {
+        "id": "to_row",
+        "type": "update_data_table",
+        "label": "What the new bundle grants",
+        "position": {
+          "x": 400,
+          "y": 1660
+        },
+        "config": {
+          "table_id": "e392c9de-d0ba-53be-9a1d-c47394c07538",
+          "table_name": "Access bundles",
+          "operation": "get",
+          "match_column": "bundle_code",
+          "match_value": "{{to_bundle}}",
+          "output_row_var": "to_bundle_row"
+        }
+      },
+      {
+        "id": "from_row",
+        "type": "update_data_table",
+        "label": "What the old bundle grants",
+        "position": {
+          "x": 400,
+          "y": 1820
+        },
+        "config": {
+          "table_id": "e392c9de-d0ba-53be-9a1d-c47394c07538",
+          "table_name": "Access bundles",
+          "operation": "get",
+          "match_column": "bundle_code",
+          "match_value": "{{from_bundle}}",
+          "output_row_var": "from_bundle_row"
+        }
+      },
+      {
+        "id": "same",
+        "type": "condition",
+        "label": "Access changes?",
+        "position": {
+          "x": 400,
+          "y": 1980
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "No change",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{to_bundle}}",
+                  "operator": "equals",
+                  "value": "{{from_bundle}}"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "nothing",
+        "type": "log",
+        "label": "No access change",
+        "position": {
+          "x": 720,
+          "y": 2140
+        },
+        "config": {
+          "message": "{{worker_name}}: {{event_type}} keeps bundle {{to_bundle}}; nothing to change",
+          "level": "info"
+        }
+      },
+      {
+        "id": "end_same",
+        "type": "end_workflow",
+        "label": "Nothing to change",
+        "position": {
+          "x": 720,
+          "y": 2300
+        },
+        "config": {
+          "reason": "{{worker_name}} keeps {{to_bundle}}"
+        }
+      },
+      {
+        "id": "log_req",
+        "type": "update_data_table",
+        "label": "Log access change request",
+        "position": {
+          "x": 400,
+          "y": 2140
+        },
+        "config": {
+          "table_id": "66657dd9-f20b-5538-abe9-e1cc5482d358",
+          "table_name": "Access change requests",
+          "operation": "insert",
+          "column_values": {
+            "change_ref": "{{change_ref}}",
+            "worker_id": "{{worker_id}}",
+            "worker_name": "{{worker_name}}",
+            "event_type": "{{event_type}}",
+            "effective_date": "{{effective_date}}",
+            "from_bundle": "{{from_bundle}}",
+            "to_bundle": "{{to_bundle}}",
+            "status": "pending manager"
+          }
+        }
+      },
+      {
+        "id": "approve",
+        "type": "user_task",
+        "label": "Manager approves access change",
+        "position": {
+          "x": 400,
+          "y": 2300
+        },
+        "config": {
+          "task_title": "Approve access change for {{worker_name}}: {{from_bundle}} → {{to_bundle}}",
+          "task_description": "<p><strong>{{worker_name}}</strong> ({{employee_id}}) had a <strong>{{change_type}}</strong> ({{change_reason}}) effective <strong>{{effective_date}}</strong>.</p><p>Before: {{previous_job_profile}} in {{previous_org}}.<br>Now: {{job_profile}} in {{supervisory_org}}.</p><p><strong>Remove</strong> {{from_bundle}} ({{from_bundle_row.name}}): {{from_bundle_row.applications}}<br><strong>Add</strong> {{to_bundle}} ({{to_bundle_row.name}}, risk {{to_bundle_row.risk}}): {{to_bundle_row.applications}}</p><p>Review: {{review}}.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "bc4aa9ce-d345-5fd6-af48-caa6419c400b",
+          "assignee_variable": "{{manager_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 2880,
+          "fields": [
+            {
+              "key": "remove_bundle",
+              "label": "Remove bundle",
+              "type": "text",
+              "read_only": true,
+              "default": "{{from_bundle}}"
+            },
+            {
+              "key": "add_bundle",
+              "label": "Add bundle",
+              "type": "lookup",
+              "required": true,
+              "default": "{{to_bundle}}",
+              "help_text": "Change it if the mapped bundle is wrong for this person",
+              "lookup": {
+                "source": "table",
+                "table_id": "e392c9de-d0ba-53be-9a1d-c47394c07538",
+                "search_columns": [
+                  "bundle_code",
+                  "name"
+                ],
+                "display_columns": [
+                  "bundle_code",
+                  "name",
+                  "risk"
+                ],
+                "value_column": "bundle_code",
+                "fill": [
+                  {
+                    "from": "applications",
+                    "to": "add_applications"
+                  }
+                ]
+              }
+            },
+            {
+              "key": "add_applications",
+              "label": "Grants",
+              "type": "textarea",
+              "read_only": true
+            },
+            {
+              "key": "remove_by",
+              "label": "Remove old access by",
+              "type": "date",
+              "required": true,
+              "default": "{{effective_date}}"
+            },
+            {
+              "key": "keep_temporarily",
+              "label": "Keep old access during handover",
+              "type": "boolean"
+            },
+            {
+              "key": "comment",
+              "label": "Comment (posted to Workday)",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "remove_bundle",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "add_bundle",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "add_applications",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "remove_by",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "keep_temporarily",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Access change: {{worker_name}}",
+            "align": "left",
+            "subtitle": "{{change_type}} · effective {{effective_date}} · {{change_ref}}"
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ]
+        }
+      },
+      {
+        "id": "approved",
+        "type": "update_data_table",
+        "label": "Record approval",
+        "position": {
+          "x": 240,
+          "y": 2480
+        },
+        "config": {
+          "table_id": "66657dd9-f20b-5538-abe9-e1cc5482d358",
+          "table_name": "Access change requests",
+          "operation": "update",
+          "match_column": "change_ref",
+          "match_value": "{{change_ref}}",
+          "column_values": {
+            "to_bundle": "{{task_data.add_bundle}}",
+            "remove_by": "{{task_data.remove_by}}",
+            "decision": "Approve",
+            "decided_by": "{{task.assignee_id}}",
+            "status": "approved",
+            "notes": "{{task_data.comment}}"
+          }
+        }
+      },
+      {
+        "id": "comment_ok",
+        "type": "call_reference",
+        "label": "Comment on the Workday event",
+        "position": {
+          "x": 240,
+          "y": 2640
+        },
+        "config": {
+          "reference_id": "343bfd08-2e33-5cac-9174-89cb7079d732",
+          "reference_name": "Add business process comment",
+          "reference_method": "POST",
+          "input_mappings": {
+            "event_id": "{{event_id}}",
+            "comment": "UserTasks {{change_ref}}: access change approved. Remove {{from_bundle}} by {{task_data.remove_by}}, add {{task_data.add_bundle}}. {{task_data.comment}}"
+          },
+          "output_mappings": {
+            "comment_id": {
+              "enabled": true,
+              "variableName": "workday_comment_id"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "posted",
+        "type": "update_data_table",
+        "label": "Mark queued for provisioning",
+        "position": {
+          "x": 240,
+          "y": 2800
+        },
+        "config": {
+          "table_id": "66657dd9-f20b-5538-abe9-e1cc5482d358",
+          "table_name": "Access change requests",
+          "operation": "update",
+          "match_column": "change_ref",
+          "match_value": "{{change_ref}}",
+          "column_values": {
+            "status": "approved: queued for identity provisioning"
+          }
+        }
+      },
+      {
+        "id": "end_ok",
+        "type": "end_workflow",
+        "label": "Access change approved",
+        "position": {
+          "x": 240,
+          "y": 2960
+        },
+        "config": {
+          "reason": "{{change_ref}}: {{from_bundle}} → {{task_data.add_bundle}} for {{worker_name}}"
+        }
+      },
+      {
+        "id": "rejected",
+        "type": "update_data_table",
+        "label": "Record rejection",
+        "position": {
+          "x": 560,
+          "y": 2480
+        },
+        "config": {
+          "table_id": "66657dd9-f20b-5538-abe9-e1cc5482d358",
+          "table_name": "Access change requests",
+          "operation": "update",
+          "match_column": "change_ref",
+          "match_value": "{{change_ref}}",
+          "column_values": {
+            "decision": "Reject",
+            "decided_by": "{{task.assignee_id}}",
+            "status": "rejected",
+            "notes": "{{task_data.comment}}"
+          }
+        }
+      },
+      {
+        "id": "comment_no",
+        "type": "call_reference",
+        "label": "Comment: rejected",
+        "position": {
+          "x": 560,
+          "y": 2640
+        },
+        "config": {
+          "reference_id": "343bfd08-2e33-5cac-9174-89cb7079d732",
+          "reference_name": "Add business process comment",
+          "reference_method": "POST",
+          "input_mappings": {
+            "event_id": "{{event_id}}",
+            "comment": "UserTasks {{change_ref}}: access change rejected by the manager. {{task_data.comment}}"
+          },
+          "output_mappings": {}
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "end_no",
+        "type": "end_workflow",
+        "label": "Access change rejected",
+        "position": {
+          "x": 560,
+          "y": 2800
+        },
+        "config": {
+          "reason": "{{change_ref}} rejected"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-worker",
+        "source": "ref",
+        "target": "worker"
+      },
+      {
+        "id": "e-worker-history",
+        "source": "worker",
+        "target": "history"
+      },
+      {
+        "id": "e-history-title",
+        "source": "history",
+        "target": "title"
+      },
+      {
+        "id": "e-title-new_map",
+        "source": "title",
+        "target": "new_map"
+      },
+      {
+        "id": "e-new_map-new_b",
+        "source": "new_map",
+        "target": "new_b"
+      },
+      {
+        "id": "e-new_b-review",
+        "source": "new_b",
+        "target": "review"
+      },
+      {
+        "id": "e-review-old_map",
+        "source": "review",
+        "target": "old_map"
+      },
+      {
+        "id": "e-old_map-old_b",
+        "source": "old_map",
+        "target": "old_b"
+      },
+      {
+        "id": "e-old_b-to_row",
+        "source": "old_b",
+        "target": "to_row"
+      },
+      {
+        "id": "e-to_row-from_row",
+        "source": "to_row",
+        "target": "from_row"
+      },
+      {
+        "id": "e-from_row-same",
+        "source": "from_row",
+        "target": "same"
+      },
+      {
+        "id": "e-same-nothing-no-change",
+        "source": "same",
+        "target": "nothing",
+        "label": "No change"
+      },
+      {
+        "id": "e-same-log_req-else",
+        "source": "same",
+        "target": "log_req",
+        "label": "Else"
+      },
+      {
+        "id": "e-nothing-end_same",
+        "source": "nothing",
+        "target": "end_same"
+      },
+      {
+        "id": "e-log_req-approve",
+        "source": "log_req",
+        "target": "approve"
+      },
+      {
+        "id": "e-approve-approved-approve",
+        "source": "approve",
+        "target": "approved",
+        "label": "Approve"
+      },
+      {
+        "id": "e-approve-rejected-reject",
+        "source": "approve",
+        "target": "rejected",
+        "label": "Reject"
+      },
+      {
+        "id": "e-approved-comment_ok",
+        "source": "approved",
+        "target": "comment_ok"
+      },
+      {
+        "id": "e-comment_ok-posted",
+        "source": "comment_ok",
+        "target": "posted"
+      },
+      {
+        "id": "e-posted-end_ok",
+        "source": "posted",
+        "target": "end_ok"
+      },
+      {
+        "id": "e-rejected-comment_no",
+        "source": "rejected",
+        "target": "comment_no"
+      },
+      {
+        "id": "e-comment_no-end_no",
+        "source": "comment_no",
+        "target": "end_no"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-worker_id",
+        "name": "worker_id",
+        "type": "string",
+        "description": "Workday worker WID from the change event",
+        "defaultValue": "",
+        "required": true,
+        "label": "Workday worker id"
+      },
+      {
+        "id": "v-event_type",
+        "name": "event_type",
+        "type": "string",
+        "description": "job_change, org_move or termination",
+        "defaultValue": "job_change",
+        "required": true,
+        "label": "Event type",
+        "options": [
+          "job_change",
+          "org_move",
+          "termination"
+        ]
+      },
+      {
+        "id": "v-event_id",
+        "name": "event_id",
+        "type": "string",
+        "description": "Workday event WID: the decision is posted back to it as a comment",
+        "defaultValue": "",
+        "required": true,
+        "label": "Business process event id"
+      },
+      {
+        "id": "v-manager_user_id",
+        "name": "manager_user_id",
+        "type": "string",
+        "description": "Optional: UserTasks user id of the approving manager; the install-time default receives the step otherwise",
+        "defaultValue": "",
+        "required": false,
+        "label": "Manager (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

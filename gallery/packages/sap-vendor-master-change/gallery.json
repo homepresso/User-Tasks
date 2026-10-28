@@ -1,0 +1,89 @@
+{
+  "title": "SAP vendor master change approval",
+  "category": "finance",
+  "summary": "A themed form requests a supplier bank change; SAP data is compared, finance reviews, the supplier is called back, treasury approves and SAP is updated.",
+  "description": "SAP vendor master change approval protects one of the most attacked processes in accounts payable: changing where a supplier is paid. The requester fills in a themed start form with the supplier number, the new bank country, IBAN, SWIFT, account holder, effective date and the evidence reference.\n\nThe workflow reads the supplier, its company code data and its current bank details from SAP S/4HANA (API_BUSINESS_PARTNER: A_Supplier, A_SupplierCompany, A_BusinessPartnerBank), compares them with the request and evaluates the Bank change risk decision table: a different account holder or bank country is high risk and needs two call-backs.\n\nFinance reviews the side-by-side comparison, an AP clerk calls the supplier on a number already on file and ticks off what was confirmed, and treasury gives the second, independent approval. Only then is the new bank detail created and the old one end-dated in SAP. Every step is written to the Vendor change audit log, and the requester is told when the change is live.",
+  "trigger": "form",
+  "entry_workflow": "114d14df-2231-593e-9f2a-4facd11b02e9",
+  "start": "Starts from its themed start form (Run in the app, or share the workflow start form) or from your supplier portal posting the same fields to the start API.",
+  "difficulty": "advanced",
+  "setup_minutes": 35,
+  "tags": [
+    "vendor master",
+    "bank details",
+    "fraud prevention",
+    "sap",
+    "four eyes",
+    "audit"
+  ],
+  "needs": [
+    "rest_api",
+    "assignees"
+  ],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "SAP S/4HANA integration: base URL https://<host>/sap/opu/odata/sap, Basic authentication with the communication user of an arrangement for SAP_COM_0008 (Business Partner, Customer and Supplier Integration); set sap-client in the integration headers.",
+    "CSRF: the POST and PATCH to A_BusinessPartnerBank need an x-csrf-token. Call SAP through API Management or a BTP destination that fetches it, or fetch it yourself (GET with x-csrf-token: Fetch) and pass it to the optional x-csrf-token header input.",
+    "Assignees: pick the finance reviewer, the AP clerk who makes the call-back and the treasury approver. Pick different people: that is the four-eyes control.",
+    "Apply the \"Vendor change audit: 10 years\" retention policy to the audit log, and set EMAIL_PROVIDER for the requester confirmation."
+  ],
+  "steps": [
+    {
+      "title": "Request",
+      "body": "A themed start form collects the supplier, the new bank details, the effective date and the evidence."
+    },
+    {
+      "title": "Compare with SAP",
+      "body": "A_Supplier, A_SupplierCompany and the business partner bank details are read and compared with the request."
+    },
+    {
+      "title": "Risk",
+      "body": "The Bank change risk decision table sets the risk and how many call-backs are needed."
+    },
+    {
+      "title": "Finance review",
+      "body": "Finance checks the evidence and the IBAN on a task form with Approve / Reject."
+    },
+    {
+      "title": "Call-back",
+      "body": "An AP clerk calls the supplier on a known number and ticks the confirmations (Verified / Could not verify)."
+    },
+    {
+      "title": "Treasury approval",
+      "body": "Treasury gives the second approval; the new bank detail is created and the old one end-dated in SAP."
+    },
+    {
+      "title": "Audit",
+      "body": "Each step is logged in the Vendor change audit log and the requester is emailed."
+    }
+  ],
+  "sample_input": {
+    "requester_email": "alex.morgan@example.com",
+    "supplier": "17300001",
+    "company_code": "1010",
+    "new_bank_country": "NL",
+    "new_iban": "NL91 ABNA 0417 1643 00",
+    "new_swift": "ABNANL2AXXX",
+    "new_holder": "Northwind Industrial Supply GmbH",
+    "effective_date": "2026-11-05",
+    "evidence_reference": "DOC-2026-10-4471 (signed bank letter)",
+    "reason": "Supplier moved its operating account to its Dutch subsidiary bank"
+  },
+  "expect": "waiting",
+  "icon": "landmark",
+  "systems": [
+    "SAP S/4HANA"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "id": "715f0477-0b38-5179-a410-82bb8492ef4c",
+  "slug": "sap-vendor-master-change"
+}

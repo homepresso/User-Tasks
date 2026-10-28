@@ -1,0 +1,83 @@
+{
+  "id": "f29468da-6881-42f5-94d4-4a35b7f1bc0f",
+  "slug": "webhook-multi-system-sync",
+  "title": "Webhook multi-system sync",
+  "category": "headless-integration",
+  "summary": "A CRM \"account updated\" webhook is validated and fanned out to the ERP, billing platform and support desk, with every result written to a sync log.",
+  "description": "Webhook multi-system sync keeps customer master data consistent across systems without anyone touching it. Your CRM posts an \"account updated\" webhook with the account id, name, billing address, tax id, status, owner and change time.\n\nThe workflow rejects payloads without an account id or name, then builds a payload per target system and calls them one after another: PUT the customer into the ERP, POST a sync to the billing platform and PATCH the organisation in the support desk. An HTTP error from one system does not stop the others: each call is checked for a status of 400 or above and logged as a failure or a success in the Sync log table.\n\nAdapt the three payloads to your systems' field names, point the integrations at your APIs and create an inbound webhook for the workflow in your CRM. The Sync log gives you a monitoring view and the rows you need to replay a failed sync.",
+  "trigger": "api",
+  "entry_workflow": "df0f6e97-78df-4f90-8f6c-2d38d36ca4ac",
+  "start": "Starts from an inbound webhook: create one for the Account sync workflow and register its URL in your CRM for \"account updated\" events.",
+  "difficulty": "intermediate",
+  "setup_minutes": 20,
+  "tags": [
+    "webhook",
+    "sync",
+    "master data",
+    "integration",
+    "headless"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "webhook"
+  ],
+  "setup": [
+    "ERP integration: set the base URL and API token. Upsert ERP customer calls PUT /customers/{external_id}.",
+    "Billing platform integration: set the base URL and API token. Sync billing account calls POST /accounts/{id}/sync.",
+    "Support desk integration: set the base URL and API token. Update support organisation calls PATCH /organizations/{id}.",
+    "Adjust the three \"payload\" steps to the field names each system expects.",
+    "Create an inbound webhook for the Account sync workflow (Settings → Webhooks) and register it in your CRM. Map the CRM field names to the workflow inputs in the webhook payload mapping if they differ."
+  ],
+  "steps": [
+    {
+      "title": "Webhook received",
+      "body": "The CRM posts the account id, name, billing address, tax id, status, owner email and updated time."
+    },
+    {
+      "title": "Validate",
+      "body": "Payloads without an account id or name are logged and rejected."
+    },
+    {
+      "title": "Upsert the ERP customer",
+      "body": "The customer record is PUT into the ERP keyed by the CRM account id; the result is logged."
+    },
+    {
+      "title": "Sync billing",
+      "body": "The billing platform receives the name, address, tax id and status; an HTTP error is logged as a failure and the run continues."
+    },
+    {
+      "title": "Update the support desk",
+      "body": "The support organisation is patched with the name, owner and status tag."
+    },
+    {
+      "title": "Sync log",
+      "body": "Every call writes its HTTP status and result to the Sync log table."
+    }
+  ],
+  "sample_input": {
+    "account_id": "ACC-20117",
+    "account_name": "Harbour Logistics Ltd",
+    "billing_address": {
+      "line1": "14 Quay Street",
+      "line2": "Level 3",
+      "city": "Auckland",
+      "region": "Auckland",
+      "postcode": "1010",
+      "country": "NZ"
+    },
+    "tax_id": "NZ-123-456-789",
+    "account_status": "active",
+    "owner_email": "jamie.cole@example.com",
+    "updated_at": "2026-10-26T07:14:02Z"
+  },
+  "expect": "completed",
+  "icon": "refresh-cw"
+}

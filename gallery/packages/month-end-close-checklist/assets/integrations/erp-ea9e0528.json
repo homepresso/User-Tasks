@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "ea9e0528-3763-48ce-b297-1336d550603c",
+  "asset": {
+    "id": "ea9e0528-3763-48ce-b297-1336d550603c",
+    "name": "ERP",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://erp.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "finance",
+      "erp"
+    ]
+  }
+}

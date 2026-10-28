@@ -1,0 +1,529 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "3e93bd7f-2d51-5d0d-818b-8e103abc30b3",
+  "asset": {
+    "id": "3e93bd7f-2d51-5d0d-818b-8e103abc30b3",
+    "name": "Risk submission",
+    "description": "A risk is raised on the form: it is scored, rated by the matrix, added to the register with an SLA, and its owner accepts, mitigates or escalates it.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Risk raised",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "form_id": "c56d25bf-a419-54d7-a23f-34ff929f0c1c",
+          "form_name": "Raise a risk"
+        }
+      },
+      {
+        "id": "rid",
+        "type": "set_variable",
+        "label": "Risk ID",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "name": "risk_id",
+          "expression": "RSK-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "score",
+        "type": "set_variable",
+        "label": "Score",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "name": "score",
+          "expression": "{{=form.likelihood * form.impact}}"
+        }
+      },
+      {
+        "id": "rate",
+        "type": "decision_table",
+        "label": "Rate the risk",
+        "position": {
+          "x": 400,
+          "y": 480
+        },
+        "config": {
+          "decision_table_id": "2057a304-c1e8-53e0-996e-288a17bb6b89",
+          "decision_table_name": "Risk rating",
+          "input_mappings": {
+            "score": "{{score}}"
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 620
+        },
+        "config": {
+          "title": "{{risk_id}} · {{rating}} · {{form.title}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Owner review SLA",
+        "position": {
+          "x": 400,
+          "y": 760
+        },
+        "config": {
+          "sla_label": "Risk owner review",
+          "mode": "exact",
+          "due_at": "{{=ADD_DAYS(NOW(), sla_days)}}",
+          "warning_amount": 1,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Add to the register",
+        "position": {
+          "x": 400,
+          "y": 900
+        },
+        "config": {
+          "table_id": "4c980ba2-6b7c-5876-b8d8-de42f0d147c5",
+          "table_name": "Risks",
+          "operation": "insert",
+          "column_values": {
+            "risk_id": "{{risk_id}}",
+            "title": "{{form.title}}",
+            "description": "{{form.description}}",
+            "category": "{{form.category}}",
+            "department": "{{form.department}}",
+            "likelihood": "{{form.likelihood}}",
+            "impact": "{{form.impact}}",
+            "score": "{{score}}",
+            "rating": "{{rating}}",
+            "owner_id": "{{form.owner}}",
+            "controls": "{{form.controls}}",
+            "response": "Pending",
+            "status": "under review",
+            "raised_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "review",
+        "type": "user_task",
+        "label": "Owner review",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "task_title": "Review risk {{risk_id}} ({{rating}}, score {{score}}): {{form.title}}",
+          "task_description": "<p>A <strong>{{rating}}</strong> risk was raised in {{form.department}} ({{form.category}}) by {{form.raised_by_email}}:</p><p><strong>{{form.title}}</strong><br>{{form.description}}</p><p>Likelihood {{form.likelihood}} × impact {{form.impact}} = <strong>{{score}}</strong> (rule \"{{rule_label}}\"). Existing controls: {{form.controls}}</p><p>Decide the response: <strong>Accept</strong> it as it is, <strong>Mitigate</strong> it with a plan and target date, or <strong>Escalate</strong> it to the risk committee. Review within {{sla_days}} days.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Accept",
+            "Mitigate",
+            "Escalate"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.owner}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{=ADD_DAYS(NOW(), sla_days)}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320,
+          "fields": [
+            {
+              "key": "response_note",
+              "label": "Your assessment",
+              "type": "textarea",
+              "required": true,
+              "help_text": "Why you accept, mitigate or escalate it."
+            },
+            {
+              "key": "mitigation_plan",
+              "label": "Mitigation plan",
+              "type": "textarea",
+              "help_text": "For Mitigate: the actions and who does them."
+            },
+            {
+              "key": "target_date",
+              "label": "Mitigation due",
+              "type": "date"
+            },
+            {
+              "key": "residual_likelihood",
+              "label": "Residual likelihood",
+              "type": "choice",
+              "options": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ],
+              "option_labels": {
+                "1": "1 · Rare",
+                "2": "2 · Unlikely",
+                "3": "3 · Possible",
+                "4": "4 · Likely",
+                "5": "5 · Almost certain"
+              },
+              "help_text": "After the mitigation."
+            },
+            {
+              "key": "residual_impact",
+              "label": "Residual impact",
+              "type": "choice",
+              "options": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ],
+              "option_labels": {
+                "1": "1 · Negligible",
+                "2": "2 · Minor",
+                "3": "3 · Moderate",
+                "4": "4 · Major",
+                "5": "5 · Severe"
+              }
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "response_note",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "mitigation_plan",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "target_date",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "residual_likelihood",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "residual_impact",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "accept",
+              "label": "Accept",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Accept"
+            },
+            {
+              "id": "mitigate",
+              "label": "Mitigate",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Mitigate"
+            },
+            {
+              "id": "escalate",
+              "label": "Escalate",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Escalate"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "{{risk_id}} · {{rating}}",
+            "align": "left",
+            "subtitle": "{{form.title}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#B91C1C",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 6,
+              "density": "compact",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "next",
+        "type": "set_variable",
+        "label": "Next review date",
+        "position": {
+          "x": 400,
+          "y": 1040
+        },
+        "config": {
+          "name": "next_review",
+          "expression": "{{=FORMAT_DATE(ADD_DAYS(TODAY(), review_every_days), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "acc",
+        "type": "update_data_table",
+        "label": "Record: accepted",
+        "position": {
+          "x": 120,
+          "y": 1480
+        },
+        "config": {
+          "table_id": "4c980ba2-6b7c-5876-b8d8-de42f0d147c5",
+          "table_name": "Risks",
+          "operation": "update",
+          "match_column": "risk_id",
+          "match_value": "{{risk_id}}",
+          "column_values": {
+            "response": "Accept",
+            "status": "accepted",
+            "residual_score": "{{score}}",
+            "last_reviewed": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "next_review": "{{next_review}}"
+          }
+        }
+      },
+      {
+        "id": "mit_score",
+        "type": "set_variable",
+        "label": "Residual score",
+        "position": {
+          "x": 400,
+          "y": 1480
+        },
+        "config": {
+          "name": "residual_score",
+          "expression": "{{=IF(IS_EMPTY(task_data.residual_likelihood), score, task_data.residual_likelihood * task_data.residual_impact)}}"
+        }
+      },
+      {
+        "id": "mit",
+        "type": "update_data_table",
+        "label": "Record: mitigating",
+        "position": {
+          "x": 400,
+          "y": 1620
+        },
+        "config": {
+          "table_id": "4c980ba2-6b7c-5876-b8d8-de42f0d147c5",
+          "table_name": "Risks",
+          "operation": "update",
+          "match_column": "risk_id",
+          "match_value": "{{risk_id}}",
+          "column_values": {
+            "response": "Mitigate",
+            "status": "mitigating",
+            "mitigation_plan": "{{task_data.mitigation_plan}}",
+            "target_date": "{{task_data.target_date}}",
+            "residual_score": "{{residual_score}}",
+            "last_reviewed": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "next_review": "{{next_review}}"
+          }
+        }
+      },
+      {
+        "id": "esc",
+        "type": "update_data_table",
+        "label": "Record: escalated",
+        "position": {
+          "x": 680,
+          "y": 1480
+        },
+        "config": {
+          "table_id": "4c980ba2-6b7c-5876-b8d8-de42f0d147c5",
+          "table_name": "Risks",
+          "operation": "update",
+          "match_column": "risk_id",
+          "match_value": "{{risk_id}}",
+          "column_values": {
+            "response": "Escalate",
+            "status": "escalated",
+            "last_reviewed": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "next_review": "{{next_review}}"
+          }
+        }
+      },
+      {
+        "id": "committee",
+        "type": "set_variable",
+        "label": "Risk committee email",
+        "position": {
+          "x": 680,
+          "y": 1620
+        },
+        "config": {
+          "name": "risk_committee_email",
+          "expression": "risk-committee@example.com"
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email the risk committee",
+        "position": {
+          "x": 680,
+          "y": 1760
+        },
+        "config": {
+          "to": "{{risk_committee_email}}",
+          "email_template_id": "d33d3bbf-c97b-54e0-af12-49c5935ced5c"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Reviewed",
+        "position": {
+          "x": 400,
+          "y": 1900
+        },
+        "config": {
+          "reason": "{{risk_id}} {{rating}}: {{outcome}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-rid",
+        "source": "trigger",
+        "target": "rid"
+      },
+      {
+        "id": "e-rid-score",
+        "source": "rid",
+        "target": "score"
+      },
+      {
+        "id": "e-score-rate",
+        "source": "score",
+        "target": "rate"
+      },
+      {
+        "id": "e-rate-title",
+        "source": "rate",
+        "target": "title"
+      },
+      {
+        "id": "e-title-sla",
+        "source": "title",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-row",
+        "source": "sla",
+        "target": "row"
+      },
+      {
+        "id": "e-row-next",
+        "source": "row",
+        "target": "next"
+      },
+      {
+        "id": "e-next-review",
+        "source": "next",
+        "target": "review"
+      },
+      {
+        "id": "e-review-acc-accept",
+        "source": "review",
+        "target": "acc",
+        "label": "Accept"
+      },
+      {
+        "id": "e-review-mit_score-mitigate",
+        "source": "review",
+        "target": "mit_score",
+        "label": "Mitigate"
+      },
+      {
+        "id": "e-review-esc-escalate",
+        "source": "review",
+        "target": "esc",
+        "label": "Escalate"
+      },
+      {
+        "id": "e-acc-done",
+        "source": "acc",
+        "target": "done"
+      },
+      {
+        "id": "e-mit_score-mit",
+        "source": "mit_score",
+        "target": "mit"
+      },
+      {
+        "id": "e-mit-done",
+        "source": "mit",
+        "target": "done"
+      },
+      {
+        "id": "e-esc-committee",
+        "source": "esc",
+        "target": "committee"
+      },
+      {
+        "id": "e-committee-mail",
+        "source": "committee",
+        "target": "mail"
+      },
+      {
+        "id": "e-mail-done",
+        "source": "mail",
+        "target": "done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

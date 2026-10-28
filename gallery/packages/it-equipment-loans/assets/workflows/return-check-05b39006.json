@@ -1,0 +1,494 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "05b39006-18ee-58be-b708-60ca813fee7b",
+  "asset": {
+    "id": "05b39006-18ee-58be-b708-60ca813fee7b",
+    "name": "Return check",
+    "description": "Started for each approved loan: IT gets a check-in task due on the return date (with a reminder the day before), records the condition and releases the device, or extends the loan or chases the borrower.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Loan started",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "title": "Return {{asset_tag}} from {{borrower_name}} (due {{due_date}})"
+        }
+      },
+      {
+        "id": "orig",
+        "type": "set_variable",
+        "label": "Remember original due date",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "name": "original_due",
+          "expression": "{{due_date}}"
+        }
+      },
+      {
+        "id": "check",
+        "type": "user_task",
+        "label": "Check the device back in",
+        "position": {
+          "x": 400,
+          "y": 480
+        },
+        "config": {
+          "task_title": "Check in {{device}} ({{asset_tag}}) from {{borrower_name}}",
+          "task_description": "<p><strong>{{borrower_name}}</strong> has <strong>{{device}}</strong> (asset {{asset_tag}}, serial {{serial}}) on loan {{loan_ref}}, due back on <strong>{{due_date}}</strong>.</p><p>When it comes back, check the serial, the charger and accessories, and record its condition. Extend gives the borrower more time; Not returned chases them by email.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Returned",
+            "Extend",
+            "Not returned"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "fields": [
+            {
+              "key": "serial_checked",
+              "label": "Serial number matches {{serial}}",
+              "type": "boolean"
+            },
+            {
+              "key": "accessories",
+              "label": "Charger and accessories returned",
+              "type": "boolean"
+            },
+            {
+              "key": "condition",
+              "label": "Condition",
+              "type": "choice",
+              "options": [
+                "Good",
+                "Minor wear",
+                "Damaged",
+                "Missing parts"
+              ],
+              "default": "Good"
+            },
+            {
+              "key": "wiped",
+              "label": "Device wiped / reset for the next loan",
+              "type": "boolean"
+            },
+            {
+              "key": "new_due_date",
+              "label": "New return date (for Extend)",
+              "type": "date"
+            },
+            {
+              "key": "notes",
+              "label": "Notes",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "serial_checked",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "accessories",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "condition",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "wiped",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "new_due_date",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "returned",
+              "label": "Checked in",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Returned"
+            },
+            {
+              "id": "extend",
+              "label": "Extend loan",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Extend"
+            },
+            {
+              "id": "missing",
+              "label": "Not returned",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Not returned"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Device check-in",
+            "align": "left",
+            "subtitle": "{{asset_tag}} · {{borrower_name}} · due {{due_date}}"
+          },
+          "due_date_mode": "absolute",
+          "due_date": "{{due_date}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320
+        }
+      },
+      {
+        "id": "back",
+        "type": "update_data_table",
+        "label": "Mark loan returned",
+        "position": {
+          "x": 120,
+          "y": 660
+        },
+        "config": {
+          "table_id": "dafdd4b5-a82f-5f39-82f9-c9d2031eccd3",
+          "table_name": "Loans",
+          "operation": "update",
+          "match_column": "loan_ref",
+          "match_value": "{{loan_ref}}",
+          "column_values": {
+            "status": "Returned",
+            "returned_on": "{{=TODAY()}}",
+            "return_condition": "{{task_data.condition}}"
+          }
+        }
+      },
+      {
+        "id": "free",
+        "type": "update_data_table",
+        "label": "Release the device",
+        "position": {
+          "x": 120,
+          "y": 820
+        },
+        "config": {
+          "table_id": "5e60b089-cef3-55de-b01c-8c9793c25fe3",
+          "table_name": "Loan pool",
+          "operation": "update",
+          "match_column": "asset_tag",
+          "match_value": "{{asset_tag}}",
+          "column_values": {
+            "status": "{{=IF(task_data.condition == \"Damaged\", \"Repair\", IF(task_data.condition == \"Missing parts\", \"Repair\", \"Available\"))}}",
+            "notes": "{{task_data.notes}}"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Checked in",
+        "position": {
+          "x": 120,
+          "y": 980
+        },
+        "config": {
+          "reason": "{{asset_tag}} returned ({{task_data.condition}})"
+        }
+      },
+      {
+        "id": "ext",
+        "type": "set_variable",
+        "label": "New due date",
+        "position": {
+          "x": 400,
+          "y": 660
+        },
+        "config": {
+          "name": "due_date",
+          "expression": "{{=COALESCE(task_data.new_due_date, FORMAT_DATE(ADD_DAYS(due_date, 7), \"YYYY-MM-DD\"))}}"
+        }
+      },
+      {
+        "id": "ext_row",
+        "type": "update_data_table",
+        "label": "Record extension",
+        "position": {
+          "x": 400,
+          "y": 820
+        },
+        "config": {
+          "table_id": "dafdd4b5-a82f-5f39-82f9-c9d2031eccd3",
+          "table_name": "Loans",
+          "operation": "update",
+          "match_column": "loan_ref",
+          "match_value": "{{loan_ref}}",
+          "column_values": {
+            "due_date": "{{due_date}}",
+            "status": "On loan"
+          }
+        }
+      },
+      {
+        "id": "again",
+        "type": "goto_activity",
+        "label": "Wait for the return",
+        "position": {
+          "x": 400,
+          "y": 980
+        },
+        "config": {
+          "target_node_id": "check",
+          "target_node_label": "Check the device back in"
+        }
+      },
+      {
+        "id": "late",
+        "type": "set_variable",
+        "label": "Chase date",
+        "position": {
+          "x": 700,
+          "y": 660
+        },
+        "config": {
+          "name": "due_date",
+          "expression": "{{=FORMAT_DATE(ADD_DAYS(TODAY(), 3), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "late_row",
+        "type": "update_data_table",
+        "label": "Mark overdue",
+        "position": {
+          "x": 700,
+          "y": 820
+        },
+        "config": {
+          "table_id": "dafdd4b5-a82f-5f39-82f9-c9d2031eccd3",
+          "table_name": "Loans",
+          "operation": "update",
+          "match_column": "loan_ref",
+          "match_value": "{{loan_ref}}",
+          "column_values": {
+            "status": "Overdue"
+          }
+        }
+      },
+      {
+        "id": "chase",
+        "type": "send_email",
+        "label": "Chase the borrower",
+        "position": {
+          "x": 700,
+          "y": 980
+        },
+        "config": {
+          "to": "{{borrower_email}}",
+          "email_template_id": "287b284f-b0d7-52c1-924b-4ca6d5ec2d62"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "again2",
+        "type": "goto_activity",
+        "label": "Check again",
+        "position": {
+          "x": 700,
+          "y": 1140
+        },
+        "config": {
+          "target_node_id": "check",
+          "target_node_label": "Check the device back in"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-orig",
+        "source": "title",
+        "target": "orig"
+      },
+      {
+        "id": "e-orig-check",
+        "source": "orig",
+        "target": "check"
+      },
+      {
+        "id": "e-check-back-returned",
+        "source": "check",
+        "target": "back",
+        "label": "Returned"
+      },
+      {
+        "id": "e-back-free",
+        "source": "back",
+        "target": "free"
+      },
+      {
+        "id": "e-free-done",
+        "source": "free",
+        "target": "done"
+      },
+      {
+        "id": "e-check-ext-extend",
+        "source": "check",
+        "target": "ext",
+        "label": "Extend"
+      },
+      {
+        "id": "e-ext-ext_row",
+        "source": "ext",
+        "target": "ext_row"
+      },
+      {
+        "id": "e-ext_row-again",
+        "source": "ext_row",
+        "target": "again"
+      },
+      {
+        "id": "e-check-late-not-returned",
+        "source": "check",
+        "target": "late",
+        "label": "Not returned"
+      },
+      {
+        "id": "e-late-late_row",
+        "source": "late",
+        "target": "late_row"
+      },
+      {
+        "id": "e-late_row-chase",
+        "source": "late_row",
+        "target": "chase"
+      },
+      {
+        "id": "e-chase-again2",
+        "source": "chase",
+        "target": "again2"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-loan_ref",
+        "name": "loan_ref",
+        "type": "string",
+        "description": "Loan reference, e.g. LN-20261102-AB12",
+        "defaultValue": "",
+        "required": true,
+        "label": "Loan reference"
+      },
+      {
+        "id": "v-asset_tag",
+        "name": "asset_tag",
+        "type": "string",
+        "description": "Asset tag of the device",
+        "defaultValue": "",
+        "required": true,
+        "label": "Asset tag"
+      },
+      {
+        "id": "v-device",
+        "name": "device",
+        "type": "string",
+        "description": "Device name",
+        "defaultValue": "",
+        "required": false,
+        "label": "Device"
+      },
+      {
+        "id": "v-serial",
+        "name": "serial",
+        "type": "string",
+        "description": "Serial number",
+        "defaultValue": "",
+        "required": false,
+        "label": "Serial"
+      },
+      {
+        "id": "v-borrower_name",
+        "name": "borrower_name",
+        "type": "string",
+        "description": "Who has the device",
+        "defaultValue": "",
+        "required": false,
+        "label": "Borrower"
+      },
+      {
+        "id": "v-borrower_email",
+        "name": "borrower_email",
+        "type": "string",
+        "description": "Borrower email",
+        "defaultValue": "",
+        "required": false,
+        "label": "Borrower email",
+        "format": "email"
+      },
+      {
+        "id": "v-due_date",
+        "name": "due_date",
+        "type": "string",
+        "description": "Date the device is due back (YYYY-MM-DD)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Due back",
+        "format": "date"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

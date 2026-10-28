@@ -1,0 +1,103 @@
+{
+  "id": "ed6f354d-6217-42b0-a346-6c46dd79e8d5",
+  "slug": "order-orchestration-api",
+  "title": "Order orchestration API",
+  "category": "headless-integration",
+  "summary": "A synchronous order endpoint for your storefront: validate, price, fraud-screen, reserve stock, authorise payment and create the shipment in one call.",
+  "description": "Order orchestration API turns one storefront call into a complete, ordered set of back-office steps. The storefront posts the order (order id, customer, email, lines with sku, quantity and price, the shipping address and a payment token reference from your payment provider) and waits for the answer: the workflow runs as middleware and its response is the result.\n\nThe workflow rejects incomplete orders straight away, then totals the lines and adds shipping and tax. The Fraud screening decision table looks at the order value, shipping country, whether the customer is new and whether billing and shipping countries differ, and returns accept, review or reject with a risk score. Accepted orders reserve stock in the inventory API, authorise the payment and create the shipment in the fulfilment API. If the payment is declined the reservation is released.\n\nOrders flagged for review are still accepted, but the shipment is created on hold and a Manual fraud review runs in the background: a reviewer releases the shipment or cancels the order, voiding the authorisation and releasing the stock. The caller always gets result, order_status, reason, reservation_id, authorization_id, shipment_id and estimated_delivery. Card data never passes through the workflow.",
+  "trigger": "api",
+  "entry_workflow": "2176530f-4405-4578-be1e-94bc2f445d8f",
+  "start": "Headless and synchronous: the storefront posts each order to the workflow's middleware endpoint and receives the outcome in the HTTP response.",
+  "difficulty": "advanced",
+  "setup_minutes": 25,
+  "tags": [
+    "orders",
+    "middleware",
+    "fraud screening",
+    "payments",
+    "fulfilment",
+    "orchestration"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "webhook",
+    "assignees"
+  ],
+  "setup": [
+    "Inventory API: set the base URL and token. Reserve stock posts to /reservations; Release reservation posts to /reservations/{id}/release.",
+    "Payments API: set the base URL and token of your payment provider or payment service. Authorise payment posts to /payments/authorize with the token reference; Void authorisation posts to /payments/authorizations/{id}/void.",
+    "Fulfilment API: set the base URL and token. Create shipment posts to /shipments; Update shipment patches /shipments/{id} to release or cancel a hold.",
+    "Assignee: pick the fraud reviewer who handles flagged orders (the Manual fraud review sub-workflow).",
+    "Edit the Fraud screening rules (home market, value thresholds) and the tax rate, shipping fee and free-shipping threshold variables.",
+    "Inbound webhook: create a middleware webhook for Order orchestration and point the storefront checkout at it. Keep the steps fast; the caller waits for the response."
+  ],
+  "steps": [
+    {
+      "title": "Order posted",
+      "body": "The storefront posts the order, customer, lines, shipping address and a payment token reference, and waits for the response."
+    },
+    {
+      "title": "Validate and price",
+      "body": "Missing ids, token or lines are rejected with a 400. Line totals, shipping and tax give the order total."
+    },
+    {
+      "title": "Screen for fraud",
+      "body": "The Fraud screening decision table returns accept, review or reject and a risk score; rejected orders get a 422."
+    },
+    {
+      "title": "Reserve and authorise",
+      "body": "Stock is reserved and the payment authorised. A declined payment releases the reservation and returns a 402."
+    },
+    {
+      "title": "Create the shipment",
+      "body": "The shipment is created, on hold if the order needs review, and the caller gets the ids and estimated delivery."
+    },
+    {
+      "title": "Review in the background",
+      "body": "Flagged orders start Manual fraud review: a reviewer releases the shipment or cancels, voiding the payment and stock."
+    }
+  ],
+  "sample_input": {
+    "order_id": "SO-100482",
+    "customer_id": "C-20931",
+    "email": "jamie.fox@example.com",
+    "currency": "NZD",
+    "lines": [
+      {
+        "sku": "MUG-BLK-350",
+        "qty": 2,
+        "price": 24.5
+      },
+      {
+        "sku": "TEE-ORG-M",
+        "qty": 1,
+        "price": 39
+      },
+      {
+        "sku": "BAG-CNV-01",
+        "qty": 1,
+        "price": 49
+      }
+    ],
+    "shipping_address": {
+      "name": "Jamie Fox",
+      "line1": "12 Example Street",
+      "city": "Wellington",
+      "postcode": "6011",
+      "country": "NZ"
+    },
+    "billing_country": "NZ",
+    "new_customer": false,
+    "payment_method_ref": "pm_ref_example_4f9a21"
+  },
+  "expect": "completed",
+  "icon": "package-check"
+}

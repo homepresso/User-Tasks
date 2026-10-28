@@ -1,0 +1,188 @@
+# UserTasks with Docker Compose. Two profiles (docs/deployment-profiles.md):
+#
+#   supabase (the default: `docker compose up`)
+#     The app only; the database, auth, storage and realtime are an external
+#     Supabase project (hosted or `supabase start`). See docs/self-hosting.md.
+#
+#   standalone (`docker compose --profile standalone up`)
+#     No Supabase: PostgreSQL 16, MinIO (S3) storage, the scheduler worker,
+#     built-in auth, Server-Sent Events realtime, SMTP to Mailpit and Valkey
+#     (Redis protocol) as the shared rate-limit / cache store. Add
+#     `--profile pgbouncer` to put PgBouncer (transaction mode) in front of
+#     PostgreSQL. `npm run stack -- up` writes a standalone .env with fresh
+#     secrets, starts it and creates the first workspace.
+#
+# Settings go in .env next to this file (copy .env.example, or
+# deploy/compose/standalone.env.example for the standalone profile). Compose
+# reads it twice: for the build args below (DEPLOYMENT_MODE and the app URL
+# shape statically rendered routes) and as every app container's runtime
+# environment. The profile only decides which containers start; .env decides
+# which providers the app uses.
+
+x-app-image: &app-image
+  image: ${USERTASKS_IMAGE:-usertasks:local}
+  build:
+    context: .
+    args:
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-}
+      DEPLOYMENT_MODE: ${DEPLOYMENT_MODE:-self_hosted}
+      # Optional packages (docs/optional-drivers.md). true adds the Snowflake,
+      # Oracle and MongoDB drivers; false drops the storage SDKs, or the
+      # email / secrets / KMS SDKs.
+      INCLUDE_OPTIONAL_DB_DRIVERS: ${INCLUDE_OPTIONAL_DB_DRIVERS:-false}
+      INCLUDE_STORAGE_SDKS: ${INCLUDE_STORAGE_SDKS:-true}
+      INCLUDE_PROVIDER_SDKS: ${INCLUDE_PROVIDER_SDKS:-true}
+  env_file:
+    # USERTASKS_ENV_FILE: another env file (npm run stack uses one per profile).
+    - path: ${USERTASKS_ENV_FILE:-.env}
+      required: false
+
+services:
+  app:
+    <<: *app-image
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/config/public"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 6
+    # Only started with the standalone profile; ignored otherwise.
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+        required: false
+      mailpit:
+        condition: service_healthy
+        required: false
+      valkey:
+        condition: service_healthy
+        required: false
+
+  # ── standalone ─────────────────────────────────────────────────────────────
+
+  postgres:
+    profiles: [standalone]
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-usertasks}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_DB: ${POSTGRES_DB:-usertasks}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Transaction pooling for the app's queries (DATABASE_URL=…@pgbouncer:5432).
+  # Migrations, LISTEN (SSE realtime) and the worker's leader lock need a
+  # session, so MIGRATION_/REALTIME_/SCHEDULER_DATABASE_URL stay on postgres.
+  pgbouncer:
+    profiles: [pgbouncer]
+    image: edoburu/pgbouncer:v1.24.1-p1
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-usertasks}:${POSTGRES_PASSWORD:-}@postgres:5432/${POSTGRES_DB:-usertasks}
+      POOL_MODE: transaction
+      AUTH_TYPE: scram-sha-256
+      MAX_CLIENT_CONN: 500
+      DEFAULT_POOL_SIZE: 20
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Applies supabase/migrations (usertasks-admin db migrate) and creates the
+  # storage buckets, then exits. Re-run on every `up`; both steps are idempotent.
+  migrate:
+    <<: *app-image
+    profiles: [standalone]
+    command: ["sh", "-c", "node admin.cjs db migrate && node admin.cjs storage init"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  # The scheduler worker in its own container (the app runs with
+  # SCHEDULER_IN_PROCESS=false). Any number may run: one leader ticks per minute.
+  worker:
+    <<: *app-image
+    profiles: [standalone]
+    command: ["node", "worker.cjs"]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  minio:
+    profiles: [standalone]
+    image: ${MINIO_IMAGE:-pgsty/minio:latest}
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-usertasks}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-}
+    volumes:
+      - miniodata:/data
+    ports:
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bash", "-c", ":> /dev/tcp/127.0.0.1/9000"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Shared rate-limit windows and cache invalidations for every app replica
+  # and the worker (CACHE_PROVIDER=redis). Nothing in it is the source of
+  # truth: no volume, no persistence.
+  valkey:
+    profiles: [standalone]
+    image: valkey/valkey:8-alpine
+    environment:
+      VALKEY_PASSWORD: ${CACHE_REDIS_PASSWORD:-}
+    command: ["sh", "-c", "exec valkey-server --save '' --appendonly no --maxmemory 128mb --maxmemory-policy volatile-lru $${VALKEY_PASSWORD:+--requirepass \"$$VALKEY_PASSWORD\"}"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli $${VALKEY_PASSWORD:+-a \"$$VALKEY_PASSWORD\" --no-auth-warning} ping | grep -q PONG"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Catches every email (password resets, invitations, notifications):
+  # http://localhost:8025. Point SMTP_HOST at your relay for real delivery.
+  mailpit:
+    profiles: [standalone]
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # ── smoke (npm run stack -- smoke) ────────────────────────────────────────
+  # deploy/compose/smoke/smoke.mjs from inside the deployment's network.
+  smoke:
+    profiles: [smoke]
+    image: node:22-alpine
+    volumes:
+      - ./deploy/compose/smoke:/smoke:ro
+    command: ["node", "/smoke/smoke.mjs"]
+    restart: "no"
+
+volumes:
+  pgdata:
+  miniodata:

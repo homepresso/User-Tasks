@@ -1,0 +1,101 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "f9136632-14a2-47b8-a18d-0bd8310d35d5",
+  "asset": {
+    "id": "f9136632-14a2-47b8-a18d-0bd8310d35d5",
+    "name": "Close checklist",
+    "description": "The month-end close tasks: one row per task with its area, owner role, business-day deadline, system and whether evidence is required. Untick active to skip a task. The workflow writes the last period and status back.",
+    "columns": [
+      {
+        "id": "51405894-d69d-4464-940f-a893eb66605a",
+        "required": true,
+        "key": "task_code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "24f9e91e-ebf3-424e-b2f8-371b0f125013",
+        "required": true,
+        "key": "task",
+        "name": "Task",
+        "type": "text"
+      },
+      {
+        "id": "6cb63994-8c94-4a5a-96eb-bd20b172798d",
+        "required": false,
+        "key": "area",
+        "name": "Area",
+        "type": "select",
+        "options": [
+          "Cash",
+          "Receivables",
+          "Payables",
+          "Payroll",
+          "Fixed assets",
+          "Revenue",
+          "Inventory",
+          "Tax",
+          "Intercompany",
+          "Reporting"
+        ]
+      },
+      {
+        "id": "909330eb-e364-4c9e-83a2-e468092d5214",
+        "required": false,
+        "key": "owner_role",
+        "name": "Owner role",
+        "type": "text"
+      },
+      {
+        "id": "07f1a2c5-1e51-4968-b95f-1147d0761952",
+        "required": false,
+        "key": "due_business_day",
+        "name": "Due (business day)",
+        "type": "number"
+      },
+      {
+        "id": "8e8911c7-55ef-4216-9599-c0269aa34fb4",
+        "required": false,
+        "key": "system",
+        "name": "System",
+        "type": "text"
+      },
+      {
+        "id": "7c6e8671-932f-4f75-98a5-c022687bbb09",
+        "required": false,
+        "key": "evidence_required",
+        "name": "Evidence required",
+        "type": "boolean"
+      },
+      {
+        "id": "9b56480a-4c99-4e12-b5ee-582901b7b357",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      },
+      {
+        "id": "92f00d3c-6607-4ab5-8f07-746713423200",
+        "required": false,
+        "key": "last_period",
+        "name": "Last period",
+        "type": "text"
+      },
+      {
+        "id": "079db003-f1a2-43e3-85fc-a66e9f46c910",
+        "required": false,
+        "key": "last_status",
+        "name": "Last status",
+        "type": "text"
+      },
+      {
+        "id": "40c3a79c-b91a-435f-a147-3d892bebee7a",
+        "required": false,
+        "key": "last_completed_at",
+        "name": "Last completed",
+        "type": "text"
+      }
+    ]
+  }
+}

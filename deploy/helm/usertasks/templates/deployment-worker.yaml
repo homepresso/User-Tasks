@@ -1,0 +1,52 @@
+{{- if and (eq (toString .Values.providers.scheduler.provider) "worker") .Values.worker.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "usertasks.fullname" . }}-worker
+  labels:
+    {{- include "usertasks.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "usertasks.componentLabels" (dict "root" . "component" "worker") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "usertasks.podLabels" (dict "root" . "component" "worker") | nindent 8 }}
+      annotations:
+        checksum/config: {{ include "usertasks.configChecksum" . }}
+        {{- range $k, $v := .Values.worker.podAnnotations }}
+        {{ $k }}: {{ toString $v | quote }}
+        {{- end }}
+    spec:
+      {{- include "usertasks.podCommon" (dict "root" .) | nindent 6 }}
+      # SIGTERM: the worker finishes the running tick, then exits.
+      terminationGracePeriodSeconds: {{ .Values.worker.terminationGracePeriodSeconds }}
+      {{- if and .Values.migrate.enabled .Values.waitForMigrations }}
+      initContainers:
+        {{- include "usertasks.waitForMigrations" . | trim | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: worker
+          {{- include "usertasks.containerCommon" (dict "root" .) | nindent 10 }}
+          command: ["node", "worker.cjs"]
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+      volumes:
+        {{- include "usertasks.volumes" . | nindent 8 }}
+      {{- with .Values.worker.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.worker.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.worker.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

@@ -1,0 +1,83 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "c05c6b36-1d8e-5009-8968-9eb90f252379",
+  "asset": {
+    "id": "c05c6b36-1d8e-5009-8968-9eb90f252379",
+    "name": "Petty cash cost centres rows",
+    "rows": [
+      {
+        "id": "3c62603e-fd75-5878-96c7-59a01aa3a23f",
+        "data": {
+          "code": "CC-100",
+          "name": "Office & facilities",
+          "budget_holder": "Farid Haddad",
+          "budget_holder_email": "farid.haddad@example.com",
+          "monthly_float": 600,
+          "gl_code": "6100 Office supplies",
+          "active": true
+        }
+      },
+      {
+        "id": "50429cf1-aef0-5c42-8e96-6f2b3e7ec35d",
+        "data": {
+          "code": "CC-210",
+          "name": "Sales – North",
+          "budget_holder": "Daniel Okafor",
+          "budget_holder_email": "daniel.okafor@example.com",
+          "monthly_float": 400,
+          "gl_code": "6420 Client entertainment",
+          "active": true
+        }
+      },
+      {
+        "id": "b1d7a844-f056-5c00-97a4-769e1c6186d4",
+        "data": {
+          "code": "CC-305",
+          "name": "Engineering",
+          "budget_holder": "Ben Carter",
+          "budget_holder_email": "ben.carter@example.com",
+          "monthly_float": 300,
+          "gl_code": "6150 Small equipment",
+          "active": true
+        }
+      },
+      {
+        "id": "56a62e1c-d921-5c8e-b857-97fb18f598fa",
+        "data": {
+          "code": "CC-410",
+          "name": "People & Culture",
+          "budget_holder": "Chloe Martin",
+          "budget_holder_email": "chloe.martin@example.com",
+          "monthly_float": 500,
+          "gl_code": "6610 Staff welfare",
+          "active": true
+        }
+      },
+      {
+        "id": "092d7906-d0c6-57d1-b6ed-06a3be4a7afa",
+        "data": {
+          "code": "CC-520",
+          "name": "Events",
+          "budget_holder": "Emma Novak",
+          "budget_holder_email": "emma.novak@example.com",
+          "monthly_float": 800,
+          "gl_code": "6450 Events",
+          "active": true
+        }
+      },
+      {
+        "id": "7dda7a5f-c7fd-52b3-aec3-a3016c1ed28a",
+        "data": {
+          "code": "CC-900",
+          "name": "Closed project",
+          "budget_holder": "Ana Lopez",
+          "budget_holder_email": "ana.lopez@example.com",
+          "monthly_float": 0,
+          "gl_code": "6999 Suspense",
+          "active": false
+        }
+      }
+    ]
+  }
+}

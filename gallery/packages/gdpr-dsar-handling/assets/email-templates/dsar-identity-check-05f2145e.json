@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "05f2145e-23bf-4b5e-9b18-775b5d7842a5",
+  "asset": {
+    "id": "05f2145e-23bf-4b5e-9b18-775b5d7842a5",
+    "name": "DSAR identity check",
+    "description": "Asks the requester for more information to confirm their identity.",
+    "subject": "Your privacy request {{reference}}: we need to confirm it is you",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Please help us confirm your identity</h2>\n  <p>Hi {{requester_name}},</p>\n  <p>We received your {{request_type}} request on {{received_date}}. Before we act on it we need to be sure it came from you.</p>\n  <p>{{task_data.verification_notes}}</p>\n  <p>Reply to this email with the information above. The deadline for our response ({{due_date}}) applies once we can confirm your identity.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Privacy team, your company · Reference {{reference}}</p>\n</div>",
+    "text_body": "Please help us confirm your identity\n  Hi {{requester_name}},\n  We received your {{request_type}} request on {{received_date}}. Before we act on it we need to be sure it came from you.\n  {{task_data.verification_notes}}\n  Reply to this email with the information above. The deadline for our response ({{due_date}}) applies once we can confirm your identity.\n  Privacy team, your company · Reference {{reference}}",
+    "is_default": false
+  }
+}

@@ -1,0 +1,297 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "4d915069-abc8-5ce4-bc83-b615be99bf64",
+  "asset": {
+    "id": "4d915069-abc8-5ce4-bc83-b615be99bf64",
+    "integration_id": "01be02d0-1981-58ed-aeb3-dc41d468640b",
+    "name": "Get requisition items",
+    "description": "API_PURCHASEREQ_PROCESS_SRV: the requisition items (navigation to_PurchaseReqnItem): material, material group, quantity, price, plant, purchasing org and group, fixed supplier.",
+    "tags": [
+      "sap",
+      "purchasing"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/API_PURCHASEREQ_PROCESS_SRV/A_PurchaseRequisitionHeader('{{purchase_requisition}}')/to_PurchaseReqnItem",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "d",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "results",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "__metadata",
+                        "type": "object",
+                        "fields": [
+                          {
+                            "name": "type",
+                            "type": "string",
+                            "example": "API_PURCHASEREQ_PROCESS_SRV.A_PurchaseRequisitionItemType"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "PurchaseRequisition",
+                        "type": "string",
+                        "example": "10000123"
+                      },
+                      {
+                        "name": "PurchaseRequisitionItem",
+                        "type": "string",
+                        "example": "00010"
+                      },
+                      {
+                        "name": "PurchasingDocumentItemCategory",
+                        "type": "string",
+                        "example": "0"
+                      },
+                      {
+                        "name": "PurchaseRequisitionItemText",
+                        "type": "string",
+                        "example": "Laptop 14\" 32 GB"
+                      },
+                      {
+                        "name": "Material",
+                        "type": "string",
+                        "example": "TG-LAP-14"
+                      },
+                      {
+                        "name": "MaterialGroup",
+                        "type": "string",
+                        "example": "L001"
+                      },
+                      {
+                        "name": "RequestedQuantity",
+                        "type": "string",
+                        "example": "10"
+                      },
+                      {
+                        "name": "BaseUnit",
+                        "type": "string",
+                        "example": "EA"
+                      },
+                      {
+                        "name": "PurchaseRequisitionPrice",
+                        "type": "string",
+                        "example": "1450.00"
+                      },
+                      {
+                        "name": "PurReqnPriceQuantity",
+                        "type": "string",
+                        "example": "1"
+                      },
+                      {
+                        "name": "PurReqnItemCurrency",
+                        "type": "string",
+                        "example": "EUR"
+                      },
+                      {
+                        "name": "Plant",
+                        "type": "string",
+                        "example": "1010"
+                      },
+                      {
+                        "name": "CompanyCode",
+                        "type": "string",
+                        "example": "1010"
+                      },
+                      {
+                        "name": "PurchasingGroup",
+                        "type": "string",
+                        "example": "001"
+                      },
+                      {
+                        "name": "PurchasingOrganization",
+                        "type": "string",
+                        "example": "1010"
+                      },
+                      {
+                        "name": "FixedSupplier",
+                        "type": "string",
+                        "example": "17300001"
+                      },
+                      {
+                        "name": "DesiredSupplier",
+                        "type": "string",
+                        "example": "17300001"
+                      },
+                      {
+                        "name": "AccountAssignmentCategory",
+                        "type": "string",
+                        "example": "K"
+                      },
+                      {
+                        "name": "DeliveryDate",
+                        "type": "string",
+                        "example": "/Date(1763596800000)/"
+                      },
+                      {
+                        "name": "CreatedByUser",
+                        "type": "string",
+                        "example": "CB9980000123"
+                      },
+                      {
+                        "name": "PurReqnReleaseStatus",
+                        "type": "string",
+                        "example": "01"
+                      },
+                      {
+                        "name": "IsDeleted",
+                        "type": "boolean",
+                        "example": false
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "d": {
+            "results": [
+              {
+                "__metadata": {
+                  "type": "API_PURCHASEREQ_PROCESS_SRV.A_PurchaseRequisitionItemType"
+                },
+                "PurchaseRequisition": "10000123",
+                "PurchaseRequisitionItem": "00010",
+                "PurchasingDocumentItemCategory": "0",
+                "PurchaseRequisitionItemText": "Laptop 14\" 32 GB",
+                "Material": "TG-LAP-14",
+                "MaterialGroup": "L001",
+                "RequestedQuantity": "10",
+                "BaseUnit": "EA",
+                "PurchaseRequisitionPrice": "1450.00",
+                "PurReqnPriceQuantity": "1",
+                "PurReqnItemCurrency": "EUR",
+                "Plant": "1010",
+                "CompanyCode": "1010",
+                "PurchasingGroup": "001",
+                "PurchasingOrganization": "1010",
+                "FixedSupplier": "17300001",
+                "DesiredSupplier": "17300001",
+                "AccountAssignmentCategory": "K",
+                "DeliveryDate": "/Date(1763596800000)/",
+                "CreatedByUser": "CB9980000123",
+                "PurReqnReleaseStatus": "01",
+                "IsDeleted": false
+              },
+              {
+                "__metadata": {
+                  "type": "API_PURCHASEREQ_PROCESS_SRV.A_PurchaseRequisitionItemType"
+                },
+                "PurchaseRequisition": "10000123",
+                "PurchaseRequisitionItem": "00020",
+                "PurchasingDocumentItemCategory": "0",
+                "PurchaseRequisitionItemText": "USB-C docking station",
+                "Material": "TG-DOCK-01",
+                "MaterialGroup": "L001",
+                "RequestedQuantity": "10",
+                "BaseUnit": "EA",
+                "PurchaseRequisitionPrice": "189.00",
+                "PurReqnPriceQuantity": "1",
+                "PurReqnItemCurrency": "EUR",
+                "Plant": "1010",
+                "CompanyCode": "1010",
+                "PurchasingGroup": "001",
+                "PurchasingOrganization": "1010",
+                "FixedSupplier": "17300001",
+                "DesiredSupplier": "17300001",
+                "AccountAssignmentCategory": "K",
+                "DeliveryDate": "/Date(1763596800000)/",
+                "CreatedByUser": "CB9980000123",
+                "PurReqnReleaseStatus": "01",
+                "IsDeleted": false
+              }
+            ]
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "763be6a4-18da-50f6-8686-1fa4e34bea95",
+        "name": "purchase_requisition",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "28961888-21d6-5bde-bd6e-f1fb91629c2e",
+        "name": "items",
+        "path": "d.results",
+        "type": "array"
+      },
+      {
+        "id": "88b6a851-a229-5679-8911-321301518e5b",
+        "name": "material_group",
+        "path": "d.results[0].MaterialGroup",
+        "type": "string"
+      },
+      {
+        "id": "efd1261b-59e7-5d24-b1a1-aadf10022886",
+        "name": "plant",
+        "path": "d.results[0].Plant",
+        "type": "string"
+      },
+      {
+        "id": "4c42c005-1d16-5208-bd4b-0577b5647809",
+        "name": "company_code",
+        "path": "d.results[0].CompanyCode",
+        "type": "string"
+      },
+      {
+        "id": "193de9ac-196d-5235-8aa0-9e4c965b2e29",
+        "name": "purchasing_org",
+        "path": "d.results[0].PurchasingOrganization",
+        "type": "string"
+      },
+      {
+        "id": "995b5e26-2314-50bf-95fd-a002e4382ccf",
+        "name": "purchasing_group",
+        "path": "d.results[0].PurchasingGroup",
+        "type": "string"
+      },
+      {
+        "id": "85282304-4d06-566f-835a-2ea91c01ebe5",
+        "name": "supplier",
+        "path": "d.results[0].FixedSupplier",
+        "type": "string"
+      },
+      {
+        "id": "a9ac1c86-bf28-539b-a7a0-66b219b38856",
+        "name": "currency",
+        "path": "d.results[0].PurReqnItemCurrency",
+        "type": "string"
+      },
+      {
+        "id": "dddd8d92-23fe-53b8-aac9-38a1760499fb",
+        "name": "created_by",
+        "path": "d.results[0].CreatedByUser",
+        "type": "string"
+      }
+    ]
+  }
+}

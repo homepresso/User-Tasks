@@ -1,0 +1,73 @@
+{
+  "title": "ServiceNow major incident review",
+  "category": "it-security",
+  "summary": "ServiceNow posts a new or escalated incident; the criteria table flags major incident candidates and the incident manager declares major or not.",
+  "description": "ServiceNow major incident review turns \"is this a major incident?\" into a fast, recorded decision. A business rule or Flow Designer action on the incident table posts the incident sys_id to the workflow when a P1 or P2 is raised or escalated.\n\nThe workflow reads the incident from the Table API with display values (number, short description, priority, impact, urgency, assignment group and CI), looks the CI up in the Business services table for its tier and stakeholder list, and runs the Major incident criteria decision table: candidate or not, proposed severity, communication cadence and whether a bridge is needed.\n\nFor candidates the incident manager gets a 30-minute review task with Declare major incident and Not a major incident buttons, the proposed severity and cadence filled in. The decision is written back to the incident as a work note with its major incident state, and a declared major incident emails the service's stakeholders with the impact, the incident manager and the next update time.",
+  "trigger": "api",
+  "entry_workflow": "33ddf5b4-ee05-5819-8122-9c27111fb0a6",
+  "start": "Starts from ServiceNow: an async business rule (or Flow Designer REST step) on incident insert / priority change posts {\"sys_id\": current.sys_id} to the workflow webhook.",
+  "difficulty": "intermediate",
+  "setup_minutes": 20,
+  "tags": [
+    "servicenow",
+    "major incident",
+    "itsm",
+    "incident management",
+    "decision table"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "webhook",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "ServiceNow integration: set the base URL to https://<instance>.service-now.com/api/now and a bearer token (OAuth) for an integration user with itil and major incident roles. Basic auth works too: change the auth type in Integrations.",
+    "Assignee: pick the incident manager (or the on-call major incident manager queue owner) who receives the review.",
+    "In ServiceNow, add an async business rule on incident (insert, or priority changes to 1/2) that posts {\"sys_id\": current.sys_id, \"number\": current.number} to the workflow webhook URL with sn_ws.RESTMessageV2.",
+    "Replace the Business services rows with your CIs, tiers and stakeholder lists, and tune the Major incident criteria rules.",
+    "Email: configure EMAIL_PROVIDER so stakeholder emails are delivered (the step continues on error)."
+  ],
+  "steps": [
+    {
+      "title": "Incident posted",
+      "body": "A ServiceNow business rule posts the incident sys_id when a high-priority incident is raised or escalated."
+    },
+    {
+      "title": "Read the incident",
+      "body": "GET /table/incident/{sys_id} returns number, description, priority, impact, urgency, assignment group and CI with display values."
+    },
+    {
+      "title": "Apply the criteria",
+      "body": "The CI's tier comes from Business services; the Major incident criteria decide candidate, severity, comms cadence and bridge."
+    },
+    {
+      "title": "Incident manager decides",
+      "body": "A 30-minute task with Declare major incident / Not a major incident buttons, severity, cadence, impact and bridge link."
+    },
+    {
+      "title": "Write back and tell people",
+      "body": "PATCH /table/incident/{sys_id} adds a work note and the major incident state; declared incidents email the stakeholder list."
+    }
+  ],
+  "sample_input": {
+    "sys_id": "9d385017c611228701d22104cc95c371",
+    "number": "INC0010342",
+    "event": "inserted"
+  },
+  "expect": "waiting",
+  "icon": "siren",
+  "systems": [
+    "ServiceNow"
+  ],
+  "id": "08059a5e-e6c9-5c7c-910c-849d4c6db2c2",
+  "slug": "servicenow-incident-major-review"
+}

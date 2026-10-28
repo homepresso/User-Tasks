@@ -1,0 +1,33 @@
+{
+  "realm": "usertasks",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "clients": [
+    {
+      "clientId": "usertasks",
+      "name": "UserTasks",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "usertasks-local-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:3000/auth/sso/keycloak/callback", "http://app:3000/auth/sso/keycloak/callback"],
+      "webOrigins": ["+"],
+      "attributes": { "pkce.code.challenge.method": "S256" }
+    }
+  ],
+  "users": [
+    {
+      "username": "ada",
+      "email": "ada@onprem.example",
+      "emailVerified": true,
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "local-keycloak-password", "temporary": false }]
+    }
+  ]
+}

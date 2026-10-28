@@ -1,0 +1,21 @@
+-- tasks list for a user (newest 50) as service_role
+SELECT * FROM public.tasks WHERE tenant_id = '0be0c000-0000-4000-8000-000000000001' AND assignee_id = '0be0d002-0000-4000-8000-000000000000' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 50
+
+Limit  (cost=3243.23..3243.36 rows=50 width=685) (actual time=3.027..3.037 rows=50 loops=1)
+  Buffers: shared hit=2276
+  ->  Sort  (cost=3243.23..3247.59 rows=1743 width=685) (actual time=3.027..3.032 rows=50 loops=1)
+        Sort Key: created_at DESC
+        Sort Method: top-N heapsort  Memory: 67kB
+        Buffers: shared hit=2276
+        ->  Bitmap Heap Scan on tasks  (cost=31.04..3185.33 rows=1743 width=685) (actual time=0.385..2.019 rows=2500 loops=1)
+              Recheck Cond: (assignee_id = '0be0d002-0000-4000-8000-000000000000'::uuid)
+              Filter: ((deleted_at IS NULL) AND (tenant_id = '0be0c000-0000-4000-8000-000000000001'::uuid))
+              Heap Blocks: exact=2273
+              Buffers: shared hit=2276
+              ->  Bitmap Index Scan on idx_tasks_assignee  (cost=0.00..30.60 rows=2441 width=0) (actual time=0.180..0.181 rows=2500 loops=1)
+                    Index Cond: (assignee_id = '0be0d002-0000-4000-8000-000000000000'::uuid)
+                    Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=5
+Planning Time: 0.068 ms
+Execution Time: 3.061 ms

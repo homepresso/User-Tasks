@@ -1,0 +1,73 @@
+{
+  "title": "Inventory reorder",
+  "category": "operations-compliance",
+  "summary": "A daily stock check finds items at or below their reorder point, raises an Approve order / Skip task for each and emails the supplier a purchase order.",
+  "description": "Inventory reorder keeps consumables and packaging from running out without anyone watching a spreadsheet. The Stock items table lists each item with its on-hand quantity, reorder point, reorder quantity, unit cost, supplier, supplier email, lead time and whether it is already on order. Sample rows cover packaging, labels, gloves, wipes, paper and toner, three of them below their reorder point.\n\nEvery morning at 07:00 the Daily stock check lists the active items and loops over them. Each item at or below its reorder point that is not already on order starts the Raise reorder sub-workflow: it marks the item on order, logs the reorder in the Reorders table with its estimated cost and gives the buyer a task with Approve order and Skip buttons. Approve order lets the buyer adjust the quantity, records the expected delivery date from the supplier's lead time and emails the purchase order to the supplier; Skip records why and releases the item so it comes up again tomorrow.\n\nWhen anything was raised, the buyer also gets a short daily summary to confirm the stock counts are right before approving orders. No integrations needed.",
+  "trigger": "schedule",
+  "entry_workflow": "09b0ea25-e6f3-5c5a-a3ff-1edcbe54f4bf",
+  "start": "Scheduled: runs every day at 07:00 (Pacific/Auckland; change the time and time zone on the trigger). Run it manually any time to check stock now.",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "inventory",
+    "purchasing",
+    "stock control",
+    "schedule",
+    "sub-workflow",
+    "no integrations"
+  ],
+  "version": "1.0.1",
+  "changelog": [
+    {
+      "version": "1.0.1",
+      "date": "2026-10-28",
+      "notes": "Steps for the coordinator who set the package up are assigned to the workflow owner (workflow_owner_id), now that workflow_started_by names the person who started the run."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Replace the sample rows in Stock items with your stock: on hand, reorder point, reorder quantity, unit cost, supplier and supplier email. Untick Active for items you no longer stock.",
+    "Set the default of the \"Buyer (user id)\" input on the Daily stock check to the person who approves orders; empty means the person who installed the package.",
+    "Keep On hand up to date (edit the table, import a CSV or update it from another workflow). When stock arrives, untick On order.",
+    "Change the trigger time and time zone if 07:00 Pacific/Auckland does not suit, and set EMAIL_PROVIDER so purchase orders reach suppliers."
+  ],
+  "steps": [
+    {
+      "title": "Daily check",
+      "body": "At 07:00 the schedule lists every active item in Stock items."
+    },
+    {
+      "title": "Find low stock",
+      "body": "A loop checks each item: on hand at or below the reorder point and not already on order."
+    },
+    {
+      "title": "Raise a reorder",
+      "body": "Each low item runs the Raise reorder sub-workflow: marked on order, logged in Reorders with its estimated cost."
+    },
+    {
+      "title": "Approve or skip",
+      "body": "The buyer adjusts the quantity and presses Approve order or Skip (with a reason)."
+    },
+    {
+      "title": "Purchase order",
+      "body": "Approved orders are emailed to the supplier with the expected delivery date; skipped items come up again tomorrow."
+    },
+    {
+      "title": "Confirm the counts",
+      "body": "The buyer gets a daily summary of what was raised and confirms the stock counts or flags a recount."
+    }
+  ],
+  "sample_input": {},
+  "expect": "waiting",
+  "icon": "warehouse",
+  "id": "29925bd7-2420-58ac-957a-26d1370d959a",
+  "slug": "inventory-reorder"
+}

@@ -1,0 +1,1000 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "e268e663-a674-526e-a91f-8e4e3e155a0a",
+  "asset": {
+    "id": "e268e663-a674-526e-a91f-8e4e3e155a0a",
+    "name": "Salesforce discount approval",
+    "description": "A Salesforce Flow posts the Opportunity Id when a rep submits a discount; the opportunity and its products are read, the Discount tiers table decides who approves, the sales manager and then finance approve or reject, and the status is written back to the opportunity.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Discount submitted in Salesforce",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "get",
+        "type": "call_reference",
+        "label": "Get opportunity",
+        "position": {
+          "x": 400,
+          "y": 220
+        },
+        "config": {
+          "reference_id": "95dc5df4-d234-5767-839a-a3ef43da4ab0",
+          "reference_name": "Get opportunity",
+          "reference_method": "GET",
+          "input_mappings": {
+            "opportunity_id": "{{opportunity_id}}"
+          },
+          "output_mappings": {
+            "opportunity_name": {
+              "enabled": true,
+              "variableName": "opportunity_name"
+            },
+            "amount": {
+              "enabled": true,
+              "variableName": "amount"
+            },
+            "currency": {
+              "enabled": true,
+              "variableName": "currency"
+            },
+            "stage": {
+              "enabled": true,
+              "variableName": "stage"
+            },
+            "close_date": {
+              "enabled": true,
+              "variableName": "close_date"
+            },
+            "opp_type": {
+              "enabled": true,
+              "variableName": "opp_type"
+            },
+            "owner_id": {
+              "enabled": true,
+              "variableName": "owner_id"
+            },
+            "requested_discount": {
+              "enabled": true,
+              "variableName": "requested_discount"
+            },
+            "discount_reason": {
+              "enabled": true,
+              "variableName": "discount_reason"
+            },
+            "term_months": {
+              "enabled": true,
+              "variableName": "term_months"
+            }
+          }
+        }
+      },
+      {
+        "id": "lines",
+        "type": "call_reference",
+        "label": "Query opportunity products",
+        "position": {
+          "x": 400,
+          "y": 380
+        },
+        "config": {
+          "reference_id": "4aefd7d0-a385-5283-bdae-959b76f77b04",
+          "reference_name": "Query opportunity products",
+          "reference_method": "GET",
+          "input_mappings": {
+            "q": "SELECT Id, ProductCode, Product2.Name, Product2.Family, Quantity, ListPrice, UnitPrice, Discount, TotalPrice FROM OpportunityLineItem WHERE OpportunityId = '{{opportunity_id}}'"
+          },
+          "output_mappings": {
+            "line_items": {
+              "enabled": true,
+              "variableName": "line_items"
+            },
+            "line_count": {
+              "enabled": true,
+              "variableName": "line_count"
+            }
+          }
+        }
+      },
+      {
+        "id": "discount",
+        "type": "set_variable",
+        "label": "Effective discount",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "name": "discount",
+          "expression": "{{=COALESCE(requested_discount, MAX(PLUCK(line_items, \"Discount\")), 0)}}"
+        }
+      },
+      {
+        "id": "max_line",
+        "type": "set_variable",
+        "label": "Deepest line discount",
+        "position": {
+          "x": 400,
+          "y": 700
+        },
+        "config": {
+          "name": "max_line_discount",
+          "expression": "{{=MAX(PLUCK(line_items, \"Discount\"))}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 860
+        },
+        "config": {
+          "title": "Discount {{discount}}% · {{opportunity_name}}"
+        }
+      },
+      {
+        "id": "tiers",
+        "type": "decision_table",
+        "label": "Discount tiers",
+        "position": {
+          "x": 400,
+          "y": 1020
+        },
+        "config": {
+          "decision_table_id": "e539f7ee-0730-5c94-b49c-6d3d93295259",
+          "decision_table_name": "Discount tiers",
+          "input_mappings": {
+            "discount": "{{discount}}",
+            "amount": "{{amount}}"
+          }
+        }
+      },
+      {
+        "id": "need_mgr",
+        "type": "condition",
+        "label": "Needs approval?",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Approval",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_manager}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Deal desk SLA",
+        "position": {
+          "x": 400,
+          "y": 1340
+        },
+        "config": {
+          "sla_label": "Discount decision",
+          "mode": "relative",
+          "amount": 2,
+          "unit": "days",
+          "warning_amount": 1,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "mgr",
+        "type": "user_task",
+        "label": "Sales manager approval",
+        "position": {
+          "x": 400,
+          "y": 1500
+        },
+        "config": {
+          "task_title": "Approve {{discount}}% discount: {{opportunity_name}} ({{currency}} {{amount}})",
+          "task_description": "<p><strong>{{opportunity_name}}</strong>, {{opp_type}}, stage {{stage}}, closing {{close_date}}, {{term_months}}-month term.</p><p>Amount <strong>{{currency}} {{amount}}</strong> across {{line_count}} products; requested discount <strong>{{discount}}%</strong> (deepest line {{max_line_discount}}%). Rep's reason: {{discount_reason}}.</p><p>{{tier}} (rule “{{rule_label}}”).</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "6ab95880-1fb8-51c7-b0d2-5998ae58f263",
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 480
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 2880,
+          "fields": [
+            {
+              "key": "reason_code",
+              "label": "Justification",
+              "type": "lookup",
+              "required": true,
+              "help_text": "Pick the reason this discount is justified",
+              "lookup": {
+                "source": "table",
+                "table_id": "8d0172b0-25c2-5e94-9d8a-66eb69f6634c",
+                "search_columns": [
+                  "reason",
+                  "code"
+                ],
+                "display_columns": [
+                  "reason",
+                  "max_discount"
+                ],
+                "value_column": "code",
+                "fill": [
+                  {
+                    "from": "max_discount",
+                    "to": "reason_ceiling"
+                  },
+                  {
+                    "from": "evidence",
+                    "to": "evidence_expected"
+                  }
+                ]
+              }
+            },
+            {
+              "key": "reason_ceiling",
+              "label": "Normal ceiling (%)",
+              "type": "number",
+              "read_only": true
+            },
+            {
+              "key": "evidence_expected",
+              "label": "Evidence expected",
+              "type": "text",
+              "read_only": true
+            },
+            {
+              "key": "approved_discount",
+              "label": "Approved discount (%)",
+              "type": "number",
+              "required": true,
+              "default": "{{discount}}",
+              "min": 0,
+              "max": 60
+            },
+            {
+              "key": "evidence_checked",
+              "label": "I have checked the evidence on the opportunity",
+              "type": "boolean"
+            },
+            {
+              "key": "notes",
+              "label": "Notes",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "reason_code",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "reason_ceiling",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "evidence_expected",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "approved_discount",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "evidence_checked",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Discount approval",
+            "align": "left",
+            "subtitle": "{{opportunity_name}} · {{discount}}% requested"
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ]
+        }
+      },
+      {
+        "id": "mgr_vals",
+        "type": "json_build_object",
+        "label": "Manager decision",
+        "position": {
+          "x": 80,
+          "y": 1680
+        },
+        "config": {
+          "output_var": "mgr",
+          "fields": [
+            {
+              "key": "discount",
+              "value": "{{task_data.approved_discount}}"
+            },
+            {
+              "key": "notes",
+              "value": "{{task_data.notes}}"
+            },
+            {
+              "key": "reason",
+              "value": "{{task_data.reason_code}}"
+            }
+          ]
+        }
+      },
+      {
+        "id": "need_fin",
+        "type": "condition",
+        "label": "Finance needed?",
+        "position": {
+          "x": 80,
+          "y": 1840
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Finance",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_finance}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "fin",
+        "type": "user_task",
+        "label": "Finance approval",
+        "position": {
+          "x": 80,
+          "y": 2000
+        },
+        "config": {
+          "task_title": "Finance: {{mgr.discount}}% discount on {{opportunity_name}}",
+          "task_description": "<p>The sales manager approved <strong>{{mgr.discount}}%</strong> (requested {{discount}}%) on <strong>{{currency}} {{amount}}</strong>, reason {{mgr.reason}}.</p><p>Manager notes: {{mgr.notes}}</p><p>{{tier}}.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "2dca55a2-b9f2-5d88-b61d-01ef6e6b01f7",
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 480
+            }
+          ],
+          "fields": [
+            {
+              "key": "approved_discount",
+              "label": "Approved discount (%)",
+              "type": "number",
+              "required": true,
+              "default": "{{mgr.discount}}",
+              "min": 0,
+              "max": 60
+            },
+            {
+              "key": "margin_ok",
+              "label": "Gross margin stays above the floor",
+              "type": "boolean"
+            },
+            {
+              "key": "rev_rec",
+              "label": "Revenue recognition",
+              "type": "choice",
+              "options": [
+                "Ratable",
+                "Point in time",
+                "Mixed"
+              ],
+              "default": "Ratable"
+            },
+            {
+              "key": "notes",
+              "label": "Notes",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "approved_discount",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "rev_rec",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "margin_ok",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Finance review",
+            "align": "left",
+            "subtitle": "{{opportunity_name}} · {{mgr.discount}}%"
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ]
+        }
+      },
+      {
+        "id": "fin_ok",
+        "type": "json_build_object",
+        "label": "Finance decision",
+        "position": {
+          "x": 80,
+          "y": 2160
+        },
+        "config": {
+          "output_var": "final",
+          "fields": [
+            {
+              "key": "discount",
+              "value": "{{task_data.approved_discount}}"
+            },
+            {
+              "key": "notes",
+              "value": "{{mgr.notes}} / Finance: {{task_data.notes}}"
+            }
+          ]
+        }
+      },
+      {
+        "id": "mgr_ok",
+        "type": "json_build_object",
+        "label": "Manager-only decision",
+        "position": {
+          "x": 400,
+          "y": 2000
+        },
+        "config": {
+          "output_var": "final",
+          "fields": [
+            {
+              "key": "discount",
+              "value": "{{mgr.discount}}"
+            },
+            {
+              "key": "notes",
+              "value": "{{mgr.notes}}"
+            }
+          ]
+        }
+      },
+      {
+        "id": "auto_ok",
+        "type": "json_build_object",
+        "label": "Within rep authority",
+        "position": {
+          "x": 1040,
+          "y": 1340
+        },
+        "config": {
+          "output_var": "final",
+          "fields": [
+            {
+              "key": "discount",
+              "value": "{{discount}}"
+            },
+            {
+              "key": "notes",
+              "value": "Within rep authority: approved automatically."
+            }
+          ]
+        }
+      },
+      {
+        "id": "appr_d",
+        "type": "set_variable",
+        "label": "Approved discount",
+        "position": {
+          "x": 400,
+          "y": 2320
+        },
+        "config": {
+          "name": "approved_discount",
+          "expression": "{{final.discount}}"
+        }
+      },
+      {
+        "id": "appr_n",
+        "type": "set_variable",
+        "label": "Approval notes",
+        "position": {
+          "x": 400,
+          "y": 2480
+        },
+        "config": {
+          "name": "approval_notes",
+          "expression": "{{final.notes}}"
+        }
+      },
+      {
+        "id": "patch_ok",
+        "type": "call_reference",
+        "label": "Mark approved in Salesforce",
+        "position": {
+          "x": 400,
+          "y": 2640
+        },
+        "config": {
+          "reference_id": "ccd8472c-8073-5eab-b8ae-502da0447567",
+          "reference_name": "Update discount approval",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "opportunity_id": "{{opportunity_id}}",
+            "status": "Approved",
+            "approved_discount": "{{approved_discount}}",
+            "notes": "{{approval_notes}}"
+          },
+          "output_mappings": {}
+        }
+      },
+      {
+        "id": "mail_ok",
+        "type": "send_email",
+        "label": "Email the owner: approved",
+        "position": {
+          "x": 400,
+          "y": 2800
+        },
+        "config": {
+          "to": "{{owner_email}}",
+          "email_template_id": "16a13442-4573-59ed-bfd6-95df0e1c83ab"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done_ok",
+        "type": "end_workflow",
+        "label": "Discount approved",
+        "position": {
+          "x": 400,
+          "y": 2960
+        },
+        "config": {
+          "reason": "{{opportunity_name}}: {{approved_discount}}% approved"
+        }
+      },
+      {
+        "id": "rej_mgr",
+        "type": "json_build_object",
+        "label": "Rejected by the sales manager",
+        "position": {
+          "x": 720,
+          "y": 1680
+        },
+        "config": {
+          "output_var": "rej",
+          "fields": [
+            {
+              "key": "by",
+              "value": "the sales manager"
+            },
+            {
+              "key": "notes",
+              "value": "{{task_data.notes}}"
+            }
+          ]
+        }
+      },
+      {
+        "id": "rej_fin",
+        "type": "json_build_object",
+        "label": "Rejected by finance",
+        "position": {
+          "x": 720,
+          "y": 2160
+        },
+        "config": {
+          "output_var": "rej",
+          "fields": [
+            {
+              "key": "by",
+              "value": "finance"
+            },
+            {
+              "key": "notes",
+              "value": "{{task_data.notes}}"
+            }
+          ]
+        }
+      },
+      {
+        "id": "rej_by",
+        "type": "set_variable",
+        "label": "Rejected by",
+        "position": {
+          "x": 720,
+          "y": 2320
+        },
+        "config": {
+          "name": "rejected_by",
+          "expression": "{{rej.by}}"
+        }
+      },
+      {
+        "id": "rej_n",
+        "type": "set_variable",
+        "label": "Rejection notes",
+        "position": {
+          "x": 720,
+          "y": 2480
+        },
+        "config": {
+          "name": "approval_notes",
+          "expression": "{{rej.notes}}"
+        }
+      },
+      {
+        "id": "patch_no",
+        "type": "call_reference",
+        "label": "Mark rejected in Salesforce",
+        "position": {
+          "x": 720,
+          "y": 2640
+        },
+        "config": {
+          "reference_id": "ccd8472c-8073-5eab-b8ae-502da0447567",
+          "reference_name": "Update discount approval",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "opportunity_id": "{{opportunity_id}}",
+            "status": "Rejected",
+            "approved_discount": "0",
+            "notes": "{{approval_notes}}"
+          },
+          "output_mappings": {}
+        }
+      },
+      {
+        "id": "mail_no",
+        "type": "send_email",
+        "label": "Email the owner: rejected",
+        "position": {
+          "x": 720,
+          "y": 2800
+        },
+        "config": {
+          "to": "{{owner_email}}",
+          "email_template_id": "66e74134-76be-5949-aa72-98e1192fa3f9"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done_no",
+        "type": "end_workflow",
+        "label": "Discount rejected",
+        "position": {
+          "x": 720,
+          "y": 2960
+        },
+        "config": {
+          "reason": "{{opportunity_name}}: discount rejected by {{rejected_by}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-get",
+        "source": "trigger",
+        "target": "get"
+      },
+      {
+        "id": "e-get-lines",
+        "source": "get",
+        "target": "lines"
+      },
+      {
+        "id": "e-lines-discount",
+        "source": "lines",
+        "target": "discount"
+      },
+      {
+        "id": "e-discount-max_line",
+        "source": "discount",
+        "target": "max_line"
+      },
+      {
+        "id": "e-max_line-title",
+        "source": "max_line",
+        "target": "title"
+      },
+      {
+        "id": "e-title-tiers",
+        "source": "title",
+        "target": "tiers"
+      },
+      {
+        "id": "e-tiers-need_mgr",
+        "source": "tiers",
+        "target": "need_mgr"
+      },
+      {
+        "id": "e-need_mgr-sla-approval",
+        "source": "need_mgr",
+        "target": "sla",
+        "label": "Approval"
+      },
+      {
+        "id": "e-need_mgr-auto_ok-else",
+        "source": "need_mgr",
+        "target": "auto_ok",
+        "label": "Else"
+      },
+      {
+        "id": "e-sla-mgr",
+        "source": "sla",
+        "target": "mgr"
+      },
+      {
+        "id": "e-mgr-mgr_vals-approve",
+        "source": "mgr",
+        "target": "mgr_vals",
+        "label": "Approve"
+      },
+      {
+        "id": "e-mgr-rej_mgr-reject",
+        "source": "mgr",
+        "target": "rej_mgr",
+        "label": "Reject"
+      },
+      {
+        "id": "e-mgr_vals-need_fin",
+        "source": "mgr_vals",
+        "target": "need_fin"
+      },
+      {
+        "id": "e-need_fin-fin-finance",
+        "source": "need_fin",
+        "target": "fin",
+        "label": "Finance"
+      },
+      {
+        "id": "e-need_fin-mgr_ok-else",
+        "source": "need_fin",
+        "target": "mgr_ok",
+        "label": "Else"
+      },
+      {
+        "id": "e-fin-fin_ok-approve",
+        "source": "fin",
+        "target": "fin_ok",
+        "label": "Approve"
+      },
+      {
+        "id": "e-fin-rej_fin-reject",
+        "source": "fin",
+        "target": "rej_fin",
+        "label": "Reject"
+      },
+      {
+        "id": "e-fin_ok-appr_d",
+        "source": "fin_ok",
+        "target": "appr_d"
+      },
+      {
+        "id": "e-mgr_ok-appr_d",
+        "source": "mgr_ok",
+        "target": "appr_d"
+      },
+      {
+        "id": "e-auto_ok-appr_d",
+        "source": "auto_ok",
+        "target": "appr_d"
+      },
+      {
+        "id": "e-appr_d-appr_n",
+        "source": "appr_d",
+        "target": "appr_n"
+      },
+      {
+        "id": "e-appr_n-patch_ok",
+        "source": "appr_n",
+        "target": "patch_ok"
+      },
+      {
+        "id": "e-patch_ok-mail_ok",
+        "source": "patch_ok",
+        "target": "mail_ok"
+      },
+      {
+        "id": "e-mail_ok-done_ok",
+        "source": "mail_ok",
+        "target": "done_ok"
+      },
+      {
+        "id": "e-rej_mgr-rej_by",
+        "source": "rej_mgr",
+        "target": "rej_by"
+      },
+      {
+        "id": "e-rej_fin-rej_by",
+        "source": "rej_fin",
+        "target": "rej_by"
+      },
+      {
+        "id": "e-rej_by-rej_n",
+        "source": "rej_by",
+        "target": "rej_n"
+      },
+      {
+        "id": "e-rej_n-patch_no",
+        "source": "rej_n",
+        "target": "patch_no"
+      },
+      {
+        "id": "e-patch_no-mail_no",
+        "source": "patch_no",
+        "target": "mail_no"
+      },
+      {
+        "id": "e-mail_no-done_no",
+        "source": "mail_no",
+        "target": "done_no"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-opportunity_id",
+        "name": "opportunity_id",
+        "type": "string",
+        "description": "The 18-character Opportunity Id ({!$Record.Id} in the Flow)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Opportunity Id"
+      },
+      {
+        "id": "v-owner_email",
+        "name": "owner_email",
+        "type": "string",
+        "description": "Opportunity owner's email ({!$Record.Owner.Email}): gets the decision",
+        "defaultValue": "",
+        "required": true,
+        "label": "Owner email",
+        "format": "email"
+      },
+      {
+        "id": "v-account_name",
+        "name": "account_name",
+        "type": "string",
+        "description": "Optional: account name ({!$Record.Account.Name}), for the task title and logs",
+        "defaultValue": "",
+        "required": false,
+        "label": "Account"
+      },
+      {
+        "id": "v-submitted_by_name",
+        "name": "submitted_by_name",
+        "type": "string",
+        "description": "Optional: who submitted the discount in Salesforce",
+        "defaultValue": "",
+        "required": false,
+        "label": "Submitted by"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

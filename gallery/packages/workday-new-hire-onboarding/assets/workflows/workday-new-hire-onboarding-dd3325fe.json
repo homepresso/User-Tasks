@@ -1,0 +1,676 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "dd3325fe-9fb5-5b86-b8cb-151cd3990a76",
+  "asset": {
+    "id": "dd3325fe-9fb5-5b86-b8cb-151cd3990a76",
+    "name": "Workday new hire onboarding",
+    "description": "A Workday Hire event starts onboarding: the worker is read from Workday, the job family checklist and onboarding plan are applied, IT provisioning starts and the hiring manager prepares the first week.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Workday hire event",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "worker",
+        "type": "call_reference",
+        "label": "Get worker",
+        "position": {
+          "x": 400,
+          "y": 220
+        },
+        "config": {
+          "reference_id": "88ca1285-794a-518b-8eae-0c21a8dfe815",
+          "reference_name": "Get worker",
+          "reference_method": "GET",
+          "input_mappings": {
+            "worker_id": "{{worker_id}}"
+          },
+          "output_mappings": {
+            "worker_name": {
+              "enabled": true,
+              "variableName": "worker_name"
+            },
+            "employee_id": {
+              "enabled": true,
+              "variableName": "employee_id"
+            },
+            "work_email": {
+              "enabled": true,
+              "variableName": "work_email"
+            },
+            "business_title": {
+              "enabled": true,
+              "variableName": "business_title"
+            },
+            "hire_date": {
+              "enabled": true,
+              "variableName": "worker_hire_date"
+            },
+            "job_profile": {
+              "enabled": true,
+              "variableName": "job_profile"
+            },
+            "job_family": {
+              "enabled": true,
+              "variableName": "job_family"
+            },
+            "worker_type": {
+              "enabled": true,
+              "variableName": "worker_type"
+            },
+            "supervisory_org": {
+              "enabled": true,
+              "variableName": "supervisory_org"
+            },
+            "manager_name": {
+              "enabled": true,
+              "variableName": "manager_name"
+            },
+            "manager_email": {
+              "enabled": true,
+              "variableName": "manager_email"
+            },
+            "location": {
+              "enabled": true,
+              "variableName": "location"
+            }
+          }
+        }
+      },
+      {
+        "id": "start",
+        "type": "set_variable",
+        "label": "First day",
+        "position": {
+          "x": 400,
+          "y": 380
+        },
+        "config": {
+          "name": "hire_date",
+          "expression": "{{=COALESCE(hire_date, worker_hire_date)}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "title": "Onboarding {{worker_name}} · {{business_title}} · starts {{hire_date}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Ready by first day",
+        "position": {
+          "x": 400,
+          "y": 700
+        },
+        "config": {
+          "sla_label": "Ready for day one",
+          "mode": "exact",
+          "due_at": "{{hire_date}}",
+          "warning_amount": 3,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "kit",
+        "type": "update_data_table",
+        "label": "Checklist for the job family",
+        "position": {
+          "x": 400,
+          "y": 860
+        },
+        "config": {
+          "table_id": "fa64d4c7-8234-5907-9fa0-76b22d425822",
+          "table_name": "Onboarding checklist by job family",
+          "operation": "get",
+          "match_column": "job_family",
+          "match_value": "{{job_family}}",
+          "output_row_var": "kit"
+        }
+      },
+      {
+        "id": "plan",
+        "type": "call_reference",
+        "label": "Get onboarding plan",
+        "position": {
+          "x": 400,
+          "y": 1020
+        },
+        "config": {
+          "reference_id": "bb431942-fbe3-586e-bc97-573e919f93d1",
+          "reference_name": "Get onboarding plan",
+          "reference_method": "GET",
+          "input_mappings": {
+            "Worker_ID": "{{employee_id}}"
+          },
+          "output_mappings": {
+            "plan_tasks": {
+              "enabled": true,
+              "variableName": "plan_tasks"
+            },
+            "plan_name": {
+              "enabled": true,
+              "variableName": "plan_name"
+            }
+          }
+        }
+      },
+      {
+        "id": "plan_list",
+        "type": "set_variable",
+        "label": "Plan task list",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "name": "plan_summary",
+          "expression": "{{=JOIN(\", \", PLUCK(plan_tasks, \"Task\"))}}"
+        }
+      },
+      {
+        "id": "ready_by",
+        "type": "set_variable",
+        "label": "IT ready-by date",
+        "position": {
+          "x": 400,
+          "y": 1340
+        },
+        "config": {
+          "name": "it_ready_by",
+          "expression": "{{=FORMAT_DATE(SUBTRACT_DAYS(hire_date, COALESCE(kit.it_lead_days, 5)), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Add to new hire log",
+        "position": {
+          "x": 400,
+          "y": 1500
+        },
+        "config": {
+          "table_id": "739169cc-e1e9-5bd8-805f-fcd3f0b5bd7e",
+          "table_name": "New hire log",
+          "operation": "insert",
+          "column_values": {
+            "worker_id": "{{worker_id}}",
+            "employee_id": "{{employee_id}}",
+            "worker_name": "{{worker_name}}",
+            "job_family": "{{job_family}}",
+            "manager_name": "{{manager_name}}",
+            "hire_date": "{{hire_date}}",
+            "equipment": "{{kit.equipment}}",
+            "status": "awaiting manager"
+          }
+        }
+      },
+      {
+        "id": "it",
+        "type": "call_sub_workflow",
+        "label": "Start IT provisioning",
+        "position": {
+          "x": 400,
+          "y": 1660
+        },
+        "config": {
+          "sub_workflow_id": "9d1a4128-aa23-54ea-bab9-08bed9e9d4bd",
+          "sub_workflow_name": "IT provisioning",
+          "input_mappings": {
+            "worker_id": "{{worker_id}}",
+            "worker_name": "{{worker_name}}",
+            "business_title": "{{business_title}}",
+            "location": "{{location}}",
+            "hire_date": "{{hire_date}}",
+            "equipment": "{{kit.equipment}}",
+            "systems": "{{kit.systems}}",
+            "ready_by": "{{it_ready_by}}"
+          }
+        },
+        "executionMode": "async"
+      },
+      {
+        "id": "manager",
+        "type": "user_task",
+        "label": "Hiring manager: first week",
+        "position": {
+          "x": 400,
+          "y": 1820
+        },
+        "config": {
+          "task_title": "Get ready for {{worker_name}} ({{business_title}}), starting {{hire_date}}",
+          "task_description": "<p><strong>{{worker_name}}</strong> joins <strong>{{supervisory_org}}</strong> as {{business_title}} ({{job_profile}}, {{worker_type}}) on <strong>{{hire_date}}</strong> at {{location}}.</p><p>Workday onboarding plan “{{plan_name}}”: {{plan_summary}}.</p><p>IT has been asked to be ready by {{it_ready_by}}. Confirm the equipment, pick a buddy and plan the first week.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Ready",
+            "Not ready"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "f5dda992-44da-59d1-a69e-d72a86a7390a",
+          "assignee_variable": "{{hiring_manager_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320,
+          "fields": [
+            {
+              "key": "job_family_kit",
+              "label": "Job family checklist",
+              "type": "lookup",
+              "required": true,
+              "default": "{{job_family}}",
+              "help_text": "Pick the checklist to use; it fills the focus, buddy team and equipment.",
+              "lookup": {
+                "source": "table",
+                "table_id": "fa64d4c7-8234-5907-9fa0-76b22d425822",
+                "search_columns": [
+                  "job_family"
+                ],
+                "display_columns": [
+                  "job_family",
+                  "training_track"
+                ],
+                "value_column": "job_family",
+                "fill": [
+                  {
+                    "from": "first_week_focus",
+                    "to": "first_week_focus"
+                  },
+                  {
+                    "from": "buddy_team",
+                    "to": "buddy_team"
+                  },
+                  {
+                    "from": "equipment",
+                    "to": "standard_equipment"
+                  }
+                ]
+              }
+            },
+            {
+              "key": "standard_equipment",
+              "label": "Standard kit",
+              "type": "text",
+              "read_only": true
+            },
+            {
+              "key": "equipment",
+              "label": "Equipment",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "Standard laptop",
+                "Developer laptop (32 GB)",
+                "Developer laptop + 2 monitors",
+                "Laptop + headset",
+                "Bring own device"
+              ],
+              "display": "radio"
+            },
+            {
+              "key": "buddy_team",
+              "label": "Buddy team",
+              "type": "text",
+              "read_only": true
+            },
+            {
+              "key": "buddy",
+              "label": "Buddy",
+              "type": "text",
+              "required": true,
+              "placeholder": "Who will look after them in week one?"
+            },
+            {
+              "key": "desk_needed",
+              "label": "Desk in the office",
+              "type": "boolean"
+            },
+            {
+              "key": "first_week_focus",
+              "label": "First-week focus",
+              "type": "textarea",
+              "required": true
+            },
+            {
+              "key": "notes",
+              "label": "Notes for IT and People team",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "job_family_kit",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "standard_equipment",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "buddy_team",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "equipment",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "buddy",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "desk_needed",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "first_week_focus",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "New hire: {{worker_name}}",
+            "align": "left",
+            "subtitle": "{{business_title}} · {{supervisory_org}} · starts {{hire_date}}"
+          },
+          "form_buttons": [
+            {
+              "id": "ready",
+              "label": "Ready for day one",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Ready"
+            },
+            {
+              "id": "not_ready",
+              "label": "Not ready",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Not ready"
+            }
+          ]
+        }
+      },
+      {
+        "id": "ready_row",
+        "type": "update_data_table",
+        "label": "Mark ready",
+        "position": {
+          "x": 240,
+          "y": 2000
+        },
+        "config": {
+          "table_id": "739169cc-e1e9-5bd8-805f-fcd3f0b5bd7e",
+          "table_name": "New hire log",
+          "operation": "update",
+          "match_column": "worker_id",
+          "match_value": "{{worker_id}}",
+          "column_values": {
+            "status": "ready",
+            "equipment": "{{task_data.equipment}}"
+          }
+        }
+      },
+      {
+        "id": "welcome",
+        "type": "send_email",
+        "label": "Welcome email",
+        "position": {
+          "x": 240,
+          "y": 2160
+        },
+        "config": {
+          "to": "{{work_email}}",
+          "email_template_id": "e944aaff-3f5a-526c-a908-fc50733c829f"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Ready for day one",
+        "position": {
+          "x": 240,
+          "y": 2320
+        },
+        "config": {
+          "reason": "{{worker_name}} ready for {{hire_date}}"
+        }
+      },
+      {
+        "id": "not_ready_row",
+        "type": "update_data_table",
+        "label": "Mark not ready",
+        "position": {
+          "x": 560,
+          "y": 2000
+        },
+        "config": {
+          "table_id": "739169cc-e1e9-5bd8-805f-fcd3f0b5bd7e",
+          "table_name": "New hire log",
+          "operation": "update",
+          "match_column": "worker_id",
+          "match_value": "{{worker_id}}",
+          "column_values": {
+            "status": "not ready"
+          }
+        }
+      },
+      {
+        "id": "warn",
+        "type": "log",
+        "label": "Flag to People team",
+        "position": {
+          "x": 560,
+          "y": 2160
+        },
+        "config": {
+          "message": "Onboarding for {{worker_name}} not ready: {{task_data.notes}}",
+          "level": "warn"
+        }
+      },
+      {
+        "id": "stopped",
+        "type": "end_workflow",
+        "label": "Not ready",
+        "position": {
+          "x": 560,
+          "y": 2320
+        },
+        "config": {
+          "reason": "{{worker_name}}: hiring manager reported not ready"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-worker",
+        "source": "trigger",
+        "target": "worker"
+      },
+      {
+        "id": "e-worker-start",
+        "source": "worker",
+        "target": "start"
+      },
+      {
+        "id": "e-start-title",
+        "source": "start",
+        "target": "title"
+      },
+      {
+        "id": "e-title-sla",
+        "source": "title",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-kit",
+        "source": "sla",
+        "target": "kit"
+      },
+      {
+        "id": "e-kit-plan",
+        "source": "kit",
+        "target": "plan"
+      },
+      {
+        "id": "e-plan-plan_list",
+        "source": "plan",
+        "target": "plan_list"
+      },
+      {
+        "id": "e-plan_list-ready_by",
+        "source": "plan_list",
+        "target": "ready_by"
+      },
+      {
+        "id": "e-ready_by-log",
+        "source": "ready_by",
+        "target": "log"
+      },
+      {
+        "id": "e-log-it",
+        "source": "log",
+        "target": "it"
+      },
+      {
+        "id": "e-it-manager",
+        "source": "it",
+        "target": "manager"
+      },
+      {
+        "id": "e-manager-ready_row-ready",
+        "source": "manager",
+        "target": "ready_row",
+        "label": "Ready"
+      },
+      {
+        "id": "e-manager-not_ready_row-not-ready",
+        "source": "manager",
+        "target": "not_ready_row",
+        "label": "Not ready"
+      },
+      {
+        "id": "e-ready_row-welcome",
+        "source": "ready_row",
+        "target": "welcome"
+      },
+      {
+        "id": "e-welcome-done",
+        "source": "welcome",
+        "target": "done"
+      },
+      {
+        "id": "e-not_ready_row-warn",
+        "source": "not_ready_row",
+        "target": "warn"
+      },
+      {
+        "id": "e-warn-stopped",
+        "source": "warn",
+        "target": "stopped"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-worker_id",
+        "name": "worker_id",
+        "type": "string",
+        "description": "Workday worker WID from the Hire business process event",
+        "defaultValue": "",
+        "required": true,
+        "label": "Workday worker id"
+      },
+      {
+        "id": "v-event_id",
+        "name": "event_id",
+        "type": "string",
+        "description": "Workday Hire event WID (for traceability)",
+        "defaultValue": "",
+        "required": false,
+        "label": "Business process event id"
+      },
+      {
+        "id": "v-hire_date",
+        "name": "hire_date",
+        "type": "string",
+        "description": "Optional: hire date from the event (the worker record is used otherwise)",
+        "defaultValue": "",
+        "required": false,
+        "label": "Hire date",
+        "format": "date"
+      },
+      {
+        "id": "v-hiring_manager_user_id",
+        "name": "hiring_manager_user_id",
+        "type": "string",
+        "description": "Optional: UserTasks user id of the hiring manager; the install-time default receives the step otherwise",
+        "defaultValue": "",
+        "required": false,
+        "label": "Hiring manager (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

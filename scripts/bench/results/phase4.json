@@ -1,0 +1,341 @@
+{
+  "label": "phase4",
+  "updatedAt": "2026-10-24T22:30:13.659Z",
+  "environment": {
+    "machine": "Apple M1 Pro",
+    "cpus": 10,
+    "memory_gb": 32,
+    "os": "darwin 27.0.0 arm64",
+    "node": "v20.19.5",
+    "git_commit": "cfbf4ef4",
+    "git_branch": "perf",
+    "supabase_cli": "2.84.4",
+    "postgres_server": "17.6",
+    "docker": "28.3.2"
+  },
+  "suites": {
+    "size": {
+      "data": {
+        "build_seconds": 38.4,
+        "client_chunks": {
+          "count": 122,
+          "bytes": 7920383,
+          "gzip_bytes": 2122855,
+          "largest": [
+            {
+              "file": "02doau-b9shzp.js",
+              "bytes": 458283,
+              "gzip": 92978,
+              "libraries": "lucide"
+            },
+            {
+              "file": "0rvqm0vktswnk.js",
+              "bytes": 411640,
+              "gzip": 139927,
+              "libraries": "xlsx"
+            },
+            {
+              "file": "0bg7j_21khcgs.js",
+              "bytes": 400980,
+              "gzip": 106983,
+              "libraries": "zod"
+            },
+            {
+              "file": "0fdd0dewb8q9p.js",
+              "bytes": 365753,
+              "gzip": 105463,
+              "libraries": "recharts"
+            },
+            {
+              "file": "0kyeyc8kobkan.js",
+              "bytes": 365753,
+              "gzip": 105508,
+              "libraries": "recharts"
+            },
+            {
+              "file": "0zht_fixubbj5.js",
+              "bytes": 365753,
+              "gzip": 105601,
+              "libraries": "recharts"
+            },
+            {
+              "file": "0373j2_9j8zqo.js",
+              "bytes": 284821,
+              "gzip": 64665,
+              "libraries": "zod"
+            },
+            {
+              "file": "094dst-w3ehr6.js",
+              "bytes": 284821,
+              "gzip": 64702,
+              "libraries": "zod"
+            },
+            {
+              "file": "0hu8~auz-vcxm.js",
+              "bytes": 277457,
+              "gzip": 49534,
+              "libraries": ""
+            },
+            {
+              "file": "0zgqc.pptxdm2.js",
+              "bytes": 277457,
+              "gzip": 49522,
+              "libraries": ""
+            }
+          ]
+        },
+        "client_css_bytes": 133544,
+        "server_output_bytes": 213348352,
+        "standalone_bytes": null,
+        "node_modules_bytes": 981966848,
+        "docker_image_bytes": null
+      },
+      "tables": [
+        {
+          "title": "Build & install size",
+          "columns": [
+            "measure",
+            "value"
+          ],
+          "rows": [
+            [
+              "client JS chunks (count)",
+              122
+            ],
+            [
+              "client JS total MB (gzip MB)",
+              "7.6 (2)"
+            ],
+            [
+              "client CSS KB",
+              130
+            ],
+            [
+              ".next/server MB",
+              203.5
+            ],
+            [
+              ".next/standalone MB",
+              null
+            ],
+            [
+              "node_modules MB",
+              936.5
+            ],
+            [
+              "Docker image MB",
+              null
+            ],
+            [
+              "next build s",
+              38.4
+            ]
+          ]
+        },
+        {
+          "title": "Largest client chunks",
+          "columns": [
+            "chunk",
+            "KB",
+            "gzip KB",
+            "contains"
+          ],
+          "rows": [
+            [
+              "02doau-b9shzp.js",
+              448,
+              91,
+              "lucide"
+            ],
+            [
+              "0rvqm0vktswnk.js",
+              402,
+              137,
+              "xlsx"
+            ],
+            [
+              "0bg7j_21khcgs.js",
+              392,
+              104,
+              "zod"
+            ],
+            [
+              "0fdd0dewb8q9p.js",
+              357,
+              103,
+              "recharts"
+            ],
+            [
+              "0kyeyc8kobkan.js",
+              357,
+              103,
+              "recharts"
+            ],
+            [
+              "0zht_fixubbj5.js",
+              357,
+              103,
+              "recharts"
+            ],
+            [
+              "0373j2_9j8zqo.js",
+              278,
+              63,
+              "zod"
+            ],
+            [
+              "094dst-w3ehr6.js",
+              278,
+              63,
+              "zod"
+            ],
+            [
+              "0hu8~auz-vcxm.js",
+              271,
+              48,
+              null
+            ],
+            [
+              "0zgqc.pptxdm2.js",
+              271,
+              48,
+              null
+            ]
+          ]
+        }
+      ],
+      "notes": [
+        "Docker image not built (pass --docker)."
+      ],
+      "ranAt": "2026-10-24T22:30:09.643Z",
+      "durationMs": 39735
+    },
+    "api": {
+      "data": {
+        "tool_count": 154,
+        "tool_called": "workflows_list",
+        "GET /api/v1/workflows?active=false": {
+          "n": 100,
+          "p50": 5,
+          "p95": 8.1,
+          "max": 23.2,
+          "mean": 5.6,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 6188
+        },
+        "GET /api/v1/tasks": {
+          "n": 100,
+          "p50": 8.2,
+          "p95": 9.1,
+          "max": 9.6,
+          "mean": 8.3,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 32025
+        },
+        "GET /api/v1/me": {
+          "n": 100,
+          "p50": 3.8,
+          "p95": 5.1,
+          "max": 5.3,
+          "mean": 3.9,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 1227
+        },
+        "MCP tools/list": {
+          "n": 100,
+          "p50": 2.9,
+          "p95": 3.8,
+          "max": 4.7,
+          "mean": 3,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 125796
+        },
+        "MCP tools/call workflows_list": {
+          "n": 100,
+          "p50": 5.5,
+          "p95": 6.6,
+          "max": 7.3,
+          "mean": 5.6,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 10263
+        }
+      },
+      "tables": [
+        {
+          "title": "API latency (100 sequential requests each after 5 warm-ups, tenant API key, ms)",
+          "columns": [
+            "request",
+            "p50",
+            "p95",
+            "max",
+            "mean",
+            "statuses",
+            "response bytes"
+          ],
+          "rows": [
+            [
+              "GET /api/v1/workflows?active=false",
+              5,
+              8.1,
+              23.2,
+              5.6,
+              "200×100",
+              6188
+            ],
+            [
+              "GET /api/v1/tasks",
+              8.2,
+              9.1,
+              9.6,
+              8.3,
+              "200×100",
+              32025
+            ],
+            [
+              "GET /api/v1/me",
+              3.8,
+              5.1,
+              5.3,
+              3.9,
+              "200×100",
+              1227
+            ],
+            [
+              "MCP tools/list",
+              2.9,
+              3.8,
+              4.7,
+              3,
+              "200×100",
+              125796
+            ],
+            [
+              "MCP tools/call workflows_list",
+              5.5,
+              6.6,
+              7.3,
+              5.6,
+              "200×100",
+              10263
+            ]
+          ]
+        }
+      ],
+      "notes": [
+        "MCP server exposes 154 tools; tools/call used workflows_list with no arguments."
+      ],
+      "ranAt": "2026-10-24T22:30:14.198Z",
+      "durationMs": 3351
+    }
+  }
+}

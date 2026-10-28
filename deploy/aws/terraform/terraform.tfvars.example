@@ -1,0 +1,15 @@
+region             = "eu-west-1"
+name               = "usertasks"
+vpc_id             = "vpc-0123456789abcdef0"
+public_subnet_ids  = ["subnet-0aaaaaaaaaaaaaaa1", "subnet-0aaaaaaaaaaaaaaa2"]
+private_subnet_ids = ["subnet-0bbbbbbbbbbbbbbb1", "subnet-0bbbbbbbbbbbbbbb2"]
+certificate_arn    = "arn:aws:acm:eu-west-1:123456789012:certificate/00000000-0000-0000-0000-000000000000"
+app_url            = "https://tasks.example.com"
+
+ses_identity = "example.com"
+email_from   = "UserTasks <tasks@example.com>"
+
+instance_admin_emails = "admin@example.com"
+# auth_sso_providers = "[{\"id\":\"cognito\",\"type\":\"oidc\",\"preset\":\"cognito\",\"userPoolId\":\"eu-west-1_AbCdEf\",\"domain\":\"acme.auth.eu-west-1.amazoncognito.com\",\"clientId\":\"…\",\"clientSecret\":\"secret://usertasks/cognito-client-secret\",\"roleMapping\":{\"admins\":\"admin\"}}]"
+
+tick_mode = "scheduler_ecs" # or api_destination (CRON_SECRET), or worker

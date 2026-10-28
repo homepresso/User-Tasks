@@ -1,0 +1,27 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "01be02d0-1981-58ed-aeb3-dc41d468640b",
+  "asset": {
+    "id": "01be02d0-1981-58ed-aeb3-dc41d468640b",
+    "name": "SAP S/4HANA",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://s4.sap.example.com/sap/opu/odata/sap",
+      "auth_type": "basic",
+      "auth_config": {
+        "username": "USERTASKS_COMM",
+        "password": "__SECRET__"
+      },
+      "headers": {
+        "Accept": "application/json",
+        "sap-client": "100"
+      }
+    },
+    "is_active": true,
+    "tags": [
+      "erp",
+      "sap"
+    ]
+  }
+}

@@ -1,0 +1,632 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "0a813a4e-4690-4298-b122-738cbbc7f5d3",
+  "asset": {
+    "id": "0a813a4e-4690-4298-b122-738cbbc7f5d3",
+    "name": "Scheduled evidence collection",
+    "description": "Monthly: collects evidence for every automated control from the Evidence API, asks owners of manual controls for theirs, records everything in the Evidence log and emails the compliance lead a summary.",
+    "trigger_type": "schedule",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "schedule",
+        "label": "2nd of the month, 06:00",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {
+          "schedule_mode": "monthly",
+          "day_of_month": 2,
+          "time_of_day": "06:00",
+          "timezone": "UTC"
+        }
+      },
+      {
+        "id": "period",
+        "type": "set_variable",
+        "label": "Evidence period",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "name": "period",
+          "expression": "{{=FORMAT_DATE(COALESCE(as_of, TODAY()), \"YYYY-MM\")}}"
+        }
+      },
+      {
+        "id": "month",
+        "type": "set_variable",
+        "label": "Month number",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "name": "period_month",
+          "expression": "{{=RIGHT(period, 2)}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "title": "Audit evidence {{period}}"
+        }
+      },
+      {
+        "id": "list",
+        "type": "update_data_table",
+        "label": "List active controls",
+        "position": {
+          "x": 340,
+          "y": 700
+        },
+        "config": {
+          "table_id": "17642cf3-cc67-48c2-9062-4842805fdbfd",
+          "table_name": "Controls",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "active",
+              "operator": "eq",
+              "value": "true"
+            }
+          ],
+          "sort_column": "control_id",
+          "limit": 500,
+          "output_rows_var": "controls",
+          "output_count_var": "control_count"
+        }
+      },
+      {
+        "id": "skipped0",
+        "type": "set_variable",
+        "label": "Start skip count",
+        "position": {
+          "x": 340,
+          "y": 860
+        },
+        "config": {
+          "name": "skipped_count",
+          "expression": "0"
+        }
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each control",
+        "position": {
+          "x": 340,
+          "y": 1020
+        },
+        "config": {
+          "items": "{{controls}}",
+          "item_var": "control"
+        }
+      },
+      {
+        "id": "due",
+        "type": "condition",
+        "label": "Due this period?",
+        "position": {
+          "x": 660,
+          "y": 1200
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Due",
+              "logic": "or",
+              "rules": [
+                {
+                  "field": "{{control.frequency}}",
+                  "operator": "equals",
+                  "value": "monthly"
+                },
+                {
+                  "field": "{{period_month}}",
+                  "operator": "in",
+                  "value": "01,04,07,10"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "kind",
+        "type": "switch_case",
+        "label": "Evidence type",
+        "position": {
+          "x": 660,
+          "y": 1380
+        },
+        "config": {
+          "field": "{{control.evidence_type}}",
+          "cases": [
+            {
+              "value": "automated",
+              "label": "Automated"
+            },
+            {
+              "value": "manual",
+              "label": "Manual"
+            }
+          ],
+          "has_default": true
+        }
+      },
+      {
+        "id": "fetch",
+        "type": "call_reference",
+        "label": "Fetch evidence",
+        "position": {
+          "x": 660,
+          "y": 1560
+        },
+        "config": {
+          "reference_id": "3868683d-9a73-43d7-8f4e-b5993af3a145",
+          "reference_name": "Get control evidence",
+          "reference_method": "GET",
+          "input_mappings": {
+            "evidence_source": "{{control.evidence_source}}",
+            "control_id": "{{control.control_id}}",
+            "period": "{{period}}"
+          },
+          "output_mappings": {
+            "evidence_url": {
+              "enabled": true,
+              "variableName": "evidence_url"
+            },
+            "record_count": {
+              "enabled": true,
+              "variableName": "record_count"
+            },
+            "exceptions": {
+              "enabled": true,
+              "variableName": "exceptions"
+            },
+            "checksum": {
+              "enabled": true,
+              "variableName": "checksum"
+            },
+            "summary": {
+              "enabled": true,
+              "variableName": "evidence_summary"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "ok",
+        "type": "condition",
+        "label": "Collected?",
+        "position": {
+          "x": 660,
+          "y": 1720
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Collected",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{fetch_evidence_status}}",
+                  "operator": "lt",
+                  "value": "400"
+                },
+                {
+                  "field": "{{evidence_url}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "collected",
+        "type": "update_data_table",
+        "label": "Log collected evidence",
+        "position": {
+          "x": 660,
+          "y": 1900
+        },
+        "config": {
+          "table_id": "552c946b-ab3b-4fd7-b0d2-a334bc4f14fb",
+          "table_name": "Evidence log",
+          "operation": "insert",
+          "column_values": {
+            "period": "{{period}}",
+            "control_id": "{{control.control_id}}",
+            "framework": "{{control.framework}}",
+            "title": "{{control.title}}",
+            "evidence_type": "automated",
+            "status": "collected",
+            "evidence_url": "{{evidence_url}}",
+            "record_count": "{{record_count}}",
+            "exceptions": "{{exceptions}}",
+            "checksum": "{{checksum}}",
+            "collected_at": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "owner_email": "{{control.owner_email}}",
+            "notes": "{{evidence_summary}}"
+          }
+        }
+      },
+      {
+        "id": "failed",
+        "type": "update_data_table",
+        "label": "Log failed collection",
+        "position": {
+          "x": 980,
+          "y": 1900
+        },
+        "config": {
+          "table_id": "552c946b-ab3b-4fd7-b0d2-a334bc4f14fb",
+          "table_name": "Evidence log",
+          "operation": "insert",
+          "column_values": {
+            "period": "{{period}}",
+            "control_id": "{{control.control_id}}",
+            "framework": "{{control.framework}}",
+            "title": "{{control.title}}",
+            "evidence_type": "automated",
+            "status": "failed",
+            "owner_email": "{{control.owner_email}}",
+            "notes": "Evidence API returned {{fetch_evidence_status}}"
+          }
+        }
+      },
+      {
+        "id": "requested",
+        "type": "update_data_table",
+        "label": "Log evidence request",
+        "position": {
+          "x": 980,
+          "y": 1560
+        },
+        "config": {
+          "table_id": "552c946b-ab3b-4fd7-b0d2-a334bc4f14fb",
+          "table_name": "Evidence log",
+          "operation": "insert",
+          "output_row_id_var": "evidence_row_id",
+          "column_values": {
+            "period": "{{period}}",
+            "control_id": "{{control.control_id}}",
+            "framework": "{{control.framework}}",
+            "title": "{{control.title}}",
+            "evidence_type": "manual",
+            "status": "requested",
+            "owner_email": "{{control.owner_email}}"
+          }
+        }
+      },
+      {
+        "id": "ask",
+        "type": "call_sub_workflow",
+        "label": "Ask owner for evidence",
+        "position": {
+          "x": 980,
+          "y": 1720
+        },
+        "config": {
+          "sub_workflow_id": "b0322bc1-1b4f-4c10-bda7-2e3570c0dbad",
+          "sub_workflow_name": "Provide audit evidence",
+          "input_mappings": {
+            "control": "{{control}}",
+            "period": "{{period}}",
+            "evidence_row_id": "{{evidence_row_id}}"
+          }
+        },
+        "executionMode": "async"
+      },
+      {
+        "id": "unknown",
+        "type": "log",
+        "label": "Unknown evidence type",
+        "position": {
+          "x": 1300,
+          "y": 1560
+        },
+        "config": {
+          "message": "{{control.control_id}}: evidence type \"{{control.evidence_type}}\" is not automated or manual",
+          "level": "warn"
+        }
+      },
+      {
+        "id": "skip",
+        "type": "math",
+        "label": "Count skipped",
+        "position": {
+          "x": 980,
+          "y": 1380
+        },
+        "config": {
+          "expression": "{{skipped_count}} + 1",
+          "output_var": "skipped_count"
+        }
+      },
+      {
+        "id": "period_rows",
+        "type": "update_data_table",
+        "label": "Evidence for the period",
+        "position": {
+          "x": 340,
+          "y": 2060
+        },
+        "config": {
+          "table_id": "552c946b-ab3b-4fd7-b0d2-a334bc4f14fb",
+          "table_name": "Evidence log",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "period",
+              "operator": "eq",
+              "value": "{{period}}"
+            }
+          ],
+          "limit": 1000,
+          "output_rows_var": "period_evidence"
+        }
+      },
+      {
+        "id": "c1",
+        "type": "set_variable",
+        "label": "Collected count",
+        "position": {
+          "x": 340,
+          "y": 2220
+        },
+        "config": {
+          "name": "collected_count",
+          "expression": "{{=COUNT(FILTER_WHERE(period_evidence, \"status\", \"collected\"))}}"
+        }
+      },
+      {
+        "id": "c2",
+        "type": "set_variable",
+        "label": "Requested count",
+        "position": {
+          "x": 340,
+          "y": 2380
+        },
+        "config": {
+          "name": "requested_count",
+          "expression": "{{=COUNT(FILTER_WHERE(period_evidence, \"status\", \"requested\"))}}"
+        }
+      },
+      {
+        "id": "c3",
+        "type": "set_variable",
+        "label": "Requested controls",
+        "position": {
+          "x": 340,
+          "y": 2540
+        },
+        "config": {
+          "name": "requested_controls",
+          "expression": "{{=JOIN(\", \", PLUCK(FILTER_WHERE(period_evidence, \"status\", \"requested\"), \"control_id\"))}}"
+        }
+      },
+      {
+        "id": "c4",
+        "type": "set_variable",
+        "label": "Failed count",
+        "position": {
+          "x": 340,
+          "y": 2700
+        },
+        "config": {
+          "name": "failed_count",
+          "expression": "{{=COUNT(FILTER_WHERE(period_evidence, \"status\", \"failed\"))}}"
+        }
+      },
+      {
+        "id": "c5",
+        "type": "set_variable",
+        "label": "Failed controls",
+        "position": {
+          "x": 340,
+          "y": 2860
+        },
+        "config": {
+          "name": "failed_controls",
+          "expression": "{{=JOIN(\", \", PLUCK(FILTER_WHERE(period_evidence, \"status\", \"failed\"), \"control_id\"))}}"
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email compliance lead",
+        "position": {
+          "x": 340,
+          "y": 3020
+        },
+        "config": {
+          "to": "{{compliance_lead_email}}",
+          "email_template_id": "b1238118-6bc9-43c9-a23c-ab8b939e25eb"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Collection done",
+        "position": {
+          "x": 340,
+          "y": 3180
+        },
+        "config": {
+          "reason": "{{period}}: {{collected_count}} collected, {{requested_count}} requested, {{failed_count}} failed"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-period",
+        "source": "trigger",
+        "target": "period"
+      },
+      {
+        "id": "e-period-month",
+        "source": "period",
+        "target": "month"
+      },
+      {
+        "id": "e-month-title",
+        "source": "month",
+        "target": "title"
+      },
+      {
+        "id": "e-title-list",
+        "source": "title",
+        "target": "list"
+      },
+      {
+        "id": "e-list-skipped0",
+        "source": "list",
+        "target": "skipped0"
+      },
+      {
+        "id": "e-skipped0-each",
+        "source": "skipped0",
+        "target": "each"
+      },
+      {
+        "id": "e-each-due-each-item",
+        "source": "each",
+        "target": "due",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-due-kind-due",
+        "source": "due",
+        "target": "kind",
+        "label": "Due"
+      },
+      {
+        "id": "e-due-skip-else",
+        "source": "due",
+        "target": "skip",
+        "label": "Else"
+      },
+      {
+        "id": "e-kind-fetch-automated",
+        "source": "kind",
+        "target": "fetch",
+        "label": "Automated"
+      },
+      {
+        "id": "e-kind-requested-manual",
+        "source": "kind",
+        "target": "requested",
+        "label": "Manual"
+      },
+      {
+        "id": "e-kind-unknown-default",
+        "source": "kind",
+        "target": "unknown",
+        "label": "Default"
+      },
+      {
+        "id": "e-fetch-ok",
+        "source": "fetch",
+        "target": "ok"
+      },
+      {
+        "id": "e-ok-collected-collected",
+        "source": "ok",
+        "target": "collected",
+        "label": "Collected"
+      },
+      {
+        "id": "e-ok-failed-else",
+        "source": "ok",
+        "target": "failed",
+        "label": "Else"
+      },
+      {
+        "id": "e-requested-ask",
+        "source": "requested",
+        "target": "ask"
+      },
+      {
+        "id": "e-each-period_rows-done",
+        "source": "each",
+        "target": "period_rows",
+        "label": "Done"
+      },
+      {
+        "id": "e-period_rows-c1",
+        "source": "period_rows",
+        "target": "c1"
+      },
+      {
+        "id": "e-c1-c2",
+        "source": "c1",
+        "target": "c2"
+      },
+      {
+        "id": "e-c2-c3",
+        "source": "c2",
+        "target": "c3"
+      },
+      {
+        "id": "e-c3-c4",
+        "source": "c3",
+        "target": "c4"
+      },
+      {
+        "id": "e-c4-c5",
+        "source": "c4",
+        "target": "c5"
+      },
+      {
+        "id": "e-c5-mail",
+        "source": "c5",
+        "target": "mail"
+      },
+      {
+        "id": "e-mail-done",
+        "source": "mail",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-as_of",
+        "name": "as_of",
+        "type": "string",
+        "description": "Optional: collect for the month of this date (YYYY-MM-DD). Empty = this month.",
+        "defaultValue": "",
+        "label": "As of date",
+        "format": "date"
+      },
+      {
+        "id": "v-compliance_lead_email",
+        "name": "compliance_lead_email",
+        "type": "string",
+        "description": "Who receives the summary",
+        "defaultValue": "compliance@example.com",
+        "label": "Compliance lead email",
+        "format": "email"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

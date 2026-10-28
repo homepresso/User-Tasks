@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "028c1de6-e994-43a3-9af4-9483f78939b1",
+  "asset": {
+    "id": "028c1de6-e994-43a3-9af4-9483f78939b1",
+    "name": "Expense claim rejected",
+    "description": "Sent to the claimant when the approver rejects the claim.",
+    "subject": "Not approved: {{claim_title}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your expense claim was not approved</h2>\n  <p>Hi {{employee_name}},</p>\n  <p><strong>{{claim_title}}</strong> ({{currency}} {{=FORMAT_NUMBER(amount, 2)}}) was not approved.</p>\n  <p>Reason: {{task_data.comment}}</p>\n  <p>Reply to your manager if you have questions, or submit a new claim with the missing details.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your expense claims workflow</p>\n</div>",
+    "text_body": "Your expense claim was not approved\n  Hi {{employee_name}},\n  {{claim_title}} ({{currency}} {{=FORMAT_NUMBER(amount, 2)}}) was not approved.\n  Reason: {{task_data.comment}}\n  Reply to your manager if you have questions, or submit a new claim with the missing details.\n  Sent by your expense claims workflow",
+    "is_default": false
+  }
+}

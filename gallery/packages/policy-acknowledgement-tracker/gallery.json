@@ -1,0 +1,71 @@
+{
+  "title": "Policy acknowledgement tracker",
+  "category": "operations-compliance",
+  "summary": "Every week, issue the current policy to every active person, track who has acknowledged it, remind the rest and give the policy owner one chase list.",
+  "description": "Policy acknowledgement tracker turns \"please read and confirm\" emails into an auditable register. The Policy register table holds each policy, its version, link and whether staff must acknowledge it; the Staff table lists who has to confirm.\n\nEvery Monday at 09:00 the workflow picks the most recently effective current policy that needs acknowledging (or the one you name) and goes through every active person. Anyone not yet asked gets a Pending row in the Acknowledgements table, an email with the link and the deadline, and a tracker task (through a Record acknowledgement sub-workflow) where the policy owner records the confirmation with Acknowledged, Exempt or Refused buttons. Anyone still pending gets a reminder and their reminder count goes up.\n\nAfter the round the policy owner gets one consolidated Chase outstanding acknowledgements task listing everyone outstanding, with a reminder and escalation to their manager if it sits. Staff have no app accounts, so every task goes to the person who installed and activated the package. Everything is built in.",
+  "trigger": "schedule",
+  "entry_workflow": "bed86746-0d6f-5e5b-a02e-17475080c937",
+  "start": "Scheduled: every Monday at 09:00 (Pacific/Auckland; change it on the trigger). Run it manually to issue a policy straight away, optionally with a policy code.",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "policy",
+    "attestation",
+    "compliance",
+    "schedule",
+    "sub-workflow",
+    "no integrations"
+  ],
+  "version": "1.0.1",
+  "changelog": [
+    {
+      "version": "1.0.1",
+      "date": "2026-10-28",
+      "notes": "Steps for the coordinator who set the package up are assigned to the workflow owner (workflow_owner_id), now that workflow_started_by names the person who started the run."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Nothing is required: install it and the weekly schedule starts. The installer (the policy owner) receives the tracker and chase tasks.",
+    "Fill the Policy register table with your policies (link, version, Staff must acknowledge, days to acknowledge). Set status Current on the version in force; a new version gets fresh acknowledgements.",
+    "Replace the sample people in the Staff table (or import a CSV); untick Active for leavers.",
+    "Optional: change the day, time and time zone on the trigger, and set EMAIL_PROVIDER so the emails are delivered."
+  ],
+  "steps": [
+    {
+      "title": "Weekly run",
+      "body": "On Monday morning the latest current policy that needs acknowledging is picked (or the one passed in)."
+    },
+    {
+      "title": "Issue to everyone",
+      "body": "Each active person not yet asked gets a Pending row, an email with the link and deadline, and a tracker task."
+    },
+    {
+      "title": "Record confirmations",
+      "body": "The policy owner records each confirmation on its tracker task: Acknowledged, Exempt or Refused."
+    },
+    {
+      "title": "Remind the rest",
+      "body": "Anyone still pending gets a reminder email every week, and the count is kept on their row."
+    },
+    {
+      "title": "One chase list",
+      "body": "A consolidated task lists everyone outstanding, with a reminder and escalation to the owner's manager."
+    }
+  ],
+  "sample_input": {
+    "policy_code": ""
+  },
+  "expect": "waiting",
+  "icon": "scroll-text",
+  "id": "171b92cf-cffc-5f92-8b06-a8f294ef9077",
+  "slug": "policy-acknowledgement-tracker"
+}

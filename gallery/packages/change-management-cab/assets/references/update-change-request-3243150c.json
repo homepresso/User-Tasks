@@ -1,0 +1,134 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "3243150c-01d5-4e19-97e9-3f94c6e582a8",
+  "asset": {
+    "id": "3243150c-01d5-4e19-97e9-3f94c6e582a8",
+    "integration_id": "17cc9910-7d93-4205-8992-59facf731018",
+    "name": "Update change request",
+    "description": "Move the change to a new state and record approval, implementation or review notes.",
+    "tags": [
+      "changes"
+    ],
+    "request_config": {
+      "method": "PATCH",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"state\":\"{{state}}\",\"work_note\":\"{{work_note}}\",\"close_code\":\"{{close_code}}\",\"actual_start\":\"{{actual_start}}\",\"actual_end\":\"{{actual_end}}\"}",
+      "path_template": "/changes/{{change_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "9b2e4f71-3c8a-4d5e-b1f0-6a7c8d9e0f12"
+            },
+            {
+              "name": "number",
+              "type": "string",
+              "example": "CHG0031877"
+            },
+            {
+              "name": "state",
+              "type": "string",
+              "example": "scheduled"
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "example": "2026-10-28T03:10:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "id": "9b2e4f71-3c8a-4d5e-b1f0-6a7c8d9e0f12",
+          "number": "CHG0031877",
+          "state": "scheduled",
+          "updated_at": "2026-10-28T03:10:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "d25cee2c-6836-4ee5-8f26-f5f0a72dd112",
+        "name": "change_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "19b658b8-58d0-41ea-b094-a2139ab26016",
+        "name": "state",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "48bff6e1-6734-4af7-907c-f276adf3b562",
+        "name": "work_note",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "af42fdab-0ace-4c18-ba2f-da88c09147e8",
+        "name": "close_code",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "d4f29869-3805-4409-b768-7c29289f48b6",
+        "name": "actual_start",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "32b3443c-c034-419d-8105-db6f479e7a79",
+        "name": "actual_end",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "31058349-327f-424c-b947-5e013f5cd5f5",
+        "name": "state",
+        "path": "state",
+        "type": "string"
+      },
+      {
+        "id": "15ae5d93-b5f0-4782-ab7a-5ceecbbe49e6",
+        "name": "updated_at",
+        "path": "updated_at",
+        "type": "string"
+      }
+    ]
+  }
+}

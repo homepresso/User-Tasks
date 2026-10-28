@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "e073c3f0-a9e8-4d3f-bced-4442905c4a73",
+  "asset": {
+    "id": "e073c3f0-a9e8-4d3f-bced-4442905c4a73",
+    "name": "Access expired",
+    "description": "Sent to the requester when time-boxed access is removed at the end of its period.",
+    "subject": "Access removed: {{application}} ({{role}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Time-boxed access has ended</h2>\n  <p>Hi {{requester_name}},</p>\n  <p>The {{duration}} grant of <strong>{{role}}</strong> on <strong>{{application}}</strong> for {{user_name}} (grant {{grant_id}}) has expired and was removed.</p>\n  <p>Submit a new request if the access is still needed.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your access request workflow</p>\n</div>",
+    "text_body": "Time-boxed access has ended\n  Hi {{requester_name}},\n  The {{duration}} grant of {{role}} on {{application}} for {{user_name}} (grant {{grant_id}}) has expired and was removed.\n  Submit a new request if the access is still needed.\n  Sent by your access request workflow",
+    "is_default": false
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "28cebfbb-335c-4ad6-8383-77ea2f308b4d",
+  "asset": {
+    "id": "28cebfbb-335c-4ad6-8383-77ea2f308b4d",
+    "name": "DSAR register",
+    "description": "Register of data subject requests: who asked, what for, the statutory deadline, systems searched and the outcome. Keep it as your record of processing for requests.",
+    "columns": [
+      {
+        "id": "9c4a57c2-25ce-4661-ab2d-9984f28486ea",
+        "required": true,
+        "key": "reference",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "a585940c-c00e-4e34-bcad-6bf409c77e69",
+        "required": false,
+        "key": "requester_name",
+        "name": "Requester",
+        "type": "text"
+      },
+      {
+        "id": "fc6c5986-55d5-450c-9c43-9b970baef9f1",
+        "required": false,
+        "key": "requester_email",
+        "name": "Email",
+        "type": "text"
+      },
+      {
+        "id": "5d0fec28-746b-4516-a230-dbca80bd055a",
+        "required": false,
+        "key": "request_type",
+        "name": "Request type",
+        "type": "select",
+        "options": [
+          "access",
+          "erasure",
+          "rectification",
+          "portability",
+          "objection"
+        ]
+      },
+      {
+        "id": "d25bf9bc-6522-4a11-a91b-8bba21d731a9",
+        "required": false,
+        "key": "jurisdiction",
+        "name": "Jurisdiction",
+        "type": "text"
+      },
+      {
+        "id": "ef803a59-61fb-494d-bac0-0cd1fcb35f81",
+        "required": false,
+        "key": "received_date",
+        "name": "Received",
+        "type": "date"
+      },
+      {
+        "id": "8ab18511-8c20-4d3a-8be0-241898a83011",
+        "required": false,
+        "key": "due_date",
+        "name": "Due",
+        "type": "date"
+      },
+      {
+        "id": "ecbfcdd1-89a0-462b-969b-1792b27143bc",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Identity check",
+          "Awaiting identity",
+          "In progress",
+          "DPO review",
+          "Closed",
+          "Rejected"
+        ]
+      },
+      {
+        "id": "e6e0f749-f941-40cc-98cf-ea41b2f39c2d",
+        "required": false,
+        "key": "systems_found",
+        "name": "Systems with data",
+        "type": "text"
+      },
+      {
+        "id": "f1e47fc5-44d5-4feb-aa30-eaeb43075a06",
+        "required": false,
+        "key": "erasure_refs",
+        "name": "Erasure references",
+        "type": "text"
+      },
+      {
+        "id": "fefad664-9a24-42d2-848a-f72b3bab7ad3",
+        "required": false,
+        "key": "outcome",
+        "name": "Outcome",
+        "type": "text"
+      },
+      {
+        "id": "40ad6274-f5c7-421e-8437-ea3cd9485f9f",
+        "required": false,
+        "key": "closed_at",
+        "name": "Closed",
+        "type": "date"
+      }
+    ]
+  }
+}

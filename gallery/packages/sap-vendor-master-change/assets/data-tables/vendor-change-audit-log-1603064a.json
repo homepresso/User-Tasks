@@ -1,0 +1,89 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "1603064a-9e72-56fc-87c8-4f96c1160014",
+  "asset": {
+    "id": "1603064a-9e72-56fc-87c8-4f96c1160014",
+    "name": "Vendor change audit log",
+    "description": "Every step of a supplier bank detail change: who requested, reviewed, verified and approved it, with old and new values. Keep it for your audit trail.",
+    "columns": [
+      {
+        "id": "fa8e798e-3a3f-53f5-b741-e0cf092c8dfc",
+        "required": true,
+        "key": "change_ref",
+        "name": "Change reference",
+        "type": "text"
+      },
+      {
+        "id": "0bf3fcb8-6b9e-5fc7-9a3d-575eceeae2af",
+        "required": false,
+        "key": "supplier",
+        "name": "Supplier",
+        "type": "text"
+      },
+      {
+        "id": "7900412e-5e33-5021-86c3-cd6d3ef08467",
+        "required": false,
+        "key": "supplier_name",
+        "name": "Supplier name",
+        "type": "text"
+      },
+      {
+        "id": "efa4e503-ba34-5840-b759-bac01763f355",
+        "required": false,
+        "key": "step",
+        "name": "Step",
+        "type": "text"
+      },
+      {
+        "id": "0646b9d8-948d-5fd2-acf6-97209ab90838",
+        "required": false,
+        "key": "decision",
+        "name": "Decision",
+        "type": "text"
+      },
+      {
+        "id": "d568b1b3-28fd-5f6b-8174-3e62aaed3246",
+        "required": false,
+        "key": "actor",
+        "name": "Actor (user id or email)",
+        "type": "text"
+      },
+      {
+        "id": "432b14e0-0362-5931-8796-9846cd5da5a3",
+        "required": false,
+        "key": "old_value",
+        "name": "Old value",
+        "type": "text"
+      },
+      {
+        "id": "19489bda-ff50-5ee1-b13e-12421f3dd997",
+        "required": false,
+        "key": "new_value",
+        "name": "New value",
+        "type": "text"
+      },
+      {
+        "id": "98a0efa5-be93-53e4-9e1b-7ef131014d9a",
+        "required": false,
+        "key": "risk",
+        "name": "Risk",
+        "type": "text"
+      },
+      {
+        "id": "3e426abb-ff1c-5225-b535-cef686595cc0",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      },
+      {
+        "id": "32feabfe-b635-5722-8917-5f698518ba2e",
+        "required": false,
+        "key": "logged_at",
+        "name": "Logged at",
+        "type": "text"
+      }
+    ]
+  }
+}

@@ -1,0 +1,72 @@
+# Amazon EKS: RDS / Aurora PostgreSQL, S3, ElastiCache (Valkey / Redis, TLS),
+# SES, Secrets Manager and KMS, all through IRSA (no keys in the cluster).
+# The IAM role needs s3:* on the buckets, ses:SendEmail,
+# secretsmanager:GetSecretValue and kms:Encrypt / kms:Decrypt.
+
+appUrl: https://tasks.example.com
+
+serviceAccount:
+  workloadIdentity:
+    awsRoleArn: arn:aws:iam::123456789012:role/usertasks
+
+# DATABASE_URL etc. from AWS Secrets Manager through External Secrets Operator.
+secrets:
+  create: false
+  externalSecret:
+    enabled: true
+    secretStoreRef: { name: aws-secrets-manager, kind: ClusterSecretStore }
+    dataFrom:
+      - extract: { key: usertasks/env }
+
+providers:
+  db:
+    provider: postgres
+  auth: { provider: builtin }
+  storage:
+    provider: s3
+    options:
+      region: eu-west-1
+      bucket_prefix: acme-usertasks-
+  realtime: { provider: sse }
+  scheduler: { provider: worker }
+  email:
+    provider: ses
+    options:
+      ses_region: eu-west-1
+      from: UserTasks <tasks@example.com>
+  secrets:
+    provider: aws_secrets_manager
+    options:
+      aws_region: eu-west-1
+  kms:
+    provider: aws_kms
+    options:
+      aws_kms_key_id: alias/usertasks
+      aws_region: eu-west-1
+  cache:
+    provider: redis
+    options:
+      redis_url: rediss://master.usertasks.abc123.euw1.cache.amazonaws.com:6379
+
+env:
+  AWS_REGION: eu-west-1
+
+app:
+  autoscaling: { enabled: true, minReplicas: 2, maxReplicas: 10 }
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels: { app.kubernetes.io/name: usertasks, app.kubernetes.io/component: app }
+
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-1:123456789012:certificate/abcd
+    # SSE realtime: keep idle streams open.
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=3600

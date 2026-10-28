@@ -1,0 +1,14 @@
+-- queue claim (claim_next_job SELECT … FOR UPDATE SKIP LOCKED) as service_role
+SELECT * FROM public.workflow_queue WHERE ((status = 'pending' AND scheduled_for <= now()) OR (status = 'failed' AND attempts < max_attempts AND next_retry_at <= now())) ORDER BY priority DESC, scheduled_for ASC LIMIT 1 FOR UPDATE SKIP LOCKED
+
+Limit  (cost=0.12..5.92 rows=1 width=843) (actual time=0.002..0.002 rows=0 loops=1)
+  Buffers: shared hit=1
+  ->  LockRows  (cost=0.12..5.92 rows=1 width=843) (actual time=0.002..0.002 rows=0 loops=1)
+        Buffers: shared hit=1
+        ->  Index Scan using idx_queue_claim on workflow_queue  (cost=0.12..5.91 rows=1 width=843) (actual time=0.002..0.002 rows=0 loops=1)
+              Filter: (((status = 'pending'::text) AND (scheduled_for <= now())) OR ((status = 'failed'::text) AND (attempts < max_attempts) AND (next_retry_at <= now())))
+              Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.057 ms
+Execution Time: 0.013 ms

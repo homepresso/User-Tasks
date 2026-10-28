@@ -1,0 +1,72 @@
+{
+  "title": "Safety inspection checklist",
+  "category": "operations-compliance",
+  "summary": "Every month, a safety inspection checklist task for each site with Pass / Fail buttons; failures raise a corrective action and are logged.",
+  "description": "Safety inspection checklist runs your monthly workplace inspections without paper forms. On the first of each month the workflow reads the Inspection sites table and starts a Site inspection sub-workflow for every site marked Inspect monthly.\n\nEach inspection is a checklist task form: sixteen yes/no checks grouped under fire safety, housekeeping, equipment and first aid headings with dividers, in a compact two-column grid, plus findings and a photo link. Pass records the result; Fail counts the failed checks, records them in the Inspections table, flags the site, emails the site manager and raises a corrective action task due in a week, which can be completed or sent back for re-inspection.\n\nThe main run gives the health and safety lead a sign-off task for the round, so the committee gets one summary each month. Reminders and escalation to the manager keep inspections on time. Everything is built in.",
+  "trigger": "schedule",
+  "entry_workflow": "ddcf8aeb-94a5-5e34-ba0b-7e1c7a4d8210",
+  "start": "Scheduled: 07:00 on the first of every month (Pacific/Auckland; change it on the trigger). Run it manually to start a round now.",
+  "difficulty": "starter",
+  "setup_minutes": 10,
+  "tags": [
+    "health and safety",
+    "inspections",
+    "checklist",
+    "schedule",
+    "sub-workflow",
+    "no integrations"
+  ],
+  "version": "1.0.1",
+  "changelog": [
+    {
+      "version": "1.0.1",
+      "date": "2026-10-28",
+      "notes": "Steps for the coordinator who set the package up are assigned to the workflow owner (workflow_owner_id), now that workflow_started_by names the person who started the run."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Nothing is required: install it and the monthly schedule starts. The installer (the safety lead) receives the inspection, corrective action and sign-off tasks.",
+    "Replace the sample rows in Inspection sites with your sites and site managers; untick Inspect monthly for sites you inspect less often.",
+    "Edit the checklist on the \"Inspect the site\" step of the Site inspection workflow to match your site types.",
+    "Optional: route inspections to a group of inspectors, change the schedule, and set EMAIL_PROVIDER for the failure emails."
+  ],
+  "steps": [
+    {
+      "title": "Monthly schedule",
+      "body": "On the 1st, every site marked Inspect monthly gets its own Site inspection run."
+    },
+    {
+      "title": "Checklist",
+      "body": "The inspector ticks sixteen checks under four headings, adds findings and photos, and clicks Pass or Fail."
+    },
+    {
+      "title": "Record",
+      "body": "The result, inspection date and number of failed checks go into the Inspections table and onto the site."
+    },
+    {
+      "title": "Corrective action",
+      "body": "A failure emails the site manager and raises a corrective action due in seven days, with a reminder."
+    },
+    {
+      "title": "Sign off",
+      "body": "The safety lead signs off the month's round with a summary for the committee."
+    }
+  ],
+  "sample_input": {
+    "period": "2026-11",
+    "days_to_inspect": 14
+  },
+  "expect": "waiting",
+  "icon": "hard-hat",
+  "id": "b449dec9-4221-5384-b5b4-36eeb9877fe9",
+  "slug": "safety-inspection-checklist"
+}

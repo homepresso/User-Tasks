@@ -1,0 +1,168 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "50dfb125-3f8f-49a8-b2b8-10552e09448f",
+  "asset": {
+    "id": "50dfb125-3f8f-49a8-b2b8-10552e09448f",
+    "integration_id": "49ee43f1-c00d-4c35-8b47-a824f179f12d",
+    "name": "Schedule payment",
+    "description": "Approve the invoice for payment and schedule it in the payment run on its due date.",
+    "tags": [
+      "payments"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"invoice_number\":\"{{invoice_number}}\",\"vendor_id\":\"{{vendor_id}}\",\"po_number\":\"{{po_number}}\",\"amount\":{{amount}},\"currency\":\"{{currency}}\",\"scheduled_date\":\"{{scheduled_date}}\",\"match_result\":\"{{match_result}}\"}",
+      "path_template": "/payments",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "payment_id",
+              "type": "string",
+              "example": "PAY-88213"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "scheduled"
+            },
+            {
+              "name": "scheduled_date",
+              "type": "string",
+              "example": "2026-11-19"
+            },
+            {
+              "name": "payment_run",
+              "type": "string",
+              "example": "PR-2026-11-19"
+            },
+            {
+              "name": "amount",
+              "type": "integer",
+              "example": 11500
+            },
+            {
+              "name": "currency",
+              "type": "string",
+              "example": "NZD"
+            }
+          ]
+        },
+        "sample": {
+          "payment_id": "PAY-88213",
+          "status": "scheduled",
+          "scheduled_date": "2026-11-19",
+          "payment_run": "PR-2026-11-19",
+          "amount": 11500,
+          "currency": "NZD"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "fa8c9e6f-0ea6-4534-881f-d8ab2a0a7b76",
+        "name": "invoice_number",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "204e0ec7-876b-42b7-aa0c-ab2341ad0b96",
+        "name": "vendor_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "0dc65b6c-9844-4817-9077-c6ad77b71956",
+        "name": "po_number",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "80e465c5-132e-4bd5-9010-fea6cdf08b67",
+        "name": "amount",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "cbaa0001-44e9-4cfd-a681-2f44272048dd",
+        "name": "currency",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "89da0535-73a2-497d-8554-8150c7aecdc4",
+        "name": "scheduled_date",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "YYYY-MM-DD",
+        "default_value": ""
+      },
+      {
+        "id": "d75fe684-b937-43cf-ae51-48752bf54922",
+        "name": "match_result",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "780f62b4-daa4-4ff8-8190-36953b3e650c",
+        "name": "payment_id",
+        "path": "payment_id",
+        "type": "string"
+      },
+      {
+        "id": "35239612-bae0-48aa-8dda-6ed3d1079480",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "7cbe4e58-bc8a-40d3-8e07-b10651769c9f",
+        "name": "scheduled_date",
+        "path": "scheduled_date",
+        "type": "string"
+      },
+      {
+        "id": "e1ca5262-73ed-4181-bceb-f73cc26c5892",
+        "name": "payment_run",
+        "path": "payment_run",
+        "type": "string"
+      }
+    ]
+  }
+}

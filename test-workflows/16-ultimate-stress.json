@@ -1,0 +1,1579 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "webhook_received",
+      "label": "Webhook Trigger",
+      "position": {
+        "x": 500,
+        "y": 20
+      },
+      "config": {}
+    },
+    {
+      "id": "n1",
+      "type": "set_title",
+      "label": "Set Run Title",
+      "position": {
+        "x": 500,
+        "y": 110
+      },
+      "config": {
+        "title": "Ultimate Stress — {{=FORMAT_DATE(NOW(), 'YYYY-MM-DD HH:mm')}}"
+      }
+    },
+    {
+      "id": "n2",
+      "type": "json_build_array",
+      "label": "Build Order Items",
+      "position": {
+        "x": 500,
+        "y": 200
+      },
+      "config": {
+        "items": [
+          {
+            "value": "{\"sku\": \"CBL-100\", \"name\": \"HDMI Cable\", \"qty\": 12, \"unit_price\": 9.5, \"category\": \"cables\", \"fragile\": \"false\"}"
+          },
+          {
+            "value": "{\"sku\": \"MON-270\", \"name\": \"27in Monitor\", \"qty\": 2, \"unit_price\": 329.99, \"category\": \"displays\", \"fragile\": \"true\"}"
+          },
+          {
+            "value": "{\"sku\": \"KBD-055\", \"name\": \"Mech Keyboard\", \"qty\": 4, \"unit_price\": 89.0, \"category\": \"peripherals\", \"fragile\": \"false\"}"
+          },
+          {
+            "value": "{\"sku\": \"DCK-011\", \"name\": \"USB-C Dock\", \"qty\": 3, \"unit_price\": 149.5, \"category\": \"peripherals\", \"fragile\": \"false\"}"
+          },
+          {
+            "value": "{\"sku\": \"SPK-330\", \"name\": \"Desk Speakers\", \"qty\": 1, \"unit_price\": 59.99, \"category\": \"audio\", \"fragile\": \"true\"}"
+          }
+        ],
+        "output_var": "order_items"
+      }
+    },
+    {
+      "id": "n3",
+      "type": "collection_count",
+      "label": "Count Items",
+      "position": {
+        "x": 500,
+        "y": 290
+      },
+      "config": {
+        "collection": "{{order_items}}",
+        "output_var": "item_count"
+      }
+    },
+    {
+      "id": "n4",
+      "type": "set_variable",
+      "label": "Generate Order No",
+      "position": {
+        "x": 500,
+        "y": 380
+      },
+      "config": {
+        "name": "order_no",
+        "expression": "ORD-{{=FORMAT_DATE(NOW(), 'HHmmss')}}"
+      }
+    },
+    {
+      "id": "n5",
+      "type": "set_variable",
+      "label": "Init Order Total",
+      "position": {
+        "x": 500,
+        "y": 470
+      },
+      "config": {
+        "name": "order_total",
+        "expression": "0"
+      }
+    },
+    {
+      "id": "n6",
+      "type": "set_variable",
+      "label": "Init Bulk Count",
+      "position": {
+        "x": 500,
+        "y": 560
+      },
+      "config": {
+        "name": "bulk_count",
+        "expression": "0"
+      }
+    },
+    {
+      "id": "n7",
+      "type": "loop",
+      "label": "Process Each Line",
+      "position": {
+        "x": 500,
+        "y": 650
+      },
+      "config": {
+        "items": "{{order_items}}",
+        "item_var": "line",
+        "index_var": "li"
+      }
+    },
+    {
+      "id": "n8",
+      "type": "math",
+      "label": "Calc Line Total",
+      "position": {
+        "x": 180,
+        "y": 740
+      },
+      "config": {
+        "expression": "{{line.qty}} * {{line.unit_price}}",
+        "output_var": "line_total"
+      }
+    },
+    {
+      "id": "n9",
+      "type": "set_variable",
+      "label": "Accumulate Order Total",
+      "position": {
+        "x": 180,
+        "y": 830
+      },
+      "config": {
+        "name": "order_total",
+        "expression": "{{=ROUND(ADD(order_total, line_total), 2)}}"
+      }
+    },
+    {
+      "id": "n10",
+      "type": "condition",
+      "label": "Bulk Line?",
+      "position": {
+        "x": 180,
+        "y": 920
+      },
+      "config": {
+        "match_mode": "first",
+        "has_else": true,
+        "branches": [
+          {
+            "label": "Bulk",
+            "logic": "AND",
+            "rules": [
+              {
+                "field": "{{line.qty}}",
+                "operator": "gte",
+                "value": "10"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "n11",
+      "type": "set_variable",
+      "label": "Count Bulk Line",
+      "position": {
+        "x": 20,
+        "y": 1010
+      },
+      "config": {
+        "name": "bulk_count",
+        "expression": "{{=ADD(bulk_count, 1)}}"
+      }
+    },
+    {
+      "id": "n12",
+      "type": "log",
+      "label": "Standard Qty",
+      "position": {
+        "x": 340,
+        "y": 1010
+      },
+      "config": {
+        "message": "Standard qty: {{line.sku}} x{{line.qty}}"
+      }
+    },
+    {
+      "id": "n13",
+      "type": "modify_string",
+      "label": "Uppercase SKU",
+      "position": {
+        "x": 180,
+        "y": 1100
+      },
+      "config": {
+        "input": "{{line.sku}}",
+        "operation": "uppercase",
+        "output_var": "line_sku"
+      }
+    },
+    {
+      "id": "n14",
+      "type": "regex",
+      "label": "Extract SKU Prefix",
+      "position": {
+        "x": 180,
+        "y": 1190
+      },
+      "config": {
+        "input": "{{line_sku}}",
+        "pattern": "[^A-Z].*$",
+        "operation": "replace",
+        "replace_with": "",
+        "flags": "",
+        "output_var": "sku_prefix"
+      }
+    },
+    {
+      "id": "n15",
+      "type": "text_template",
+      "label": "Line Description",
+      "position": {
+        "x": 180,
+        "y": 1280
+      },
+      "config": {
+        "template": "[{{=ADD(li, 1)}}] {{line_sku}} ({{sku_prefix}}) {{line.name}} x{{line.qty}} @ ${{line.unit_price}} = ${{line_total}}",
+        "output_var": "line_desc"
+      }
+    },
+    {
+      "id": "n16",
+      "type": "json_add_to_array",
+      "label": "Collect Line Summary",
+      "position": {
+        "x": 180,
+        "y": 1370
+      },
+      "config": {
+        "array_var": "line_summaries",
+        "value": "{{line_desc}}"
+      }
+    },
+    {
+      "id": "n17",
+      "type": "update_data_table",
+      "label": "Insert Order Line Row",
+      "position": {
+        "x": 180,
+        "y": 1460
+      },
+      "config": {
+        "table_id": "",
+        "operation": "insert",
+        "column_values": {
+          "order_no": "{{order_no}}",
+          "sku": "{{line_sku}}",
+          "name": "{{line.name}}",
+          "qty": "{{line.qty}}",
+          "unit_price": "{{line.unit_price}}",
+          "line_total": "{{line_total}}",
+          "category": "{{line.category}}"
+        },
+        "output_row_id_var": "line_row_id"
+      }
+    },
+    {
+      "id": "n18",
+      "type": "log",
+      "label": "Line Saved",
+      "position": {
+        "x": 180,
+        "y": 1550
+      },
+      "config": {
+        "message": "Line saved: {{line_sku}} → row {{line_row_id}}"
+      }
+    },
+    {
+      "id": "n19",
+      "type": "delay",
+      "label": "Brief Pause",
+      "position": {
+        "x": 500,
+        "y": 1650
+      },
+      "config": {
+        "duration": 1,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "n20",
+      "type": "update_data_table",
+      "label": "Insert Order Header",
+      "position": {
+        "x": 500,
+        "y": 1740
+      },
+      "config": {
+        "table_id": "",
+        "operation": "insert",
+        "column_values": {
+          "order_no": "{{order_no}}",
+          "customer": "Acme Test Co",
+          "tier": "{{customer_tier}}",
+          "region": "{{region}}",
+          "item_count": "{{item_count}}",
+          "order_total": "{{order_total}}",
+          "status": "NEW"
+        },
+        "output_row_id_var": "order_row_id"
+      }
+    },
+    {
+      "id": "n21",
+      "type": "update_data_table",
+      "label": "Get Order Row",
+      "position": {
+        "x": 500,
+        "y": 1830
+      },
+      "config": {
+        "table_id": "",
+        "operation": "get",
+        "row_id": "{{order_row_id}}",
+        "output_row_var": "order_row"
+      }
+    },
+    {
+      "id": "n22",
+      "type": "log",
+      "label": "Round-Trip Check",
+      "position": {
+        "x": 500,
+        "y": 1920
+      },
+      "config": {
+        "message": "Order row round-trip: {{order_row.order_no}} status={{order_row.status}} total=${{order_row.order_total}}"
+      }
+    },
+    {
+      "id": "n23",
+      "type": "update_data_table",
+      "label": "List Saved Lines",
+      "position": {
+        "x": 500,
+        "y": 2010
+      },
+      "config": {
+        "table_id": "",
+        "operation": "list",
+        "filters": [
+          {
+            "column": "order_no",
+            "operator": "equals",
+            "value": "{{order_no}}"
+          }
+        ],
+        "output_rows_var": "saved_lines",
+        "output_count_var": "saved_line_count"
+      }
+    },
+    {
+      "id": "n24",
+      "type": "condition",
+      "label": "Line Count Matches?",
+      "position": {
+        "x": 500,
+        "y": 2100
+      },
+      "config": {
+        "has_else": true,
+        "branches": [
+          {
+            "label": "Match",
+            "logic": "AND",
+            "rules": [
+              {
+                "field": "{{saved_line_count}}",
+                "operator": "equals",
+                "value": "{{item_count}}"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "n25",
+      "type": "log",
+      "label": "Count Verified",
+      "position": {
+        "x": 360,
+        "y": 2190
+      },
+      "config": {
+        "message": "✓ Saved line count {{saved_line_count}} matches item count {{item_count}}"
+      }
+    },
+    {
+      "id": "n26",
+      "type": "log",
+      "label": "Count MISMATCH",
+      "position": {
+        "x": 660,
+        "y": 2190
+      },
+      "config": {
+        "message": "✗ MISMATCH: saved {{saved_line_count}} of {{item_count}} lines"
+      }
+    },
+    {
+      "id": "n27",
+      "type": "decision_table",
+      "label": "Evaluate Pricing Rules",
+      "position": {
+        "x": 500,
+        "y": 2290
+      },
+      "config": {
+        "decision_table_id": "",
+        "decision_table_name": "Order Pricing Rules",
+        "input_mappings": {
+          "order_total": "{{order_total}}",
+          "tier": "{{customer_tier}}",
+          "item_count": "{{item_count}}"
+        },
+        "_decision_inputs": [
+          {
+            "key": "order_total",
+            "label": "Order Total",
+            "type": "number",
+            "required": true
+          },
+          {
+            "key": "tier",
+            "label": "Customer Tier",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "item_count",
+            "label": "Item Count",
+            "type": "number",
+            "required": false
+          }
+        ],
+        "_decision_outputs": [
+          {
+            "key": "discount_pct",
+            "label": "Discount %"
+          },
+          {
+            "key": "ship_method",
+            "label": "Ship Method"
+          },
+          {
+            "key": "approval_required",
+            "label": "Approval Required"
+          },
+          {
+            "key": "priority",
+            "label": "Priority"
+          }
+        ]
+      }
+    },
+    {
+      "id": "n28",
+      "type": "log",
+      "label": "Decision Result",
+      "position": {
+        "x": 500,
+        "y": 2380
+      },
+      "config": {
+        "message": "Decision: matched={{matched}} rule={{rule_label}} → discount={{discount_pct}}% ship={{ship_method}} approval={{approval_required}} priority={{priority}}"
+      }
+    },
+    {
+      "id": "n29",
+      "type": "condition",
+      "label": "Needs Manual Approval?",
+      "position": {
+        "x": 500,
+        "y": 2470
+      },
+      "config": {
+        "match_mode": "first",
+        "has_else": true,
+        "branches": [
+          {
+            "label": "Manual Approval",
+            "logic": "AND",
+            "rules": [
+              {
+                "field": "{{approval_required}}",
+                "operator": "equals",
+                "value": "true"
+              },
+              {
+                "field": "{{approval_mode}}",
+                "operator": "equals",
+                "value": "manual"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "n30",
+      "type": "user_task",
+      "label": "Approve Order",
+      "position": {
+        "x": 340,
+        "y": 2560
+      },
+      "config": {
+        "task_title": "Approve order {{order_no}} (${{order_total}})",
+        "description": "Rule {{rule_label}} flagged this order for approval. Grand total pending.",
+        "assignment_type": "individual",
+        "assignee_variable": "approver_user_id"
+      }
+    },
+    {
+      "id": "n31",
+      "type": "log",
+      "label": "Auto-Approved",
+      "position": {
+        "x": 660,
+        "y": 2560
+      },
+      "config": {
+        "message": "Auto-approved (approval_required={{approval_required}}, mode={{approval_mode}})"
+      }
+    },
+    {
+      "id": "n32",
+      "type": "switch_case",
+      "label": "Route by Ship Method",
+      "position": {
+        "x": 500,
+        "y": 2660
+      },
+      "config": {
+        "field": "{{ship_method}}",
+        "cases": [
+          "express",
+          "standard",
+          "economy"
+        ],
+        "has_default": true
+      }
+    },
+    {
+      "id": "n33",
+      "type": "set_variable",
+      "label": "Ship Cost 25",
+      "position": {
+        "x": 220,
+        "y": 2750
+      },
+      "config": {
+        "name": "ship_cost",
+        "expression": "25"
+      }
+    },
+    {
+      "id": "n34",
+      "type": "set_variable",
+      "label": "Ship Cost 10",
+      "position": {
+        "x": 400,
+        "y": 2750
+      },
+      "config": {
+        "name": "ship_cost",
+        "expression": "10"
+      }
+    },
+    {
+      "id": "n35",
+      "type": "set_variable",
+      "label": "Ship Cost 5",
+      "position": {
+        "x": 580,
+        "y": 2750
+      },
+      "config": {
+        "name": "ship_cost",
+        "expression": "5"
+      }
+    },
+    {
+      "id": "n36",
+      "type": "set_variable",
+      "label": "Ship Cost 15",
+      "position": {
+        "x": 760,
+        "y": 2750
+      },
+      "config": {
+        "name": "ship_cost",
+        "expression": "15"
+      }
+    },
+    {
+      "id": "n37",
+      "type": "math",
+      "label": "Calc Discount",
+      "position": {
+        "x": 500,
+        "y": 2840
+      },
+      "config": {
+        "expression": "{{order_total}} * {{discount_pct}} / 100",
+        "output_var": "discount_amount"
+      }
+    },
+    {
+      "id": "n38",
+      "type": "set_variable",
+      "label": "Round Discount",
+      "position": {
+        "x": 500,
+        "y": 2930
+      },
+      "config": {
+        "name": "discount_amount",
+        "expression": "{{=ROUND(discount_amount, 2)}}"
+      }
+    },
+    {
+      "id": "n39",
+      "type": "math",
+      "label": "Calc Grand Total",
+      "position": {
+        "x": 500,
+        "y": 3020
+      },
+      "config": {
+        "expression": "{{order_total}} - {{discount_amount}} + {{ship_cost}}",
+        "output_var": "grand_total"
+      }
+    },
+    {
+      "id": "n40",
+      "type": "set_variable",
+      "label": "Round Grand Total",
+      "position": {
+        "x": 500,
+        "y": 3110
+      },
+      "config": {
+        "name": "grand_total",
+        "expression": "{{=ROUND(grand_total, 2)}}"
+      }
+    },
+    {
+      "id": "n41",
+      "type": "update_data_table",
+      "label": "Price Order (match by column)",
+      "position": {
+        "x": 500,
+        "y": 3200
+      },
+      "config": {
+        "table_id": "",
+        "operation": "update",
+        "row_match_field": "order_no",
+        "row_match_value": "{{order_no}}",
+        "column_values": {
+          "status": "PRICED",
+          "discount_pct": "{{discount_pct}}",
+          "ship_method": "{{ship_method}}",
+          "ship_cost": "{{ship_cost}}",
+          "grand_total": "{{grand_total}}"
+        }
+      }
+    },
+    {
+      "id": "n42",
+      "type": "parallel",
+      "label": "Parallel Enrichment",
+      "position": {
+        "x": 500,
+        "y": 3290
+      },
+      "config": {
+        "mode": "sequential",
+        "branches": [
+          {
+            "label": "Dates",
+            "order": 1
+          },
+          {
+            "label": "Collections",
+            "order": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "n43",
+      "type": "date_math",
+      "label": "ETA +3 Days",
+      "position": {
+        "x": 300,
+        "y": 3380
+      },
+      "config": {
+        "date": "{{=NOW()}}",
+        "operation": "add",
+        "amount": 3,
+        "unit": "days",
+        "output_var": "eta_date"
+      }
+    },
+    {
+      "id": "n44",
+      "type": "format_date",
+      "label": "Format ETA",
+      "position": {
+        "x": 300,
+        "y": 3470
+      },
+      "config": {
+        "date": "{{eta_date}}",
+        "format": "custom",
+        "custom_format": "YYYY-MM-DD",
+        "output_var": "eta_formatted"
+      }
+    },
+    {
+      "id": "n45",
+      "type": "collection_filter",
+      "label": "Fragile Items",
+      "position": {
+        "x": 700,
+        "y": 3380
+      },
+      "config": {
+        "collection": "{{order_items}}",
+        "field": "fragile",
+        "operator": "equals",
+        "value": "true",
+        "output_var": "fragile_items"
+      }
+    },
+    {
+      "id": "n46",
+      "type": "collection_count",
+      "label": "Count Fragile",
+      "position": {
+        "x": 700,
+        "y": 3470
+      },
+      "config": {
+        "collection": "{{fragile_items}}",
+        "output_var": "fragile_count"
+      }
+    },
+    {
+      "id": "n47",
+      "type": "collection_join",
+      "label": "Join Fragile Names",
+      "position": {
+        "x": 700,
+        "y": 3560
+      },
+      "config": {
+        "collection": "{{fragile_items}}",
+        "field": "name",
+        "separator": ", ",
+        "output_var": "fragile_list"
+      }
+    },
+    {
+      "id": "n48",
+      "type": "collection_sort",
+      "label": "Sort by Price DESC",
+      "position": {
+        "x": 700,
+        "y": 3650
+      },
+      "config": {
+        "collection": "{{order_items}}",
+        "field": "unit_price",
+        "direction": "desc",
+        "output_var": "items_by_price"
+      }
+    },
+    {
+      "id": "n49",
+      "type": "collection_get",
+      "label": "Priciest Item",
+      "position": {
+        "x": 700,
+        "y": 3740
+      },
+      "config": {
+        "collection": "{{items_by_price}}",
+        "by": "index",
+        "index": 0,
+        "output_var": "priciest_item"
+      }
+    },
+    {
+      "id": "n50",
+      "type": "condition",
+      "label": "Error Drill Enabled?",
+      "position": {
+        "x": 500,
+        "y": 3840
+      },
+      "config": {
+        "has_else": true,
+        "branches": [
+          {
+            "label": "Drill",
+            "logic": "AND",
+            "rules": [
+              {
+                "field": "{{enable_error_drill}}",
+                "operator": "equals",
+                "value": "true"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "n51",
+      "type": "http_request",
+      "label": "Deliberately Failing Call",
+      "position": {
+        "x": 340,
+        "y": 3930
+      },
+      "config": {
+        "url": "https://unreachable.invalid/stress-test",
+        "method": "GET"
+      },
+      "onError": "continue"
+    },
+    {
+      "id": "n52",
+      "type": "log",
+      "label": "After Error",
+      "position": {
+        "x": 340,
+        "y": 4020
+      },
+      "config": {
+        "message": "Survived error drill: last_error={{last_error}} at node={{last_error_node}}"
+      }
+    },
+    {
+      "id": "n53",
+      "type": "log",
+      "label": "Drill Skipped",
+      "position": {
+        "x": 660,
+        "y": 3930
+      },
+      "config": {
+        "message": "Error drill disabled"
+      }
+    },
+    {
+      "id": "n54",
+      "type": "condition",
+      "label": "Sub-Workflow Drill?",
+      "position": {
+        "x": 500,
+        "y": 4120
+      },
+      "config": {
+        "has_else": true,
+        "branches": [
+          {
+            "label": "Run Sub-Workflow",
+            "logic": "AND",
+            "rules": [
+              {
+                "field": "{{enable_subworkflow}}",
+                "operator": "equals",
+                "value": "true"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "n55",
+      "type": "call_sub_workflow",
+      "label": "Call Kitchen Sink (15)",
+      "position": {
+        "x": 340,
+        "y": 4210
+      },
+      "config": {
+        "sub_workflow_id": "",
+        "sub_workflow_name": "15 — Kitchen Sink Stress (select after import)",
+        "input_mappings": {
+          "markup": "0.35",
+          "shipping_class": "EXPRESS"
+        }
+      },
+      "onError": "continue"
+    },
+    {
+      "id": "n56",
+      "type": "log",
+      "label": "Sub-Workflow Done",
+      "position": {
+        "x": 340,
+        "y": 4300
+      },
+      "config": {
+        "message": "Sub-workflow drill finished"
+      }
+    },
+    {
+      "id": "n57",
+      "type": "log",
+      "label": "Sub-Workflow Skipped",
+      "position": {
+        "x": 660,
+        "y": 4210
+      },
+      "config": {
+        "message": "Sub-workflow drill disabled"
+      }
+    },
+    {
+      "id": "n58",
+      "type": "update_data_table",
+      "label": "Insert Temp Row",
+      "position": {
+        "x": 500,
+        "y": 4400
+      },
+      "config": {
+        "table_id": "",
+        "operation": "insert",
+        "column_values": {
+          "order_no": "TEMP-{{order_no}}",
+          "customer": "DELETE ME",
+          "status": "TEMP"
+        },
+        "output_row_id_var": "temp_row_id"
+      }
+    },
+    {
+      "id": "n59",
+      "type": "update_data_table",
+      "label": "Delete Temp Row (match by column)",
+      "position": {
+        "x": 500,
+        "y": 4490
+      },
+      "config": {
+        "table_id": "",
+        "operation": "delete",
+        "row_match_field": "order_no",
+        "row_match_value": "TEMP-{{order_no}}"
+      }
+    },
+    {
+      "id": "n60",
+      "type": "log",
+      "label": "Temp Row Cleaned",
+      "position": {
+        "x": 500,
+        "y": 4580
+      },
+      "config": {
+        "message": "Temp row {{temp_row_id}} inserted and deleted"
+      }
+    },
+    {
+      "id": "n61",
+      "type": "json_build_object",
+      "label": "Build Order Stats",
+      "position": {
+        "x": 500,
+        "y": 4670
+      },
+      "config": {
+        "fields": [
+          {
+            "key": "order_no",
+            "value": "{{order_no}}"
+          },
+          {
+            "key": "items",
+            "value": "{{item_count}}"
+          },
+          {
+            "key": "saved_lines",
+            "value": "{{saved_line_count}}"
+          },
+          {
+            "key": "bulk_lines",
+            "value": "{{bulk_count}}"
+          },
+          {
+            "key": "subtotal",
+            "value": "{{order_total}}"
+          },
+          {
+            "key": "discount",
+            "value": "{{discount_amount}}"
+          },
+          {
+            "key": "shipping",
+            "value": "{{ship_cost}}"
+          },
+          {
+            "key": "total",
+            "value": "{{grand_total}}"
+          },
+          {
+            "key": "eta",
+            "value": "{{eta_formatted}}"
+          },
+          {
+            "key": "fragile",
+            "value": "{{fragile_count}}"
+          },
+          {
+            "key": "rule",
+            "value": "{{rule_label}}"
+          }
+        ],
+        "output_var": "order_stats"
+      }
+    },
+    {
+      "id": "n62",
+      "type": "json_get_value",
+      "label": "Verify Total from Stats",
+      "position": {
+        "x": 500,
+        "y": 4760
+      },
+      "config": {
+        "source": "{{order_stats}}",
+        "path": "total",
+        "output_var": "verified_total"
+      }
+    },
+    {
+      "id": "n63",
+      "type": "update_data_table",
+      "label": "Complete Order (by row id)",
+      "position": {
+        "x": 500,
+        "y": 4850
+      },
+      "config": {
+        "table_id": "",
+        "operation": "update",
+        "row_id": "{{order_row_id}}",
+        "column_values": {
+          "status": "COMPLETE",
+          "notes": "Stress run finished — {{fragile_count}} fragile items, ETA {{eta_formatted}}"
+        }
+      }
+    },
+    {
+      "id": "n64",
+      "type": "collection_join",
+      "label": "Join Line Summaries",
+      "position": {
+        "x": 500,
+        "y": 4940
+      },
+      "config": {
+        "collection": "{{line_summaries}}",
+        "separator": "\n║ ",
+        "output_var": "lines_block"
+      }
+    },
+    {
+      "id": "n65",
+      "type": "text_template",
+      "label": "Build Final Report",
+      "position": {
+        "x": 500,
+        "y": 5030
+      },
+      "config": {
+        "template": "╔══════════════════════════════════════╗\n║  ULTIMATE STRESS — ORDER {{order_no}}\n╠══════════════════════════════════════╣\n║ Customer: Acme Test Co ({{customer_tier}} / {{region}})\n║ Items: {{item_count}} (bulk: {{bulk_count}}, fragile: {{fragile_count}})\n║ Fragile: {{fragile_list}}\n║ Priciest: {{priciest_item.name}} (${{priciest_item.unit_price}})\n╠══════════════════════════════════════╣\n║ {{lines_block}}\n╠══════════════════════════════════════╣\n║ Rule Applied: {{rule_label}} (matched={{matched}})\n║ Subtotal: ${{order_total}}\n║ Discount ({{discount_pct}}%): -${{discount_amount}}\n║ Shipping ({{ship_method}}): +${{ship_cost}}\n║ GRAND TOTAL: ${{grand_total}} (verified: ${{verified_total}})\n║ ETA: {{eta_formatted}} | Priority: {{priority}}\n║ Saved rows: {{saved_line_count}} lines + header {{order_row_id}}\n╚══════════════════════════════════════╝",
+        "output_var": "final_report"
+      }
+    },
+    {
+      "id": "n66",
+      "type": "log",
+      "label": "Log Final Report",
+      "position": {
+        "x": 500,
+        "y": 5120
+      },
+      "config": {
+        "message": "{{final_report}}"
+      }
+    },
+    {
+      "id": "n67",
+      "type": "end_workflow",
+      "label": "Finish",
+      "position": {
+        "x": 500,
+        "y": 5210
+      },
+      "config": {
+        "reason": "Ultimate stress complete — {{order_no}} total ${{grand_total}}"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "t1",
+      "target": "n1"
+    },
+    {
+      "id": "e2",
+      "source": "n1",
+      "target": "n2"
+    },
+    {
+      "id": "e3",
+      "source": "n2",
+      "target": "n3"
+    },
+    {
+      "id": "e4",
+      "source": "n3",
+      "target": "n4"
+    },
+    {
+      "id": "e5",
+      "source": "n4",
+      "target": "n5"
+    },
+    {
+      "id": "e6",
+      "source": "n5",
+      "target": "n6"
+    },
+    {
+      "id": "e7",
+      "source": "n6",
+      "target": "n7"
+    },
+    {
+      "id": "e8",
+      "source": "n7",
+      "target": "n8",
+      "label": "Each Item"
+    },
+    {
+      "id": "e9",
+      "source": "n8",
+      "target": "n9"
+    },
+    {
+      "id": "e10",
+      "source": "n9",
+      "target": "n10"
+    },
+    {
+      "id": "e11",
+      "source": "n10",
+      "target": "n11",
+      "label": "Bulk"
+    },
+    {
+      "id": "e12",
+      "source": "n10",
+      "target": "n12",
+      "label": "Else"
+    },
+    {
+      "id": "e13",
+      "source": "n11",
+      "target": "n13"
+    },
+    {
+      "id": "e14",
+      "source": "n12",
+      "target": "n13"
+    },
+    {
+      "id": "e15",
+      "source": "n13",
+      "target": "n14"
+    },
+    {
+      "id": "e16",
+      "source": "n14",
+      "target": "n15"
+    },
+    {
+      "id": "e17",
+      "source": "n15",
+      "target": "n16"
+    },
+    {
+      "id": "e18",
+      "source": "n16",
+      "target": "n17"
+    },
+    {
+      "id": "e19",
+      "source": "n17",
+      "target": "n18"
+    },
+    {
+      "id": "e20",
+      "source": "n7",
+      "target": "n19",
+      "label": "Done"
+    },
+    {
+      "id": "e21",
+      "source": "n19",
+      "target": "n20"
+    },
+    {
+      "id": "e22",
+      "source": "n20",
+      "target": "n21"
+    },
+    {
+      "id": "e23",
+      "source": "n21",
+      "target": "n22"
+    },
+    {
+      "id": "e24",
+      "source": "n22",
+      "target": "n23"
+    },
+    {
+      "id": "e25",
+      "source": "n23",
+      "target": "n24"
+    },
+    {
+      "id": "e26",
+      "source": "n24",
+      "target": "n25",
+      "label": "Match"
+    },
+    {
+      "id": "e27",
+      "source": "n24",
+      "target": "n26",
+      "label": "Else"
+    },
+    {
+      "id": "e28",
+      "source": "n25",
+      "target": "n27"
+    },
+    {
+      "id": "e29",
+      "source": "n26",
+      "target": "n27"
+    },
+    {
+      "id": "e30",
+      "source": "n27",
+      "target": "n28"
+    },
+    {
+      "id": "e31",
+      "source": "n28",
+      "target": "n29"
+    },
+    {
+      "id": "e32",
+      "source": "n29",
+      "target": "n30",
+      "label": "Manual Approval"
+    },
+    {
+      "id": "e33",
+      "source": "n29",
+      "target": "n31",
+      "label": "Else"
+    },
+    {
+      "id": "e34",
+      "source": "n30",
+      "target": "n32"
+    },
+    {
+      "id": "e35",
+      "source": "n31",
+      "target": "n32"
+    },
+    {
+      "id": "e36",
+      "source": "n32",
+      "target": "n33",
+      "label": "express"
+    },
+    {
+      "id": "e37",
+      "source": "n32",
+      "target": "n34",
+      "label": "standard"
+    },
+    {
+      "id": "e38",
+      "source": "n32",
+      "target": "n35",
+      "label": "economy"
+    },
+    {
+      "id": "e39",
+      "source": "n32",
+      "target": "n36",
+      "label": "Default"
+    },
+    {
+      "id": "e40",
+      "source": "n33",
+      "target": "n37"
+    },
+    {
+      "id": "e41",
+      "source": "n34",
+      "target": "n37"
+    },
+    {
+      "id": "e42",
+      "source": "n35",
+      "target": "n37"
+    },
+    {
+      "id": "e43",
+      "source": "n36",
+      "target": "n37"
+    },
+    {
+      "id": "e44",
+      "source": "n37",
+      "target": "n38"
+    },
+    {
+      "id": "e45",
+      "source": "n38",
+      "target": "n39"
+    },
+    {
+      "id": "e46",
+      "source": "n39",
+      "target": "n40"
+    },
+    {
+      "id": "e47",
+      "source": "n40",
+      "target": "n41"
+    },
+    {
+      "id": "e48",
+      "source": "n41",
+      "target": "n42"
+    },
+    {
+      "id": "e49",
+      "source": "n42",
+      "target": "n43",
+      "label": "Dates"
+    },
+    {
+      "id": "e50",
+      "source": "n43",
+      "target": "n44"
+    },
+    {
+      "id": "e51",
+      "source": "n42",
+      "target": "n45",
+      "label": "Collections"
+    },
+    {
+      "id": "e52",
+      "source": "n45",
+      "target": "n46"
+    },
+    {
+      "id": "e53",
+      "source": "n46",
+      "target": "n47"
+    },
+    {
+      "id": "e54",
+      "source": "n47",
+      "target": "n48"
+    },
+    {
+      "id": "e55",
+      "source": "n48",
+      "target": "n49"
+    },
+    {
+      "id": "e56",
+      "source": "n49",
+      "target": "n50"
+    },
+    {
+      "id": "e57",
+      "source": "n50",
+      "target": "n51",
+      "label": "Drill"
+    },
+    {
+      "id": "e58",
+      "source": "n51",
+      "target": "n52"
+    },
+    {
+      "id": "e59",
+      "source": "n50",
+      "target": "n53",
+      "label": "Else"
+    },
+    {
+      "id": "e60",
+      "source": "n52",
+      "target": "n54"
+    },
+    {
+      "id": "e61",
+      "source": "n53",
+      "target": "n54"
+    },
+    {
+      "id": "e62",
+      "source": "n54",
+      "target": "n55",
+      "label": "Run Sub-Workflow"
+    },
+    {
+      "id": "e63",
+      "source": "n55",
+      "target": "n56"
+    },
+    {
+      "id": "e64",
+      "source": "n54",
+      "target": "n57",
+      "label": "Else"
+    },
+    {
+      "id": "e65",
+      "source": "n56",
+      "target": "n58"
+    },
+    {
+      "id": "e66",
+      "source": "n57",
+      "target": "n58"
+    },
+    {
+      "id": "e67",
+      "source": "n58",
+      "target": "n59"
+    },
+    {
+      "id": "e68",
+      "source": "n59",
+      "target": "n60"
+    },
+    {
+      "id": "e69",
+      "source": "n60",
+      "target": "n61"
+    },
+    {
+      "id": "e70",
+      "source": "n61",
+      "target": "n62"
+    },
+    {
+      "id": "e71",
+      "source": "n62",
+      "target": "n63"
+    },
+    {
+      "id": "e72",
+      "source": "n63",
+      "target": "n64"
+    },
+    {
+      "id": "e73",
+      "source": "n64",
+      "target": "n65"
+    },
+    {
+      "id": "e74",
+      "source": "n65",
+      "target": "n66"
+    },
+    {
+      "id": "e75",
+      "source": "n66",
+      "target": "n67"
+    }
+  ],
+  "user_variables": [
+    {
+      "id": "v1",
+      "name": "customer_tier",
+      "type": "string",
+      "defaultValue": "silver",
+      "description": "Customer tier fed into the decision table (try gold / silver / bronze)"
+    },
+    {
+      "id": "v2",
+      "name": "region",
+      "type": "string",
+      "defaultValue": "EU",
+      "description": "Order region"
+    },
+    {
+      "id": "v3",
+      "name": "approval_mode",
+      "type": "string",
+      "defaultValue": "auto",
+      "description": "Set to 'manual' to route flagged orders through the Approve Order user task (pauses the run)"
+    },
+    {
+      "id": "v4",
+      "name": "enable_error_drill",
+      "type": "string",
+      "defaultValue": "true",
+      "description": "Runs a deliberately failing HTTP call with On Error = Continue"
+    },
+    {
+      "id": "v5",
+      "name": "enable_subworkflow",
+      "type": "string",
+      "defaultValue": "false",
+      "description": "Set to 'true' to call workflow 15 as a sub-workflow (select it in the node first)"
+    },
+    {
+      "id": "v6",
+      "name": "approver_user_id",
+      "type": "string",
+      "defaultValue": "",
+      "description": "User id for the approval task when approval_mode is 'manual'"
+    }
+  ],
+  "swimlanes": []
+}

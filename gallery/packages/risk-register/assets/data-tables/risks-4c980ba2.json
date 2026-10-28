@@ -1,0 +1,180 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "4c980ba2-6b7c-5876-b8d8-de42f0d147c5",
+  "asset": {
+    "id": "4c980ba2-6b7c-5876-b8d8-de42f0d147c5",
+    "name": "Risks",
+    "description": "The risk register: every risk with its owner, inherent and residual score, rating, response and next review date.",
+    "columns": [
+      {
+        "id": "0496a9fe-04c6-56c8-9090-4598a6acbb5d",
+        "required": true,
+        "key": "risk_id",
+        "name": "Risk ID",
+        "type": "text"
+      },
+      {
+        "id": "7b39a531-e90a-5675-a6fe-bea2d15b545e",
+        "required": true,
+        "key": "title",
+        "name": "Risk",
+        "type": "text"
+      },
+      {
+        "id": "8618ccd5-c12d-592e-a04b-3bf159ba063b",
+        "required": false,
+        "key": "description",
+        "name": "Description",
+        "type": "text"
+      },
+      {
+        "id": "eee161de-0ad9-57c8-a717-fd3903ed739d",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "Operational",
+          "Financial",
+          "Compliance",
+          "Health & safety",
+          "Information security",
+          "Reputational",
+          "Strategic"
+        ]
+      },
+      {
+        "id": "9337dd4b-16c6-5917-93fc-84a19be5dc90",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "text"
+      },
+      {
+        "id": "a0fa8167-0088-5b4c-a674-79a32c794ff5",
+        "required": false,
+        "key": "likelihood",
+        "name": "Likelihood (1-5)",
+        "type": "number"
+      },
+      {
+        "id": "dc0f429e-8843-522e-8f85-e96aff3c8de4",
+        "required": false,
+        "key": "impact",
+        "name": "Impact (1-5)",
+        "type": "number"
+      },
+      {
+        "id": "91817600-24f7-59d2-8a50-e75362618928",
+        "required": false,
+        "key": "score",
+        "name": "Score",
+        "type": "number"
+      },
+      {
+        "id": "5636e760-1621-5ff9-9194-3b801175a514",
+        "required": false,
+        "key": "rating",
+        "name": "Rating",
+        "type": "select",
+        "options": [
+          "Low",
+          "Medium",
+          "High",
+          "Extreme"
+        ]
+      },
+      {
+        "id": "feae197a-70bc-5858-b97d-3a91cfc7b6a8",
+        "required": false,
+        "key": "owner_id",
+        "name": "Owner (user id)",
+        "type": "text"
+      },
+      {
+        "id": "d545a13b-5822-5ed0-8ac3-421d491192cd",
+        "required": false,
+        "key": "owner_name",
+        "name": "Owner",
+        "type": "text"
+      },
+      {
+        "id": "5167cc01-970c-58b5-8cee-fad0c8780d3b",
+        "required": false,
+        "key": "controls",
+        "name": "Existing controls",
+        "type": "text"
+      },
+      {
+        "id": "df3a2e00-0593-56fb-8717-1cb2c850a308",
+        "required": false,
+        "key": "response",
+        "name": "Response",
+        "type": "select",
+        "options": [
+          "Pending",
+          "Accept",
+          "Mitigate",
+          "Escalate"
+        ]
+      },
+      {
+        "id": "27fd8044-cb4e-5180-8f4a-717e41bf47a2",
+        "required": false,
+        "key": "mitigation_plan",
+        "name": "Mitigation plan",
+        "type": "text"
+      },
+      {
+        "id": "25d48ded-474a-5ab9-8501-24f68a5cae3f",
+        "required": false,
+        "key": "target_date",
+        "name": "Mitigation due",
+        "type": "date"
+      },
+      {
+        "id": "a14f46fa-6fa5-5bdf-b728-b094fb35ce71",
+        "required": false,
+        "key": "residual_score",
+        "name": "Residual score",
+        "type": "number"
+      },
+      {
+        "id": "b0bc95ba-d37a-5145-bf86-cd14a793ed5d",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "under review",
+          "accepted",
+          "mitigating",
+          "escalated",
+          "closed"
+        ]
+      },
+      {
+        "id": "d139497f-dec6-50fd-9830-7f2f7cb4b47f",
+        "required": false,
+        "key": "raised_on",
+        "name": "Raised",
+        "type": "date"
+      },
+      {
+        "id": "4735c6af-5eb0-5d5b-aba2-091a017cc0da",
+        "required": false,
+        "key": "last_reviewed",
+        "name": "Last reviewed",
+        "type": "date"
+      },
+      {
+        "id": "9de04b28-89e2-52ac-9d0d-8e8d9a3266e8",
+        "required": false,
+        "key": "next_review",
+        "name": "Next review",
+        "type": "date"
+      }
+    ]
+  }
+}

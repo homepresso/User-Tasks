@@ -1,0 +1,587 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "daf72f4f-c48c-559b-9d08-4e7203531ab8",
+  "asset": {
+    "id": "daf72f4f-c48c-559b-9d08-4e7203531ab8",
+    "name": "Asset check-out",
+    "description": "An asset is checked out on the form: the register is updated, the loan logged, the borrower emailed, and the borrower gets a return task due on the due-back date with Returned / Damaged buttons.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Asset checked out",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "form_id": "64773114-ed06-57ee-b1b9-52400293f597",
+          "form_name": "Asset check-out"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Check-out reference",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "name": "checkout_ref",
+          "expression": "CHK-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "get",
+        "type": "update_data_table",
+        "label": "Read the asset",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "table_id": "a3bce1d2-e26c-5ce9-8d48-ed94be7e8562",
+          "table_name": "Assets",
+          "operation": "get",
+          "match_column": "asset_tag",
+          "match_value": "{{form.asset}}",
+          "output_row_var": "asset_row"
+        }
+      },
+      {
+        "id": "name",
+        "type": "set_variable",
+        "label": "Asset name",
+        "position": {
+          "x": 400,
+          "y": 480
+        },
+        "config": {
+          "name": "asset_name",
+          "expression": "{{=COALESCE(asset_row.name, form.asset_item.name)}}"
+        }
+      },
+      {
+        "id": "loc",
+        "type": "set_variable",
+        "label": "Asset location",
+        "position": {
+          "x": 400,
+          "y": 620
+        },
+        "config": {
+          "name": "asset_location",
+          "expression": "{{=COALESCE(asset_row.location, form.asset_item.location)}}"
+        }
+      },
+      {
+        "id": "cond",
+        "type": "set_variable",
+        "label": "Condition out",
+        "position": {
+          "x": 400,
+          "y": 760
+        },
+        "config": {
+          "name": "asset_condition",
+          "expression": "{{=COALESCE(asset_row.condition, form.asset_item.condition)}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 900
+        },
+        "config": {
+          "title": "Loan: {{asset_name}} ({{form.asset}}) due {{form.due_back}}"
+        }
+      },
+      {
+        "id": "avail",
+        "type": "condition",
+        "label": "Still available?",
+        "position": {
+          "x": 400,
+          "y": 1040
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Already out",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{asset_row.status}}",
+                  "operator": "not_equals",
+                  "value": "available"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "clash",
+        "type": "log",
+        "label": "Not available",
+        "position": {
+          "x": 760,
+          "y": 1180
+        },
+        "config": {
+          "message": "{{form.asset}} could not be checked out: it is {{asset_row.status}} (checked out to {{asset_row.checked_out_to}})",
+          "level": "warn"
+        }
+      },
+      {
+        "id": "clash_end",
+        "type": "end_workflow",
+        "label": "Stop: not available",
+        "position": {
+          "x": 760,
+          "y": 1320
+        },
+        "config": {
+          "reason": "{{form.asset}} is {{asset_row.status}}"
+        }
+      },
+      {
+        "id": "mark_out",
+        "type": "update_data_table",
+        "label": "Mark asset checked out",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "table_id": "a3bce1d2-e26c-5ce9-8d48-ed94be7e8562",
+          "table_name": "Assets",
+          "operation": "update",
+          "match_column": "asset_tag",
+          "match_value": "{{form.asset}}",
+          "column_values": {
+            "status": "checked out",
+            "checked_out_to": "{{form.borrower_email}}",
+            "due_back": "{{form.due_back}}"
+          }
+        }
+      },
+      {
+        "id": "log_loan",
+        "type": "update_data_table",
+        "label": "Log the check-out",
+        "position": {
+          "x": 400,
+          "y": 1320
+        },
+        "config": {
+          "table_id": "2be60946-5eb8-5297-84a5-de344921e96b",
+          "table_name": "Check-outs",
+          "operation": "insert",
+          "column_values": {
+            "checkout_ref": "{{checkout_ref}}",
+            "asset_tag": "{{form.asset}}",
+            "asset_name": "{{asset_name}}",
+            "borrower_email": "{{form.borrower_email}}",
+            "purpose": "{{form.purpose}}",
+            "checked_out_on": "{{form.checkout_date}}",
+            "due_back": "{{form.due_back}}",
+            "condition_out": "{{asset_condition}}",
+            "status": "on loan",
+            "notes": "{{form.notes}}"
+          }
+        }
+      },
+      {
+        "id": "receipt",
+        "type": "send_email",
+        "label": "Email the receipt",
+        "position": {
+          "x": 400,
+          "y": 1460
+        },
+        "config": {
+          "to": "{{form.borrower_email}}",
+          "email_template_id": "1ffb9c51-e70d-5338-aadc-0e7dca539279"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "return",
+        "type": "user_task",
+        "label": "Return the asset",
+        "position": {
+          "x": 400,
+          "y": 1600
+        },
+        "config": {
+          "task_title": "Return {{asset_name}} ({{form.asset}}) by {{form.due_back}}",
+          "task_description": "<p>You checked out <strong>{{asset_name}}</strong> on {{form.checkout_date}} for {{form.purpose}}. Please return it to <strong>{{asset_location}}</strong> by <strong>{{form.due_back}}</strong>.</p><p>When you hand it back, record its condition and press <strong>Returned</strong>. If it is broken, missing parts or needs servicing, press <strong>Damaged</strong> and describe the problem so it goes for repair.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Returned",
+            "Damaged"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.borrower}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{form.due_back}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "returned_on",
+              "label": "Returned on",
+              "type": "date",
+              "required": true,
+              "default": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}"
+            },
+            {
+              "key": "condition_in",
+              "label": "Condition now",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "New",
+                "Good",
+                "Fair",
+                "Worn",
+                "Damaged"
+              ],
+              "default": "{{asset_condition}}"
+            },
+            {
+              "key": "damage_description",
+              "label": "What is wrong?",
+              "type": "textarea",
+              "help_text": "Needed when you press Damaged: what broke, what is missing, how it happened."
+            },
+            {
+              "key": "return_notes",
+              "label": "Notes",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "returned_on",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "condition_in",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "damage_description",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "return_notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "returned",
+              "label": "Returned",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Returned"
+            },
+            {
+              "id": "damaged",
+              "label": "Damaged",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Damaged"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Return {{asset_name}}",
+            "align": "left",
+            "subtitle": "Asset {{form.asset}} · due {{form.due_back}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#B45309",
+                  "background": "#FFFFFF",
+                  "text": "#1C1917"
+                }
+              },
+              "radius": 8,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "back",
+        "type": "update_data_table",
+        "label": "Asset available again",
+        "position": {
+          "x": 240,
+          "y": 1760
+        },
+        "config": {
+          "table_id": "a3bce1d2-e26c-5ce9-8d48-ed94be7e8562",
+          "table_name": "Assets",
+          "operation": "update",
+          "match_column": "asset_tag",
+          "match_value": "{{form.asset}}",
+          "column_values": {
+            "status": "available",
+            "condition": "{{task_data.condition_in}}",
+            "checked_out_to": "",
+            "due_back": ""
+          }
+        }
+      },
+      {
+        "id": "back_log",
+        "type": "update_data_table",
+        "label": "Close the loan",
+        "position": {
+          "x": 240,
+          "y": 1900
+        },
+        "config": {
+          "table_id": "2be60946-5eb8-5297-84a5-de344921e96b",
+          "table_name": "Check-outs",
+          "operation": "update",
+          "match_column": "checkout_ref",
+          "match_value": "{{checkout_ref}}",
+          "column_values": {
+            "status": "returned",
+            "returned_on": "{{task_data.returned_on}}",
+            "condition_in": "{{task_data.condition_in}}",
+            "notes": "{{task_data.return_notes}}"
+          }
+        }
+      },
+      {
+        "id": "back_end",
+        "type": "end_workflow",
+        "label": "Returned",
+        "position": {
+          "x": 240,
+          "y": 2040
+        },
+        "config": {
+          "reason": "{{form.asset}} returned in {{task_data.condition_in}} condition"
+        }
+      },
+      {
+        "id": "repair",
+        "type": "update_data_table",
+        "label": "Send for repair",
+        "position": {
+          "x": 560,
+          "y": 1760
+        },
+        "config": {
+          "table_id": "a3bce1d2-e26c-5ce9-8d48-ed94be7e8562",
+          "table_name": "Assets",
+          "operation": "update",
+          "match_column": "asset_tag",
+          "match_value": "{{form.asset}}",
+          "column_values": {
+            "status": "in repair",
+            "condition": "Damaged",
+            "checked_out_to": "",
+            "due_back": ""
+          }
+        }
+      },
+      {
+        "id": "repair_log",
+        "type": "update_data_table",
+        "label": "Record the damage",
+        "position": {
+          "x": 560,
+          "y": 1900
+        },
+        "config": {
+          "table_id": "2be60946-5eb8-5297-84a5-de344921e96b",
+          "table_name": "Check-outs",
+          "operation": "update",
+          "match_column": "checkout_ref",
+          "match_value": "{{checkout_ref}}",
+          "column_values": {
+            "status": "returned damaged",
+            "returned_on": "{{task_data.returned_on}}",
+            "condition_in": "Damaged",
+            "notes": "{{task_data.damage_description}} {{task_data.return_notes}}"
+          }
+        }
+      },
+      {
+        "id": "repair_warn",
+        "type": "log",
+        "label": "Flag the damage",
+        "position": {
+          "x": 560,
+          "y": 2040
+        },
+        "config": {
+          "message": "{{form.asset}} {{asset_name}} came back damaged: {{task_data.damage_description}}",
+          "level": "warn"
+        }
+      },
+      {
+        "id": "repair_end",
+        "type": "end_workflow",
+        "label": "Damaged",
+        "position": {
+          "x": 560,
+          "y": 2180
+        },
+        "config": {
+          "reason": "{{form.asset}} returned damaged and sent for repair"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-get",
+        "source": "ref",
+        "target": "get"
+      },
+      {
+        "id": "e-get-name",
+        "source": "get",
+        "target": "name"
+      },
+      {
+        "id": "e-name-loc",
+        "source": "name",
+        "target": "loc"
+      },
+      {
+        "id": "e-loc-cond",
+        "source": "loc",
+        "target": "cond"
+      },
+      {
+        "id": "e-cond-title",
+        "source": "cond",
+        "target": "title"
+      },
+      {
+        "id": "e-title-avail",
+        "source": "title",
+        "target": "avail"
+      },
+      {
+        "id": "e-avail-clash-already-out",
+        "source": "avail",
+        "target": "clash",
+        "label": "Already out"
+      },
+      {
+        "id": "e-clash-clash_end",
+        "source": "clash",
+        "target": "clash_end"
+      },
+      {
+        "id": "e-avail-mark_out-else",
+        "source": "avail",
+        "target": "mark_out",
+        "label": "Else"
+      },
+      {
+        "id": "e-mark_out-log_loan",
+        "source": "mark_out",
+        "target": "log_loan"
+      },
+      {
+        "id": "e-log_loan-receipt",
+        "source": "log_loan",
+        "target": "receipt"
+      },
+      {
+        "id": "e-receipt-return",
+        "source": "receipt",
+        "target": "return"
+      },
+      {
+        "id": "e-return-back-returned",
+        "source": "return",
+        "target": "back",
+        "label": "Returned"
+      },
+      {
+        "id": "e-back-back_log",
+        "source": "back",
+        "target": "back_log"
+      },
+      {
+        "id": "e-back_log-back_end",
+        "source": "back_log",
+        "target": "back_end"
+      },
+      {
+        "id": "e-return-repair-damaged",
+        "source": "return",
+        "target": "repair",
+        "label": "Damaged"
+      },
+      {
+        "id": "e-repair-repair_log",
+        "source": "repair",
+        "target": "repair_log"
+      },
+      {
+        "id": "e-repair_log-repair_warn",
+        "source": "repair_log",
+        "target": "repair_warn"
+      },
+      {
+        "id": "e-repair_warn-repair_end",
+        "source": "repair_warn",
+        "target": "repair_end"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

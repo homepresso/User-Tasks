@@ -1,0 +1,162 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "b6507723-d732-4750-ae4e-f22a4410a3d7",
+  "asset": {
+    "id": "b6507723-d732-4750-ae4e-f22a4410a3d7",
+    "integration_id": "f9984e61-7f57-4954-8daf-66c705f8156d",
+    "name": "List probations ending soon",
+    "description": "Employees whose probation ends within the given number of days and has no review recorded yet.",
+    "tags": [
+      "employees",
+      "probation"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/employees",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "data",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "type": "string",
+                    "example": "E-1150",
+                    "name": "id"
+                  },
+                  {
+                    "type": "string",
+                    "example": "Casey Nguyen",
+                    "name": "name"
+                  },
+                  {
+                    "type": "string",
+                    "example": "casey.nguyen@yourcompany.example",
+                    "name": "email"
+                  },
+                  {
+                    "type": "string",
+                    "example": "Account Executive",
+                    "name": "job_title"
+                  },
+                  {
+                    "type": "string",
+                    "example": "sales",
+                    "name": "department"
+                  },
+                  {
+                    "type": "string",
+                    "example": "2026-05-18",
+                    "name": "start_date"
+                  },
+                  {
+                    "type": "string",
+                    "example": "2026-11-13",
+                    "name": "probation_end_date"
+                  },
+                  {
+                    "type": "object",
+                    "fields": [
+                      {
+                        "type": "string",
+                        "example": "E-0042",
+                        "name": "id"
+                      },
+                      {
+                        "type": "string",
+                        "example": "Priya Shah",
+                        "name": "name"
+                      },
+                      {
+                        "type": "string",
+                        "example": "priya.shah@example.com",
+                        "name": "email"
+                      }
+                    ],
+                    "name": "manager"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "total",
+              "type": "integer",
+              "example": 2
+            }
+          ]
+        },
+        "sample": {
+          "data": [
+            {
+              "id": "E-1150",
+              "name": "Casey Nguyen",
+              "email": "casey.nguyen@yourcompany.example",
+              "job_title": "Account Executive",
+              "department": "sales",
+              "start_date": "2026-05-18",
+              "probation_end_date": "2026-11-13",
+              "manager": {
+                "id": "E-0042",
+                "name": "Priya Shah",
+                "email": "priya.shah@example.com"
+              }
+            },
+            {
+              "id": "E-1163",
+              "name": "Robin Patel",
+              "email": "robin.patel@yourcompany.example",
+              "job_title": "Data Analyst",
+              "department": "finance",
+              "start_date": "2026-05-25",
+              "probation_end_date": "2026-11-20",
+              "manager": {
+                "id": "E-0077",
+                "name": "Morgan Ellis",
+                "email": "morgan.ellis@example.com"
+              }
+            }
+          ],
+          "total": 2
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "04d8a375-c2fe-4663-9440-7e6ec088fca4",
+        "name": "probation_ends_within",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "Look-ahead in days, e.g. 21",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "0044d5fc-4a2b-4edb-98be-1e38c44e856d",
+        "name": "employees",
+        "path": "data",
+        "type": "array"
+      },
+      {
+        "id": "19d85385-f040-41c0-8a34-8c112380d929",
+        "name": "total",
+        "path": "total",
+        "type": "number"
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "917787d7-32d1-5f92-9de6-7a9e32fe1b3b",
+  "asset": {
+    "id": "917787d7-32d1-5f92-9de6-7a9e32fe1b3b",
+    "name": "Your visitor has arrived",
+    "description": "Sent to the host when their visitor signs in.",
+    "subject": "Your visitor {{form.visitor_name}} has arrived",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">{{form.visitor_name}} is at reception</h2>\n  <p>Hi {{host_name}},</p>\n  <p><strong>{{form.visitor_name}}</strong>{{=IF(form.company, CONCAT(\" from \", form.company), \"\")}} signed in at {{=FORMAT_DATE(NOW(), \"HH:mm\")}} for: {{form.purpose}}.</p>\n  <p>Badge <strong>{{badge}}</strong> · visit {{visit_ref}}</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the visitor sign-in workflow</p>\n</div>",
+    "text_body": "{{form.visitor_name}} is at reception\nHi {{host_name}},\n{{form.visitor_name}} signed in for: {{form.purpose}}.\nBadge {{badge}} · visit {{visit_ref}}",
+    "is_default": false
+  }
+}

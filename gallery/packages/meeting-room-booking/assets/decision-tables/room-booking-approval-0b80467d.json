@@ -1,0 +1,165 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "0b80467d-cbfb-552b-a79b-f3ca7802b26b",
+  "asset": {
+    "id": "0b80467d-cbfb-552b-a79b-f3ca7802b26b",
+    "name": "Room booking approval",
+    "description": "Which bookings facilities must approve. First matching rule wins; the last rule confirms everything else automatically.",
+    "inputs": [
+      {
+        "key": "over_capacity",
+        "label": "More people than seats",
+        "type": "boolean",
+        "id": "970482e1-48c3-5bb2-a404-d1806b95b16a"
+      },
+      {
+        "key": "capacity",
+        "label": "Room seats",
+        "type": "number",
+        "id": "4d740188-e486-5e2b-b34f-6b6cb03ef64d"
+      },
+      {
+        "key": "duration_hours",
+        "label": "Duration (hours)",
+        "type": "number",
+        "id": "8af8641e-0b5d-561f-a732-c565f084e99a"
+      },
+      {
+        "key": "catering",
+        "label": "Catering requested",
+        "type": "boolean",
+        "id": "bfce32be-b6bd-58ae-896e-e131339e2de3"
+      },
+      {
+        "key": "external_guests",
+        "label": "External guests",
+        "type": "boolean",
+        "id": "0f5777bb-0996-576d-83b9-a2cb125ee58d"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "needs_approval",
+        "label": "Needs facilities approval",
+        "type": "boolean",
+        "id": "48edf5d1-f30c-5aff-a5df-cc22d5bb9bc3"
+      },
+      {
+        "key": "approval_reason",
+        "label": "Reason",
+        "type": "text",
+        "id": "5267259d-ede0-576a-8a88-065a69d8d690"
+      },
+      {
+        "key": "approval_hours",
+        "label": "Approve within (hours)",
+        "type": "number",
+        "id": "412e3746-78af-501f-ae26-31179ddefbb8"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Over capacity",
+        "conditions": [
+          {
+            "inputKey": "over_capacity",
+            "operator": "equals",
+            "value": "true",
+            "id": "b9922b7b-73c1-502d-8d3e-0537b2bf82c0"
+          }
+        ],
+        "outputs": {
+          "needs_approval": true,
+          "approval_reason": "More attendees than the room seats: facilities to suggest a bigger room or approve standing room",
+          "approval_hours": 4
+        },
+        "id": "84bda057-8eaa-50af-a9c4-fb032140231c",
+        "enabled": true
+      },
+      {
+        "label": "Large room",
+        "conditions": [
+          {
+            "inputKey": "capacity",
+            "operator": "greater_than_or_equal",
+            "value": "12",
+            "id": "a1abdf6d-693a-54c7-b8e6-989cc051d1eb"
+          }
+        ],
+        "outputs": {
+          "needs_approval": true,
+          "approval_reason": "Large room (12+ seats) is shared with events and training",
+          "approval_hours": 24
+        },
+        "id": "8805ea91-ebb1-5bf2-88fc-bba7f81ef9e8",
+        "enabled": true
+      },
+      {
+        "label": "Long booking",
+        "conditions": [
+          {
+            "inputKey": "duration_hours",
+            "operator": "greater_than",
+            "value": "4",
+            "id": "f74abb41-f3b4-58c7-ae04-bdff1ae30efe"
+          }
+        ],
+        "outputs": {
+          "needs_approval": true,
+          "approval_reason": "Booking longer than 4 hours",
+          "approval_hours": 24
+        },
+        "id": "5ea8cac1-7174-57b6-9cf6-c3cab747d63f",
+        "enabled": true
+      },
+      {
+        "label": "Catering",
+        "conditions": [
+          {
+            "inputKey": "catering",
+            "operator": "equals",
+            "value": "true",
+            "id": "343b0dff-0cae-5dbf-b4cc-70e02f87284e"
+          }
+        ],
+        "outputs": {
+          "needs_approval": true,
+          "approval_reason": "Catering needs to be ordered by facilities",
+          "approval_hours": 24
+        },
+        "id": "f6a1e279-7330-5f2b-9711-6ab078373ac6",
+        "enabled": true
+      },
+      {
+        "label": "External guests",
+        "conditions": [
+          {
+            "inputKey": "external_guests",
+            "operator": "equals",
+            "value": "true",
+            "id": "68270d18-1a24-557e-8d38-5af05b1d9fd4"
+          }
+        ],
+        "outputs": {
+          "needs_approval": false,
+          "approval_reason": "Standard booking (reception told about external guests)",
+          "approval_hours": 0
+        },
+        "id": "50813f07-d25d-5f13-ac38-29c84c8c17b4",
+        "enabled": true
+      },
+      {
+        "label": "Standard booking",
+        "conditions": [],
+        "outputs": {
+          "needs_approval": false,
+          "approval_reason": "Standard booking: confirmed automatically",
+          "approval_hours": 0
+        },
+        "id": "c70a5ad3-9358-5bb3-8510-7cde9dd4354f",
+        "enabled": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "6290f73c-5d23-58a9-8514-031baf129d80",
+  "asset": {
+    "id": "6290f73c-5d23-58a9-8514-031baf129d80",
+    "name": "Vehicles rows",
+    "rows": [
+      {
+        "id": "ce7838cd-c701-5409-897e-3a2038cec9ba",
+        "data": {
+          "rego": "EVA101",
+          "vehicle": "Hyundai Kona Electric",
+          "seats": 5,
+          "ev": true,
+          "range_km": 380,
+          "location": "Wellington HQ car park, level B1",
+          "status": "Available",
+          "fuel_card": "Charge card CC-01",
+          "notes": "Type 2 cable in the boot"
+        }
+      },
+      {
+        "id": "f34cde8b-9853-5aa2-95a5-a8a064d811c7",
+        "data": {
+          "rego": "EVB202",
+          "vehicle": "Tesla Model Y",
+          "seats": 5,
+          "ev": true,
+          "range_km": 450,
+          "location": "Wellington HQ car park, level B1",
+          "status": "Available",
+          "fuel_card": "Charge card CC-02",
+          "notes": ""
+        }
+      },
+      {
+        "id": "058d236f-4995-50d6-ad83-3e55dbdf583d",
+        "data": {
+          "rego": "HYB303",
+          "vehicle": "Toyota Corolla Hybrid wagon",
+          "seats": 5,
+          "ev": false,
+          "range_km": 800,
+          "location": "Wellington HQ car park, level B1",
+          "status": "Available",
+          "fuel_card": "Fuel card FC-11",
+          "notes": "Roof racks available"
+        }
+      },
+      {
+        "id": "513333cc-a878-5f69-b34b-e3dc744c5c40",
+        "data": {
+          "rego": "VAN404",
+          "vehicle": "Toyota Hiace van",
+          "seats": 3,
+          "ev": false,
+          "range_km": 700,
+          "location": "Auckland depot",
+          "status": "Available",
+          "fuel_card": "Fuel card FC-12",
+          "notes": "Load space 6 m3; needs a full licence"
+        }
+      },
+      {
+        "id": "8a978097-de3f-5ded-8b29-7f52dcb1b1ad",
+        "data": {
+          "rego": "PEO505",
+          "vehicle": "Kia Carnival people mover",
+          "seats": 8,
+          "ev": false,
+          "range_km": 750,
+          "location": "Auckland depot",
+          "status": "Available",
+          "fuel_card": "Fuel card FC-13",
+          "notes": ""
+        }
+      },
+      {
+        "id": "d5822338-49b8-54e5-b460-006c58db288b",
+        "data": {
+          "rego": "EVC606",
+          "vehicle": "MG4 Electric",
+          "seats": 5,
+          "ev": true,
+          "range_km": 350,
+          "location": "Christchurch office",
+          "status": "Service",
+          "fuel_card": "Charge card CC-03",
+          "notes": "In for tyres until 4 Nov"
+        }
+      }
+    ]
+  }
+}

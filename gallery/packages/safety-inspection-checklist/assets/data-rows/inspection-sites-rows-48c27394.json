@@ -1,0 +1,81 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "48c27394-9f97-5091-b748-ae73590b0f50",
+  "asset": {
+    "id": "48c27394-9f97-5091-b748-ae73590b0f50",
+    "name": "Inspection sites rows",
+    "rows": [
+      {
+        "id": "ab141e3d-9cf0-5744-a76b-1c7239c4c463",
+        "data": {
+          "site_code": "WLG-HQ",
+          "name": "Wellington head office",
+          "address": "12 Harbour Quay, Wellington",
+          "site_type": "Office",
+          "site_manager": "Maria Gomez",
+          "site_manager_email": "maria.gomez@example.com",
+          "inspect_monthly": true,
+          "last_inspected": "2026-09-08",
+          "last_result": "Pass"
+        }
+      },
+      {
+        "id": "9f706d99-efeb-512c-bfe4-788f12de762b",
+        "data": {
+          "site_code": "AKL-DC",
+          "name": "Auckland distribution centre",
+          "address": "48 Freight Drive, Auckland",
+          "site_type": "Warehouse",
+          "site_manager": "Sam Patel",
+          "site_manager_email": "sam.patel@example.com",
+          "inspect_monthly": true,
+          "last_inspected": "2026-09-10",
+          "last_result": "Fail"
+        }
+      },
+      {
+        "id": "413081fe-cb39-5fb1-90ad-ffbe01594bd0",
+        "data": {
+          "site_code": "CHC-WS",
+          "name": "Christchurch workshop",
+          "address": "7 Foundry Lane, Christchurch",
+          "site_type": "Workshop",
+          "site_manager": "Lena Fischer",
+          "site_manager_email": "lena.fischer@example.com",
+          "inspect_monthly": true,
+          "last_inspected": "2026-09-12",
+          "last_result": "Pass"
+        }
+      },
+      {
+        "id": "58b8570f-11b9-5be2-b6db-77059dab3366",
+        "data": {
+          "site_code": "HAM-RT",
+          "name": "Hamilton retail store",
+          "address": "201 Victoria Street, Hamilton",
+          "site_type": "Retail",
+          "site_manager": "Tom Reid",
+          "site_manager_email": "tom.reid@example.com",
+          "inspect_monthly": true,
+          "last_inspected": "2026-09-15",
+          "last_result": "Pass"
+        }
+      },
+      {
+        "id": "a816c85e-9677-5cff-96bf-ec92ef6c2b73",
+        "data": {
+          "site_code": "DUD-ST",
+          "name": "Dunedin storage unit",
+          "address": "3 Wharf Road, Dunedin",
+          "site_type": "Warehouse",
+          "site_manager": "Ivy Chen",
+          "site_manager_email": "ivy.chen@example.com",
+          "inspect_monthly": false,
+          "last_inspected": "2026-06-20",
+          "last_result": "Pass"
+        }
+      }
+    ]
+  }
+}

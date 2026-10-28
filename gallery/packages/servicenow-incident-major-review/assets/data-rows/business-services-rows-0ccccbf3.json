@@ -1,0 +1,66 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "0ccccbf3-d377-5cdd-bb11-7570fe2db385",
+  "asset": {
+    "id": "0ccccbf3-d377-5cdd-bb11-7570fe2db385",
+    "name": "Business services rows",
+    "rows": [
+      {
+        "id": "29dd653b-4571-520a-8c3a-faa5e67afe64",
+        "data": {
+          "ci_name": "Online Checkout",
+          "tier": 1,
+          "service_owner": "Priya Shah",
+          "stakeholder_email": "checkout-stakeholders@example.com",
+          "status_page": "Checkout",
+          "customer_facing": true
+        }
+      },
+      {
+        "id": "ca0bf8a8-afe0-5daf-a3ab-2d9f4b71c435",
+        "data": {
+          "ci_name": "Customer Identity (SSO)",
+          "tier": 1,
+          "service_owner": "Marco Rossi",
+          "stakeholder_email": "identity-stakeholders@example.com",
+          "status_page": "Sign-in",
+          "customer_facing": true
+        }
+      },
+      {
+        "id": "7d0b27f8-78f0-5971-8944-ae8bf5dfcb8b",
+        "data": {
+          "ci_name": "Order Management",
+          "tier": 2,
+          "service_owner": "Hannah Becker",
+          "stakeholder_email": "oms-stakeholders@example.com",
+          "status_page": "Orders",
+          "customer_facing": true
+        }
+      },
+      {
+        "id": "bbb6788f-45a6-556a-979c-26b51816fc30",
+        "data": {
+          "ci_name": "Data Warehouse",
+          "tier": 3,
+          "service_owner": "Leo Tanaka",
+          "stakeholder_email": "data-stakeholders@example.com",
+          "status_page": "",
+          "customer_facing": false
+        }
+      },
+      {
+        "id": "9b5aca90-e614-59fa-b137-5e7e622b01c7",
+        "data": {
+          "ci_name": "Corporate Email",
+          "tier": 2,
+          "service_owner": "Sofia Alvarez",
+          "stakeholder_email": "it-stakeholders@example.com",
+          "status_page": "",
+          "customer_facing": false
+        }
+      }
+    ]
+  }
+}

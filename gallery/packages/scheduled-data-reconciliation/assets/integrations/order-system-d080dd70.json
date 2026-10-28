@@ -1,0 +1,22 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "d080dd70-a229-46fe-a31d-f35030b32479",
+  "asset": {
+    "id": "d080dd70-a229-46fe-a31d-f35030b32479",
+    "name": "Order system",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://orders.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "orders"
+    ]
+  }
+}

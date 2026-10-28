@@ -1,0 +1,54 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "fc80acc4-7337-462f-9ecd-91499b9bc8dc",
+  "asset": {
+    "id": "fc80acc4-7337-462f-9ecd-91499b9bc8dc",
+    "name": "Onboarding checklist",
+    "description": "One row per department: the laptop, the systems to grant, the buddy team and the welcome pack. Edit to match your departments.",
+    "columns": [
+      {
+        "id": "7e417a21-bbb1-46a1-836d-4af765b0afb9",
+        "required": true,
+        "key": "department",
+        "name": "Department",
+        "type": "text"
+      },
+      {
+        "id": "09f0febc-c2b0-4f64-96a5-2e6cdec0d7dc",
+        "required": false,
+        "key": "laptop_model",
+        "name": "Laptop model",
+        "type": "text"
+      },
+      {
+        "id": "e9076b49-0a67-48c7-8edb-d8eb55ff477e",
+        "required": false,
+        "key": "systems",
+        "name": "Systems to grant",
+        "type": "text"
+      },
+      {
+        "id": "37678504-837c-44ca-ac74-e8073e80754e",
+        "required": false,
+        "key": "buddy_team",
+        "name": "Buddy team",
+        "type": "text"
+      },
+      {
+        "id": "9e7cca26-9448-41ed-8ce8-45476e47225f",
+        "required": false,
+        "key": "welcome_pack",
+        "name": "Welcome pack",
+        "type": "text"
+      },
+      {
+        "id": "ca98149b-a434-4d07-909e-b4c3b373acae",
+        "required": false,
+        "key": "first_week_focus",
+        "name": "First-week focus",
+        "type": "text"
+      }
+    ]
+  }
+}

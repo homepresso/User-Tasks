@@ -1,0 +1,167 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "f9136632-14a2-47b8-a18d-0bd8310d35d5",
+  "asset": {
+    "id": "f9136632-14a2-47b8-a18d-0bd8310d35d5",
+    "name": "Close checklist rows",
+    "rows": [
+      {
+        "id": "1ca8611f-5ec7-4c1e-b049-0ecf49efc44c",
+        "data": {
+          "task_code": "MEC-01",
+          "task": "Bank reconciliations for all operating accounts",
+          "area": "Cash",
+          "owner_role": "Treasury accountant",
+          "due_business_day": 1,
+          "system": "ERP cash management",
+          "evidence_required": true,
+          "active": true
+        }
+      },
+      {
+        "id": "7926d295-9d1e-4927-8103-6ffd59941440",
+        "data": {
+          "task_code": "MEC-02",
+          "task": "AP accruals for goods received not invoiced",
+          "area": "Payables",
+          "owner_role": "AP lead",
+          "due_business_day": 2,
+          "system": "ERP payables",
+          "evidence_required": true,
+          "active": true
+        }
+      },
+      {
+        "id": "b22bc350-70b4-4606-b410-0a4596a74da5",
+        "data": {
+          "task_code": "MEC-03",
+          "task": "Payroll journal and payroll liabilities reconciliation",
+          "area": "Payroll",
+          "owner_role": "Payroll accountant",
+          "due_business_day": 2,
+          "system": "Payroll system",
+          "evidence_required": true,
+          "active": true
+        }
+      },
+      {
+        "id": "3b33779b-dfdf-4313-b51b-e99c1efec279",
+        "data": {
+          "task_code": "MEC-04",
+          "task": "AR sub-ledger to GL reconciliation and bad debt review",
+          "area": "Receivables",
+          "owner_role": "AR lead",
+          "due_business_day": 2,
+          "system": "ERP receivables",
+          "evidence_required": true,
+          "active": true
+        }
+      },
+      {
+        "id": "1265a729-b48c-465a-b811-29152c92b19e",
+        "data": {
+          "task_code": "MEC-05",
+          "task": "Fixed asset additions, disposals and depreciation run",
+          "area": "Fixed assets",
+          "owner_role": "Financial accountant",
+          "due_business_day": 3,
+          "system": "ERP fixed assets",
+          "evidence_required": true,
+          "active": true
+        }
+      },
+      {
+        "id": "bd5dd848-7f1d-4eb4-8850-d3095f5e7178",
+        "data": {
+          "task_code": "MEC-06",
+          "task": "Prepayments amortisation schedule",
+          "area": "Payables",
+          "owner_role": "Financial accountant",
+          "due_business_day": 3,
+          "system": "Spreadsheet",
+          "evidence_required": false,
+          "active": true
+        }
+      },
+      {
+        "id": "8d2deb81-e7ff-4fdc-9885-d27e5efd2b2e",
+        "data": {
+          "task_code": "MEC-07",
+          "task": "Deferred revenue and revenue recognition review",
+          "area": "Revenue",
+          "owner_role": "Revenue accountant",
+          "due_business_day": 3,
+          "system": "Billing system",
+          "evidence_required": true,
+          "active": true
+        }
+      },
+      {
+        "id": "7eb4f2b0-4f6e-45da-9793-c1a2b4ab5b3c",
+        "data": {
+          "task_code": "MEC-08",
+          "task": "Inventory valuation and stock count variances",
+          "area": "Inventory",
+          "owner_role": "Cost accountant",
+          "due_business_day": 3,
+          "system": "ERP inventory",
+          "evidence_required": true,
+          "active": true
+        }
+      },
+      {
+        "id": "2dddd1aa-d5de-47e4-a06b-55936b8a9115",
+        "data": {
+          "task_code": "MEC-09",
+          "task": "Intercompany balances agreed and eliminated",
+          "area": "Intercompany",
+          "owner_role": "Group accountant",
+          "due_business_day": 4,
+          "system": "Consolidation tool",
+          "evidence_required": true,
+          "active": true
+        }
+      },
+      {
+        "id": "aa599fa9-dd8f-463b-b86b-8493e1cdd9d2",
+        "data": {
+          "task_code": "MEC-10",
+          "task": "GST / VAT return preparation",
+          "area": "Tax",
+          "owner_role": "Tax accountant",
+          "due_business_day": 5,
+          "system": "Tax portal",
+          "evidence_required": true,
+          "active": true
+        }
+      },
+      {
+        "id": "4ba26ee8-5ab6-4ae6-be6f-dd93b01468fd",
+        "data": {
+          "task_code": "MEC-11",
+          "task": "FX revaluation of foreign currency balances",
+          "area": "Cash",
+          "owner_role": "Treasury accountant",
+          "due_business_day": 4,
+          "system": "ERP general ledger",
+          "evidence_required": false,
+          "active": true
+        }
+      },
+      {
+        "id": "31c814c5-b314-4696-9f2f-ef04b4d38a10",
+        "data": {
+          "task_code": "MEC-12",
+          "task": "Management accounts pack and variance commentary",
+          "area": "Reporting",
+          "owner_role": "Financial controller",
+          "due_business_day": 6,
+          "system": "Reporting tool",
+          "evidence_required": true,
+          "active": true
+        }
+      }
+    ]
+  }
+}

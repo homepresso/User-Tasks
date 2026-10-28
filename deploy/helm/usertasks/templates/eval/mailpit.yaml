@@ -1,0 +1,49 @@
+{{- if .Values.mailpit.enabled }}
+{{- $mp := .Values.mailpit }}
+{{ include "usertasks.eval.service" (dict "root" . "name" "mailpit" "ports" (list (dict "name" "smtp" "port" 1025) (dict "name" "http" "port" 8025))) }}
+---
+# Catches every email; the UI / API on port 8025 (kubectl port-forward).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "usertasks.fullname" . }}-mailpit
+  labels:
+    {{- include "usertasks.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mailpit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "usertasks.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: mailpit
+  template:
+    metadata:
+      labels:
+        {{- include "usertasks.eval.labels" (dict "root" . "name" "mailpit") | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        {{- include "usertasks.eval.podSecurity" (dict "uid" 1000) | nindent 8 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: mailpit
+          image: {{ include "usertasks.imageRef" (dict "root" . "image" $mp.image) }}
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            {{- include "usertasks.eval.containerSecurity" . | nindent 12 }}
+          ports:
+            - { name: smtp, containerPort: 1025 }
+            - { name: http, containerPort: 8025 }
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+          resources:
+            {{- toYaml $mp.resources | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+{{- end }}

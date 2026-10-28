@@ -1,0 +1,271 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "webhook_received",
+      "label": "Order Webhook",
+      "position": { "x": 500, "y": 20 },
+      "config": {}
+    },
+    {
+      "id": "n1",
+      "type": "set_title",
+      "label": "Set Run Title",
+      "position": { "x": 500, "y": 140 },
+      "config": { "title": "Order Processing — {{=FORMAT_DATE(NOW(), 'HH:mm:ss')}}" }
+    },
+    {
+      "id": "n2",
+      "type": "json_build_object",
+      "label": "Build Order",
+      "position": { "x": 500, "y": 280 },
+      "config": {
+        "fields": [
+          { "key": "order_id", "value": "{{=CONCAT('ORD-', ROUND(RAND() * 99999, 0))}}" },
+          { "key": "customer_name", "value": "Jane Doe" },
+          { "key": "customer_email", "value": "jane@example.com" },
+          { "key": "total", "value": "249.99" },
+          { "key": "currency", "value": "USD" },
+          { "key": "status", "value": "pending" },
+          { "key": "created_at", "value": "{{=NOW()}}" }
+        ],
+        "output_var": "order"
+      }
+    },
+    {
+      "id": "n3",
+      "type": "json_build_array",
+      "label": "Build Line Items",
+      "position": { "x": 500, "y": 440 },
+      "config": { "items": [], "output_var": "line_items" }
+    },
+    {
+      "id": "n4",
+      "type": "json_build_object",
+      "label": "Item 1: Laptop",
+      "position": { "x": 200, "y": 580 },
+      "config": {
+        "fields": [
+          { "key": "sku", "value": "LAPTOP-001" },
+          { "key": "name", "value": "Pro Laptop 15\"" },
+          { "key": "quantity", "value": "1" },
+          { "key": "price", "value": "199.99" },
+          { "key": "category", "value": "electronics" }
+        ],
+        "output_var": "item1"
+      }
+    },
+    {
+      "id": "n5",
+      "type": "json_build_object",
+      "label": "Item 2: Mouse",
+      "position": { "x": 500, "y": 580 },
+      "config": {
+        "fields": [
+          { "key": "sku", "value": "MOUSE-042" },
+          { "key": "name", "value": "Wireless Mouse" },
+          { "key": "quantity", "value": "2" },
+          { "key": "price", "value": "25.00" },
+          { "key": "category", "value": "accessories" }
+        ],
+        "output_var": "item2"
+      }
+    },
+    {
+      "id": "n6",
+      "type": "json_add_to_array",
+      "label": "Add Item 1",
+      "position": { "x": 200, "y": 740 },
+      "config": { "array": "{{line_items}}", "value": "{{item1}}", "output_var": "line_items" }
+    },
+    {
+      "id": "n7",
+      "type": "json_add_to_array",
+      "label": "Add Item 2",
+      "position": { "x": 500, "y": 740 },
+      "config": { "array": "{{line_items}}", "value": "{{item2}}", "output_var": "line_items" }
+    },
+    {
+      "id": "n8",
+      "type": "collection_count",
+      "label": "Count Items",
+      "position": { "x": 200, "y": 900 },
+      "config": { "collection": "{{line_items}}", "output_var": "item_count" }
+    },
+    {
+      "id": "n9",
+      "type": "set_variable",
+      "label": "Calc Subtotal",
+      "position": { "x": 500, "y": 900 },
+      "config": { "name": "subtotal", "expression": "{{=199.99 + 25.00 * 2}}" }
+    },
+    {
+      "id": "n10",
+      "type": "math",
+      "label": "Add Tax (10%)",
+      "position": { "x": 500, "y": 1040 },
+      "config": { "expression": "{{subtotal}} * 1.10", "output_var": "total_with_tax" }
+    },
+    {
+      "id": "n11",
+      "type": "set_variable",
+      "label": "Round Total",
+      "position": { "x": 500, "y": 1180 },
+      "config": { "name": "final_total", "expression": "{{=ROUND(total_with_tax, 2)}}" }
+    },
+    {
+      "id": "n12",
+      "type": "condition",
+      "label": "Over $200?",
+      "position": { "x": 500, "y": 1320 },
+      "config": {
+        "branches": [
+          { "label": "High Value", "logic": "AND", "rules": [{ "field": "{{final_total}}", "operator": "greater_than", "value": "200" }] },
+          { "label": "Free Ship", "logic": "AND", "rules": [{ "field": "{{final_total}}", "operator": "greater_than", "value": "100" }] }
+        ],
+        "has_else": true
+      }
+    },
+    {
+      "id": "n13",
+      "type": "set_variable",
+      "label": "VIP Discount",
+      "position": { "x": 200, "y": 1500 },
+      "config": { "name": "shipping", "expression": "{{=CONCAT('FREE + $', ROUND(final_total * 0.05, 2), ' discount')}}" }
+    },
+    {
+      "id": "n14",
+      "type": "set_variable",
+      "label": "Free Shipping",
+      "position": { "x": 500, "y": 1500 },
+      "config": { "name": "shipping", "expression": "FREE" }
+    },
+    {
+      "id": "n15",
+      "type": "set_variable",
+      "label": "Standard Ship",
+      "position": { "x": 800, "y": 1500 },
+      "config": { "name": "shipping", "expression": "$9.99" }
+    },
+    {
+      "id": "n16",
+      "type": "loop",
+      "label": "Process Each Item",
+      "position": { "x": 500, "y": 1660 },
+      "config": { "items": "{{line_items}}", "item_var": "item", "index_var": "item_idx" }
+    },
+    {
+      "id": "n17",
+      "type": "switch_case",
+      "label": "Route by Category",
+      "position": { "x": 500, "y": 1820 },
+      "config": {
+        "field": "{{item.category}}",
+        "cases": [
+          { "value": "electronics", "label": "Electronics" },
+          { "value": "accessories", "label": "Accessories" }
+        ],
+        "has_default": true
+      }
+    },
+    {
+      "id": "n18",
+      "type": "log",
+      "label": "Log Electronics",
+      "position": { "x": 300, "y": 1980 },
+      "config": { "message": "ELECTRONICS: {{item.name}} x{{item.quantity}} @ ${{item.price}} — needs warehouse pick" }
+    },
+    {
+      "id": "n19",
+      "type": "log",
+      "label": "Log Accessories",
+      "position": { "x": 600, "y": 1980 },
+      "config": { "message": "ACCESSORY: {{item.name}} x{{item.quantity}} @ ${{item.price}} — shelf stock" }
+    },
+    {
+      "id": "n20",
+      "type": "log",
+      "label": "Log Other",
+      "position": { "x": 900, "y": 1980 },
+      "config": { "message": "OTHER: {{item.name}} — manual review needed" }
+    },
+    {
+      "id": "n21",
+      "type": "format_date",
+      "label": "Format Ship Date",
+      "position": { "x": 200, "y": 2160 },
+      "config": { "input": "{{=ADD_DAYS(NOW(), 3)}}", "format": "dddd, MMMM D", "output_var": "ship_date" }
+    },
+    {
+      "id": "n22",
+      "type": "text_template",
+      "label": "Build Confirmation",
+      "position": { "x": 500, "y": 2160 },
+      "config": { "template": "ORDER CONFIRMATION\n==================\nOrder: {{order.order_id}}\nCustomer: {{order.customer_name}} ({{order.customer_email}})\nItems: {{item_count}} items\nSubtotal: ${{subtotal}}\nTotal (inc tax): ${{final_total}}\nShipping: {{shipping}}\nEstimated delivery: {{ship_date}}\n==================", "output_var": "confirmation" }
+    },
+    {
+      "id": "n23",
+      "type": "log",
+      "label": "Log Confirmation",
+      "position": { "x": 500, "y": 2320 },
+      "config": { "message": "{{confirmation}}" }
+    },
+    {
+      "id": "n24",
+      "type": "modify_string",
+      "label": "Extract Order ID",
+      "position": { "x": 200, "y": 2320 },
+      "config": { "operation": "upper", "input": "{{order.order_id}}", "output_var": "upper_order_id" }
+    },
+    {
+      "id": "n25",
+      "type": "regex",
+      "label": "Extract Number",
+      "position": { "x": 200, "y": 2460 },
+      "config": { "input": "{{upper_order_id}}", "pattern": "(\\d+)", "output_var": "order_number" }
+    },
+    {
+      "id": "n26",
+      "type": "log",
+      "label": "Final Log",
+      "position": { "x": 500, "y": 2600 },
+      "config": { "message": "Order #{{order_number}} processed. Upper ID: {{upper_order_id}}. Done!" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "t1", "target": "n1" },
+    { "id": "e2", "source": "n1", "target": "n2" },
+    { "id": "e3", "source": "n2", "target": "n3" },
+    { "id": "e4", "source": "n3", "target": "n4" },
+    { "id": "e5", "source": "n3", "target": "n5" },
+    { "id": "e6", "source": "n4", "target": "n6" },
+    { "id": "e7", "source": "n5", "target": "n7" },
+    { "id": "e8", "source": "n6", "target": "n8" },
+    { "id": "e9", "source": "n7", "target": "n9" },
+    { "id": "e10", "source": "n8", "target": "n10" },
+    { "id": "e11", "source": "n9", "target": "n10" },
+    { "id": "e12", "source": "n10", "target": "n11" },
+    { "id": "e13", "source": "n11", "target": "n12" },
+    { "id": "e14", "source": "n12", "target": "n13", "label": "High Value" },
+    { "id": "e15", "source": "n12", "target": "n14", "label": "Free Ship" },
+    { "id": "e16", "source": "n12", "target": "n15", "label": "Else" },
+    { "id": "e17", "source": "n13", "target": "n16" },
+    { "id": "e18", "source": "n14", "target": "n16" },
+    { "id": "e19", "source": "n15", "target": "n16" },
+    { "id": "e20", "source": "n16", "target": "n17", "label": "Each Item" },
+    { "id": "e21", "source": "n17", "target": "n18", "label": "Electronics" },
+    { "id": "e22", "source": "n17", "target": "n19", "label": "Accessories" },
+    { "id": "e23", "source": "n17", "target": "n20", "label": "Default" },
+    { "id": "e24", "source": "n16", "target": "n21", "label": "Done" },
+    { "id": "e25", "source": "n21", "target": "n22" },
+    { "id": "e26", "source": "n16", "target": "n22", "label": "Done" },
+    { "id": "e27", "source": "n22", "target": "n23" },
+    { "id": "e28", "source": "n22", "target": "n24" },
+    { "id": "e29", "source": "n24", "target": "n25" },
+    { "id": "e30", "source": "n25", "target": "n26" },
+    { "id": "e31", "source": "n23", "target": "n26" }
+  ],
+  "user_variables": [],
+  "swimlanes": []
+}

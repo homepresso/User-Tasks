@@ -1,0 +1,831 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "bed86746-0d6f-5e5b-a02e-17475080c937",
+  "asset": {
+    "id": "bed86746-0d6f-5e5b-a02e-17475080c937",
+    "name": "Weekly policy acknowledgements",
+    "description": "Every Monday: for the latest current policy that needs acknowledging, issue it to every active person not yet asked (email + tracker task), remind everyone still pending, and give the policy owner one chase task with the outstanding list.",
+    "trigger_type": "schedule",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "schedule",
+        "label": "Every Monday 09:00",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "schedule_mode": "weekly",
+          "day_of_week": 1,
+          "time_of_day": "09:00",
+          "timezone": "Pacific/Auckland"
+        }
+      },
+      {
+        "id": "latest",
+        "type": "update_data_table",
+        "label": "Latest current policy",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "table_id": "a5ba0840-a631-5ebc-8b44-58769b132779",
+          "table_name": "Policy register",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Current"
+            },
+            {
+              "column": "requires_ack",
+              "operator": "eq",
+              "value": "true"
+            }
+          ],
+          "sort_column": "effective_date",
+          "sort_direction": "desc",
+          "limit": 1,
+          "output_rows_var": "latest_policies",
+          "output_count_var": "latest_count"
+        }
+      },
+      {
+        "id": "pick",
+        "type": "set_variable",
+        "label": "Policy to track",
+        "position": {
+          "x": 400,
+          "y": 480
+        },
+        "config": {
+          "name": "chosen_code",
+          "expression": "{{=IF(IS_EMPTY(policy_code), latest_code, policy_code)}}"
+        }
+      },
+      {
+        "id": "pick0",
+        "type": "set_variable",
+        "label": "Latest code",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "name": "latest_code",
+          "expression": "{{latest_policies[0].policy_code}}"
+        }
+      },
+      {
+        "id": "policy",
+        "type": "update_data_table",
+        "label": "Read the policy",
+        "position": {
+          "x": 400,
+          "y": 620
+        },
+        "config": {
+          "table_id": "a5ba0840-a631-5ebc-8b44-58769b132779",
+          "table_name": "Policy register",
+          "operation": "get",
+          "match_column": "policy_code",
+          "match_value": "{{chosen_code}}",
+          "output_row_var": "policy"
+        }
+      },
+      {
+        "id": "found",
+        "type": "condition",
+        "label": "Policy found?",
+        "position": {
+          "x": 400,
+          "y": 760
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Found",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{policy.policy_code}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "none",
+        "type": "end_workflow",
+        "label": "Nothing to track",
+        "position": {
+          "x": 760,
+          "y": 900
+        },
+        "config": {
+          "reason": "No current policy needs acknowledging"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 900
+        },
+        "config": {
+          "title": "Policy acknowledgements: {{policy.title}} v{{policy.version}} ({{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}})"
+        }
+      },
+      {
+        "id": "due",
+        "type": "set_variable",
+        "label": "Due date",
+        "position": {
+          "x": 400,
+          "y": 1040
+        },
+        "config": {
+          "name": "due_date",
+          "expression": "{{=FORMAT_DATE(ADD_DAYS(TODAY(), COALESCE(policy.ack_days, 14)), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "staff",
+        "type": "update_data_table",
+        "label": "Active staff",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "table_id": "b8c1bf12-b13e-565d-a29a-b9bea1f2a4e4",
+          "table_name": "Staff",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "active",
+              "operator": "eq",
+              "value": "true"
+            }
+          ],
+          "sort_column": "name",
+          "sort_direction": "asc",
+          "limit": 500,
+          "output_rows_var": "people",
+          "output_count_var": "people_count"
+        }
+      },
+      {
+        "id": "loop",
+        "type": "loop",
+        "label": "Each person",
+        "position": {
+          "x": 400,
+          "y": 1320
+        },
+        "config": {
+          "items": "{{people}}",
+          "item_var": "person",
+          "index_var": "person_index"
+        }
+      },
+      {
+        "id": "key",
+        "type": "set_variable",
+        "label": "Acknowledgement key",
+        "position": {
+          "x": 120,
+          "y": 1460
+        },
+        "config": {
+          "name": "ack_key",
+          "expression": "{{policy.policy_code}}|{{policy.version}}|{{person.email}}"
+        }
+      },
+      {
+        "id": "has",
+        "type": "update_data_table",
+        "label": "Already issued?",
+        "position": {
+          "x": 120,
+          "y": 1600
+        },
+        "config": {
+          "table_id": "6f26592a-312d-55d4-b2be-e79ea9ac6d16",
+          "table_name": "Acknowledgements",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "ack_key",
+              "operator": "eq",
+              "value": "{{ack_key}}"
+            }
+          ],
+          "limit": 1,
+          "output_rows_var": "existing",
+          "output_count_var": "existing_count"
+        }
+      },
+      {
+        "id": "state",
+        "type": "set_variable",
+        "label": "Current status",
+        "position": {
+          "x": 120,
+          "y": 1740
+        },
+        "config": {
+          "name": "existing_status",
+          "expression": "{{existing[0].status}}"
+        }
+      },
+      {
+        "id": "which",
+        "type": "condition",
+        "label": "New or outstanding?",
+        "position": {
+          "x": 120,
+          "y": 1880
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "New",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{existing_count}}",
+                  "operator": "equals",
+                  "value": "0"
+                }
+              ]
+            },
+            {
+              "label": "Outstanding",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{existing_status}}",
+                  "operator": "equals",
+                  "value": "Pending"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "vars_name",
+        "type": "set_variable",
+        "label": "Staff name",
+        "position": {
+          "x": 120,
+          "y": 2020
+        },
+        "config": {
+          "name": "staff_name",
+          "expression": "{{person.name}}"
+        }
+      },
+      {
+        "id": "insert",
+        "type": "update_data_table",
+        "label": "Add as pending",
+        "position": {
+          "x": -80,
+          "y": 2160
+        },
+        "config": {
+          "table_id": "6f26592a-312d-55d4-b2be-e79ea9ac6d16",
+          "table_name": "Acknowledgements",
+          "operation": "insert",
+          "column_values": {
+            "ack_key": "{{ack_key}}",
+            "policy_code": "{{policy.policy_code}}",
+            "policy_title": "{{policy.title}}",
+            "version": "{{policy.version}}",
+            "staff_email": "{{person.email}}",
+            "staff_name": "{{person.name}}",
+            "department": "{{person.department}}",
+            "status": "Pending",
+            "issued_on": "{{=TODAY()}}",
+            "due_date": "{{due_date}}",
+            "reminders_sent": "0"
+          }
+        }
+      },
+      {
+        "id": "ask",
+        "type": "send_email",
+        "label": "Ask them to acknowledge",
+        "position": {
+          "x": -80,
+          "y": 2300
+        },
+        "config": {
+          "to": "{{person.email}}",
+          "email_template_id": "6093a5e3-055b-57b4-a8f4-c58423c77fd7"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "issue",
+        "type": "call_sub_workflow",
+        "label": "Issue the tracker task",
+        "position": {
+          "x": -80,
+          "y": 2440
+        },
+        "config": {
+          "sub_workflow_id": "e30fa1ac-f6cb-581a-8664-7e98fd809133",
+          "sub_workflow_name": "Record acknowledgement",
+          "input_mappings": {
+            "ack_key": "{{ack_key}}",
+            "policy_code": "{{policy.policy_code}}",
+            "policy_title": "{{policy.title}}",
+            "version": "{{policy.version}}",
+            "policy_url": "{{policy.url}}",
+            "staff_name": "{{person.name}}",
+            "staff_email": "{{person.email}}",
+            "department": "{{person.department}}",
+            "manager_name": "{{person.manager_name}}",
+            "due_date": "{{due_date}}"
+          }
+        },
+        "executionMode": "async"
+      },
+      {
+        "id": "chase",
+        "type": "send_email",
+        "label": "Weekly reminder",
+        "position": {
+          "x": 280,
+          "y": 2160
+        },
+        "config": {
+          "to": "{{person.email}}",
+          "email_template_id": "63985b89-09f6-5a98-85a3-b2e7d4b792e8"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "count",
+        "type": "update_data_table",
+        "label": "Count the reminder",
+        "position": {
+          "x": 280,
+          "y": 2300
+        },
+        "config": {
+          "table_id": "6f26592a-312d-55d4-b2be-e79ea9ac6d16",
+          "table_name": "Acknowledgements",
+          "operation": "update",
+          "match_column": "ack_key",
+          "match_value": "{{ack_key}}",
+          "column_values": {
+            "reminders_sent": "{{=ADD(TO_NUMBER(COALESCE(existing[0].reminders_sent, 0)), 1)}}"
+          }
+        }
+      },
+      {
+        "id": "skip",
+        "type": "log",
+        "label": "Already done",
+        "position": {
+          "x": 560,
+          "y": 2160
+        },
+        "config": {
+          "message": "{{person.name}} already {{existing_status}} for {{policy.policy_code}} v{{policy.version}}",
+          "level": "info"
+        }
+      },
+      {
+        "id": "outstanding",
+        "type": "update_data_table",
+        "label": "Outstanding acknowledgements",
+        "position": {
+          "x": 760,
+          "y": 1460
+        },
+        "config": {
+          "table_id": "6f26592a-312d-55d4-b2be-e79ea9ac6d16",
+          "table_name": "Acknowledgements",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "policy_code",
+              "operator": "eq",
+              "value": "{{policy.policy_code}}"
+            },
+            {
+              "column": "version",
+              "operator": "eq",
+              "value": "{{policy.version}}"
+            },
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Pending"
+            }
+          ],
+          "sort_column": "staff_name",
+          "sort_direction": "asc",
+          "limit": 500,
+          "output_rows_var": "pending",
+          "output_count_var": "pending_count"
+        }
+      },
+      {
+        "id": "names",
+        "type": "set_variable",
+        "label": "Who is outstanding",
+        "position": {
+          "x": 760,
+          "y": 1600
+        },
+        "config": {
+          "name": "pending_names",
+          "expression": "{{=JOIN(\", \", PLUCK(pending, \"staff_name\"))}}"
+        }
+      },
+      {
+        "id": "any",
+        "type": "condition",
+        "label": "Anyone outstanding?",
+        "position": {
+          "x": 760,
+          "y": 1740
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Outstanding",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{pending_count}}",
+                  "operator": "gt",
+                  "value": "0"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "chase_task",
+        "type": "user_task",
+        "label": "Chase outstanding acknowledgements",
+        "position": {
+          "x": 760,
+          "y": 1880
+        },
+        "config": {
+          "task_title": "Chase {{pending_count}} outstanding: {{policy.title}} v{{policy.version}}",
+          "task_description": "<p><strong>{{pending_count}} of {{people_count}}</strong> people have not yet acknowledged the <a href=\"{{policy.url}}\">{{policy.title}}</a> v{{policy.version}}: {{pending_names}}.</p><p>Everyone outstanding has just been sent a reminder email. Follow up with their managers where needed, record acknowledgements on their tracker tasks, then close this task. Next Monday's run will create a new one if anyone is still outstanding.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Followed up",
+            "Close round"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "fields": [
+            {
+              "key": "h",
+              "label": "Follow-up",
+              "type": "heading"
+            },
+            {
+              "key": "managers_contacted",
+              "label": "Managers contacted",
+              "type": "boolean"
+            },
+            {
+              "key": "next_step",
+              "label": "Next step",
+              "type": "choice",
+              "options": [
+                "Wait for next week",
+                "Raise with department heads",
+                "Report to the risk committee"
+              ],
+              "default": "Wait for next week"
+            },
+            {
+              "key": "notes",
+              "label": "Notes",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "h",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "managers_contacted",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "next_step",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "followed",
+              "label": "Followed up",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Followed up"
+            },
+            {
+              "id": "close",
+              "label": "Close this round",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Close round"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Outstanding acknowledgements",
+            "align": "left",
+            "subtitle": "{{policy.title}} v{{policy.version}} · {{pending_count}} pending"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 7200,
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#7C3AED",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 10,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "log_round",
+        "type": "log",
+        "label": "Round summary",
+        "position": {
+          "x": 760,
+          "y": 2020
+        },
+        "config": {
+          "message": "{{policy.policy_code}} v{{policy.version}}: {{pending_count}} outstanding of {{people_count}}; {{outcome}}. {{task_data.notes}}",
+          "level": "info"
+        }
+      },
+      {
+        "id": "end_round",
+        "type": "end_workflow",
+        "label": "Round closed",
+        "position": {
+          "x": 760,
+          "y": 2160
+        },
+        "config": {
+          "reason": "{{pending_count}} outstanding for {{policy.policy_code}} v{{policy.version}}"
+        }
+      },
+      {
+        "id": "all_done",
+        "type": "end_workflow",
+        "label": "Everyone acknowledged",
+        "position": {
+          "x": 1060,
+          "y": 1880
+        },
+        "config": {
+          "reason": "Everyone has acknowledged {{policy.policy_code}} v{{policy.version}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-latest",
+        "source": "trigger",
+        "target": "latest"
+      },
+      {
+        "id": "e-latest-pick0",
+        "source": "latest",
+        "target": "pick0"
+      },
+      {
+        "id": "e-pick0-pick",
+        "source": "pick0",
+        "target": "pick"
+      },
+      {
+        "id": "e-pick-policy",
+        "source": "pick",
+        "target": "policy"
+      },
+      {
+        "id": "e-policy-found",
+        "source": "policy",
+        "target": "found"
+      },
+      {
+        "id": "e-found-title-found",
+        "source": "found",
+        "target": "title",
+        "label": "Found"
+      },
+      {
+        "id": "e-found-none-else",
+        "source": "found",
+        "target": "none",
+        "label": "Else"
+      },
+      {
+        "id": "e-title-due",
+        "source": "title",
+        "target": "due"
+      },
+      {
+        "id": "e-due-staff",
+        "source": "due",
+        "target": "staff"
+      },
+      {
+        "id": "e-staff-loop",
+        "source": "staff",
+        "target": "loop"
+      },
+      {
+        "id": "e-loop-key-each-item",
+        "source": "loop",
+        "target": "key",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-key-has",
+        "source": "key",
+        "target": "has"
+      },
+      {
+        "id": "e-has-state",
+        "source": "has",
+        "target": "state"
+      },
+      {
+        "id": "e-state-which",
+        "source": "state",
+        "target": "which"
+      },
+      {
+        "id": "e-which-vars_name-new",
+        "source": "which",
+        "target": "vars_name",
+        "label": "New"
+      },
+      {
+        "id": "e-vars_name-insert",
+        "source": "vars_name",
+        "target": "insert"
+      },
+      {
+        "id": "e-insert-ask",
+        "source": "insert",
+        "target": "ask"
+      },
+      {
+        "id": "e-ask-issue",
+        "source": "ask",
+        "target": "issue"
+      },
+      {
+        "id": "e-which-chase-outstanding",
+        "source": "which",
+        "target": "chase",
+        "label": "Outstanding"
+      },
+      {
+        "id": "e-chase-count",
+        "source": "chase",
+        "target": "count"
+      },
+      {
+        "id": "e-which-skip-else",
+        "source": "which",
+        "target": "skip",
+        "label": "Else"
+      },
+      {
+        "id": "e-loop-outstanding-done",
+        "source": "loop",
+        "target": "outstanding",
+        "label": "Done"
+      },
+      {
+        "id": "e-outstanding-names",
+        "source": "outstanding",
+        "target": "names"
+      },
+      {
+        "id": "e-names-any",
+        "source": "names",
+        "target": "any"
+      },
+      {
+        "id": "e-any-chase_task-outstanding",
+        "source": "any",
+        "target": "chase_task",
+        "label": "Outstanding"
+      },
+      {
+        "id": "e-any-all_done-else",
+        "source": "any",
+        "target": "all_done",
+        "label": "Else"
+      },
+      {
+        "id": "e-chase_task-log_round-followed-up",
+        "source": "chase_task",
+        "target": "log_round",
+        "label": "Followed up"
+      },
+      {
+        "id": "e-chase_task-log_round-close-round-close",
+        "source": "chase_task",
+        "target": "log_round",
+        "label": "Close round"
+      },
+      {
+        "id": "e-log_round-end_round",
+        "source": "log_round",
+        "target": "end_round"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-policy_code",
+        "name": "policy_code",
+        "type": "string",
+        "description": "Optional: the policy to track (e.g. POL-HR-03). Leave empty for the most recently effective current policy that needs acknowledging.",
+        "defaultValue": "",
+        "required": false,
+        "label": "Policy code"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

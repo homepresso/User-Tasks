@@ -1,0 +1,33 @@
+$ cat splunk.json
+{
+  "name": "Splunk (audit)",
+  "type": "splunk_hec",
+  "config": { "url": "http://127.0.0.1:4010", "index": "usertasks_audit" },
+  "credentials": { "token": "00000000-0000-0000-0000-000000000000" },
+  "filters": { "categories": ["workflow", "task", "audit"], "min_severity": "info" },
+  "start_from": "retention_start"
+}
+$ usertasks log-destinations create -f splunk.json -o json | jq '.log_destination | {id, name, type, status}'
+{
+  "id": "046c6c19-5dee-4d2d-a7be-1f5684e339ac",
+  "name": "Splunk (audit)",
+  "type": "splunk_hec",
+  "status": "healthy"
+}
+$ usertasks log-destinations status 046c6c19-5dee-4d2d-a7be-1f5684e339ac
+id                    046c6c19-5dee-4d2d-a7be-1f5684e339ac
+name                  Splunk (audit)
+type                  splunk_hec
+status                healthy
+enabled               true
+cursor                1178166
+latest_event_id       1178166
+lag_events            0
+lag_seconds
+oldest_unsent_at
+events_sent           527
+last_success_at       2026-10-25T00:20:12.515+00:00
+last_error
+last_error_at
+consecutive_failures  0
+next_attempt_at       2026-10-25T00:20:19.063+00:00

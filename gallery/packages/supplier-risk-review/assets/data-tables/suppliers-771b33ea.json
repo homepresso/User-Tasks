@@ -1,0 +1,143 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "771b33ea-8b3d-496a-87f5-bcfa9cd5364a",
+  "asset": {
+    "id": "771b33ea-8b3d-496a-87f5-bcfa9cd5364a",
+    "name": "Suppliers",
+    "description": "Your supplier register. Adding a supplier, or ticking \"Review requested\", starts a risk review; the workflow writes the risk tier, scores and next review date back and clears the flag.",
+    "columns": [
+      {
+        "id": "397ddf4e-1ca3-463a-90f9-5a40b47440b4",
+        "required": true,
+        "key": "supplier_id",
+        "name": "Supplier ID",
+        "type": "text"
+      },
+      {
+        "id": "f8f758f4-f429-4e43-a6e4-3323960252da",
+        "required": true,
+        "key": "name",
+        "name": "Supplier",
+        "type": "text"
+      },
+      {
+        "id": "945ff0c7-0b9b-4bbf-972b-4bf2981de407",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "text"
+      },
+      {
+        "id": "ac9f40e1-ea2a-444f-b90a-0d8ca47f6d1a",
+        "required": true,
+        "key": "criticality",
+        "name": "Criticality",
+        "type": "select",
+        "options": [
+          "low",
+          "medium",
+          "high",
+          "critical"
+        ]
+      },
+      {
+        "id": "7eae8f6d-9bad-45f0-bc7f-ab74ed7b7b5f",
+        "required": false,
+        "key": "annual_spend",
+        "name": "Annual spend",
+        "type": "number"
+      },
+      {
+        "id": "18596d2b-5746-4167-b533-9c363a554f75",
+        "required": false,
+        "key": "country",
+        "name": "Country",
+        "type": "text"
+      },
+      {
+        "id": "b7fc740d-677d-41be-a746-52fe08f75e17",
+        "required": false,
+        "key": "owner_email",
+        "name": "Business owner email",
+        "type": "text"
+      },
+      {
+        "id": "34ddc368-5ada-45f6-b3f0-bce7b4c99d42",
+        "required": false,
+        "key": "review_requested",
+        "name": "Review requested",
+        "type": "boolean"
+      },
+      {
+        "id": "88945486-c175-4a7c-be77-b357c65524c9",
+        "required": false,
+        "key": "risk_tier",
+        "name": "Risk tier",
+        "type": "select",
+        "options": [
+          "Low",
+          "Medium",
+          "High",
+          "Critical"
+        ]
+      },
+      {
+        "id": "76e1b83f-5be5-45d6-a5bd-b71dbf131827",
+        "required": false,
+        "key": "financial_score",
+        "name": "Financial score",
+        "type": "number"
+      },
+      {
+        "id": "4641dd1e-3863-42c8-959d-46cdc69633c3",
+        "required": false,
+        "key": "cyber_score",
+        "name": "Cyber score",
+        "type": "number"
+      },
+      {
+        "id": "c5e1fb29-2e78-4824-bdf6-d4e1b0ff6db8",
+        "required": false,
+        "key": "esg_flags",
+        "name": "ESG flags",
+        "type": "text"
+      },
+      {
+        "id": "1597a137-432c-4157-b745-90189600b6c5",
+        "required": false,
+        "key": "sanctions_hit",
+        "name": "Sanctions match",
+        "type": "boolean"
+      },
+      {
+        "id": "10c494c4-3b19-4cd5-a0c1-c897e5211f98",
+        "required": false,
+        "key": "last_assessed",
+        "name": "Last assessed",
+        "type": "date"
+      },
+      {
+        "id": "34688735-6c18-4aee-9c19-8f058508446a",
+        "required": false,
+        "key": "next_review_date",
+        "name": "Next review",
+        "type": "date"
+      },
+      {
+        "id": "b3a84e0b-a5a5-4930-af18-8a5a45706046",
+        "required": false,
+        "key": "review_status",
+        "name": "Review status",
+        "type": "text"
+      },
+      {
+        "id": "8dfbaf28-c5e1-4348-9e45-9bc03bd1bf53",
+        "required": false,
+        "key": "mitigation_plan",
+        "name": "Mitigation plan",
+        "type": "text"
+      }
+    ]
+  }
+}

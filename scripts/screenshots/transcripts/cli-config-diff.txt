@@ -1,0 +1,24 @@
+$ usertasks config export ./config
+Exported 17 files to ./config.
+# Raise the auto-approve limit from 1,000 to 1,500
+$ sed -i '' 's/"value": "1000"/"value": "1500"/' config/decision-tables/invoice-approval-policy-0e7f6402.json
+$ usertasks config diff ./config
+= unchanged email_templates      Invoice approved
+= unchanged email_templates      UserTasks Default
+= unchanged data_tables          Vendors
+= unchanged integrations         Northwind ERP
+= unchanged references           Create payment
+= unchanged references           Get vendor
+= unchanged references           List vendors
+~ update    decision_tables      Invoice approval policy
+      rules[0].conditions[0].value: "1000" → "1500"
+= unchanged roles                Finance approver
+= unchanged workflow_activities  Validate IBAN
+= unchanged reports              Invoice approvals by outcome
+= unchanged workflows            Invoice approval
+= unchanged workflows            Nightly payment sync
+= unchanged workflows            Vendor onboarding
+= unchanged log_destinations     Ops webhook
+= unchanged log_destinations     Splunk (SOC)
+
+Plan: 0 to create, 1 to update, 15 unchanged, 0 errors.

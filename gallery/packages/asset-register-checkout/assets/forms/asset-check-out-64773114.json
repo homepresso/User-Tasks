@@ -1,0 +1,289 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "64773114-ed06-57ee-b1b9-52400293f597",
+  "asset": {
+    "id": "64773114-ed06-57ee-b1b9-52400293f597",
+    "name": "Asset check-out",
+    "description": "Borrow an item from the asset register: pick it, say who is taking it and when it comes back.",
+    "tags": [
+      "assets",
+      "equipment"
+    ],
+    "fields": [
+      {
+        "key": "asset",
+        "label": "Asset",
+        "type": "lookup",
+        "required": true,
+        "help_text": "Search by tag, name or category. Only available items are listed.",
+        "lookup": {
+          "source": "table",
+          "table_id": "a3bce1d2-e26c-5ce9-8d48-ed94be7e8562",
+          "search_columns": [
+            "asset_tag",
+            "name",
+            "category"
+          ],
+          "display_columns": [
+            "name",
+            "asset_tag",
+            "location"
+          ],
+          "value_column": "asset_tag",
+          "fill": [
+            {
+              "from": "category",
+              "to": "category"
+            },
+            {
+              "from": "location",
+              "to": "location"
+            },
+            {
+              "from": "condition",
+              "to": "condition_out"
+            },
+            {
+              "from": "name",
+              "to": "asset_name"
+            }
+          ],
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "available"
+            }
+          ],
+          "sort": {
+            "column": "asset_tag",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "asset_name",
+        "label": "Asset name",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "category",
+        "label": "Category",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "location",
+        "label": "Collect from / return to",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "condition_out",
+        "label": "Condition at check-out",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "borrower",
+        "label": "Borrower",
+        "type": "user",
+        "required": true,
+        "help_text": "The person taking the asset. They get the return task and reminders."
+      },
+      {
+        "key": "borrower_email",
+        "label": "Borrower email",
+        "type": "email",
+        "required": true,
+        "help_text": "The receipt goes here."
+      },
+      {
+        "key": "checkout_date",
+        "label": "Check-out date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "due_back",
+        "label": "Due back",
+        "type": "date",
+        "required": true,
+        "help_text": "The return task is due on this date; a reminder goes out the day before."
+      },
+      {
+        "key": "purpose",
+        "label": "Purpose",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Client visit",
+          "Event",
+          "Working from home",
+          "Project work",
+          "Site work",
+          "Other"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "notes",
+        "label": "Notes",
+        "type": "textarea",
+        "placeholder": "Accessories taken, existing scratches, anything to note"
+      },
+      {
+        "key": "agree",
+        "label": "I take responsibility for this asset until it is returned",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "asset",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "asset_name",
+              "span": 1
+            },
+            {
+              "field_key": "category",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "location",
+              "span": 1
+            },
+            {
+              "field_key": "condition_out",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "borrower",
+              "span": 1
+            },
+            {
+              "field_key": "borrower_email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "checkout_date",
+              "span": 1
+            },
+            {
+              "field_key": "due_back",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "purpose",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "notes",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "agree",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#B45309",
+            "background": "#FFFFFF",
+            "text": "#1C1917",
+            "page": "#FBF3E8",
+            "page_to": "#FFFBF5"
+          }
+        },
+        "radius": 8,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "DM Sans"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Check out",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "{{asset_item.name}} is checked out",
+            "screen_button": "submit_another",
+            "text": "Due back {{due_back}}. A receipt is on its way to {{borrower_email}}, and the borrower has a return task with a reminder.",
+            "screen_button_label": "Check out another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Asset check-out",
+      "align": "left",
+      "subtitle": "Borrow equipment from the register. It is logged against you until it comes back."
+    }
+  }
+}

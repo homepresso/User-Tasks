@@ -1,0 +1,261 @@
+import type { ConnectorDefinition } from '../registry'
+
+/**
+ * Mercury Bank connector — full public API surface (https://docs.mercury.com).
+ * Base: https://backend.mercury.com/api/v1, Bearer token auth. Money movement
+ * endpoints require an API token with the appropriate (Custom) scope.
+ */
+export const mercuryConnector: ConnectorDefinition = {
+  key: 'mercury',
+  name: 'Mercury Bank',
+  description: 'Accounts, cards, transactions, payments, recipients, statements and treasury via the Mercury API',
+  category: 'payments',
+  icon: 'Landmark',
+  color: '#5266EB',
+  docsUrl: 'https://docs.mercury.com',
+  recommendedPermissions: {
+    title: 'API token scopes',
+    items: [
+      'Read-only token: accounts, cards, transactions, statements, recipients, treasury',
+      'Read & Write token: also create recipients and request send money',
+      'Custom token with Send Money: POST transactions (direct money movement)',
+    ],
+    note: 'Create tokens in Mercury → Settings → API. Use the least-privileged token that covers the references you enable.',
+  },
+  fields: [],
+  credentialFields: [
+    {
+      key: 'api_token',
+      label: 'API Token',
+      type: 'password',
+      placeholder: 'secret-token:mercury_...',
+      required: true,
+      helpText: 'Mercury API token (Settings → API tokens)',
+    },
+  ],
+  referenceTemplates: [
+    // ─── Accounts ───
+    {
+      key: 'list_accounts',
+      name: 'List Accounts',
+      description: 'Retrieve information about all your bank accounts',
+      method: 'GET',
+      pathTemplate: '/accounts',
+      inputs: [],
+      outputs: [
+        { name: 'accounts', type: 'array' },
+        { name: 'accounts[].id', type: 'string' }, { name: 'accounts[].name', type: 'string' },
+        { name: 'accounts[].accountNumber', type: 'string' }, { name: 'accounts[].routingNumber', type: 'string' },
+        { name: 'accounts[].kind', type: 'string' }, { name: 'accounts[].status', type: 'string' },
+        { name: 'accounts[].currentBalance', type: 'number' }, { name: 'accounts[].availableBalance', type: 'number' },
+      ],
+    },
+    {
+      key: 'get_account',
+      name: 'Get Account',
+      description: 'Retrieve information about a specific account',
+      method: 'GET',
+      pathTemplate: '/account/{{account_id}}',
+      inputs: [{ name: 'account_id', type: 'string', required: true, description: 'Mercury account id' }],
+      outputs: [
+        { name: 'id', type: 'string' }, { name: 'name', type: 'string' }, { name: 'kind', type: 'string' },
+        { name: 'status', type: 'string' }, { name: 'currentBalance', type: 'number' },
+        { name: 'availableBalance', type: 'number' }, { name: 'accountNumber', type: 'string' }, { name: 'routingNumber', type: 'string' },
+      ],
+    },
+    // ─── Cards ───
+    {
+      key: 'get_account_cards',
+      name: 'Get Account Cards',
+      description: 'Retrieve information about the cards associated with an account (numbers/CVVs are never returned)',
+      method: 'GET',
+      pathTemplate: '/account/{{account_id}}/cards',
+      inputs: [{ name: 'account_id', type: 'string', required: true, description: 'Mercury account id' }],
+      outputs: [
+        { name: 'cards', type: 'array' },
+        { name: 'cards[].cardId', type: 'string' }, { name: 'cards[].createdAt', type: 'string' },
+        { name: 'cards[].lastFourDigits', type: 'string' }, { name: 'cards[].nameOnCard', type: 'string' },
+        { name: 'cards[].network', type: 'string' }, { name: 'cards[].status', type: 'string' },
+        { name: 'cards[].physicalCardStatus', type: 'string' },
+      ],
+    },
+    // ─── Transactions ───
+    {
+      key: 'list_transactions',
+      name: 'List Transactions',
+      description: 'Retrieve transactions for an account (filter by status, date range, or search)',
+      method: 'GET',
+      pathTemplate: '/account/{{account_id}}/transactions?limit={{limit}}&offset={{offset}}&status={{status}}&start={{start}}&end={{end}}&search={{search}}&order={{order}}',
+      inputs: [
+        { name: 'account_id', type: 'string', required: true, description: 'Mercury account id' },
+        { name: 'limit', type: 'number', required: false, description: 'Max results (default 500)', defaultValue: '500' },
+        { name: 'offset', type: 'number', required: false, description: 'Pagination offset', defaultValue: '0' },
+        { name: 'status', type: 'string', required: false, description: 'pending | sent | cancelled | failed' },
+        { name: 'start', type: 'string', required: false, description: 'Earliest createdAt date (YYYY-MM-DD)' },
+        { name: 'end', type: 'string', required: false, description: 'Latest createdAt date (YYYY-MM-DD)' },
+        { name: 'search', type: 'string', required: false, description: 'Search term' },
+        { name: 'order', type: 'string', required: false, description: 'asc | desc' },
+      ],
+      outputs: [
+        { name: 'total', type: 'number' }, { name: 'transactions', type: 'array' },
+        { name: 'transactions[].id', type: 'string' }, { name: 'transactions[].amount', type: 'number' },
+        { name: 'transactions[].counterpartyName', type: 'string' }, { name: 'transactions[].createdAt', type: 'string' },
+        { name: 'transactions[].status', type: 'string' }, { name: 'transactions[].kind', type: 'string' },
+        { name: 'transactions[].note', type: 'string' }, { name: 'transactions[].externalMemo', type: 'string' },
+      ],
+    },
+    {
+      key: 'get_transaction',
+      name: 'Get Transaction',
+      description: 'Retrieve a specific transaction on an account',
+      method: 'GET',
+      pathTemplate: '/account/{{account_id}}/transaction/{{transaction_id}}',
+      inputs: [
+        { name: 'account_id', type: 'string', required: true, description: 'Mercury account id' },
+        { name: 'transaction_id', type: 'string', required: true, description: 'Transaction id' },
+      ],
+      outputs: [
+        { name: 'id', type: 'string' }, { name: 'amount', type: 'number' }, { name: 'status', type: 'string' },
+        { name: 'counterpartyName', type: 'string' }, { name: 'createdAt', type: 'string' },
+        { name: 'estimatedDeliveryDate', type: 'string' }, { name: 'kind', type: 'string' },
+      ],
+    },
+    {
+      key: 'create_transaction',
+      name: 'Send Money (Create Transaction)',
+      description: 'Send money to a saved recipient — requires a Custom token with Send Money scope',
+      method: 'POST',
+      pathTemplate: '/account/{{account_id}}/transactions',
+      headers: { 'Content-Type': 'application/json' },
+      bodyTemplate: '{"recipientId":"{{recipient_id}}","amount":{{amount}},"paymentMethod":"{{payment_method}}","note":"{{note}}","externalMemo":"{{external_memo}}","idempotencyKey":"{{idempotency_key}}"}',
+      inputs: [
+        { name: 'account_id', type: 'string', required: true, description: 'Source account id' },
+        { name: 'recipient_id', type: 'string', required: true, description: 'Saved recipient id' },
+        { name: 'amount', type: 'number', required: true, description: 'Amount in dollars (e.g. 100.50)' },
+        { name: 'payment_method', type: 'string', required: true, description: 'ach | domesticWire | internationalWire | check', defaultValue: 'ach' },
+        { name: 'note', type: 'string', required: false, description: 'Internal note' },
+        { name: 'external_memo', type: 'string', required: false, description: 'Memo visible to the recipient (ACH only)' },
+        { name: 'idempotency_key', type: 'string', required: true, description: 'Unique key preventing duplicate sends (e.g. a GUID)' },
+      ],
+      outputs: [
+        { name: 'id', type: 'string' }, { name: 'status', type: 'string' }, { name: 'amount', type: 'number' },
+        { name: 'estimatedDeliveryDate', type: 'string' },
+      ],
+    },
+    {
+      key: 'request_send_money',
+      name: 'Request Send Money (with approval)',
+      description: 'Create a transaction that requires approval in the Mercury web app (Read & Write token)',
+      method: 'POST',
+      pathTemplate: '/account/{{account_id}}/request-send-money',
+      headers: { 'Content-Type': 'application/json' },
+      bodyTemplate: '{"recipientId":"{{recipient_id}}","amount":{{amount}},"paymentMethod":"{{payment_method}}","note":"{{note}}","externalMemo":"{{external_memo}}","idempotencyKey":"{{idempotency_key}}"}',
+      inputs: [
+        { name: 'account_id', type: 'string', required: true, description: 'Source account id' },
+        { name: 'recipient_id', type: 'string', required: true, description: 'Saved recipient id' },
+        { name: 'amount', type: 'number', required: true, description: 'Amount in dollars' },
+        { name: 'payment_method', type: 'string', required: true, description: 'ach | domesticWire | internationalWire | check', defaultValue: 'ach' },
+        { name: 'note', type: 'string', required: false, description: 'Internal note' },
+        { name: 'external_memo', type: 'string', required: false, description: 'Memo visible to the recipient (ACH only)' },
+        { name: 'idempotency_key', type: 'string', required: true, description: 'Unique key preventing duplicate requests' },
+      ],
+      outputs: [{ name: 'id', type: 'string' }, { name: 'status', type: 'string' }],
+    },
+    // ─── Statements ───
+    {
+      key: 'get_statements',
+      name: 'Get Statements',
+      description: "Retrieve an account's statement information",
+      method: 'GET',
+      pathTemplate: '/account/{{account_id}}/statements?start={{start}}&end={{end}}',
+      inputs: [
+        { name: 'account_id', type: 'string', required: true, description: 'Mercury account id' },
+        { name: 'start', type: 'string', required: false, description: 'Earliest statement date (YYYY-MM-DD)' },
+        { name: 'end', type: 'string', required: false, description: 'Latest statement date (YYYY-MM-DD)' },
+      ],
+      outputs: [
+        { name: 'statements', type: 'array' },
+        { name: 'statements[].id', type: 'string' }, { name: 'statements[].month', type: 'number' },
+        { name: 'statements[].year', type: 'number' }, { name: 'statements[].downloadUrl', type: 'string' },
+        { name: 'statements[].endingBalance', type: 'number' },
+      ],
+    },
+    // ─── Recipients ───
+    {
+      key: 'list_recipients',
+      name: 'List Recipients',
+      description: 'Retrieve information about all recipients',
+      method: 'GET',
+      pathTemplate: '/recipients',
+      inputs: [],
+      outputs: [
+        { name: 'total', type: 'number' }, { name: 'recipients', type: 'array' },
+        { name: 'recipients[].id', type: 'string' }, { name: 'recipients[].name', type: 'string' },
+        { name: 'recipients[].status', type: 'string' }, { name: 'recipients[].defaultPaymentMethod', type: 'string' },
+        { name: 'recipients[].emails', type: 'array' },
+      ],
+    },
+    {
+      key: 'get_recipient',
+      name: 'Get Recipient',
+      description: 'Retrieve information about a specific recipient',
+      method: 'GET',
+      pathTemplate: '/recipient/{{recipient_id}}',
+      inputs: [{ name: 'recipient_id', type: 'string', required: true, description: 'Recipient id' }],
+      outputs: [
+        { name: 'id', type: 'string' }, { name: 'name', type: 'string' }, { name: 'status', type: 'string' },
+        { name: 'defaultPaymentMethod', type: 'string' }, { name: 'emails', type: 'array' },
+      ],
+    },
+    {
+      key: 'add_recipient',
+      name: 'Add Recipient (ACH)',
+      description: 'Create a new recipient with US electronic (ACH) routing details',
+      method: 'POST',
+      pathTemplate: '/recipients',
+      headers: { 'Content-Type': 'application/json' },
+      bodyTemplate: '{"name":"{{name}}","emails":["{{email}}"],"defaultPaymentMethod":"electronic","electronicRoutingInfo":{"accountNumber":"{{account_number}}","routingNumber":"{{routing_number}}","electronicAccountType":"{{account_type}}"}}',
+      inputs: [
+        { name: 'name', type: 'string', required: true, description: 'Recipient name' },
+        { name: 'email', type: 'string', required: true, description: 'Recipient email' },
+        { name: 'account_number', type: 'string', required: true, description: 'US bank account number' },
+        { name: 'routing_number', type: 'string', required: true, description: 'ABA routing number' },
+        { name: 'account_type', type: 'string', required: true, description: 'businessChecking | businessSavings | personalChecking | personalSavings', defaultValue: 'businessChecking' },
+      ],
+      outputs: [{ name: 'id', type: 'string' }, { name: 'name', type: 'string' }, { name: 'status', type: 'string' }],
+    },
+    {
+      key: 'update_recipient',
+      name: 'Update Recipient',
+      description: "Update a recipient's name and/or emails",
+      method: 'POST',
+      pathTemplate: '/recipient/{{recipient_id}}',
+      headers: { 'Content-Type': 'application/json' },
+      bodyTemplate: '{"name":"{{name}}","emails":["{{email}}"]}',
+      inputs: [
+        { name: 'recipient_id', type: 'string', required: true, description: 'Recipient id' },
+        { name: 'name', type: 'string', required: false, description: 'New recipient name' },
+        { name: 'email', type: 'string', required: false, description: 'New recipient email' },
+      ],
+      outputs: [{ name: 'id', type: 'string' }, { name: 'name', type: 'string' }],
+    },
+    // ─── Treasury ───
+    {
+      key: 'get_treasury',
+      name: 'Get Treasury',
+      description: 'Retrieve information about your Mercury Treasury account',
+      method: 'GET',
+      pathTemplate: '/treasury',
+      inputs: [],
+      outputs: [
+        { name: 'accountId', type: 'string' }, { name: 'balance', type: 'number' },
+        { name: 'currentYield', type: 'number' }, { name: 'status', type: 'string' },
+      ],
+    },
+  ],
+  buildIntegrationConfig: (_config, credentials) => ({
+    base_url: 'https://backend.mercury.com/api/v1',
+    auth_type: 'bearer',
+    auth_config: { token: credentials.api_token },
+  }),
+}

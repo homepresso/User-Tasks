@@ -1,0 +1,24 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "739169cc-e1e9-5bd8-805f-fcd3f0b5bd7e",
+  "asset": {
+    "id": "739169cc-e1e9-5bd8-805f-fcd3f0b5bd7e",
+    "name": "New hire log rows",
+    "rows": [
+      {
+        "id": "f30fe87c-e5e0-57dd-a26b-2d10089f8686",
+        "data": {
+          "worker_id": "0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e",
+          "employee_id": "21490",
+          "worker_name": "Tom Becker",
+          "job_family": "Sales",
+          "manager_name": "Lena Ortiz",
+          "hire_date": "2026-10-05",
+          "equipment": "Standard laptop",
+          "status": "ready"
+        }
+      }
+    ]
+  }
+}

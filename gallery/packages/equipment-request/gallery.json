@@ -1,0 +1,88 @@
+{
+  "id": "66d680a4-b2af-445c-9a23-38cb0142a05b",
+  "slug": "equipment-request",
+  "title": "Equipment request",
+  "category": "hr-people",
+  "summary": "Employees request kit from an equipment catalogue; a cost and role policy routes approval, IT fulfils the request and the asset is registered.",
+  "description": "Equipment request lets employees order standard kit (laptops, monitors, phones, headsets, chairs) from a themed form page. They start typing the item and pick it from the Equipment catalogue (its category, unit cost and lead time fill in), then add the quantity, the reason and when they need it. Submitting shows a confirmation screen and starts the workflow through its Form submitted trigger.\n\nThe workflow reads the item's category, unit cost, lead time and supplier SKU from the catalogue table, works out the total and evaluates the Equipment approval decision table. Low-cost accessories and executive standard kit are approved automatically; other requests go to the manager as a task with Approve and Reject buttons, and high-value items or furniture also need finance approval.\n\nOnce approved, the requester is emailed and IT gets a fulfilment task to order or pick the item and record the asset tag, serial number and delivery date. The asset is registered to the employee in your asset-management system and the requester is told it is ready. Adapt the catalogue rows, the approval thresholds and the asset API.",
+  "trigger": "form",
+  "entry_workflow": "0556c9e8-7cf2-4374-b823-da76cee23bd0",
+  "start": "Starts from a form page: employees open the Equipment request form (Forms, or its /f/<id> link on your intranet); each submission starts the workflow through its Form submitted trigger.",
+  "difficulty": "starter",
+  "setup_minutes": 10,
+  "tags": [
+    "equipment",
+    "it assets",
+    "approvals",
+    "catalogue",
+    "hr",
+    "forms",
+    "lookup"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: starts from an Equipment request form page (grid, header, mini theme, catalogue lookup that fills the category, price and lead time, success screen) through a Form submitted trigger, and outcome buttons with a grid and header on the manager, finance and fulfilment steps."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "Asset management integration: set the base URL and API token. Register asset posts to /assets; adjust the path and body to your asset register.",
+    "Assignees: pick the default approving manager (the form's optional Approving manager field overrides it), the finance approver and the IT person who fulfils requests.",
+    "Edit the Equipment catalogue rows to your standard kit, prices and SKUs. New rows appear in the form's item lookup straight away.",
+    "Edit the Equipment approval rules to your spending limits.",
+    "Email: configure EMAIL_PROVIDER on the instance so the requester emails are delivered (the steps continue on error).",
+    "Share the Equipment request form: open it from Forms and copy its /f/<id> page link to your intranet or IT portal."
+  ],
+  "steps": [
+    {
+      "title": "Item requested",
+      "body": "On the Equipment request form the employee picks the item from the catalogue lookup (category, price and lead time fill in), the quantity, the reason and the date. Submitting starts the workflow."
+    },
+    {
+      "title": "Price it",
+      "body": "The Equipment catalogue row gives the category, unit cost, lead time and supplier SKU; the total cost is calculated."
+    },
+    {
+      "title": "Decide the approval",
+      "body": "The Equipment approval decision table approves accessories and executive kit automatically and routes the rest to the manager and, for high value, finance."
+    },
+    {
+      "title": "Approve",
+      "body": "The manager confirms the cost centre and clicks Approve or Reject; finance adds the budget code when required. Rejections are emailed to the requester."
+    },
+    {
+      "title": "IT fulfils",
+      "body": "IT orders or picks the item and records the asset tag, serial number and delivery date."
+    },
+    {
+      "title": "Register and notify",
+      "body": "The asset is registered to the employee in the asset system and the requester is told it is ready."
+    }
+  ],
+  "sample_input": {
+    "employee_id": "E-1001",
+    "requester_name": "Sam Carter",
+    "requester_email": "sam.carter@example.com",
+    "role_level": "individual contributor",
+    "item": "Developer laptop 16-inch",
+    "quantity": 1,
+    "reason": "Replacement: current laptop is four years old and out of warranty",
+    "needed_by": "2026-11-20",
+    "cost_centre": "CC-310 Engineering"
+  },
+  "expect": "waiting",
+  "icon": "laptop",
+  "entry_form": "6be0e19d-9c85-5986-a50f-a83c603e4e39"
+}

@@ -1,0 +1,108 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "4ac5552d-8051-5afc-a59e-e14db98c3496",
+  "asset": {
+    "id": "4ac5552d-8051-5afc-a59e-e14db98c3496",
+    "name": "Room bookings",
+    "description": "Every booking request, its approval decision and status.",
+    "columns": [
+      {
+        "id": "252f5585-8cfe-5606-856b-b884ed6c511f",
+        "required": true,
+        "key": "booking_ref",
+        "name": "Booking reference",
+        "type": "text"
+      },
+      {
+        "id": "3f2a8429-bfd1-5c94-8acb-ced966e7af0b",
+        "required": true,
+        "key": "room",
+        "name": "Room",
+        "type": "text"
+      },
+      {
+        "id": "cd3c875f-414e-532b-8d88-bac012643528",
+        "required": false,
+        "key": "meeting_title",
+        "name": "Meeting",
+        "type": "text"
+      },
+      {
+        "id": "5837471b-ca2c-5314-8eed-08155262a2e3",
+        "required": false,
+        "key": "booking_date",
+        "name": "Date",
+        "type": "date"
+      },
+      {
+        "id": "4505b953-448d-575f-826c-e8cedd8bf3ec",
+        "required": false,
+        "key": "start_time",
+        "name": "Start",
+        "type": "text"
+      },
+      {
+        "id": "ade675f3-1b32-5984-83d2-6846edd3d8cd",
+        "required": false,
+        "key": "duration_hours",
+        "name": "Hours",
+        "type": "number"
+      },
+      {
+        "id": "fd43b7b8-1186-569d-b15d-d39aff34d9f5",
+        "required": false,
+        "key": "attendees",
+        "name": "Attendees",
+        "type": "number"
+      },
+      {
+        "id": "a0bd4409-3c9f-5969-90e7-610e9f38abc7",
+        "required": false,
+        "key": "organiser_email",
+        "name": "Organiser",
+        "type": "text"
+      },
+      {
+        "id": "86307afb-1861-5e1d-a42e-4c55d94ff9e3",
+        "required": false,
+        "key": "catering",
+        "name": "Catering",
+        "type": "boolean"
+      },
+      {
+        "id": "4fb41380-aea1-5d02-9aa2-ffd51fa0df5e",
+        "required": false,
+        "key": "approval_reason",
+        "name": "Approval rule",
+        "type": "text"
+      },
+      {
+        "id": "6266ff9d-11b0-5096-b1f4-743363bccd69",
+        "required": false,
+        "key": "room_setup",
+        "name": "Room setup",
+        "type": "text"
+      },
+      {
+        "id": "4bd9542d-bf15-5e30-b4e2-116d7b32201a",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "pending approval",
+          "confirmed",
+          "declined"
+        ]
+      },
+      {
+        "id": "d5105c39-b047-5c42-be16-d10353ded1ee",
+        "required": false,
+        "key": "facilities_note",
+        "name": "Facilities note",
+        "type": "text"
+      }
+    ]
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "18aa17ec-9dbd-56fa-a285-2e9f5ae13747",
+  "asset": {
+    "id": "18aa17ec-9dbd-56fa-a285-2e9f5ae13747",
+    "name": "Team calendar",
+    "description": "Time off synced from Workday: one row per request, kept up to date by the sync (status changes, cancellations) with the cover check result.",
+    "columns": [
+      {
+        "id": "cfd5bede-b376-53c9-8709-188b5f8355fe",
+        "required": true,
+        "key": "request_id",
+        "name": "Request id",
+        "type": "text"
+      },
+      {
+        "id": "16fd7aeb-3fb6-5979-81bf-9503843dabce",
+        "required": false,
+        "key": "worker_id",
+        "name": "Employee id",
+        "type": "text"
+      },
+      {
+        "id": "3047759a-492a-52c6-abe5-219ab7c229e0",
+        "required": false,
+        "key": "worker",
+        "name": "Worker",
+        "type": "text"
+      },
+      {
+        "id": "207cf6d5-20db-5818-ba48-6d661a7dbb4c",
+        "required": false,
+        "key": "team",
+        "name": "Team",
+        "type": "text"
+      },
+      {
+        "id": "be8e3fec-2834-5191-b6f4-3686568f1dfa",
+        "required": false,
+        "key": "manager",
+        "name": "Manager",
+        "type": "text"
+      },
+      {
+        "id": "1d8d2046-45d2-58e5-beb7-db923d2c8cd5",
+        "required": false,
+        "key": "time_off_type",
+        "name": "Type",
+        "type": "text"
+      },
+      {
+        "id": "41d14066-22ee-51b6-9bea-a9f83cb8e51b",
+        "required": false,
+        "key": "start_date",
+        "name": "From",
+        "type": "date"
+      },
+      {
+        "id": "ede51c99-37e5-5b55-a6ad-4f51db24492c",
+        "required": false,
+        "key": "end_date",
+        "name": "To",
+        "type": "date"
+      },
+      {
+        "id": "84a99ea6-41c3-586e-95d2-ce0f14aae12a",
+        "required": false,
+        "key": "days",
+        "name": "Days",
+        "type": "number"
+      },
+      {
+        "id": "6b0c0dd5-505e-5dd2-8097-b90e48432935",
+        "required": false,
+        "key": "status",
+        "name": "Workday status",
+        "type": "text"
+      },
+      {
+        "id": "511da387-dcf0-5da4-b16d-98dd9130e4ba",
+        "required": false,
+        "key": "cover_status",
+        "name": "Cover",
+        "type": "text"
+      },
+      {
+        "id": "e038af46-0dfb-5fe3-a66e-51ff00442800",
+        "required": false,
+        "key": "cover_person",
+        "name": "Covered by",
+        "type": "text"
+      },
+      {
+        "id": "2f225f0c-cb60-5fc1-a9d0-0a8ddf03f054",
+        "required": false,
+        "key": "last_synced",
+        "name": "Last synced",
+        "type": "text"
+      }
+    ]
+  }
+}

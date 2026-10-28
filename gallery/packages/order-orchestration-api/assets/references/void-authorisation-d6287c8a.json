@@ -1,0 +1,76 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "d6287c8a-a04f-409f-b2c8-fa67644b02f1",
+  "asset": {
+    "id": "d6287c8a-a04f-409f-b2c8-fa67644b02f1",
+    "integration_id": "96c7d258-c1a4-43b7-b03a-7a3ccc9ce207",
+    "name": "Void authorisation",
+    "description": "Void a payment authorisation so the customer is not charged.",
+    "tags": [
+      "payments"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"reason\":\"{{reason}}\"}",
+      "path_template": "/payments/authorizations/{{authorization_id}}/void",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "authorization_id",
+              "type": "string",
+              "example": "AUTH-5Q2K91"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "voided"
+            }
+          ]
+        },
+        "sample": {
+          "authorization_id": "AUTH-5Q2K91",
+          "status": "voided"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "fb6a67b2-b393-4a79-b39b-9c21f4a3b1f4",
+        "name": "authorization_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "49327193-134f-416c-9a1c-ceee4aa29b8b",
+        "name": "reason",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "34c82e10-94e2-4c8b-a234-be1e2a08cbec",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      }
+    ]
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "fc80acc4-7337-462f-9ecd-91499b9bc8dc",
+  "asset": {
+    "id": "fc80acc4-7337-462f-9ecd-91499b9bc8dc",
+    "name": "Onboarding checklist rows",
+    "rows": [
+      {
+        "id": "28787ce5-9f4d-478a-a163-fffc546356b5",
+        "data": {
+          "department": "engineering",
+          "laptop_model": "Developer laptop 16-inch (32 GB)",
+          "systems": "Email, chat, code hosting, CI, cloud console (read-only), issue tracker",
+          "buddy_team": "Platform team",
+          "welcome_pack": "Engineering handbook, hoodie, headset",
+          "first_week_focus": "Dev environment, first small change shipped"
+        }
+      },
+      {
+        "id": "1d2ff6e5-50b5-46af-9f89-e9e8835ba8f2",
+        "data": {
+          "department": "sales",
+          "laptop_model": "Standard laptop 14-inch",
+          "systems": "Email, chat, CRM, quoting tool, video calls",
+          "buddy_team": "Account executives",
+          "welcome_pack": "Sales playbook, notebook, headset",
+          "first_week_focus": "Product training, shadow three customer calls"
+        }
+      },
+      {
+        "id": "3ce3a4a1-0594-44e7-9db5-231f96496cc7",
+        "data": {
+          "department": "marketing",
+          "laptop_model": "Standard laptop 14-inch",
+          "systems": "Email, chat, CMS, design tools, analytics",
+          "buddy_team": "Content team",
+          "welcome_pack": "Brand guide, notebook",
+          "first_week_focus": "Brand and channel overview"
+        }
+      },
+      {
+        "id": "228a9dda-d0d9-40d6-b5f6-72ec3ff57bd7",
+        "data": {
+          "department": "finance",
+          "laptop_model": "Standard laptop 14-inch",
+          "systems": "Email, chat, finance system, expense tool, reporting",
+          "buddy_team": "Financial control",
+          "welcome_pack": "Finance policies, notebook",
+          "first_week_focus": "Month-end calendar and approvals"
+        }
+      },
+      {
+        "id": "7b10a84d-6e7f-446f-abd4-3ba4b182f57e",
+        "data": {
+          "department": "operations",
+          "laptop_model": "Standard laptop 14-inch",
+          "systems": "Email, chat, ticketing, inventory system",
+          "buddy_team": "Service delivery",
+          "welcome_pack": "Operations handbook, safety kit",
+          "first_week_focus": "Site induction and key processes"
+        }
+      },
+      {
+        "id": "5db3c55a-2b55-4caf-9448-b665c2b28dd7",
+        "data": {
+          "department": "people",
+          "laptop_model": "Standard laptop 14-inch",
+          "systems": "Email, chat, HR system, payroll (view), learning platform",
+          "buddy_team": "People partners",
+          "welcome_pack": "People policies, notebook",
+          "first_week_focus": "Policies, HR system and case handling"
+        }
+      }
+    ]
+  }
+}

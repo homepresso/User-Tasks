@@ -1,0 +1,156 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "f7f2d2d5-91f9-4f0e-b36f-977443715bee",
+  "asset": {
+    "id": "f7f2d2d5-91f9-4f0e-b36f-977443715bee",
+    "integration_id": "31f14f2e-e069-40bf-8f98-62dbc93daf2f",
+    "name": "Create case",
+    "description": "Open an investigation case with the enrichment attached.",
+    "tags": [
+      "cases"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"title\":\"{{title}}\",\"severity\":\"{{severity}}\",\"source_alert_id\":\"{{alert_id}}\",\"summary\":\"{{summary}}\",\"observables\":{\"ip\":\"{{source_ip}}\",\"user\":\"{{username}}\",\"host\":\"{{hostname}}\"}}",
+      "path_template": "/cases",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "c-71e0b4"
+            },
+            {
+              "name": "number",
+              "type": "string",
+              "example": "CASE-2026-1184"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "open"
+            },
+            {
+              "name": "severity",
+              "type": "string",
+              "example": "high"
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "example": "https://soar.example.com/cases/CASE-2026-1184"
+            }
+          ]
+        },
+        "sample": {
+          "id": "c-71e0b4",
+          "number": "CASE-2026-1184",
+          "status": "open",
+          "severity": "high",
+          "url": "https://soar.example.com/cases/CASE-2026-1184"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "e0436ab1-5b4d-42f9-a2ed-d0d1585df4f0",
+        "name": "title",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "f64aa0a6-ac0b-4a73-9b67-a32022ed799d",
+        "name": "severity",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "87b4494d-4b69-40a9-82ba-0aa4718e801f",
+        "name": "alert_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "4a661e81-66aa-48cc-ab98-4e83e3f84260",
+        "name": "summary",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "86a94e24-080f-485a-adbd-f46b026235f7",
+        "name": "source_ip",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "98a09ec8-b12c-4a5f-a006-38a0f1aab2c5",
+        "name": "username",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "1319ab1d-2e8f-49c7-952b-aee9acb1fb47",
+        "name": "hostname",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "1bb8e1e8-dcb6-4fda-a35f-566d8a53b509",
+        "name": "case_id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "e329c509-04a7-4d0b-bcf8-af4764b1bf53",
+        "name": "case_number",
+        "path": "number",
+        "type": "string"
+      },
+      {
+        "id": "2ae2cfa0-384f-454b-bc8e-86e99ce2b633",
+        "name": "url",
+        "path": "url",
+        "type": "string"
+      }
+    ]
+  }
+}

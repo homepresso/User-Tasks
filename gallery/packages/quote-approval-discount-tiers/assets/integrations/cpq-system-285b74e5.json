@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "285b74e5-6be0-4221-85e3-a9f23db1673b",
+  "asset": {
+    "id": "285b74e5-6be0-4221-85e3-a9f23db1673b",
+    "name": "CPQ system",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://cpq.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "sales",
+      "cpq"
+    ]
+  }
+}

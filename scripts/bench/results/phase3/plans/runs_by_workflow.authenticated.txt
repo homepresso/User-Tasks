@@ -1,0 +1,16 @@
+-- runs list by workflow, newest 50 (select *) as authenticated
+SELECT * FROM public.workflow_runs WHERE workflow_id = '0be00000-0000-4000-8000-000000000301' ORDER BY started_at DESC LIMIT 50
+
+Limit  (cost=0.68..145.86 rows=50 width=654) (actual time=0.264..0.290 rows=50 loops=1)
+  Buffers: shared hit=83
+  InitPlan 1
+    ->  Result  (cost=0.00..0.26 rows=1 width=32) (actual time=0.258..0.258 rows=1 loops=1)
+          Buffers: shared hit=5
+  ->  Index Scan using idx_workflow_runs_workflow_started on workflow_runs  (cost=0.42..14550.75 rows=5011 width=654) (actual time=0.264..0.286 rows=50 loops=1)
+        Index Cond: (workflow_id = '0be00000-0000-4000-8000-000000000301'::uuid)
+        Filter: (tenant_id = ANY ((InitPlan 1).col1))
+        Buffers: shared hit=83
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.041 ms
+Execution Time: 0.306 ms

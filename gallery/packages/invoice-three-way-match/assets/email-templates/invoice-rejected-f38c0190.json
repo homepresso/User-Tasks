@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "f38c0190-7dfa-4a4b-97b4-19b15fd7353d",
+  "asset": {
+    "id": "f38c0190-7dfa-4a4b-97b4-19b15fd7353d",
+    "name": "Invoice rejected",
+    "description": "Sent to the vendor when AP rejects the invoice.",
+    "subject": "Invoice {{invoice_number}} rejected",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">We could not accept your invoice</h2>\n  <p>Hello {{vendor_name}},</p>\n  <p>Invoice <strong>{{invoice_number}}</strong> ({{currency}} {{=FORMAT_NUMBER(invoice_total, 2)}}) against PO {{po_number}} was rejected.</p>\n  <p>Reason: {{task_data.reason}}. {{task_data.resolution_note}}</p>\n  <p>Please send a corrected invoice quoting the PO number.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the accounts payable team at your company</p>\n</div>",
+    "text_body": "We could not accept your invoice\n  Hello {{vendor_name}},\n  Invoice {{invoice_number}} ({{currency}} {{=FORMAT_NUMBER(invoice_total, 2)}}) against PO {{po_number}} was rejected.\n  Reason: {{task_data.reason}}. {{task_data.resolution_note}}\n  Please send a corrected invoice quoting the PO number.\n  Sent by the accounts payable team at your company",
+    "is_default": false
+  }
+}

@@ -1,0 +1,35 @@
+# cp terraform.tfvars.example terraform.tfvars
+project_id = "acme-usertasks"
+region     = "europe-west1"
+name       = "usertasks"
+
+# First apply: false (APIs, registry, Cloud SQL, buckets, secrets).
+# Push the image, then apply again with true.
+deploy_apps = true
+image_tag   = "latest"
+
+# app_url             = "https://tasks.example.com"   # custom domain; default: the Cloud Run URL
+instance_admin_emails = "ops@example.com"
+
+auth_provider = "builtin"
+# Google sign-in (register <APP_URL>/auth/sso/google/callback; store the client
+# secret in Secret Manager as "google-client-secret" and grant the app's service
+# account secretAccessor on it):
+# auth_sso_providers = "[{\"id\":\"google\",\"type\":\"oidc\",\"preset\":\"google\",\"hostedDomain\":\"example.com\",\"clientId\":\"<id>.apps.googleusercontent.com\",\"clientSecret\":\"secret://google-client-secret\"}]"
+
+# SMTP relay (outbound port 25 is blocked on Google Cloud)
+email_from    = "UserTasks <tasks@example.com>"
+smtp_host     = "smtp-relay.gmail.com"
+smtp_port     = 587
+smtp_starttls = "required"
+smtp_user     = ""
+# smtp_password = "..."   # or TF_VAR_smtp_password; stored in Secret Manager
+
+db_tier              = "db-custom-1-3840"
+db_high_availability = false
+deletion_protection  = true
+
+# Memorystore for Redis (AUTH + TLS) as the shared cache, reached with Cloud Run
+# Direct VPC egress; false uses the postgres cache provider (no VPC).
+# cache_enabled = true
+# cache_tier    = "STANDARD_HA"

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "f13de444-8fdc-41f1-8b3b-196fe1b587e9",
+  "asset": {
+    "id": "f13de444-8fdc-41f1-8b3b-196fe1b587e9",
+    "name": "Leave declined",
+    "description": "Sent to the employee when the manager or HR declines the request.",
+    "subject": "Leave request not approved: {{start_date}} to {{end_date}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your leave request was not approved</h2>\n  <p>Hi {{employee_name}},</p>\n  <p>Your <strong>{{leave_type}}</strong> leave from {{start_date}} to {{end_date}} ({{days}} days) was not approved.</p>\n  <p>Comment: {{task_data.comment}}</p>\n  <p>Talk to {{manager_name}} about other dates, then submit a new request.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your leave request workflow</p>\n</div>",
+    "text_body": "Your leave request was not approved\n  Hi {{employee_name}},\n  Your {{leave_type}} leave from {{start_date}} to {{end_date}} ({{days}} days) was not approved.\n  Comment: {{task_data.comment}}\n  Talk to {{manager_name}} about other dates, then submit a new request.\n  Sent by your leave request workflow",
+    "is_default": false
+  }
+}

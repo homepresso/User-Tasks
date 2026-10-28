@@ -1,0 +1,209 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "a7e4d936-e285-5f72-8ab8-e283c5366742",
+  "asset": {
+    "id": "a7e4d936-e285-5f72-8ab8-e283c5366742",
+    "integration_id": "01be02d0-1981-58ed-aeb3-dc41d468640b",
+    "name": "Create purchase order",
+    "description": "API_PURCHASEORDER_PROCESS_SRV: deep insert of A_PurchaseOrder with its items (to_PurchaseOrderItem) referencing the requisition and the approved cost centre. Returns d.PurchaseOrder.",
+    "tags": [
+      "sap",
+      "purchasing"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"CompanyCode\":\"{{company_code}}\",\"PurchaseOrderType\":\"NB\",\"Supplier\":\"{{supplier}}\",\"PurchasingOrganization\":\"{{purchasing_org}}\",\"PurchasingGroup\":\"{{purchasing_group}}\",\"DocumentCurrency\":\"{{currency}}\",\"to_PurchaseOrderItem\":{{items}}}",
+      "path_template": "/API_PURCHASEORDER_PROCESS_SRV/A_PurchaseOrder",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "d",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "__metadata",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "id",
+                      "type": "string",
+                      "example": "https://s4.sap.example.com/sap/opu/odata/sap/API_PURCHASEORDER_PROCESS_SRV/A_PurchaseOrder('4500001245')"
+                    },
+                    {
+                      "name": "type",
+                      "type": "string",
+                      "example": "API_PURCHASEORDER_PROCESS_SRV.A_PurchaseOrderType"
+                    }
+                  ]
+                },
+                {
+                  "name": "PurchaseOrder",
+                  "type": "string",
+                  "example": "4500001245"
+                },
+                {
+                  "name": "CompanyCode",
+                  "type": "string",
+                  "example": "1010"
+                },
+                {
+                  "name": "PurchaseOrderType",
+                  "type": "string",
+                  "example": "NB"
+                },
+                {
+                  "name": "Supplier",
+                  "type": "string",
+                  "example": "17300001"
+                },
+                {
+                  "name": "PurchasingOrganization",
+                  "type": "string",
+                  "example": "1010"
+                },
+                {
+                  "name": "PurchasingGroup",
+                  "type": "string",
+                  "example": "001"
+                },
+                {
+                  "name": "DocumentCurrency",
+                  "type": "string",
+                  "example": "EUR"
+                },
+                {
+                  "name": "PurchaseOrderDate",
+                  "type": "string",
+                  "example": "/Date(1761609600000)/"
+                },
+                {
+                  "name": "PurchasingProcessingStatus",
+                  "type": "string",
+                  "example": "05"
+                },
+                {
+                  "name": "ReleaseIsNotCompleted",
+                  "type": "boolean",
+                  "example": false
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "d": {
+            "__metadata": {
+              "id": "https://s4.sap.example.com/sap/opu/odata/sap/API_PURCHASEORDER_PROCESS_SRV/A_PurchaseOrder('4500001245')",
+              "type": "API_PURCHASEORDER_PROCESS_SRV.A_PurchaseOrderType"
+            },
+            "PurchaseOrder": "4500001245",
+            "CompanyCode": "1010",
+            "PurchaseOrderType": "NB",
+            "Supplier": "17300001",
+            "PurchasingOrganization": "1010",
+            "PurchasingGroup": "001",
+            "DocumentCurrency": "EUR",
+            "PurchaseOrderDate": "/Date(1761609600000)/",
+            "PurchasingProcessingStatus": "05",
+            "ReleaseIsNotCompleted": false
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "084dfe72-4393-58bb-89b0-49c806607081",
+        "name": "company_code",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "32e5e850-faaa-5dd1-aa9e-b99bce84da1b",
+        "name": "supplier",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "7abaa355-1189-5b0b-880b-794b0d7a920d",
+        "name": "purchasing_org",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "4b300e92-a1be-51e8-9cfc-5f6756f69179",
+        "name": "purchasing_group",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "ac168d8b-2bc3-5679-9b4b-a9932a8fa4d1",
+        "name": "currency",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "67466691-8999-5325-b731-c0d3f533d7b0",
+        "name": "items",
+        "type": "object",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "62e3636e-d4bd-560c-8f57-185a6a155942",
+        "name": "x-csrf-token",
+        "type": "string",
+        "source": "variable",
+        "location": "header",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "86900256-f264-5e4d-a566-1b67af0c0330",
+        "name": "purchase_order",
+        "path": "d.PurchaseOrder",
+        "type": "string"
+      },
+      {
+        "id": "1a203cb3-ad2d-54f6-b8ba-49886a62e051",
+        "name": "processing_status",
+        "path": "d.PurchasingProcessingStatus",
+        "type": "string"
+      }
+    ]
+  }
+}

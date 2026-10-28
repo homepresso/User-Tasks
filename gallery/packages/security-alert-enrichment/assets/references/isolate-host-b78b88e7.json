@@ -1,0 +1,104 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "b78b88e7-72d0-4599-8f02-ef76c8eaf900",
+  "asset": {
+    "id": "b78b88e7-72d0-4599-8f02-ef76c8eaf900",
+    "integration_id": "31f14f2e-e069-40bf-8f98-62dbc93daf2f",
+    "name": "Isolate host",
+    "description": "Network-isolate a host through the EDR: only the EDR console can still reach it.",
+    "tags": [
+      "edr"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"reason\":\"{{reason}}\",\"requested_by\":\"{{requested_by}}\"}",
+      "path_template": "/edr/hosts/{{host_id}}/isolate",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "action_id",
+              "type": "string",
+              "example": "act-3302"
+            },
+            {
+              "name": "host_id",
+              "type": "string",
+              "example": "edr-4f9a21c7"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "isolation_pending"
+            },
+            {
+              "name": "requested_at",
+              "type": "string",
+              "example": "2026-10-26T04:20:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "action_id": "act-3302",
+          "host_id": "edr-4f9a21c7",
+          "status": "isolation_pending",
+          "requested_at": "2026-10-26T04:20:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "47f9b5a3-5549-4c82-b839-76c1ff127b48",
+        "name": "host_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "f7571b75-cade-48f1-8c91-ea6d2600b0fe",
+        "name": "reason",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "b07d00e4-1727-48a7-b9d8-d3bf1b95c48e",
+        "name": "requested_by",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "6b9c1c0e-dfc1-476d-98fe-aab7e9798f22",
+        "name": "action_id",
+        "path": "action_id",
+        "type": "string"
+      },
+      {
+        "id": "921fc354-a505-4b2d-8603-27eece352802",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      }
+    ]
+  }
+}

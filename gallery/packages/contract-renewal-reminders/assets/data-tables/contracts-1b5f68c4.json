@@ -1,0 +1,130 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "1b5f68c4-003c-4119-8490-7de35780cb07",
+  "asset": {
+    "id": "1b5f68c4-003c-4119-8490-7de35780cb07",
+    "name": "Contracts",
+    "description": "Your contract register: one row per active agreement with its end date, notice period, owner and renewal stage. The daily check reads it and the Contract renewal decision workflow writes the outcome back.",
+    "columns": [
+      {
+        "id": "8cd1ef18-23a9-4da7-a3d9-c5d381e68ecd",
+        "required": true,
+        "key": "contract_id",
+        "name": "Contract ID",
+        "type": "text"
+      },
+      {
+        "id": "0d631e9f-dce0-4333-9589-60e530d5ebd5",
+        "required": true,
+        "key": "contract_name",
+        "name": "Contract",
+        "type": "text"
+      },
+      {
+        "id": "16e7173d-02b0-4638-a10f-815a663a0055",
+        "required": true,
+        "key": "counterparty",
+        "name": "Counterparty",
+        "type": "text"
+      },
+      {
+        "id": "8924f7ff-352b-4a18-82aa-9fd082e92946",
+        "required": false,
+        "key": "owner_name",
+        "name": "Owner",
+        "type": "text"
+      },
+      {
+        "id": "3b51bf2d-62d4-4734-a943-356972212be6",
+        "required": true,
+        "key": "owner_email",
+        "name": "Owner email",
+        "type": "text"
+      },
+      {
+        "id": "057a63a2-abd3-49c2-93cb-a0de4bdd6c79",
+        "required": false,
+        "key": "owner_user_id",
+        "name": "Owner user id (optional)",
+        "type": "text"
+      },
+      {
+        "id": "4440baea-8668-4924-9ec1-098aafc9b090",
+        "required": false,
+        "key": "start_date",
+        "name": "Start date",
+        "type": "date"
+      },
+      {
+        "id": "75a47d40-eb54-413c-a93b-0ff71807dded",
+        "required": true,
+        "key": "end_date",
+        "name": "End date",
+        "type": "date"
+      },
+      {
+        "id": "43bb1a37-3dc4-4345-9d5f-81b40a47125a",
+        "required": true,
+        "key": "notice_period_days",
+        "name": "Notice period (days)",
+        "type": "number"
+      },
+      {
+        "id": "48fc04d1-f8f2-409d-b10b-76784d307a25",
+        "required": false,
+        "key": "auto_renew",
+        "name": "Auto-renews",
+        "type": "boolean"
+      },
+      {
+        "id": "20a949e8-475e-4788-bff2-0005ec5f5177",
+        "required": false,
+        "key": "annual_value",
+        "name": "Annual value",
+        "type": "number"
+      },
+      {
+        "id": "2f613099-a651-408d-a0b4-c03e14fa23ae",
+        "required": false,
+        "key": "currency",
+        "name": "Currency",
+        "type": "text"
+      },
+      {
+        "id": "165766e6-eedd-4cfa-89a5-63af2fe42966",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "active",
+          "renegotiating",
+          "terminating",
+          "expired"
+        ]
+      },
+      {
+        "id": "e7a12cea-c3d2-4c61-9e24-a6bdda7bab58",
+        "required": false,
+        "key": "renewal_stage",
+        "name": "Renewal stage",
+        "type": "select",
+        "options": [
+          "Not started",
+          "Decision requested",
+          "Renewed",
+          "Renegotiating",
+          "Terminating"
+        ]
+      },
+      {
+        "id": "1747cb07-ec2e-4acc-93c1-21bdab46f7fb",
+        "required": false,
+        "key": "decision_notes",
+        "name": "Decision notes",
+        "type": "text"
+      }
+    ]
+  }
+}

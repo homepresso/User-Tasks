@@ -1,0 +1,102 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "08830b82-40c8-5d97-8484-e047dbef377b",
+  "asset": {
+    "id": "08830b82-40c8-5d97-8484-e047dbef377b",
+    "name": "Customers",
+    "description": "A simple CRM: each customer account with its main contact, tier and account manager. The complaint form looks customers up here.",
+    "columns": [
+      {
+        "id": "a1f1a25e-9090-56d1-ac46-f4a4cd4a7d95",
+        "required": true,
+        "key": "account_no",
+        "name": "Account number",
+        "type": "text"
+      },
+      {
+        "id": "51de3002-d7e0-57e6-b547-6c9fa29ce750",
+        "required": true,
+        "key": "company",
+        "name": "Company",
+        "type": "text"
+      },
+      {
+        "id": "9c214857-244e-5d7e-aa2c-39b8d4477a40",
+        "required": false,
+        "key": "contact_name",
+        "name": "Main contact",
+        "type": "text"
+      },
+      {
+        "id": "8de24103-bbf7-5ce3-9cba-79cd837c328d",
+        "required": false,
+        "key": "contact_email",
+        "name": "Contact email",
+        "type": "text"
+      },
+      {
+        "id": "aea9d592-2f69-5962-bcfa-92cf87aef46c",
+        "required": false,
+        "key": "phone",
+        "name": "Phone",
+        "type": "text"
+      },
+      {
+        "id": "ee31f8f1-0609-51c6-a09e-659ed4d2a942",
+        "required": false,
+        "key": "tier",
+        "name": "Tier",
+        "type": "select",
+        "options": [
+          "Platinum",
+          "Gold",
+          "Silver",
+          "Standard"
+        ]
+      },
+      {
+        "id": "eb0ad677-2a01-5b60-8fc6-df8596368b26",
+        "required": false,
+        "key": "account_manager",
+        "name": "Account manager",
+        "type": "text"
+      },
+      {
+        "id": "dd5c07fb-852e-51d7-ba56-b7068dda45ad",
+        "required": false,
+        "key": "account_manager_email",
+        "name": "Account manager email",
+        "type": "text"
+      },
+      {
+        "id": "fdba26f3-223e-500d-92be-fe185d348802",
+        "required": false,
+        "key": "region",
+        "name": "Region",
+        "type": "text"
+      },
+      {
+        "id": "04d888ae-307b-5291-a6c3-8289d265bdef",
+        "required": false,
+        "key": "customer_since",
+        "name": "Customer since",
+        "type": "date"
+      },
+      {
+        "id": "bd052800-150b-5152-a361-71d3c668dbba",
+        "required": false,
+        "key": "open_complaints",
+        "name": "Open complaints",
+        "type": "number"
+      },
+      {
+        "id": "794088b9-9c8d-526f-9af1-e6c488cd6067",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

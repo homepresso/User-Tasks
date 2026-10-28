@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "83582e1e-ef07-4deb-bbb2-8a36e084cba4",
+  "asset": {
+    "id": "83582e1e-ef07-4deb-bbb2-8a36e084cba4",
+    "name": "Complaint resolved",
+    "description": "Sent to the customer when the case is resolved.",
+    "subject": "Your complaint {{case_number}} is resolved",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your complaint is resolved</h2>\n  <p>Hi {{customer_name}},</p>\n  <p>{{resolution_summary}}</p>\n  <p>{{=IF(compensation_amount > 0, CONCAT(\"As an apology we have credited \", FORMAT_NUMBER(compensation_amount, 2), \" to your account.\"), \"\")}}</p>\n  <p>Thank you for your patience. If anything is still not right, reply to this email and quote {{case_number}}.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Customer care, your company</p>\n</div>",
+    "text_body": "Your complaint is resolved\n  Hi {{customer_name}},\n  {{resolution_summary}}\n  {{=IF(compensation_amount > 0, CONCAT(\"As an apology we have credited \", FORMAT_NUMBER(compensation_amount, 2), \" to your account.\"), \"\")}}\n  Thank you for your patience. If anything is still not right, reply to this email and quote {{case_number}}.\n  Customer care, your company",
+    "is_default": false
+  }
+}

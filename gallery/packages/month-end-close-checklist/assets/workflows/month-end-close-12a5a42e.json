@@ -1,0 +1,325 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "12a5a42e-1c34-4408-8a6c-53a0f070a324",
+  "asset": {
+    "id": "12a5a42e-1c34-4408-8a6c-53a0f070a324",
+    "name": "Month-end close",
+    "description": "On the first of each month: opens the close period in the ERP, issues every active checklist task as its own Close task run, logs the start and emails the finance team.",
+    "trigger_type": "schedule",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "schedule",
+        "label": "First of the month, 06:00",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {
+          "schedule_mode": "monthly",
+          "day_of_month": 1,
+          "time_of_day": "06:00",
+          "timezone": "Pacific/Auckland"
+        }
+      },
+      {
+        "id": "period",
+        "type": "set_variable",
+        "label": "Period to close",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "name": "period",
+          "expression": "{{=IF(IS_EMPTY(period), FORMAT_DATE(SUBTRACT_DAYS(START_OF_MONTH(TODAY()), 1), \"YYYY-MM\"), period)}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "title": "Month-end close {{entity}} {{period}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Close deadline SLA",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "sla_label": "Month-end close",
+          "mode": "relative",
+          "amount": 8,
+          "unit": "days",
+          "warning_amount": 6,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "open",
+        "type": "call_reference",
+        "label": "Open close period",
+        "position": {
+          "x": 340,
+          "y": 700
+        },
+        "config": {
+          "reference_id": "f2a21c22-a783-4225-9923-bd80fa964258",
+          "reference_name": "Open close period",
+          "reference_method": "POST",
+          "input_mappings": {
+            "entity": "{{entity}}",
+            "period": "{{period}}"
+          },
+          "output_mappings": {
+            "close_id": {
+              "enabled": true,
+              "variableName": "close_id"
+            },
+            "close_deadline": {
+              "enabled": true,
+              "variableName": "close_deadline"
+            },
+            "period_end": {
+              "enabled": true,
+              "variableName": "period_end"
+            }
+          }
+        }
+      },
+      {
+        "id": "list",
+        "type": "update_data_table",
+        "label": "Active checklist tasks",
+        "position": {
+          "x": 340,
+          "y": 860
+        },
+        "config": {
+          "table_id": "f9136632-14a2-47b8-a18d-0bd8310d35d5",
+          "table_name": "Close checklist",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "active",
+              "operator": "eq",
+              "value": "true"
+            }
+          ],
+          "sort_column": "task_code",
+          "sort_direction": "asc",
+          "limit": 100,
+          "output_rows_var": "close_tasks",
+          "output_count_var": "task_count"
+        }
+      },
+      {
+        "id": "loop",
+        "type": "loop",
+        "label": "Each close task",
+        "position": {
+          "x": 340,
+          "y": 1020
+        },
+        "config": {
+          "items": "{{close_tasks}}",
+          "item_var": "close_task",
+          "index_var": "task_index"
+        }
+      },
+      {
+        "id": "issue",
+        "type": "call_sub_workflow",
+        "label": "Issue close task",
+        "position": {
+          "x": 660,
+          "y": 1200
+        },
+        "config": {
+          "sub_workflow_id": "8739d451-5c62-485e-88b0-1df1f0e5a313",
+          "sub_workflow_name": "Close task",
+          "input_mappings": {
+            "task_code": "{{close_task.task_code}}",
+            "task_name": "{{close_task.task}}",
+            "area": "{{close_task.area}}",
+            "owner_role": "{{close_task.owner_role}}",
+            "due_business_day": "{{close_task.due_business_day}}",
+            "system": "{{close_task.system}}",
+            "evidence_required": "{{close_task.evidence_required}}",
+            "period": "{{period}}",
+            "entity": "{{entity}}",
+            "close_id": "{{close_id}}",
+            "controller_id": "{{controller_id}}"
+          }
+        },
+        "executionMode": "async"
+      },
+      {
+        "id": "summary_row",
+        "type": "update_data_table",
+        "label": "Log close start",
+        "position": {
+          "x": 340,
+          "y": 1360
+        },
+        "config": {
+          "table_id": "e677ea33-373c-4f86-a6e0-4bc7443cc49e",
+          "table_name": "Close log",
+          "operation": "insert",
+          "column_values": {
+            "log_key": "{{entity}}-{{period}}-START",
+            "period": "{{period}}",
+            "entity": "{{entity}}",
+            "task": "Close started: {{task_count}} tasks issued",
+            "status": "close started",
+            "due_date": "{{close_deadline}}",
+            "close_id": "{{close_id}}",
+            "completed_at": "{{=NOW()}}"
+          }
+        }
+      },
+      {
+        "id": "kickoff",
+        "type": "send_email",
+        "label": "Email finance team",
+        "position": {
+          "x": 340,
+          "y": 1520
+        },
+        "config": {
+          "to": "{{finance_team_email}}",
+          "email_template_id": "4f99c5d7-b329-4894-85ad-5845d66715f5"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "log",
+        "type": "log",
+        "label": "Log summary",
+        "position": {
+          "x": 340,
+          "y": 1680
+        },
+        "config": {
+          "message": "Close {{close_id}} for {{entity}} {{period}} started: {{task_count}} tasks issued, deadline {{close_deadline}}",
+          "level": "info"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Close started",
+        "position": {
+          "x": 340,
+          "y": 1840
+        },
+        "config": {
+          "reason": "{{task_count}} close tasks issued for {{entity}} {{period}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-period",
+        "source": "trigger",
+        "target": "period"
+      },
+      {
+        "id": "e-period-title",
+        "source": "period",
+        "target": "title"
+      },
+      {
+        "id": "e-title-sla",
+        "source": "title",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-open",
+        "source": "sla",
+        "target": "open"
+      },
+      {
+        "id": "e-open-list",
+        "source": "open",
+        "target": "list"
+      },
+      {
+        "id": "e-list-loop",
+        "source": "list",
+        "target": "loop"
+      },
+      {
+        "id": "e-loop-issue-each-item",
+        "source": "loop",
+        "target": "issue",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-loop-summary_row-done",
+        "source": "loop",
+        "target": "summary_row",
+        "label": "Done"
+      },
+      {
+        "id": "e-summary_row-kickoff",
+        "source": "summary_row",
+        "target": "kickoff"
+      },
+      {
+        "id": "e-kickoff-log",
+        "source": "kickoff",
+        "target": "log"
+      },
+      {
+        "id": "e-log-done",
+        "source": "log",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-period",
+        "name": "period",
+        "type": "string",
+        "description": "Period to close (YYYY-MM). Leave empty to close the previous month.",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-entity",
+        "name": "entity",
+        "type": "string",
+        "description": "Entity / company code in the ERP",
+        "defaultValue": "NZ01"
+      },
+      {
+        "id": "v-finance_team_email",
+        "name": "finance_team_email",
+        "type": "string",
+        "description": "Distribution list for the close kick-off email",
+        "defaultValue": "finance-team@example.com",
+        "format": "email"
+      },
+      {
+        "id": "v-controller_id",
+        "name": "controller_id",
+        "type": "string",
+        "description": "Optional: user id who receives the close tasks (overrides the install-time default)",
+        "defaultValue": ""
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

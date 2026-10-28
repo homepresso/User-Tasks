@@ -1,0 +1,74 @@
+{
+  "title": "Training sign-off",
+  "category": "hr-people",
+  "summary": "Trainees submit course completion evidence on a form; their trainer signs it off or asks for more, and the training record and expiry date are kept.",
+  "description": "Training sign-off turns course completions into a clear, auditable record. The Courses table is your catalogue: code, title, category, delivery, duration, the evidence the trainer expects and how many months the qualification stays valid. Sample courses include first aid, forklift operation, working at height, privacy and anti-bribery training.\n\nA trainee opens the Training completion form page, looks up the course (its title, validity and expected evidence fill in), enters the completion date, hours and score, links the certificate or checklist, writes a short reflection and picks their trainer as a Person. Submitting shows a success screen and starts the workflow.\n\nThe workflow adds a row to the Training records table, works out the expiry date from the course validity and gives the trainer a sign-off task with Sign off and Needs more work buttons. Signing off records the assessment and expiry and emails the trainee; Needs more work sends the trainee a task to add evidence and resubmit, which goes back to the trainer. A seven-year retention policy is included for the records. No integrations needed.",
+  "trigger": "form",
+  "entry_workflow": "a44c632d-af11-51a9-a399-fad9199f768d",
+  "entry_form": "bb559362-3758-5bee-b3c5-6ea6669b638e",
+  "start": "Starts from a form page: share the Training completion form (/f/<id>) with staff; each submission starts a sign-off.",
+  "difficulty": "starter",
+  "setup_minutes": 10,
+  "tags": [
+    "training",
+    "learning and development",
+    "compliance",
+    "forms",
+    "lookup",
+    "no integrations"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Replace the sample rows in Courses with your catalogue: code, title, expected evidence and validity in months (0 = no expiry). Untick Active to hide a course.",
+    "Share the Training completion form link (/f/<id>) with staff, or add it to your intranet.",
+    "Optional: apply the \"Training records: 7 years\" retention policy to the Training records table, and set EMAIL_PROVIDER so sign-off emails are delivered."
+  ],
+  "steps": [
+    {
+      "title": "Record the completion",
+      "body": "The trainee looks up the course, adds the date, hours, score, an evidence link and a reflection, and picks their trainer."
+    },
+    {
+      "title": "Training record",
+      "body": "A row is added to Training records as awaiting sign-off, with the expiry date worked out from the course validity."
+    },
+    {
+      "title": "Trainer signs off",
+      "body": "The trainer checks the evidence, records the assessment and presses Sign off or Needs more work."
+    },
+    {
+      "title": "More work when needed",
+      "body": "Needs more work sends the trainee a task to add evidence and resubmit; it goes back to the trainer."
+    },
+    {
+      "title": "Confirmation",
+      "body": "Sign off records the decision and expiry on the record and emails the trainee."
+    }
+  ],
+  "sample_input": {
+    "trainee_name": "Jordan Lee",
+    "trainee_email": "jordan.lee@example.com",
+    "course": "HS-101",
+    "completed_on": "2026-10-24",
+    "hours": 8,
+    "score": 88,
+    "evidence_link": "https://lms.example.com/certificates/HS101-90412",
+    "reflection": "Practised CPR and AED use on the mannequins and learned the recovery position; I will refresh the first aid kit checklist on our floor.",
+    "trainer": "$owner"
+  },
+  "expect": "waiting",
+  "icon": "graduation-cap",
+  "id": "73a5351c-b387-51e4-b958-26a6011bddb5",
+  "slug": "training-sign-off"
+}

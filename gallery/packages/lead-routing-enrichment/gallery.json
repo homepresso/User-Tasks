@@ -1,0 +1,83 @@
+{
+  "id": "cfebd7da-7139-4377-9a27-5744ba033b3b",
+  "slug": "lead-routing-enrichment",
+  "title": "Lead routing and enrichment",
+  "category": "customer-sales",
+  "summary": "Enrich each inbound lead, score it with a routing table, create it in the CRM with its territory owner, and alert sales or start nurture.",
+  "description": "Lead routing and enrichment handles every inbound lead the moment it arrives. Your website or forms tool posts the lead (email, name, company, country, company size, source and message) to the workflow; nobody has to triage a shared inbox.\n\nThe workflow takes the email domain and asks your enrichment service for the company's industry, size band, employee count, revenue and LinkedIn page. The Territories table maps the country to a region, owner and CRM queue, with a Rest of world row for anything not listed. The Lead score & routing decision table turns company size, industry, region and source into a segment, a score and a priority.\n\nThe lead is created in the CRM with its owner and score. Sales-ready leads (score 60 or more by default) are emailed to the owner with the context they need for first contact; the rest are added to the territory's nurture list in your marketing platform. Adapt the scoring rules, the territories and the three API calls to your stack.",
+  "trigger": "api",
+  "entry_workflow": "0ba34cf5-1661-4442-9733-e5f3941c2008",
+  "start": "Headless: your website or forms tool posts each new lead to the start API or an inbound webhook.",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "leads",
+    "lead scoring",
+    "routing",
+    "crm",
+    "enrichment"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "webhook"
+  ],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Enrichment service: set the base URL and API key of your company-enrichment provider. Enrich company posts the email domain to /enrichment/company; adjust the path and response model to your provider. If enrichment fails the lead is still routed with the form values.",
+    "CRM: set the base URL and API token of your CRM. Create lead posts to /leads with the owner, score and segment.",
+    "Marketing platform: set the base URL and API token. Add to nurture list posts to /marketing/lists/{list_id}/members.",
+    "Edit the Territories rows (owners, queues, nurture lists) and the Lead score & routing rules; change sales_ready_score on the workflow to move the sales threshold.",
+    "Inbound webhook: create a webhook for the workflow and point your forms tool at it, or call the start API.",
+    "Email (optional): configure EMAIL_PROVIDER so owners get the new-lead email (the step continues on error)."
+  ],
+  "steps": [
+    {
+      "title": "Lead received",
+      "body": "The website or forms tool posts the email, name, company, country, employees, source and message."
+    },
+    {
+      "title": "Enrich the company",
+      "body": "The email domain is sent to the enrichment service for industry, size band, employees, revenue and LinkedIn page."
+    },
+    {
+      "title": "Find the territory",
+      "body": "The Territories table maps the country to a region, owner and CRM queue, with a Rest of world fallback."
+    },
+    {
+      "title": "Score and segment",
+      "body": "The Lead score & routing decision table returns the segment, score and priority."
+    },
+    {
+      "title": "Create in the CRM",
+      "body": "The lead is created with its owner, queue, score and segment."
+    },
+    {
+      "title": "Alert or nurture",
+      "body": "Sales-ready leads are emailed to the owner; the rest join the territory nurture list."
+    }
+  ],
+  "sample_input": {
+    "email": "ana.ruiz@tailwindtraders.example.com",
+    "first_name": "Ana",
+    "last_name": "Ruiz",
+    "job_title": "Head of Operations",
+    "company": "Tailwind Traders",
+    "country": "AU",
+    "employees": 500,
+    "source": "demo_request",
+    "message": "We want to automate store onboarding across 40 sites.",
+    "utm_campaign": "ops-automation-q4"
+  },
+  "expect": "completed",
+  "icon": "target"
+}

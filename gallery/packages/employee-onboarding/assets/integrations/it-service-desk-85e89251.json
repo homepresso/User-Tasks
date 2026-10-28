@@ -1,0 +1,22 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "85e89251-e301-4fa2-9e35-f922ea5aede4",
+  "asset": {
+    "id": "85e89251-e301-4fa2-9e35-f922ea5aede4",
+    "name": "IT service desk",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://itsm.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "it"
+    ]
+  }
+}

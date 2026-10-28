@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "ac959fb4-04de-423e-b0d9-4c56dfb3b6a3",
+  "asset": {
+    "id": "ac959fb4-04de-423e-b0d9-4c56dfb3b6a3",
+    "name": "IT service management",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://itsm.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "itsm",
+      "incidents"
+    ]
+  }
+}

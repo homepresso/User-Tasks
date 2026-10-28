@@ -1,0 +1,23 @@
+# Paths left out of the public export (scripts/public-export.sh).
+# One path or glob per line, relative to the repository root. `**` matches
+# any depth. Blank lines and lines starting with # are ignored.
+
+# Production runbooks for the hosted edition (usertasks.com).
+docs/deploy/providers-go-live.md
+
+# Local state that is gitignored today; listed so an accidental commit can
+# never reach the export.
+.env
+.env.*
+!.env.example
+.mcp.json
+.claude
+backups
+supabase/.temp
+supabase/migrations_archive
+.vercel
+.cron-vault-setup.sql
+scripts/screenshots/.out
+deploy/compose/.state
+**/*.pem
+!deploy/aws/rds-global-bundle.pem

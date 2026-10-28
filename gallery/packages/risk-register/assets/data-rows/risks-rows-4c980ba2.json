@@ -1,0 +1,149 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "4c980ba2-6b7c-5876-b8d8-de42f0d147c5",
+  "asset": {
+    "id": "4c980ba2-6b7c-5876-b8d8-de42f0d147c5",
+    "name": "Risks rows",
+    "rows": [
+      {
+        "id": "58f54a30-c78c-5e77-a053-ee61ad2bf39b",
+        "data": {
+          "risk_id": "RSK-0001",
+          "title": "Single supplier for packaging materials",
+          "description": "All corrugated packaging comes from one supplier; a plant outage would stop dispatch within a week.",
+          "category": "Operational",
+          "department": "Supply chain",
+          "likelihood": 3,
+          "impact": 4,
+          "score": 12,
+          "rating": "High",
+          "owner_name": "Supply chain manager",
+          "controls": "Two weeks of safety stock",
+          "response": "Mitigate",
+          "mitigation_plan": "Qualify a second supplier by Q1",
+          "target_date": "2027-02-28",
+          "residual_score": 6,
+          "status": "mitigating",
+          "raised_on": "2026-06-10",
+          "last_reviewed": "2026-09-15",
+          "next_review": "2026-10-15"
+        }
+      },
+      {
+        "id": "97e656a6-d079-5a4b-99dd-0f4d467e95bf",
+        "data": {
+          "risk_id": "RSK-0002",
+          "title": "Phishing leading to account takeover",
+          "description": "Staff credentials phished, attacker accesses email and finance systems.",
+          "category": "Information security",
+          "department": "IT",
+          "likelihood": 4,
+          "impact": 4,
+          "score": 16,
+          "rating": "High",
+          "owner_name": "Head of IT",
+          "controls": "MFA on email, quarterly phishing simulation",
+          "response": "Mitigate",
+          "mitigation_plan": "Phishing-resistant MFA for finance roles",
+          "target_date": "2026-12-15",
+          "residual_score": 8,
+          "status": "mitigating",
+          "raised_on": "2026-03-02",
+          "last_reviewed": "2026-10-01",
+          "next_review": "2026-10-22"
+        }
+      },
+      {
+        "id": "a2a5d290-972b-5e86-be42-cb44e26c3766",
+        "data": {
+          "risk_id": "RSK-0003",
+          "title": "Manual handling injuries in the warehouse",
+          "description": "Heavy cartons lifted manually during peak season.",
+          "category": "Health & safety",
+          "department": "Warehouse",
+          "likelihood": 3,
+          "impact": 3,
+          "score": 9,
+          "rating": "Medium",
+          "owner_name": "Warehouse supervisor",
+          "controls": "Manual handling training, lifting aids",
+          "response": "Accept",
+          "residual_score": 9,
+          "status": "accepted",
+          "raised_on": "2026-01-20",
+          "last_reviewed": "2026-08-20",
+          "next_review": "2026-11-20"
+        }
+      },
+      {
+        "id": "6010ca98-afd6-5b02-937d-0d220c3ab051",
+        "data": {
+          "risk_id": "RSK-0004",
+          "title": "Late statutory filings",
+          "description": "Key-person dependency in the finance team for statutory returns.",
+          "category": "Compliance",
+          "department": "Finance",
+          "likelihood": 2,
+          "impact": 4,
+          "score": 8,
+          "rating": "Medium",
+          "owner_name": "Financial controller",
+          "controls": "Compliance calendar",
+          "response": "Mitigate",
+          "mitigation_plan": "Cross-train a second accountant",
+          "target_date": "2026-11-30",
+          "residual_score": 4,
+          "status": "mitigating",
+          "raised_on": "2026-04-11",
+          "last_reviewed": "2026-07-30",
+          "next_review": "2026-10-30"
+        }
+      },
+      {
+        "id": "754a4226-4299-50c2-a151-a54630785809",
+        "data": {
+          "risk_id": "RSK-0005",
+          "title": "Foreign exchange exposure on USD purchases",
+          "description": "Around 40% of cost of goods is bought in USD.",
+          "category": "Financial",
+          "department": "Finance",
+          "likelihood": 4,
+          "impact": 2,
+          "score": 8,
+          "rating": "Medium",
+          "owner_name": "CFO",
+          "controls": "Forward cover for 50% of committed orders",
+          "response": "Accept",
+          "residual_score": 8,
+          "status": "accepted",
+          "raised_on": "2026-02-14",
+          "last_reviewed": "2026-08-14",
+          "next_review": "2026-11-14"
+        }
+      },
+      {
+        "id": "2ff1c282-d6f7-5651-b35f-38a5d98164e8",
+        "data": {
+          "risk_id": "RSK-0006",
+          "title": "Office lease renewal",
+          "description": "Lease ends next year; landlord signalled a large increase.",
+          "category": "Strategic",
+          "department": "Facilities",
+          "likelihood": 2,
+          "impact": 2,
+          "score": 4,
+          "rating": "Low",
+          "owner_name": "COO",
+          "controls": "Market review under way",
+          "response": "Accept",
+          "residual_score": 4,
+          "status": "accepted",
+          "raised_on": "2026-05-05",
+          "last_reviewed": "2026-05-05",
+          "next_review": "2027-01-05"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+# KMS stand-ins for the reference profiles (docs/deployment-profiles.md#kms):
+#
+#   kms-vault  OpenBao (dev server) with the Transit engine and a `usertasks`
+#              key, for KMS_PROVIDER=vault_transit (the onprem profile)
+#   kms-aws    local-kms (nsmithuk/local-kms) with a symmetric key aliased
+#              alias/usertasks, for KMS_PROVIDER=aws_kms
+#
+# Azure Key Vault keys and Cloud KMS are stand-ins in deploy/compose/mocks
+# (azure and gcp profiles). `npm run stack -- up` creates the first data key
+# (`usertasks-admin kms rotate`) and restarts the app so it starts with it.
+# Test doubles only: OpenBao's dev server keeps everything in memory (a
+# restart loses the Transit key, so `down --volumes` and start over).
+
+services:
+  app:
+    depends_on:
+      openbao-init:
+        condition: service_completed_successfully
+        required: false
+      local-kms:
+        condition: service_healthy
+        required: false
+
+  openbao:
+    profiles: [kms-vault]
+    image: openbao/openbao:2.3.1
+    command: ["server", "-dev", "-dev-listen-address=0.0.0.0:8200", "-dev-root-token-id=${VAULT_TOKEN:-}"]
+    environment:
+      SKIP_SETCAP: "true"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8200/v1/sys/health"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Enables Transit and creates the key, then exits (idempotent).
+  openbao-init:
+    profiles: [kms-vault]
+    image: openbao/openbao:2.3.1
+    environment:
+      BAO_ADDR: http://openbao:8200
+      BAO_TOKEN: ${VAULT_TOKEN:-}
+    entrypoint: ["sh", "-c", "bao secrets list | grep -q '^transit/' || bao secrets enable transit; bao write -f transit/keys/${VAULT_TRANSIT_KEY:-usertasks}"]
+    restart: "no"
+    depends_on:
+      openbao:
+        condition: service_healthy
+
+  local-kms:
+    profiles: [kms-aws]
+    image: nsmithuk/local-kms:3.12.0
+    environment:
+      PORT: "8080"
+      KMS_REGION: us-east-1
+      KMS_ACCOUNT_ID: "111122223333"
+      KMS_SEED_PATH: /init/seed.yaml
+    volumes:
+      - ./deploy/compose/kms/local-kms-seed.yaml:/init/seed.yaml:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "8080"]
+      interval: 2s
+      timeout: 5s
+      retries: 30

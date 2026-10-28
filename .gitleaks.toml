@@ -1,0 +1,34 @@
+# gitleaks configuration (https://github.com/gitleaks/gitleaks).
+# Used by scripts/public-export.sh and safe to use in CI or a pre-commit hook.
+# The default rules apply; the allowlist below only covers known test
+# fixtures and documentation placeholders. Keep each entry specific: never
+# allowlist a whole directory.
+
+title = "UserTasks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test fixtures and placeholders that are not secrets"
+regexTarget = "match"
+regexes = [
+  # The Supabase CLI's well-known local-development JWTs (iss "supabase-demo").
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS1kZW1v''',
+  # Fake API keys and secrets in unit tests.
+  '''utk_test_0123456789abcdef''',
+  '''hh_live_abc123''',
+  '''SENTINEL_SECRET_[0-9a-f]+''',
+  '''sas_key: 'c2VjcmV0LWtleQ==''',
+  # Truncated / dummy PEM bodies in tests and the SFTP connector's placeholder text.
+  '''BEGIN (OPENSSH )?PRIVATE KEY-----\\n(x|\.\.\.|MC4CAQAwBQYDK2VwBCIEI…)\\n''',
+  # LocalStack test credentials in tests.
+  '''AKIALOCALSTACKTEST01''',
+  # Placeholders in docs and UI snippets.
+  '''Bearer YOUR_API_KEY''',
+  '''idempotency_key=legacy-po-\d+''',
+  '''empotency_key=legacy-po-\d+''',
+  '''S3_SECRET = env\.E2E_S3_SECRET_KEY''',
+  # Azure built-in role definition id (public, the same in every tenant).
+  '''keyVaultSecretsUser: '4633458b-17de-408a-b874-0445c86b69e6''',
+]

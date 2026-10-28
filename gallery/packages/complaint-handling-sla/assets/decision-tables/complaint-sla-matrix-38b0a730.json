@@ -1,0 +1,253 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "38b0a730-086f-44bf-8900-4171c3dd70df",
+  "asset": {
+    "id": "38b0a730-086f-44bf-8900-4171c3dd70df",
+    "name": "Complaint SLA matrix",
+    "description": "Response and resolution targets, handler level and compensation limit by category, severity and customer tier. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "20ca843e-0387-4178-8305-f9c8df01366a",
+        "key": "category",
+        "label": "Category",
+        "type": "text"
+      },
+      {
+        "id": "c62af773-ae32-48a6-bc6b-aaba80993406",
+        "key": "severity",
+        "label": "Severity",
+        "type": "text"
+      },
+      {
+        "id": "8135bfaa-5b4e-408c-93fa-a4e93f37e1c9",
+        "key": "tier",
+        "label": "Customer tier",
+        "type": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "259a386c-d5b3-4373-9314-b62af58a3806",
+        "key": "first_response_hours",
+        "label": "First response (hours)",
+        "type": "number"
+      },
+      {
+        "id": "1d81561e-c96a-42a7-bd06-031bcdbfa623",
+        "key": "resolution_days",
+        "label": "Resolution (days)",
+        "type": "number"
+      },
+      {
+        "id": "88e7aec9-abbf-4095-a633-61b065743d5f",
+        "key": "handler_level",
+        "label": "Handler level",
+        "type": "text"
+      },
+      {
+        "id": "3a8254e8-23fe-4591-8698-603bda19e9cc",
+        "key": "compensation_limit",
+        "label": "Compensation limit",
+        "type": "number"
+      }
+    ],
+    "rules": [
+      {
+        "id": "05846390-f7af-47cb-a295-9a9d096787e8",
+        "label": "Critical",
+        "enabled": true,
+        "outputs": {
+          "first_response_hours": 1,
+          "resolution_days": 2,
+          "handler_level": "Senior complaints handler",
+          "compensation_limit": 250
+        },
+        "conditions": [
+          {
+            "id": "38ebb8dc-efa7-45ae-8dc3-eb90b3291aac",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "critical"
+          }
+        ]
+      },
+      {
+        "id": "58b610a3-4b50-428b-b79a-0c70ac5fc414",
+        "label": "High, platinum customer",
+        "enabled": true,
+        "outputs": {
+          "first_response_hours": 2,
+          "resolution_days": 3,
+          "handler_level": "Senior complaints handler",
+          "compensation_limit": 250
+        },
+        "conditions": [
+          {
+            "id": "f6ce100b-4023-4399-8457-695c9879e498",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "high"
+          },
+          {
+            "id": "50cbf8a7-ec50-4016-b998-aa402ba95c4b",
+            "inputKey": "tier",
+            "operator": "equals",
+            "value": "platinum"
+          }
+        ]
+      },
+      {
+        "id": "06629a8b-bfd9-4b90-a775-6acc8636a406",
+        "label": "High, gold customer",
+        "enabled": true,
+        "outputs": {
+          "first_response_hours": 4,
+          "resolution_days": 3,
+          "handler_level": "Senior complaints handler",
+          "compensation_limit": 200
+        },
+        "conditions": [
+          {
+            "id": "85b12bb8-1ed1-4d74-b707-5a02481fbbcf",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "high"
+          },
+          {
+            "id": "1a547f62-ace0-4cf8-98a2-58f66a05259d",
+            "inputKey": "tier",
+            "operator": "equals",
+            "value": "gold"
+          }
+        ]
+      },
+      {
+        "id": "2c41a396-deba-41ad-ac74-d3b25685e85f",
+        "label": "High",
+        "enabled": true,
+        "outputs": {
+          "first_response_hours": 4,
+          "resolution_days": 5,
+          "handler_level": "Complaints handler",
+          "compensation_limit": 100
+        },
+        "conditions": [
+          {
+            "id": "d4379071-53c5-4502-9033-459e97e63ee5",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "high"
+          }
+        ]
+      },
+      {
+        "id": "f6444043-e4fa-49e4-a430-86b1771a65bf",
+        "label": "Billing, medium",
+        "enabled": true,
+        "outputs": {
+          "first_response_hours": 8,
+          "resolution_days": 5,
+          "handler_level": "Billing specialist",
+          "compensation_limit": 100
+        },
+        "conditions": [
+          {
+            "id": "1c464386-4951-4a9a-9c36-b58772a2b85e",
+            "inputKey": "category",
+            "operator": "equals",
+            "value": "billing"
+          },
+          {
+            "id": "481305d8-fd51-4178-8a8f-74e9a254569b",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "medium"
+          }
+        ]
+      },
+      {
+        "id": "67d86b18-0c1f-4572-9164-04fe8480bb13",
+        "label": "Medium, gold or platinum",
+        "enabled": true,
+        "outputs": {
+          "first_response_hours": 8,
+          "resolution_days": 5,
+          "handler_level": "Complaints handler",
+          "compensation_limit": 100
+        },
+        "conditions": [
+          {
+            "id": "426b80f9-38a0-4d4f-93ff-ecfb0f3ec463",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "medium"
+          },
+          {
+            "id": "096beef6-c84d-410b-8d0c-cafd4e63590d",
+            "inputKey": "tier",
+            "operator": "not_equals",
+            "value": "standard"
+          }
+        ]
+      },
+      {
+        "id": "e18b9c9c-f843-492a-89f0-e2ac47781b0c",
+        "label": "Medium",
+        "enabled": true,
+        "outputs": {
+          "first_response_hours": 24,
+          "resolution_days": 7,
+          "handler_level": "Complaints handler",
+          "compensation_limit": 50
+        },
+        "conditions": [
+          {
+            "id": "31bcce0d-b371-4d27-a504-b03047e9c780",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "medium"
+          }
+        ]
+      },
+      {
+        "id": "dd98b650-692e-48cf-9c2c-365ab66a5b13",
+        "label": "Low",
+        "enabled": true,
+        "outputs": {
+          "first_response_hours": 48,
+          "resolution_days": 10,
+          "handler_level": "Service agent",
+          "compensation_limit": 25
+        },
+        "conditions": [
+          {
+            "id": "5a525fad-ebec-432b-ab2e-7f7177da6487",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "low"
+          }
+        ]
+      },
+      {
+        "id": "376cf35b-60a1-4bcd-be9e-b4cd55315fe3",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "first_response_hours": 24,
+          "resolution_days": 7,
+          "handler_level": "Complaints handler",
+          "compensation_limit": 50
+        },
+        "conditions": [
+          {
+            "id": "e153e559-c938-4d3f-8109-efa7ccd329a8",
+            "inputKey": "category",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

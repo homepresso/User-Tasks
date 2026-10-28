@@ -1,0 +1,73 @@
+{
+  "id": "3bb49129-4471-4492-a3c0-33720f0a9e35",
+  "slug": "security-alert-enrichment",
+  "title": "Security alert enrichment",
+  "category": "it-security",
+  "summary": "SIEM alerts are enriched with IP reputation, user and asset context, then auto-closed, opened as a SOAR case, or contained after analyst approval.",
+  "description": "Security alert enrichment does the first ten minutes of triage for every SIEM alert. The SIEM posts the alert (id, rule name, source IP, username, hostname and severity) to the workflow's webhook or start API.\n\nThe workflow looks up the source IP in your threat-intelligence service, the user in the directory (department, privileged roles, MFA) and the host in the CMDB (criticality, owner, environment, EDR agent id). Lookups continue on error, so a missing user or unknown host does not stop triage. The Alert disposition decision table weighs the IP score, asset criticality, privileged user and severity and chooses auto-close, investigate or contain.\n\nBenign alerts are closed in the SIEM with the enrichment as a comment. Alerts to investigate become a SOAR case with the observables attached, and the alert is linked to the case. Containment needs a person: the on-shift analyst approves host isolation within 30 minutes (escalating to the SOC lead), the EDR isolates the host and a case is opened either way. Adapt the disposition thresholds and the five API paths.",
+  "trigger": "api",
+  "entry_workflow": "3e6abb9e-29ea-43fe-9024-57f8ddc38144",
+  "start": "Headless: the SIEM posts each alert to the inbound webhook or the start API. People only see a task when an alert needs containment.",
+  "difficulty": "advanced",
+  "setup_minutes": 20,
+  "tags": [
+    "soc",
+    "siem",
+    "soar",
+    "threat intelligence",
+    "incident response"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "webhook"
+  ],
+  "setup": [
+    "Threat intelligence integration: base URL and API key (sent as X-API-Key). IP reputation expects GET /ip/{ip} returning a 0-100 reputation_score and categories.",
+    "Directory integration: base URL and token. Get user expects GET /users/{username} with department, privileged and mfa_enrolled.",
+    "CMDB integration: base URL and token. Get asset expects GET /assets/{hostname} with criticality (low, medium, high, critical), owner and edr_host_id.",
+    "SIEM integration: base URL and token for PATCH /alerts/{id}. Security operations integration: base URL and token for POST /cases and POST /edr/hosts/{id}/isolate.",
+    "Assignees: pick the default SOC analyst who approves containment (alerts can pass analyst_user_id) and the SOC lead who receives escalations.",
+    "Review the Alert disposition thresholds, then create an inbound webhook for the workflow and point your SIEM alert action at it."
+  ],
+  "steps": [
+    {
+      "title": "Alert received",
+      "body": "The SIEM posts the alert id, rule name, source IP, username, hostname and severity."
+    },
+    {
+      "title": "Enrich",
+      "body": "IP reputation, Get user and Get asset add the threat score and categories, the user's department and privileged status, and the host's criticality, owner and EDR id."
+    },
+    {
+      "title": "Decide the disposition",
+      "body": "The Alert disposition decision table chooses auto-close, investigate or contain, with a case severity and reason."
+    },
+    {
+      "title": "Auto-close or investigate",
+      "body": "Benign alerts are closed in the SIEM with the enrichment. Others become a SOAR case and the alert is linked to it."
+    },
+    {
+      "title": "Contain with approval",
+      "body": "For contain, the analyst approves host isolation within 30 minutes (or it escalates), the EDR isolates the host and a case is opened."
+    }
+  ],
+  "sample_input": {
+    "alert_id": "ALR-559102",
+    "rule_name": "Multiple failed sign-ins followed by success",
+    "source_ip": "203.0.113.45",
+    "username": "d.whitfield",
+    "hostname": "fin-ws-0417",
+    "severity": "high"
+  },
+  "expect": "completed",
+  "icon": "shield-alert"
+}

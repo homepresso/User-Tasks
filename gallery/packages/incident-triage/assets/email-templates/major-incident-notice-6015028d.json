@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "6015028d-3488-4cc3-b747-7161f7df8d1b",
+  "asset": {
+    "id": "6015028d-3488-4cc3-b747-7161f7df8d1b",
+    "name": "Major incident notice",
+    "description": "Sent to the business owner of the service when a P1 or P2 incident is acknowledged.",
+    "subject": "{{priority}} {{incident_number}}: {{service}} · {{summary}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">{{priority}} incident on {{service}}</h2>\n  <p>Hi,</p>\n  <p>A <strong>{{priority}}</strong> incident was opened for <strong>{{service}}</strong>: {{summary}}.</p>\n  <p>Incident {{incident_number}} has been acknowledged by the on-call engineer. Initial assessment: {{task_data.initial_assessment}}</p>\n  <p>Bridge: <a href=\"{{task_data.bridge_link}}\">{{task_data.bridge_link}}</a> · Ticket: <a href=\"{{incident_url}}\">{{incident_number}}</a></p>\n  <p style=\"color:#6E6759\">Response target {{response_minutes}} minutes, resolution target {{resolve_hours}} hours.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your incident triage workflow</p>\n</div>",
+    "text_body": "{{priority}} incident on {{service}}\n  Hi,\n  A {{priority}} incident was opened for {{service}}: {{summary}}.\n  Incident {{incident_number}} has been acknowledged by the on-call engineer. Initial assessment: {{task_data.initial_assessment}}\n  Bridge: {{task_data.bridge_link}} · Ticket: {{incident_number}}\n  Response target {{response_minutes}} minutes, resolution target {{resolve_hours}} hours.\n  Sent by your incident triage workflow",
+    "is_default": false
+  }
+}

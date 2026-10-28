@@ -1,0 +1,215 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "c231c1e9-373c-4074-82c1-a48f183761b9",
+  "asset": {
+    "id": "c231c1e9-373c-4074-82c1-a48f183761b9",
+    "name": "Change risk",
+    "description": "Risk level and approval path for a change from its type and the risk questions. Standard low-risk changes are pre-approved, emergencies go to the emergency CAB, everything else to the CAB. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "73442905-9360-4f61-bfd8-d22b4c9e895e",
+        "key": "change_type",
+        "label": "Change type",
+        "type": "text"
+      },
+      {
+        "id": "4bfcb1ce-28c1-4299-b35e-f05097fa2da9",
+        "key": "customer_impact",
+        "label": "Customer impact",
+        "type": "text"
+      },
+      {
+        "id": "e6ee9c0b-bd30-4dd7-9ce1-bd942c102407",
+        "key": "rollback_tested",
+        "label": "Rollback tested",
+        "type": "boolean"
+      },
+      {
+        "id": "560608a5-c260-4157-9ed1-f890a557e0e4",
+        "key": "out_of_hours",
+        "label": "Out of hours",
+        "type": "boolean"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "7b33334d-a072-435f-a27a-1c5244cbf18c",
+        "key": "risk_level",
+        "label": "Risk level",
+        "type": "text"
+      },
+      {
+        "id": "9fddba95-2b88-417b-855a-3b524368c398",
+        "key": "approval_path",
+        "label": "Approval path",
+        "type": "text"
+      },
+      {
+        "id": "9d969f83-422c-4321-bfca-c04e2130651a",
+        "key": "freeze_check",
+        "label": "Check change freeze",
+        "type": "boolean"
+      },
+      {
+        "id": "b492467b-9881-4245-8058-43f4d75b6331",
+        "key": "lead_days",
+        "label": "Minimum lead time (days)",
+        "type": "number"
+      }
+    ],
+    "rules": [
+      {
+        "id": "7990baf7-7672-46cf-8c2c-2891cd6d4885",
+        "label": "Emergency change",
+        "enabled": true,
+        "outputs": {
+          "risk_level": "high",
+          "approval_path": "ECAB",
+          "freeze_check": true,
+          "lead_days": 0
+        },
+        "conditions": [
+          {
+            "id": "e68af39f-d18c-4e43-9865-d40c66b10d9a",
+            "inputKey": "change_type",
+            "operator": "equals",
+            "value": "emergency"
+          }
+        ]
+      },
+      {
+        "id": "3108fb84-17bd-4e2b-9133-e661bf1801ec",
+        "label": "Outage expected",
+        "enabled": true,
+        "outputs": {
+          "risk_level": "high",
+          "approval_path": "CAB",
+          "freeze_check": true,
+          "lead_days": 5
+        },
+        "conditions": [
+          {
+            "id": "d6da624c-62f1-4a61-a42f-cc069966ce2d",
+            "inputKey": "customer_impact",
+            "operator": "equals",
+            "value": "outage"
+          }
+        ]
+      },
+      {
+        "id": "eb183577-f285-4726-b9b9-00868ba6061d",
+        "label": "Rollback not tested",
+        "enabled": true,
+        "outputs": {
+          "risk_level": "high",
+          "approval_path": "CAB",
+          "freeze_check": true,
+          "lead_days": 5
+        },
+        "conditions": [
+          {
+            "id": "3ff9483a-6cb3-4408-ba72-23ba4d4594b1",
+            "inputKey": "rollback_tested",
+            "operator": "equals",
+            "value": "false"
+          }
+        ]
+      },
+      {
+        "id": "20a4aa0c-d4e8-4715-a149-3121d0870c19",
+        "label": "Standard, no customer impact",
+        "enabled": true,
+        "outputs": {
+          "risk_level": "low",
+          "approval_path": "Auto",
+          "freeze_check": false,
+          "lead_days": 1
+        },
+        "conditions": [
+          {
+            "id": "7cae4ec6-12a9-4f42-8ec6-5f0bbac06681",
+            "inputKey": "change_type",
+            "operator": "equals",
+            "value": "standard"
+          },
+          {
+            "id": "e2306ced-882d-45f6-af11-b5ed45646f08",
+            "inputKey": "customer_impact",
+            "operator": "equals",
+            "value": "none"
+          }
+        ]
+      },
+      {
+        "id": "fb2e8ece-4315-47a1-a126-2948e7bb93fc",
+        "label": "Standard, minor impact out of hours",
+        "enabled": true,
+        "outputs": {
+          "risk_level": "low",
+          "approval_path": "Auto",
+          "freeze_check": false,
+          "lead_days": 1
+        },
+        "conditions": [
+          {
+            "id": "77fd441c-43eb-4c5c-881e-69fc5540c371",
+            "inputKey": "change_type",
+            "operator": "equals",
+            "value": "standard"
+          },
+          {
+            "id": "0bc0dfca-c36c-4a0f-a8a7-a85d31ba1dba",
+            "inputKey": "customer_impact",
+            "operator": "equals",
+            "value": "minor"
+          },
+          {
+            "id": "06815e58-5d2d-49fb-8dfd-7a2147dd48c9",
+            "inputKey": "out_of_hours",
+            "operator": "equals",
+            "value": "true"
+          }
+        ]
+      },
+      {
+        "id": "c149467f-181a-4562-b6ec-0c7a98ae987f",
+        "label": "Major customer impact",
+        "enabled": true,
+        "outputs": {
+          "risk_level": "high",
+          "approval_path": "CAB",
+          "freeze_check": true,
+          "lead_days": 5
+        },
+        "conditions": [
+          {
+            "id": "cddca08f-ee89-4037-81c0-f00897d89b6e",
+            "inputKey": "customer_impact",
+            "operator": "equals",
+            "value": "major"
+          }
+        ]
+      },
+      {
+        "id": "5a256c83-e141-49a1-a282-0710bbc42433",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "risk_level": "moderate",
+          "approval_path": "CAB",
+          "freeze_check": false,
+          "lead_days": 3
+        },
+        "conditions": [
+          {
+            "id": "a41808a6-bae9-43d7-8106-275e8e9c849f",
+            "inputKey": "change_type",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

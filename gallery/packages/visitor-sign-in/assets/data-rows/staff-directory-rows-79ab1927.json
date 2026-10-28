@@ -1,0 +1,71 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "79ab1927-d86a-519b-9a18-a084f7f472a4",
+  "asset": {
+    "id": "79ab1927-d86a-519b-9a18-a084f7f472a4",
+    "name": "Staff directory rows",
+    "rows": [
+      {
+        "id": "5b9eecf8-119b-5329-91b2-ed7d11b49291",
+        "data": {
+          "name": "Ana Lopez",
+          "email": "ana.lopez@example.com",
+          "team": "Finance",
+          "floor": "3",
+          "active": true
+        }
+      },
+      {
+        "id": "cc1fa5c4-e54b-56f9-a0bb-c0b379af6c55",
+        "data": {
+          "name": "Ben Carter",
+          "email": "ben.carter@example.com",
+          "team": "Engineering",
+          "floor": "4",
+          "active": true
+        }
+      },
+      {
+        "id": "219389a6-788d-5519-a447-cc3cf791682e",
+        "data": {
+          "name": "Chloe Martin",
+          "email": "chloe.martin@example.com",
+          "team": "People & Culture",
+          "floor": "2",
+          "active": true
+        }
+      },
+      {
+        "id": "7357ba55-b18f-5d4f-b00b-7027d36e93ed",
+        "data": {
+          "name": "Daniel Okafor",
+          "email": "daniel.okafor@example.com",
+          "team": "Sales",
+          "floor": "1",
+          "active": true
+        }
+      },
+      {
+        "id": "c8589441-8789-56b7-a279-674de2fdbb77",
+        "data": {
+          "name": "Emma Novak",
+          "email": "emma.novak@example.com",
+          "team": "Legal",
+          "floor": "3",
+          "active": true
+        }
+      },
+      {
+        "id": "d6382f74-b0f4-5d56-a3de-dca6e0d11d29",
+        "data": {
+          "name": "Farid Haddad",
+          "email": "farid.haddad@example.com",
+          "team": "Facilities",
+          "floor": "G",
+          "active": true
+        }
+      }
+    ]
+  }
+}

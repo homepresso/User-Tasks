@@ -1,0 +1,81 @@
+{
+  "id": "71a450ed-5cdb-4dbb-ba47-603e5846c361",
+  "slug": "incident-triage",
+  "title": "Incident triage",
+  "category": "it-security",
+  "summary": "Monitoring alerts open prioritised ITSM incidents automatically; repeat alerts are deduplicated and P1/P2 incidents page the on-call engineer with escalation.",
+  "description": "Incident triage turns monitoring alerts into correctly prioritised incidents without anyone watching a dashboard. Your monitoring or alerting tool posts each alert (service, summary, severity, source, host and a dedupe key) to the workflow's webhook or start API.\n\nThe workflow looks the service up in the Service owners table for its tier, assignment group, on-call contact and runbook, and checks the ITSM for an open incident with the same dedupe key; repeat alerts are added to that incident as a work note. New alerts go through the Incident priority decision table (impact from the tier, urgency from the severity) to get P1 to P4 with response and resolution targets, an SLA is set and the incident is opened in the ITSM.\n\nP1 and P2 incidents create an Acknowledge incident task for the on-call engineer with a 15-minute due time and escalation to the incident manager; acknowledging records the assessment and bridge link on the ticket and tells the business owner. P3 and P4 incidents are assigned to the team queue and the run completes. Adapt the service list, the priority matrix and the ITSM paths.",
+  "trigger": "api",
+  "entry_workflow": "c09cb637-e2e1-45de-8108-b74acfe2f553",
+  "start": "Headless: your monitoring tool posts each alert to the inbound webhook or the start API. People only see the acknowledgement task for P1 and P2 incidents.",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "incident management",
+    "on-call",
+    "monitoring",
+    "itsm",
+    "escalation"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "webhook"
+  ],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "IT service management integration: set the base URL of your ITSM API and an API token. The references expect GET /incidents?dedupe_key=, POST /incidents and PATCH /incidents/{id}; adjust paths, body fields and response models in Integrations.",
+    "Assignees: pick the default on-call engineer (used when an alert does not pass oncall_user_id) and the incident manager who receives escalations.",
+    "Edit the Service owners rows: every service your monitoring reports, its tier, assignment group, runbook and business owner email. Unknown services are treated as tier 3.",
+    "Review the Incident priority matrix and the response / resolution targets against your incident policy.",
+    "Webhook: create an inbound webhook for the Incident triage workflow and point your alerting tool at it, mapping its payload to service, summary, severity_hint, source, host and dedupe_key.",
+    "Email (optional): configure EMAIL_PROVIDER so business owners receive the major incident notice."
+  ],
+  "steps": [
+    {
+      "title": "Alert received",
+      "body": "Monitoring posts the service, summary, severity hint, source, host and dedupe key."
+    },
+    {
+      "title": "Look up the service",
+      "body": "The Service owners table gives the tier, assignment group, on-call contact, runbook and business owner."
+    },
+    {
+      "title": "Deduplicate",
+      "body": "If an incident with the same dedupe key is already open, the alert is added to it as a work note and the run ends."
+    },
+    {
+      "title": "Prioritise and open the incident",
+      "body": "The Incident priority decision table sets P1 to P4 and the response and resolution targets; the run SLA is set and the incident is created in the ITSM."
+    },
+    {
+      "title": "Page on-call for P1 / P2",
+      "body": "The on-call engineer acknowledges with an initial assessment and bridge link within 15 minutes, or the task escalates to the incident manager. The ticket is updated and the business owner emailed."
+    },
+    {
+      "title": "Queue P3 / P4",
+      "body": "Lower priorities are assigned to the team queue with the runbook link and the run completes."
+    }
+  ],
+  "sample_input": {
+    "service": "order-service",
+    "summary": "Checkout error rate above 5% for 10 minutes",
+    "severity_hint": "major",
+    "source": "Prometheus alertmanager: OrderErrorRateHigh",
+    "host": "order-service-7c9f6d-2kq8x",
+    "dedupe_key": "order-service:error-rate",
+    "details_url": "https://monitoring.example.com/alerts/order-error-rate"
+  },
+  "expect": "waiting",
+  "icon": "siren"
+}

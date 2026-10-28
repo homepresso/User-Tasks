@@ -1,0 +1,129 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "eac82d05-02d6-43ed-bab1-0e76b980ce99",
+  "asset": {
+    "id": "eac82d05-02d6-43ed-bab1-0e76b980ce99",
+    "integration_id": "39c223bf-eeed-4a8c-8b01-84fa5b22f989",
+    "name": "List invoices by date",
+    "description": "All invoices issued for orders on one date, with the order id they bill.",
+    "tags": [
+      "invoices"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/invoices",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "data",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "type": "string",
+                    "example": "INV-55120",
+                    "name": "invoice_number"
+                  },
+                  {
+                    "type": "string",
+                    "example": "SO-71001",
+                    "name": "order_id"
+                  },
+                  {
+                    "type": "number",
+                    "example": 1250,
+                    "name": "amount"
+                  },
+                  {
+                    "type": "string",
+                    "example": "NZD",
+                    "name": "currency"
+                  },
+                  {
+                    "type": "string",
+                    "example": "issued",
+                    "name": "status"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "count",
+              "type": "integer",
+              "example": 4
+            },
+            {
+              "name": "date",
+              "type": "string",
+              "example": "2026-10-25"
+            }
+          ]
+        },
+        "sample": {
+          "data": [
+            {
+              "invoice_number": "INV-55120",
+              "order_id": "SO-71001",
+              "amount": 1250,
+              "currency": "NZD",
+              "status": "issued"
+            },
+            {
+              "invoice_number": "INV-55123",
+              "order_id": "SO-71004",
+              "amount": 561.2,
+              "currency": "NZD",
+              "status": "issued"
+            },
+            {
+              "invoice_number": "INV-55121",
+              "order_id": "SO-71002",
+              "amount": 389.5,
+              "currency": "NZD",
+              "status": "issued"
+            }
+          ],
+          "count": 4,
+          "date": "2026-10-25"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "ae4d3ecf-5b1a-4150-8670-1c8de6fbc14c",
+        "name": "date",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "Invoice date, YYYY-MM-DD",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "dc55b5c1-823b-40f9-b416-b4c9676006f1",
+        "name": "invoices",
+        "path": "data",
+        "type": "array"
+      },
+      {
+        "id": "fc0fa1c8-80ce-46bf-b59f-29ad30e79112",
+        "name": "count",
+        "path": "count",
+        "type": "number"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1237 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "webhook_received",
+      "label": "Webhook Trigger",
+      "position": {
+        "x": 500,
+        "y": 20
+      },
+      "config": {}
+    },
+    {
+      "id": "n1",
+      "type": "set_title",
+      "label": "Set Run Title",
+      "position": {
+        "x": 500,
+        "y": 140
+      },
+      "config": {
+        "title": "Kitchen Sink \u2014 {{=FORMAT_DATE(NOW(), 'YYYY-MM-DD HH:mm')}}"
+      }
+    },
+    {
+      "id": "n2",
+      "type": "json_build_array",
+      "label": "Build Product Catalog",
+      "position": {
+        "x": 500,
+        "y": 280
+      },
+      "config": {
+        "items": [
+          {
+            "value": "{\"sku\": \"WDG-001\", \"name\": \"Alpha Widget\", \"price\": 29.99, \"stock\": 150, \"category\": \"widgets\", \"weight_kg\": 0.5, \"tags\": \"bestseller,new\"}"
+          },
+          {
+            "value": "{\"sku\": \"WDG-002\", \"name\": \"Beta Widget\", \"price\": 49.99, \"stock\": 0, \"category\": \"widgets\", \"weight_kg\": 0.8, \"tags\": \"premium\"}"
+          },
+          {
+            "value": "{\"sku\": \"GAD-001\", \"name\": \"Gamma Gadget\", \"price\": 199.99, \"stock\": 25, \"category\": \"gadgets\", \"weight_kg\": 2.1, \"tags\": \"premium,heavy\"}"
+          },
+          {
+            "value": "{\"sku\": \"GAD-002\", \"name\": \"Delta Gadget\", \"price\": 89.50, \"stock\": 200, \"category\": \"gadgets\", \"weight_kg\": 0.3, \"tags\": \"bestseller\"}"
+          },
+          {
+            "value": "{\"sku\": \"TOL-001\", \"name\": \"Epsilon Tool\", \"price\": 15.00, \"stock\": 500, \"category\": \"tools\", \"weight_kg\": 1.2, \"tags\": \"budget\"}"
+          },
+          {
+            "value": "{\"sku\": \"TOL-002\", \"name\": \"Zeta Tool\", \"price\": 75.00, \"stock\": 42, \"category\": \"tools\", \"weight_kg\": 3.5, \"tags\": \"premium,heavy\"}"
+          },
+          {
+            "value": "{\"sku\": \"ACC-001\", \"name\": \"Eta Accessory\", \"price\": 5.99, \"stock\": 1000, \"category\": \"accessories\", \"weight_kg\": 0.05, \"tags\": \"budget,bestseller\"}"
+          },
+          {
+            "value": "{\"sku\": \"ACC-002\", \"name\": \"Theta Accessory\", \"price\": 12.50, \"stock\": 0, \"category\": \"accessories\", \"weight_kg\": 0.1, \"tags\": \"new\"}"
+          }
+        ],
+        "output_var": "products"
+      }
+    },
+    {
+      "id": "n3",
+      "type": "collection_count",
+      "label": "Count Products",
+      "position": {
+        "x": 500,
+        "y": 420
+      },
+      "config": {
+        "collection": "{{products}}",
+        "output_var": "product_count"
+      }
+    },
+    {
+      "id": "n4",
+      "type": "collection_filter",
+      "label": "In-Stock Only",
+      "position": {
+        "x": 300,
+        "y": 560
+      },
+      "config": {
+        "collection": "{{products}}",
+        "field": "stock",
+        "operator": "gt",
+        "value": "0",
+        "output_var": "in_stock"
+      }
+    },
+    {
+      "id": "n5",
+      "type": "collection_filter",
+      "label": "Out-of-Stock",
+      "position": {
+        "x": 700,
+        "y": 560
+      },
+      "config": {
+        "collection": "{{products}}",
+        "field": "stock",
+        "operator": "equals",
+        "value": "0",
+        "output_var": "out_of_stock"
+      }
+    },
+    {
+      "id": "n6",
+      "type": "collection_count",
+      "label": "Count In-Stock",
+      "position": {
+        "x": 300,
+        "y": 700
+      },
+      "config": {
+        "collection": "{{in_stock}}",
+        "output_var": "in_stock_count"
+      }
+    },
+    {
+      "id": "n7",
+      "type": "collection_count",
+      "label": "Count Out-of-Stock",
+      "position": {
+        "x": 700,
+        "y": 700
+      },
+      "config": {
+        "collection": "{{out_of_stock}}",
+        "output_var": "oos_count"
+      }
+    },
+    {
+      "id": "n8",
+      "type": "condition",
+      "label": "Any Out of Stock?",
+      "position": {
+        "x": 700,
+        "y": 840
+      },
+      "config": {
+        "branches": [
+          {
+            "label": "Has OOS Items",
+            "logic": "AND",
+            "rules": [
+              {
+                "field": "{{oos_count}}",
+                "operator": "greater_than",
+                "value": "0"
+              }
+            ]
+          }
+        ],
+        "has_else": true
+      }
+    },
+    {
+      "id": "n9",
+      "type": "loop",
+      "label": "Alert Each OOS",
+      "position": {
+        "x": 600,
+        "y": 1000
+      },
+      "config": {
+        "items": "{{out_of_stock}}",
+        "item_var": "oos_item",
+        "index_var": "oos_idx"
+      }
+    },
+    {
+      "id": "n10",
+      "type": "log",
+      "label": "OOS Alert",
+      "position": {
+        "x": 600,
+        "y": 1140
+      },
+      "config": {
+        "message": "OUT OF STOCK: {{oos_item.sku}} \u2014 {{oos_item.name}} ({{oos_item.category}})"
+      }
+    },
+    {
+      "id": "n11",
+      "type": "log",
+      "label": "All In Stock",
+      "position": {
+        "x": 900,
+        "y": 1000
+      },
+      "config": {
+        "message": "All products in stock \u2014 no alerts needed"
+      }
+    },
+    {
+      "id": "n12",
+      "type": "collection_sort",
+      "label": "Sort by Price DESC",
+      "position": {
+        "x": 300,
+        "y": 840
+      },
+      "config": {
+        "collection": "{{in_stock}}",
+        "field": "price",
+        "direction": "desc",
+        "output_var": "by_price"
+      }
+    },
+    {
+      "id": "n13",
+      "type": "collection_get",
+      "label": "Most Expensive",
+      "position": {
+        "x": 150,
+        "y": 980
+      },
+      "config": {
+        "collection": "{{by_price}}",
+        "by": "index",
+        "index": 0,
+        "output_var": "most_expensive"
+      }
+    },
+    {
+      "id": "n14",
+      "type": "collection_get",
+      "label": "Cheapest",
+      "position": {
+        "x": 400,
+        "y": 980
+      },
+      "config": {
+        "collection": "{{by_price}}",
+        "by": "last",
+        "output_var": "cheapest"
+      }
+    },
+    {
+      "id": "n15",
+      "type": "collection_unique",
+      "label": "Unique Categories",
+      "position": {
+        "x": 300,
+        "y": 1140
+      },
+      "config": {
+        "collection": "{{products}}",
+        "field": "category",
+        "output_var": "categories"
+      }
+    },
+    {
+      "id": "n16",
+      "type": "collection_join",
+      "label": "Join Category Names",
+      "position": {
+        "x": 300,
+        "y": 1280
+      },
+      "config": {
+        "collection": "{{categories}}",
+        "field": "category",
+        "separator": " | ",
+        "output_var": "category_list"
+      }
+    },
+    {
+      "id": "n17",
+      "type": "loop",
+      "label": "Process Each Product",
+      "position": {
+        "x": 500,
+        "y": 1440
+      },
+      "config": {
+        "items": "{{in_stock}}",
+        "item_var": "prod",
+        "index_var": "prod_idx"
+      }
+    },
+    {
+      "id": "n18",
+      "type": "switch_case",
+      "label": "Route by Category",
+      "position": {
+        "x": 500,
+        "y": 1580
+      },
+      "config": {
+        "field": "{{prod.category}}",
+        "cases": [
+          "widgets",
+          "gadgets",
+          "tools",
+          "accessories"
+        ],
+        "has_default": true
+      }
+    },
+    {
+      "id": "n19",
+      "type": "set_variable",
+      "label": "Markup 30%",
+      "position": {
+        "x": 100,
+        "y": 1740
+      },
+      "config": {
+        "name": "markup",
+        "expression": "0.30"
+      }
+    },
+    {
+      "id": "n20",
+      "type": "set_variable",
+      "label": "Markup 45%",
+      "position": {
+        "x": 300,
+        "y": 1740
+      },
+      "config": {
+        "name": "markup",
+        "expression": "0.45"
+      }
+    },
+    {
+      "id": "n21",
+      "type": "set_variable",
+      "label": "Markup 25%",
+      "position": {
+        "x": 500,
+        "y": 1740
+      },
+      "config": {
+        "name": "markup",
+        "expression": "0.25"
+      }
+    },
+    {
+      "id": "n22",
+      "type": "set_variable",
+      "label": "Markup 60%",
+      "position": {
+        "x": 700,
+        "y": 1740
+      },
+      "config": {
+        "name": "markup",
+        "expression": "0.60"
+      }
+    },
+    {
+      "id": "n23",
+      "type": "set_variable",
+      "label": "Markup 20%",
+      "position": {
+        "x": 900,
+        "y": 1740
+      },
+      "config": {
+        "name": "markup",
+        "expression": "0.20"
+      }
+    },
+    {
+      "id": "n24",
+      "type": "math",
+      "label": "Calc Retail Price",
+      "position": {
+        "x": 500,
+        "y": 1900
+      },
+      "config": {
+        "expression": "{{prod.price}} * (1 + {{markup}})",
+        "output_var": "retail_price"
+      }
+    },
+    {
+      "id": "n25",
+      "type": "set_variable",
+      "label": "Round Retail",
+      "position": {
+        "x": 500,
+        "y": 2040
+      },
+      "config": {
+        "name": "retail_rounded",
+        "expression": "{{=ROUND(retail_price, 2)}}"
+      }
+    },
+    {
+      "id": "n26",
+      "type": "math",
+      "label": "Calc Stock Value",
+      "position": {
+        "x": 300,
+        "y": 2040
+      },
+      "config": {
+        "expression": "{{prod.stock}} * {{retail_rounded}}",
+        "output_var": "stock_value"
+      }
+    },
+    {
+      "id": "n27",
+      "type": "condition",
+      "label": "Is Heavy Item?",
+      "position": {
+        "x": 500,
+        "y": 2180
+      },
+      "config": {
+        "branches": [
+          {
+            "label": "Heavy (>2kg)",
+            "logic": "AND",
+            "rules": [
+              {
+                "field": "{{prod.weight_kg}}",
+                "operator": "greater_than",
+                "value": "2"
+              }
+            ]
+          },
+          {
+            "label": "Medium (>1kg)",
+            "logic": "AND",
+            "rules": [
+              {
+                "field": "{{prod.weight_kg}}",
+                "operator": "greater_than",
+                "value": "1"
+              }
+            ]
+          }
+        ],
+        "has_else": true,
+        "match_mode": "first"
+      }
+    },
+    {
+      "id": "n28",
+      "type": "set_variable",
+      "label": "Ship = Freight",
+      "position": {
+        "x": 200,
+        "y": 2340
+      },
+      "config": {
+        "name": "shipping_class",
+        "expression": "FREIGHT"
+      }
+    },
+    {
+      "id": "n29",
+      "type": "set_variable",
+      "label": "Ship = Standard",
+      "position": {
+        "x": 500,
+        "y": 2340
+      },
+      "config": {
+        "name": "shipping_class",
+        "expression": "STANDARD"
+      }
+    },
+    {
+      "id": "n30",
+      "type": "set_variable",
+      "label": "Ship = Letter",
+      "position": {
+        "x": 800,
+        "y": 2340
+      },
+      "config": {
+        "name": "shipping_class",
+        "expression": "LETTER"
+      }
+    },
+    {
+      "id": "n31",
+      "type": "regex",
+      "label": "Check Tags",
+      "position": {
+        "x": 500,
+        "y": 2500
+      },
+      "config": {
+        "input": "{{prod.tags}}",
+        "pattern": "bestseller",
+        "operation": "test",
+        "output_var": "is_bestseller"
+      }
+    },
+    {
+      "id": "n32",
+      "type": "modify_string",
+      "label": "Uppercase SKU",
+      "position": {
+        "x": 300,
+        "y": 2640
+      },
+      "config": {
+        "input": "{{prod.sku}}",
+        "operation": "uppercase",
+        "output_var": "sku_upper"
+      }
+    },
+    {
+      "id": "n33",
+      "type": "modify_string",
+      "label": "Pad Stock",
+      "position": {
+        "x": 700,
+        "y": 2640
+      },
+      "config": {
+        "input": "{{prod.stock}}",
+        "operation": "pad_start",
+        "length": 6,
+        "pad_char": "0",
+        "output_var": "stock_padded"
+      }
+    },
+    {
+      "id": "n34",
+      "type": "text_template",
+      "label": "Product Line",
+      "position": {
+        "x": 500,
+        "y": 2800
+      },
+      "config": {
+        "template": "[{{=ADD(prod_idx, 1)}}] {{sku_upper}} | {{prod.name}} | Cost: ${{prod.price}} \u2192 Retail: ${{retail_rounded}} | Stock: {{stock_padded}} (val: ${{=ROUND(stock_value, 0)}}) | Ship: {{shipping_class}} | Bestseller: {{is_bestseller}}",
+        "output_var": "product_line"
+      }
+    },
+    {
+      "id": "n35",
+      "type": "log",
+      "label": "Log Product",
+      "position": {
+        "x": 500,
+        "y": 2940
+      },
+      "config": {
+        "message": "{{product_line}}"
+      }
+    },
+    {
+      "id": "n36",
+      "type": "collection_filter",
+      "label": "Filter Premium",
+      "position": {
+        "x": 200,
+        "y": 3120
+      },
+      "config": {
+        "collection": "{{in_stock}}",
+        "field": "price",
+        "operator": "gt",
+        "value": "50",
+        "output_var": "premium_products"
+      }
+    },
+    {
+      "id": "n37",
+      "type": "collection_filter",
+      "label": "Filter Budget",
+      "position": {
+        "x": 500,
+        "y": 3120
+      },
+      "config": {
+        "collection": "{{in_stock}}",
+        "field": "price",
+        "operator": "lte",
+        "value": "15",
+        "output_var": "budget_products"
+      }
+    },
+    {
+      "id": "n38",
+      "type": "collection_filter",
+      "label": "Filter Low Stock",
+      "position": {
+        "x": 800,
+        "y": 3120
+      },
+      "config": {
+        "collection": "{{in_stock}}",
+        "field": "stock",
+        "operator": "lt",
+        "value": "50",
+        "output_var": "low_stock"
+      }
+    },
+    {
+      "id": "n39",
+      "type": "collection_count",
+      "label": "Count Premium",
+      "position": {
+        "x": 200,
+        "y": 3260
+      },
+      "config": {
+        "collection": "{{premium_products}}",
+        "output_var": "premium_count"
+      }
+    },
+    {
+      "id": "n40",
+      "type": "collection_count",
+      "label": "Count Budget",
+      "position": {
+        "x": 500,
+        "y": 3260
+      },
+      "config": {
+        "collection": "{{budget_products}}",
+        "output_var": "budget_count"
+      }
+    },
+    {
+      "id": "n41",
+      "type": "collection_count",
+      "label": "Count Low Stock",
+      "position": {
+        "x": 800,
+        "y": 3260
+      },
+      "config": {
+        "collection": "{{low_stock}}",
+        "output_var": "low_stock_count"
+      }
+    },
+    {
+      "id": "n42",
+      "type": "collection_sort",
+      "label": "Sort by Weight",
+      "position": {
+        "x": 200,
+        "y": 3400
+      },
+      "config": {
+        "collection": "{{in_stock}}",
+        "field": "weight_kg",
+        "direction": "asc",
+        "output_var": "by_weight"
+      }
+    },
+    {
+      "id": "n43",
+      "type": "collection_join",
+      "label": "Join SKUs",
+      "position": {
+        "x": 500,
+        "y": 3400
+      },
+      "config": {
+        "collection": "{{in_stock}}",
+        "field": "sku",
+        "separator": ", ",
+        "output_var": "all_skus"
+      }
+    },
+    {
+      "id": "n44",
+      "type": "collection_join",
+      "label": "Join Low Stock Names",
+      "position": {
+        "x": 800,
+        "y": 3400
+      },
+      "config": {
+        "collection": "{{low_stock}}",
+        "field": "name",
+        "separator": " / ",
+        "output_var": "low_stock_names"
+      }
+    },
+    {
+      "id": "n45",
+      "type": "loop_n_times",
+      "label": "Generate 3 Discounts",
+      "position": {
+        "x": 500,
+        "y": 3560
+      },
+      "config": {
+        "count": "3",
+        "index_var": "disc_i"
+      }
+    },
+    {
+      "id": "n46",
+      "type": "math",
+      "label": "Calc Discount %",
+      "position": {
+        "x": 500,
+        "y": 3700
+      },
+      "config": {
+        "expression": "({{disc_i}} + 1) * 10",
+        "output_var": "disc_pct"
+      }
+    },
+    {
+      "id": "n47",
+      "type": "math",
+      "label": "Apply to Most Expensive",
+      "position": {
+        "x": 500,
+        "y": 3840
+      },
+      "config": {
+        "expression": "{{most_expensive.price}} * (1 - {{disc_pct}} / 100)",
+        "output_var": "discounted_price"
+      }
+    },
+    {
+      "id": "n48",
+      "type": "log",
+      "label": "Log Discount",
+      "position": {
+        "x": 500,
+        "y": 3980
+      },
+      "config": {
+        "message": "Tier {{=ADD(disc_i, 1)}} ({{disc_pct}}% off): {{most_expensive.name}} ${{most_expensive.price}} \u2192 ${{=ROUND(discounted_price, 2)}}"
+      }
+    },
+    {
+      "id": "n49",
+      "type": "format_date",
+      "label": "Format Report Date",
+      "position": {
+        "x": 300,
+        "y": 4160
+      },
+      "config": {
+        "input": "{{=NOW()}}",
+        "format": "datetime",
+        "output_var": "report_date"
+      }
+    },
+    {
+      "id": "n50",
+      "type": "date_math",
+      "label": "Next Restock Date",
+      "position": {
+        "x": 700,
+        "y": 4160
+      },
+      "config": {
+        "date": "{{=NOW()}}",
+        "operation": "add",
+        "amount": 14,
+        "unit": "days",
+        "output_var": "next_restock"
+      }
+    },
+    {
+      "id": "n51",
+      "type": "regex",
+      "label": "Extract All SKU Codes",
+      "position": {
+        "x": 500,
+        "y": 4300
+      },
+      "config": {
+        "input": "{{all_skus}}",
+        "pattern": "[A-Z]{3}-\\d{3}",
+        "flags": "g",
+        "operation": "match",
+        "output_var": "sku_codes"
+      }
+    },
+    {
+      "id": "n52",
+      "type": "regex",
+      "label": "Replace SKU Prefix",
+      "position": {
+        "x": 500,
+        "y": 4440
+      },
+      "config": {
+        "input": "{{most_expensive.sku}}",
+        "pattern": "^([A-Z]+)",
+        "operation": "replace",
+        "replace_with": "PREM",
+        "output_var": "premium_sku"
+      }
+    },
+    {
+      "id": "n53",
+      "type": "json_build_object",
+      "label": "Build Stats Object",
+      "position": {
+        "x": 500,
+        "y": 4580
+      },
+      "config": {
+        "fields": [
+          {
+            "key": "total_products",
+            "value": "{{product_count}}"
+          },
+          {
+            "key": "in_stock",
+            "value": "{{in_stock_count}}"
+          },
+          {
+            "key": "out_of_stock",
+            "value": "{{oos_count}}"
+          },
+          {
+            "key": "premium_items",
+            "value": "{{premium_count}}"
+          },
+          {
+            "key": "budget_items",
+            "value": "{{budget_count}}"
+          },
+          {
+            "key": "low_stock_items",
+            "value": "{{low_stock_count}}"
+          },
+          {
+            "key": "most_expensive_sku",
+            "value": "{{most_expensive.sku}}"
+          },
+          {
+            "key": "cheapest_sku",
+            "value": "{{cheapest.sku}}"
+          },
+          {
+            "key": "categories",
+            "value": "{{category_list}}"
+          },
+          {
+            "key": "report_date",
+            "value": "{{report_date}}"
+          }
+        ],
+        "output_var": "stats"
+      }
+    },
+    {
+      "id": "n54",
+      "type": "json_get_value",
+      "label": "Read Total from Stats",
+      "position": {
+        "x": 500,
+        "y": 4720
+      },
+      "config": {
+        "source": "{{stats}}",
+        "path": "total_products",
+        "output_var": "verified_total"
+      }
+    },
+    {
+      "id": "n55",
+      "type": "text_template",
+      "label": "Build Final Report",
+      "position": {
+        "x": 500,
+        "y": 4880
+      },
+      "config": {
+        "template": "\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557\n\u2551    PRODUCT INVENTORY REPORT          \u2551\n\u2560\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2563\n\u2551 Generated: {{report_date}}\n\u2551 Next Restock: {{next_restock}}\n\u2560\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2563\n\u2551 INVENTORY SUMMARY\n\u2551 Total Products: {{product_count}}\n\u2551 In Stock: {{in_stock_count}} | OOS: {{oos_count}}\n\u2551 Premium (>$50): {{premium_count}}\n\u2551 Budget (<=$15): {{budget_count}}\n\u2551 Low Stock (<50): {{low_stock_count}}\n\u2560\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2563\n\u2551 HIGHLIGHTS\n\u2551 Most Expensive: {{most_expensive.name}} (${{most_expensive.price}})\n\u2551 Cheapest: {{cheapest.name}} (${{cheapest.price}})\n\u2551 Premium SKU: {{premium_sku}}\n\u2551 Categories: {{category_list}}\n\u2560\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2563\n\u2551 LOW STOCK ALERTS\n\u2551 {{low_stock_names}}\n\u2560\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2563\n\u2551 ALL SKUs: {{all_skus}}\n\u2551 Verified Total: {{verified_total}}\n\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d",
+        "output_var": "final_report"
+      }
+    },
+    {
+      "id": "n56",
+      "type": "log",
+      "label": "Log Final Report",
+      "position": {
+        "x": 500,
+        "y": 5020
+      },
+      "config": {
+        "message": "{{final_report}}"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "t1",
+      "target": "n1"
+    },
+    {
+      "id": "e2",
+      "source": "n1",
+      "target": "n2"
+    },
+    {
+      "id": "e3",
+      "source": "n2",
+      "target": "n3"
+    },
+    {
+      "id": "e4",
+      "source": "n3",
+      "target": "n4"
+    },
+    {
+      "id": "e6",
+      "source": "n4",
+      "target": "n6"
+    },
+    {
+      "id": "e7",
+      "source": "n5",
+      "target": "n7"
+    },
+    {
+      "id": "e9",
+      "source": "n8",
+      "target": "n9",
+      "label": "Has OOS Items"
+    },
+    {
+      "id": "e10",
+      "source": "n9",
+      "target": "n10",
+      "label": "Each Item"
+    },
+    {
+      "id": "e11",
+      "source": "n8",
+      "target": "n11",
+      "label": "Else"
+    },
+    {
+      "id": "e13",
+      "source": "n12",
+      "target": "n13"
+    },
+    {
+      "id": "e16",
+      "source": "n14",
+      "target": "n15"
+    },
+    {
+      "id": "e17",
+      "source": "n15",
+      "target": "n16"
+    },
+    {
+      "id": "e18",
+      "source": "n16",
+      "target": "n17"
+    },
+    {
+      "id": "e19",
+      "source": "n17",
+      "target": "n18",
+      "label": "Each Item"
+    },
+    {
+      "id": "e20",
+      "source": "n18",
+      "target": "n19",
+      "label": "widgets"
+    },
+    {
+      "id": "e21",
+      "source": "n18",
+      "target": "n20",
+      "label": "gadgets"
+    },
+    {
+      "id": "e22",
+      "source": "n18",
+      "target": "n21",
+      "label": "tools"
+    },
+    {
+      "id": "e23",
+      "source": "n18",
+      "target": "n22",
+      "label": "accessories"
+    },
+    {
+      "id": "e24",
+      "source": "n18",
+      "target": "n23",
+      "label": "Default"
+    },
+    {
+      "id": "e25",
+      "source": "n19",
+      "target": "n24"
+    },
+    {
+      "id": "e26",
+      "source": "n20",
+      "target": "n24"
+    },
+    {
+      "id": "e27",
+      "source": "n21",
+      "target": "n24"
+    },
+    {
+      "id": "e28",
+      "source": "n22",
+      "target": "n24"
+    },
+    {
+      "id": "e29",
+      "source": "n23",
+      "target": "n24"
+    },
+    {
+      "id": "e30",
+      "source": "n24",
+      "target": "n25"
+    },
+    {
+      "id": "e32",
+      "source": "n25",
+      "target": "n27"
+    },
+    {
+      "id": "e33",
+      "source": "n27",
+      "target": "n28",
+      "label": "Heavy (>2kg)"
+    },
+    {
+      "id": "e34",
+      "source": "n27",
+      "target": "n29",
+      "label": "Medium (>1kg)"
+    },
+    {
+      "id": "e35",
+      "source": "n27",
+      "target": "n30",
+      "label": "Else"
+    },
+    {
+      "id": "e36",
+      "source": "n28",
+      "target": "n26"
+    },
+    {
+      "id": "e37",
+      "source": "n29",
+      "target": "n26"
+    },
+    {
+      "id": "e38",
+      "source": "n30",
+      "target": "n26"
+    },
+    {
+      "id": "e39",
+      "source": "n26",
+      "target": "n31"
+    },
+    {
+      "id": "e40",
+      "source": "n31",
+      "target": "n32"
+    },
+    {
+      "id": "e43",
+      "source": "n33",
+      "target": "n34"
+    },
+    {
+      "id": "e44",
+      "source": "n34",
+      "target": "n35"
+    },
+    {
+      "id": "e45",
+      "source": "n17",
+      "target": "n36",
+      "label": "Done"
+    },
+    {
+      "id": "e48",
+      "source": "n36",
+      "target": "n39"
+    },
+    {
+      "id": "e49",
+      "source": "n37",
+      "target": "n40"
+    },
+    {
+      "id": "e50",
+      "source": "n38",
+      "target": "n41"
+    },
+    {
+      "id": "e52",
+      "source": "n40",
+      "target": "n43"
+    },
+    {
+      "id": "e53",
+      "source": "n41",
+      "target": "n44"
+    },
+    {
+      "id": "e54",
+      "source": "n42",
+      "target": "n45"
+    },
+    {
+      "id": "e57",
+      "source": "n45",
+      "target": "n46",
+      "label": "Each Item"
+    },
+    {
+      "id": "e58",
+      "source": "n46",
+      "target": "n47"
+    },
+    {
+      "id": "e59",
+      "source": "n47",
+      "target": "n48"
+    },
+    {
+      "id": "e61",
+      "source": "n45",
+      "target": "n50",
+      "label": "Done"
+    },
+    {
+      "id": "e62",
+      "source": "n49",
+      "target": "n51"
+    },
+    {
+      "id": "e63",
+      "source": "n50",
+      "target": "n52"
+    },
+    {
+      "id": "e64",
+      "source": "n51",
+      "target": "n53"
+    },
+    {
+      "id": "e66",
+      "source": "n53",
+      "target": "n54"
+    },
+    {
+      "id": "e67",
+      "source": "n54",
+      "target": "n55"
+    },
+    {
+      "id": "e68",
+      "source": "n55",
+      "target": "n56"
+    },
+    {
+      "id": "e100",
+      "source": "n13",
+      "target": "n14"
+    },
+    {
+      "id": "e101",
+      "source": "n6",
+      "target": "n5"
+    },
+    {
+      "id": "e102",
+      "source": "n7",
+      "target": "n12"
+    },
+    {
+      "id": "e103",
+      "source": "n32",
+      "target": "n33"
+    },
+    {
+      "id": "e104",
+      "source": "n39",
+      "target": "n37"
+    },
+    {
+      "id": "e105",
+      "source": "n43",
+      "target": "n38"
+    },
+    {
+      "id": "e106",
+      "source": "n44",
+      "target": "n42"
+    },
+    {
+      "id": "e107",
+      "source": "n52",
+      "target": "n49"
+    },
+    {
+      "id": "e108",
+      "source": "n56",
+      "target": "n8"
+    }
+  ],
+  "user_variables": [
+    {
+      "id": "v1",
+      "name": "markup",
+      "type": "number",
+      "defaultValue": "0.30",
+      "description": "Fallback markup \u2014 the Route by Category branches overwrite this per product"
+    },
+    {
+      "id": "v2",
+      "name": "shipping_class",
+      "type": "string",
+      "defaultValue": "STANDARD",
+      "description": "Fallback shipping class \u2014 the Is Heavy Item? branches overwrite this per product"
+    }
+  ],
+  "swimlanes": []
+}

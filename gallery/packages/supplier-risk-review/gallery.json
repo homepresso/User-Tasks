@@ -1,0 +1,107 @@
+{
+  "id": "0c26e977-38cf-4a99-ad75-76d32ad647e7",
+  "slug": "supplier-risk-review",
+  "title": "Supplier risk review",
+  "category": "operations-compliance",
+  "summary": "Adding a supplier or flagging it for review pulls a fresh risk rating, sets the tier and next review date, and sends high-risk suppliers to procurement.",
+  "description": "Supplier risk review keeps your supplier register's risk ratings current. It runs whenever a row in the Suppliers data table is created, or updated with \"Review requested\" ticked, and fetches the supplier's financial score, cyber score, ESG flags and sanctions screening from your risk-intelligence provider.\n\nThe Supplier risk decision table combines those scores with the supplier's criticality and annual spend into a risk tier, a review cadence and a recommended action. The workflow writes the tier, scores and next review date back to the row and clears \"Review requested\", so its own update does not start another review. High and critical suppliers go to procurement as a User Task to accept the risk, agree a mitigation plan or plan an exit, with a five-day SLA; the business owner is told when the supplier is flagged and when it is decided.\n\nAdapt the Supplier risk rules to your risk appetite, the reference to your provider's API, and the Suppliers columns to your register.",
+  "trigger": "event",
+  "entry_workflow": "1d582a79-6d06-48f5-857f-646eae0a1378",
+  "start": "Starts when a Suppliers row is created, or updated with \"Review requested\" ticked. Updates without the flag (including the workflow's own) end straight away.",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "suppliers",
+    "third-party risk",
+    "procurement",
+    "decision table",
+    "event"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: the supplier risk review has Accept / Mitigate / Exit buttons, a grid and a header."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "Risk intelligence integration: set the base URL of your provider and an API token. Get supplier risk rating expects GET /risk-ratings/{supplier_id} returning financial.score, cyber.score, esg.flags and sanctions.match; adjust the path and response model in Integrations.",
+    "Assignees: pick the procurement lead who reviews high-risk suppliers (runs can pass procurement_lead_id to route elsewhere).",
+    "Edit the Supplier risk rules (score thresholds, criticality, spend) to your risk appetite and review cadences.",
+    "Replace the sample rows in Suppliers with your suppliers, or import them. Tick \"Review requested\" on a row to re-assess it.",
+    "Email: configure EMAIL_PROVIDER on the instance so business owners are told (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Supplier added or flagged",
+      "body": "A new Suppliers row, or an update with \"Review requested\" ticked, starts the review. Other updates end at once, which stops the workflow re-triggering itself."
+    },
+    {
+      "title": "Get the risk rating",
+      "body": "The risk-intelligence API returns financial and cyber scores, ESG flags and the sanctions screening result."
+    },
+    {
+      "title": "Apply the risk rules",
+      "body": "The Supplier risk decision table turns the scores, criticality and spend into a tier, a review cadence and a recommended action."
+    },
+    {
+      "title": "Update the register",
+      "body": "The tier, scores, last assessed and next review dates are written to the row and the review flag is cleared."
+    },
+    {
+      "title": "Procurement review",
+      "body": "High and critical suppliers go to procurement to accept, mitigate or exit, with the plan and next review date; the business owner is emailed."
+    }
+  ],
+  "sample_input": {
+    "data_event_type": "updated",
+    "data_table_name": "Suppliers",
+    "row": {
+      "supplier_id": "SUP-104",
+      "name": "Tailspin Components",
+      "category": "Manufacturing",
+      "criticality": "high",
+      "annual_spend": 480000,
+      "country": "SG",
+      "owner_email": "supply.chain@example.com",
+      "review_requested": true,
+      "risk_tier": "Medium",
+      "financial_score": 55,
+      "cyber_score": 60,
+      "esg_flags": "Labour audit overdue",
+      "sanctions_hit": false,
+      "last_assessed": "2026-03-03",
+      "next_review_date": "2026-09-01",
+      "review_status": "Review overdue"
+    },
+    "supplier_id": "SUP-104",
+    "name": "Tailspin Components",
+    "category": "Manufacturing",
+    "criticality": "high",
+    "annual_spend": 480000,
+    "country": "SG",
+    "owner_email": "supply.chain@example.com",
+    "review_requested": true,
+    "risk_tier": "Medium",
+    "financial_score": 55,
+    "cyber_score": 60,
+    "esg_flags": "Labour audit overdue",
+    "sanctions_hit": false,
+    "last_assessed": "2026-03-03",
+    "next_review_date": "2026-09-01",
+    "review_status": "Review overdue"
+  },
+  "expect": "waiting",
+  "icon": "truck"
+}

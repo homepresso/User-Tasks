@@ -1,0 +1,184 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "d8ce1cb7-40f8-5e57-8c88-2c8795071bbb",
+  "asset": {
+    "id": "d8ce1cb7-40f8-5e57-8c88-2c8795071bbb",
+    "name": "Stock items rows",
+    "rows": [
+      {
+        "id": "d0b43c2a-f461-5a9b-b2c9-f3456de76641",
+        "data": {
+          "sku": "PKG-BOX-M",
+          "name": "Shipping box, medium (40×30×20)",
+          "category": "Packaging",
+          "location": "Aisle 1",
+          "unit": "each",
+          "on_hand": 140,
+          "reorder_point": 200,
+          "reorder_qty": 1000,
+          "unit_cost": 0.85,
+          "supplier": "Corrugated Co",
+          "supplier_email": "orders@corrugated.example.com",
+          "lead_time_days": 5,
+          "on_order": false,
+          "last_ordered": "2026-09-02",
+          "active": true
+        }
+      },
+      {
+        "id": "bea9b228-c53d-5de7-b3dd-c2bb6d9c5161",
+        "data": {
+          "sku": "PKG-TAPE-48",
+          "name": "Packing tape 48 mm",
+          "category": "Packaging",
+          "location": "Aisle 1",
+          "unit": "roll",
+          "on_hand": 220,
+          "reorder_point": 60,
+          "reorder_qty": 288,
+          "unit_cost": 1.9,
+          "supplier": "Corrugated Co",
+          "supplier_email": "orders@corrugated.example.com",
+          "lead_time_days": 5,
+          "on_order": false,
+          "active": true
+        }
+      },
+      {
+        "id": "88505355-907c-5d6d-a465-ecfcde839b5f",
+        "data": {
+          "sku": "LBL-4X6",
+          "name": "Thermal shipping labels 4×6",
+          "category": "Packaging",
+          "location": "Despatch bench",
+          "unit": "roll of 500",
+          "on_hand": 6,
+          "reorder_point": 10,
+          "reorder_qty": 24,
+          "unit_cost": 14.5,
+          "supplier": "LabelWorks",
+          "supplier_email": "sales@labelworks.example.com",
+          "lead_time_days": 3,
+          "on_order": false,
+          "active": true
+        }
+      },
+      {
+        "id": "9eae5370-81c8-5bbb-b9a6-95ca2513c91a",
+        "data": {
+          "sku": "CLN-GLOVE-L",
+          "name": "Nitrile gloves, large",
+          "category": "Consumables",
+          "location": "Store room",
+          "unit": "box of 100",
+          "on_hand": 32,
+          "reorder_point": 20,
+          "reorder_qty": 50,
+          "unit_cost": 7.2,
+          "supplier": "SafeHands Supply",
+          "supplier_email": "orders@safehands.example.com",
+          "lead_time_days": 4,
+          "on_order": false,
+          "active": true
+        }
+      },
+      {
+        "id": "7d3e64bb-5763-56ff-8c41-78d71b8340d9",
+        "data": {
+          "sku": "CLN-WIPE",
+          "name": "Surface wipes",
+          "category": "Consumables",
+          "location": "Store room",
+          "unit": "tub",
+          "on_hand": 8,
+          "reorder_point": 12,
+          "reorder_qty": 36,
+          "unit_cost": 4.4,
+          "supplier": "SafeHands Supply",
+          "supplier_email": "orders@safehands.example.com",
+          "lead_time_days": 4,
+          "on_order": false,
+          "active": true
+        }
+      },
+      {
+        "id": "ec1f6c69-8da0-5f8b-9e9e-8fce6a797ef0",
+        "data": {
+          "sku": "OFF-PAPER-A4",
+          "name": "Copy paper A4 80 gsm",
+          "category": "Office",
+          "location": "Print room",
+          "unit": "ream",
+          "on_hand": 45,
+          "reorder_point": 25,
+          "reorder_qty": 100,
+          "unit_cost": 5.6,
+          "supplier": "Office Direct",
+          "supplier_email": "orders@officedirect.example.com",
+          "lead_time_days": 2,
+          "on_order": false,
+          "active": true
+        }
+      },
+      {
+        "id": "d2c502e2-5f7e-5bf0-98b2-0ccb73b5b18b",
+        "data": {
+          "sku": "OFF-TONER-K",
+          "name": "Toner cartridge, black",
+          "category": "Office",
+          "location": "Print room",
+          "unit": "each",
+          "on_hand": 1,
+          "reorder_point": 2,
+          "reorder_qty": 4,
+          "unit_cost": 89,
+          "supplier": "Office Direct",
+          "supplier_email": "orders@officedirect.example.com",
+          "lead_time_days": 2,
+          "on_order": true,
+          "last_ordered": "2026-10-26",
+          "active": true
+        }
+      },
+      {
+        "id": "b2d6b56f-2868-5ccd-aa02-80911e716b49",
+        "data": {
+          "sku": "SPR-PALLET",
+          "name": "Pallet wrap 500 mm",
+          "category": "Packaging",
+          "location": "Dock",
+          "unit": "roll",
+          "on_hand": 12,
+          "reorder_point": 6,
+          "reorder_qty": 24,
+          "unit_cost": 18,
+          "supplier": "Corrugated Co",
+          "supplier_email": "orders@corrugated.example.com",
+          "lead_time_days": 5,
+          "on_order": false,
+          "active": true
+        }
+      },
+      {
+        "id": "53f4d066-83ce-5f36-93b6-f2815ba29cf8",
+        "data": {
+          "sku": "OLD-BUBBLE",
+          "name": "Bubble wrap (discontinued)",
+          "category": "Packaging",
+          "location": "Aisle 3",
+          "unit": "roll",
+          "on_hand": 0,
+          "reorder_point": 4,
+          "reorder_qty": 10,
+          "unit_cost": 22,
+          "supplier": "Corrugated Co",
+          "supplier_email": "orders@corrugated.example.com",
+          "lead_time_days": 5,
+          "on_order": false,
+          "active": false
+        }
+      }
+    ]
+  }
+}

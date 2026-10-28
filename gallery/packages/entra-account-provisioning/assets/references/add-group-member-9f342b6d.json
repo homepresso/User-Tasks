@@ -1,0 +1,55 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "9f342b6d-a917-5aab-a75c-16a37c87041c",
+  "asset": {
+    "id": "9f342b6d-a917-5aab-a75c-16a37c87041c",
+    "integration_id": "55b8dad9-6e91-5ac6-a9e4-74cc61cbe7b2",
+    "name": "Add group member",
+    "description": "Add the user to the department's security / Microsoft 365 group (POST /groups/{id}/members/$ref with an @odata.id of the directory object). Graph answers 204 No Content.",
+    "tags": [
+      "groups"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"@odata.id\":\"{{directory_object}}\"}",
+      "path_template": "/groups/{{group_id}}/members/$ref",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": []
+        },
+        "sample": {},
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "18c35c0d-95ce-5725-87eb-c53e2b1bc664",
+        "name": "group_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Entra group object id (from the Departments table)",
+        "default_value": ""
+      },
+      {
+        "id": "9e3e5e80-63ac-5cd5-b21a-fa852dd430de",
+        "name": "directory_object",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "https://graph.microsoft.com/v1.0/directoryObjects/<user id>",
+        "default_value": ""
+      }
+    ],
+    "outputs": []
+  }
+}

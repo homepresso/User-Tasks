@@ -1,0 +1,650 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "c09cb637-e2e1-45de-8108-b74acfe2f553",
+  "asset": {
+    "id": "c09cb637-e2e1-45de-8108-b74acfe2f553",
+    "name": "Incident triage",
+    "description": "Monitoring posts an alert; repeated alerts are deduplicated, the service tier and severity set the priority, an incident is opened in the ITSM and P1/P2 incidents page the on-call engineer for acknowledgement.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Alert received",
+        "position": {
+          "x": 660,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 660,
+          "y": 220
+        },
+        "config": {
+          "title": "Alert: {{service}} · {{summary}}"
+        }
+      },
+      {
+        "id": "svc_reset",
+        "type": "set_variable",
+        "label": "No service yet",
+        "position": {
+          "x": 660,
+          "y": 380
+        },
+        "config": {
+          "name": "svc",
+          "expression": ""
+        }
+      },
+      {
+        "id": "svc",
+        "type": "update_data_table",
+        "label": "Look up service",
+        "position": {
+          "x": 660,
+          "y": 540
+        },
+        "config": {
+          "table_id": "6fdc5462-9590-4dd0-84c1-42dd7086a783",
+          "table_name": "Service owners",
+          "operation": "get",
+          "match_column": "service",
+          "match_value": "{{service}}",
+          "output_row_var": "svc"
+        }
+      },
+      {
+        "id": "tier",
+        "type": "set_variable",
+        "label": "Service tier",
+        "position": {
+          "x": 660,
+          "y": 700
+        },
+        "config": {
+          "name": "tier",
+          "expression": "{{=COALESCE(svc.tier, 3)}}"
+        }
+      },
+      {
+        "id": "group",
+        "type": "set_variable",
+        "label": "Assignment group",
+        "position": {
+          "x": 660,
+          "y": 860
+        },
+        "config": {
+          "name": "assignment_group",
+          "expression": "{{=COALESCE(svc.assignment_group, \"Service Desk\")}}"
+        }
+      },
+      {
+        "id": "dupe",
+        "type": "call_reference",
+        "label": "Find open incident",
+        "position": {
+          "x": 660,
+          "y": 1020
+        },
+        "config": {
+          "reference_id": "441a134b-6910-42db-aed3-bea804d14e4e",
+          "reference_name": "Find open incident",
+          "reference_method": "GET",
+          "input_mappings": {
+            "dedupe_key": "{{dedupe_key}}"
+          },
+          "output_mappings": {
+            "count": {
+              "enabled": true,
+              "variableName": "open_count"
+            },
+            "first_id": {
+              "enabled": true,
+              "variableName": "existing_id"
+            },
+            "first_number": {
+              "enabled": true,
+              "variableName": "existing_number"
+            }
+          }
+        }
+      },
+      {
+        "id": "is_dupe",
+        "type": "condition",
+        "label": "Already open?",
+        "position": {
+          "x": 660,
+          "y": 1180
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Duplicate",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{open_count}}",
+                  "operator": "gt",
+                  "value": "0"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "append",
+        "type": "call_reference",
+        "label": "Add alert to incident",
+        "position": {
+          "x": 340,
+          "y": 1360
+        },
+        "config": {
+          "reference_id": "0fc9c20e-2723-40c5-8906-2b5b5aefa786",
+          "reference_name": "Update incident",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "incident_id": "{{existing_id}}",
+            "work_note": "Repeat alert from {{source}} on {{host}} ({{severity_hint}}): {{summary}}"
+          }
+        }
+      },
+      {
+        "id": "deduped",
+        "type": "end_workflow",
+        "label": "Deduplicated",
+        "position": {
+          "x": 340,
+          "y": 1520
+        },
+        "config": {
+          "reason": "Alert added to open incident {{existing_number}}"
+        }
+      },
+      {
+        "id": "prio",
+        "type": "decision_table",
+        "label": "Incident priority",
+        "position": {
+          "x": 660,
+          "y": 1360
+        },
+        "config": {
+          "decision_table_id": "69029aaf-f770-44f9-ab2f-db6a7bfb5965",
+          "decision_table_name": "Incident priority",
+          "input_mappings": {
+            "tier": "{{tier}}",
+            "severity": "{{severity_hint}}"
+          }
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Resolution SLA",
+        "position": {
+          "x": 660,
+          "y": 1520
+        },
+        "config": {
+          "sla_label": "{{priority}} resolution",
+          "mode": "exact",
+          "due_at": "{{=ADD_HOURS(NOW(), resolve_hours)}}",
+          "warning_amount": 1,
+          "warning_unit": "hours"
+        }
+      },
+      {
+        "id": "create",
+        "type": "call_reference",
+        "label": "Create incident",
+        "position": {
+          "x": 660,
+          "y": 1680
+        },
+        "config": {
+          "reference_id": "69cc95f4-2379-4b5e-bc97-ddc229ecb0ef",
+          "reference_name": "Create incident",
+          "reference_method": "POST",
+          "input_mappings": {
+            "short_description": "[{{priority}}] {{service}}: {{summary}}",
+            "description": "Severity {{severity_hint}} from {{source}} on {{host}}. Rule: {{rule_label}}. Runbook: {{svc.runbook_url}}. Alert: {{details_url}}",
+            "service": "{{service}}",
+            "priority": "{{priority}}",
+            "assignment_group": "{{assignment_group}}",
+            "source": "{{source}}",
+            "host": "{{host}}",
+            "dedupe_key": "{{dedupe_key}}"
+          },
+          "output_mappings": {
+            "id": {
+              "enabled": true,
+              "variableName": "incident_id"
+            },
+            "number": {
+              "enabled": true,
+              "variableName": "incident_number"
+            },
+            "url": {
+              "enabled": true,
+              "variableName": "incident_url"
+            }
+          }
+        }
+      },
+      {
+        "id": "retitle",
+        "type": "set_title",
+        "label": "Title with incident",
+        "position": {
+          "x": 660,
+          "y": 1840
+        },
+        "config": {
+          "title": "{{priority}} {{incident_number}} · {{service}} · {{summary}}"
+        }
+      },
+      {
+        "id": "page",
+        "type": "condition",
+        "label": "Page on-call?",
+        "position": {
+          "x": 660,
+          "y": 2000
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "P1 / P2",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{page_oncall}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "ack",
+        "type": "user_task",
+        "label": "Acknowledge incident",
+        "position": {
+          "x": 660,
+          "y": 2180
+        },
+        "config": {
+          "task_title": "Acknowledge {{priority}} {{incident_number}}: {{service}}",
+          "task_description": "<p><strong>{{priority}}</strong> on <strong>{{service}}</strong> (tier {{tier}}): {{summary}}</p><p>Severity {{severity_hint}} from {{source}} on <code>{{host}}</code>. <a href=\"{{details_url}}\">Alert</a> · <a href=\"{{incident_url}}\">{{incident_number}}</a> · <a href=\"{{svc.runbook_url}}\">Runbook</a></p><p>On-call: {{svc.oncall_contact}}. Respond within <strong>{{response_minutes}} minutes</strong>; this escalates to the incident manager if not acknowledged.</p>",
+          "task_priority": "critical",
+          "outcomes": [
+            "Acknowledge",
+            "Not an incident"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "1f7984c2-d2cc-49ae-a34b-9b335f852c8f",
+          "assignee_variable": "{{oncall_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 15,
+          "due_offset_unit": "minutes",
+          "escalation_enabled": true,
+          "escalation_type": "individual",
+          "escalation_user_id": "e43e2761-5463-4997-af56-152cf807fb9c",
+          "escalate_after_minutes": 15,
+          "fields": [
+            {
+              "key": "acknowledged",
+              "label": "I am working on this",
+              "type": "boolean",
+              "required": true,
+              "default": "true"
+            },
+            {
+              "key": "initial_assessment",
+              "label": "Initial assessment",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "bridge_link",
+              "label": "Bridge / call link",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      {
+        "id": "in_progress",
+        "type": "call_reference",
+        "label": "Mark in progress",
+        "position": {
+          "x": 660,
+          "y": 2360
+        },
+        "config": {
+          "reference_id": "0fc9c20e-2723-40c5-8906-2b5b5aefa786",
+          "reference_name": "Update incident",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "incident_id": "{{incident_id}}",
+            "state": "in_progress",
+            "assigned_to": "{{oncall_user_id}}",
+            "work_note": "Acknowledged. Assessment: {{task_data.initial_assessment}}. Bridge: {{task_data.bridge_link}}"
+          }
+        }
+      },
+      {
+        "id": "notify_owner",
+        "type": "send_email",
+        "label": "Email business owner",
+        "position": {
+          "x": 660,
+          "y": 2520
+        },
+        "config": {
+          "to": "{{svc.business_owner_email}}",
+          "email_template_id": "6015028d-3488-4cc3-b747-7161f7df8d1b"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "handed",
+        "type": "end_workflow",
+        "label": "Acknowledged",
+        "position": {
+          "x": 660,
+          "y": 2680
+        },
+        "config": {
+          "reason": "{{incident_number}} acknowledged by on-call ({{priority}})"
+        }
+      },
+      {
+        "id": "cancel",
+        "type": "call_reference",
+        "label": "Cancel incident",
+        "position": {
+          "x": 980,
+          "y": 2360
+        },
+        "config": {
+          "reference_id": "0fc9c20e-2723-40c5-8906-2b5b5aefa786",
+          "reference_name": "Update incident",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "incident_id": "{{incident_id}}",
+            "state": "cancelled",
+            "work_note": "Closed by on-call as not an incident: {{task_data.initial_assessment}}"
+          }
+        }
+      },
+      {
+        "id": "cancelled",
+        "type": "end_workflow",
+        "label": "Not an incident",
+        "position": {
+          "x": 980,
+          "y": 2520
+        },
+        "config": {
+          "reason": "{{incident_number}} cancelled by on-call"
+        }
+      },
+      {
+        "id": "assign",
+        "type": "call_reference",
+        "label": "Assign to team queue",
+        "position": {
+          "x": 1300,
+          "y": 2180
+        },
+        "config": {
+          "reference_id": "0fc9c20e-2723-40c5-8906-2b5b5aefa786",
+          "reference_name": "Update incident",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "incident_id": "{{incident_id}}",
+            "state": "assigned",
+            "assignment_group": "{{assignment_group}}",
+            "work_note": "Auto-assigned as {{priority}} ({{rule_label}}). Respond within {{response_minutes}} minutes. Runbook: {{svc.runbook_url}}"
+          }
+        }
+      },
+      {
+        "id": "log_queue",
+        "type": "log",
+        "label": "Log assignment",
+        "position": {
+          "x": 1300,
+          "y": 2360
+        },
+        "config": {
+          "message": "{{incident_number}} ({{priority}}) assigned to {{assignment_group}}",
+          "level": "info"
+        }
+      },
+      {
+        "id": "queued",
+        "type": "end_workflow",
+        "label": "Queued",
+        "position": {
+          "x": 1300,
+          "y": 2520
+        },
+        "config": {
+          "reason": "{{incident_number}} assigned to {{assignment_group}} as {{priority}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-svc_reset",
+        "source": "title",
+        "target": "svc_reset"
+      },
+      {
+        "id": "e-svc_reset-svc",
+        "source": "svc_reset",
+        "target": "svc"
+      },
+      {
+        "id": "e-svc-tier",
+        "source": "svc",
+        "target": "tier"
+      },
+      {
+        "id": "e-tier-group",
+        "source": "tier",
+        "target": "group"
+      },
+      {
+        "id": "e-group-dupe",
+        "source": "group",
+        "target": "dupe"
+      },
+      {
+        "id": "e-dupe-is_dupe",
+        "source": "dupe",
+        "target": "is_dupe"
+      },
+      {
+        "id": "e-is_dupe-append-duplicate",
+        "source": "is_dupe",
+        "target": "append",
+        "label": "Duplicate"
+      },
+      {
+        "id": "e-append-deduped",
+        "source": "append",
+        "target": "deduped"
+      },
+      {
+        "id": "e-is_dupe-prio-else",
+        "source": "is_dupe",
+        "target": "prio",
+        "label": "Else"
+      },
+      {
+        "id": "e-prio-sla",
+        "source": "prio",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-create",
+        "source": "sla",
+        "target": "create"
+      },
+      {
+        "id": "e-create-retitle",
+        "source": "create",
+        "target": "retitle"
+      },
+      {
+        "id": "e-retitle-page",
+        "source": "retitle",
+        "target": "page"
+      },
+      {
+        "id": "e-page-ack-p1-p2",
+        "source": "page",
+        "target": "ack",
+        "label": "P1 / P2"
+      },
+      {
+        "id": "e-page-assign-else",
+        "source": "page",
+        "target": "assign",
+        "label": "Else"
+      },
+      {
+        "id": "e-ack-in_progress-acknowledge",
+        "source": "ack",
+        "target": "in_progress",
+        "label": "Acknowledge"
+      },
+      {
+        "id": "e-ack-cancel-not-an-incident",
+        "source": "ack",
+        "target": "cancel",
+        "label": "Not an incident"
+      },
+      {
+        "id": "e-in_progress-notify_owner",
+        "source": "in_progress",
+        "target": "notify_owner"
+      },
+      {
+        "id": "e-notify_owner-handed",
+        "source": "notify_owner",
+        "target": "handed"
+      },
+      {
+        "id": "e-cancel-cancelled",
+        "source": "cancel",
+        "target": "cancelled"
+      },
+      {
+        "id": "e-assign-log_queue",
+        "source": "assign",
+        "target": "log_queue"
+      },
+      {
+        "id": "e-log_queue-queued",
+        "source": "log_queue",
+        "target": "queued"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-service",
+        "name": "service",
+        "type": "string",
+        "description": "Service name as in the Service owners table, e.g. order-service",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-summary",
+        "name": "summary",
+        "type": "string",
+        "description": "One-line alert summary, e.g. \"p95 latency above 2 s for 10 minutes\"",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-severity_hint",
+        "name": "severity_hint",
+        "type": "string",
+        "description": "Severity from the monitoring tool: critical, major, minor or warning",
+        "defaultValue": "major",
+        "required": true,
+        "options": [
+          "critical",
+          "major",
+          "minor",
+          "warning"
+        ]
+      },
+      {
+        "id": "v-source",
+        "name": "source",
+        "type": "string",
+        "description": "Monitoring tool or rule that raised the alert",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-host",
+        "name": "host",
+        "type": "string",
+        "description": "Host, pod or instance the alert fired on",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-dedupe_key",
+        "name": "dedupe_key",
+        "type": "string",
+        "description": "Stable key for the alert condition; alerts with the same key update one open incident",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-details_url",
+        "name": "details_url",
+        "type": "string",
+        "description": "Link back to the alert or dashboard",
+        "defaultValue": "",
+        "format": "url"
+      },
+      {
+        "id": "v-oncall_user_id",
+        "name": "oncall_user_id",
+        "type": "string",
+        "description": "Optional: user id of the on-call engineer (from your paging rota); falls back to the default chosen on install",
+        "defaultValue": ""
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

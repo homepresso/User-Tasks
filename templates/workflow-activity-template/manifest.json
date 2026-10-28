@@ -1,0 +1,38 @@
+{
+  "inputs": [
+    {
+      "name": "score",
+      "label": "Score",
+      "type": "number",
+      "required": true,
+      "description": "Numeric score passed in from the workflow."
+    },
+    {
+      "name": "customer_name",
+      "label": "Customer Name",
+      "type": "string",
+      "required": false,
+      "description": "Optional display name used in the output message."
+    }
+  ],
+  "outputs": [
+    {
+      "name": "score_band",
+      "label": "Score Band",
+      "type": "string",
+      "description": "Derived traffic-light style band for the score."
+    },
+    {
+      "name": "score_message",
+      "label": "Score Message",
+      "type": "string",
+      "description": "Friendly summary that can be reused elsewhere in the workflow."
+    },
+    {
+      "name": "evaluated_at",
+      "label": "Evaluated At",
+      "type": "string",
+      "description": "Timestamp showing when the activity produced the result."
+    }
+  ]
+}

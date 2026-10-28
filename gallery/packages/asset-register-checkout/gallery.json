@@ -1,0 +1,77 @@
+{
+  "title": "Asset register & check-out",
+  "category": "workplace",
+  "summary": "A register of loanable equipment with a check-out form, a due-back return task with a reminder, and Returned / Damaged outcomes that update the register.",
+  "description": "Asset register & check-out replaces the clipboard by the equipment cupboard. The Assets table is your register: tag, name, category, home location, serial number, condition, replacement value and whether each item is available, out or in repair. Sample rows cover loan laptops, AV kit, a camera, tools, a pool car and safety equipment.\n\nPeople borrow from the Asset check-out form page. They search for the asset (only available items are offered) and its category, location and condition fill in by themselves; they pick the borrower as a Person, set the due-back date and accept responsibility. Check out shows a success screen.\n\nThe Form submitted trigger starts the workflow: it double-checks the asset is still available, marks it checked out in the register, logs the loan in the Check-outs table and emails the borrower a receipt. The borrower then gets a Return task due on the due-back date, with a reminder the day before. Returned puts the asset back in the register with its new condition; Damaged sends it for repair and records what went wrong. A two-year retention policy is included for the loan records. No integrations needed.",
+  "trigger": "form",
+  "entry_workflow": "daf72f4f-c48c-559b-9d08-4e7203531ab8",
+  "entry_form": "64773114-ed06-57ee-b1b9-52400293f597",
+  "start": "Starts from a form page: open the Asset check-out form (/f/<id>) at the equipment cupboard or share its link; each check-out starts the workflow.",
+  "difficulty": "starter",
+  "setup_minutes": 10,
+  "tags": [
+    "assets",
+    "equipment loans",
+    "forms",
+    "lookup",
+    "reminders",
+    "no integrations"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Nothing to configure: install it and open the Asset check-out form from Forms (or share its /f/ link, or print a QR code for the cupboard).",
+    "Replace the sample rows in the Assets table with your register (or import a CSV). Keep Status as available for items that can be borrowed.",
+    "Optional: apply the \"Check-outs: 2 years\" retention policy to the Check-outs table, and set EMAIL_PROVIDER so receipts are delivered (the console provider logs them)."
+  ],
+  "steps": [
+    {
+      "title": "Pick the asset",
+      "body": "On the check-out form the borrower searches the register; category, location and condition fill in from the Assets table."
+    },
+    {
+      "title": "Who and until when",
+      "body": "The borrower is picked as a Person, with a due-back date and a purpose; Check out shows a success screen."
+    },
+    {
+      "title": "Register and log",
+      "body": "The workflow confirms the asset is still available, marks it checked out and logs the loan in Check-outs."
+    },
+    {
+      "title": "Receipt",
+      "body": "The borrower gets an email receipt with the due date and where to return it."
+    },
+    {
+      "title": "Return task with a reminder",
+      "body": "A return task is due on the due-back date and reminds the borrower a day before."
+    },
+    {
+      "title": "Returned or Damaged",
+      "body": "Returned makes the asset available again with its new condition; Damaged sends it for repair and records the damage."
+    }
+  ],
+  "sample_input": {
+    "asset": "AST-2001",
+    "borrower": "$owner",
+    "borrower_email": "jordan.lee@example.com",
+    "checkout_date": "2026-10-28",
+    "due_back": "2026-10-30",
+    "purpose": "Client visit",
+    "notes": "Taken with the HDMI and USB-C adapters",
+    "agree": true
+  },
+  "expect": "waiting",
+  "icon": "boxes",
+  "id": "77db1e9e-426e-56bc-8d8f-03184da58a0e",
+  "slug": "asset-register-checkout"
+}

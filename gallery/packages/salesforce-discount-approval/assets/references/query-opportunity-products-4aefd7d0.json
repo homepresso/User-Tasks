@@ -1,0 +1,236 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "4aefd7d0-a385-5283-bdae-959b76f77b04",
+  "asset": {
+    "id": "4aefd7d0-a385-5283-bdae-959b76f77b04",
+    "integration_id": "e3d58d05-b9c4-589d-b1df-20fcb1b3c7a0",
+    "name": "Query opportunity products",
+    "description": "SOQL query for the opportunity's products (GET /query?q=SELECT ... FROM OpportunityLineItem WHERE OpportunityId = ...): records, totalSize and done.",
+    "tags": [
+      "opportunity",
+      "soql"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/query",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "totalSize",
+              "type": "integer",
+              "example": 3
+            },
+            {
+              "name": "done",
+              "type": "boolean",
+              "example": true
+            },
+            {
+              "name": "records",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "attributes",
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "type",
+                        "type": "string",
+                        "example": "OpportunityLineItem"
+                      },
+                      {
+                        "name": "url",
+                        "type": "string",
+                        "example": "/services/data/v61.0/sobjects/OpportunityLineItem/00k5g00000Lm1AAA"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Id",
+                    "type": "string",
+                    "example": "00k5g00000Lm1AAA"
+                  },
+                  {
+                    "name": "ProductCode",
+                    "type": "string",
+                    "example": "PLAT-ENT"
+                  },
+                  {
+                    "name": "Product2",
+                    "type": "object",
+                    "fields": [
+                      {
+                        "name": "attributes",
+                        "type": "object",
+                        "fields": [
+                          {
+                            "name": "type",
+                            "type": "string",
+                            "example": "Product2"
+                          },
+                          {
+                            "name": "url",
+                            "type": "string",
+                            "example": "/services/data/v61.0/sobjects/Product2/01t5g00000Pr1AAA"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "Name",
+                        "type": "string",
+                        "example": "Platform Enterprise (per seat / year)"
+                      },
+                      {
+                        "name": "Family",
+                        "type": "string",
+                        "example": "Subscription"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Quantity",
+                    "type": "number",
+                    "example": 250.0
+                  },
+                  {
+                    "name": "ListPrice",
+                    "type": "number",
+                    "example": 600.0
+                  },
+                  {
+                    "name": "UnitPrice",
+                    "type": "number",
+                    "example": 600.0
+                  },
+                  {
+                    "name": "Discount",
+                    "type": "number",
+                    "example": 25.0
+                  },
+                  {
+                    "name": "TotalPrice",
+                    "type": "number",
+                    "example": 112500.0
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "sample": {
+          "totalSize": 3,
+          "done": true,
+          "records": [
+            {
+              "attributes": {
+                "type": "OpportunityLineItem",
+                "url": "/services/data/v61.0/sobjects/OpportunityLineItem/00k5g00000Lm1AAA"
+              },
+              "Id": "00k5g00000Lm1AAA",
+              "ProductCode": "PLAT-ENT",
+              "Product2": {
+                "attributes": {
+                  "type": "Product2",
+                  "url": "/services/data/v61.0/sobjects/Product2/01t5g00000Pr1AAA"
+                },
+                "Name": "Platform Enterprise (per seat / year)",
+                "Family": "Subscription"
+              },
+              "Quantity": 250.0,
+              "ListPrice": 600.0,
+              "UnitPrice": 600.0,
+              "Discount": 25.0,
+              "TotalPrice": 112500.0
+            },
+            {
+              "attributes": {
+                "type": "OpportunityLineItem",
+                "url": "/services/data/v61.0/sobjects/OpportunityLineItem/00k5g00000Lm2AAA"
+              },
+              "Id": "00k5g00000Lm2AAA",
+              "ProductCode": "ADD-ANL",
+              "Product2": {
+                "attributes": {
+                  "type": "Product2",
+                  "url": "/services/data/v61.0/sobjects/Product2/01t5g00000Pr2AAA"
+                },
+                "Name": "Advanced Analytics add-on",
+                "Family": "Subscription"
+              },
+              "Quantity": 250.0,
+              "ListPrice": 120.0,
+              "UnitPrice": 120.0,
+              "Discount": 20.0,
+              "TotalPrice": 24000.0
+            },
+            {
+              "attributes": {
+                "type": "OpportunityLineItem",
+                "url": "/services/data/v61.0/sobjects/OpportunityLineItem/00k5g00000Lm3AAA"
+              },
+              "Id": "00k5g00000Lm3AAA",
+              "ProductCode": "PS-ONB",
+              "Product2": {
+                "attributes": {
+                  "type": "Product2",
+                  "url": "/services/data/v61.0/sobjects/Product2/01t5g00000Pr3AAA"
+                },
+                "Name": "Onboarding services (days)",
+                "Family": "Services"
+              },
+              "Quantity": 15.0,
+              "ListPrice": 1800.0,
+              "UnitPrice": 1800.0,
+              "Discount": 0.0,
+              "TotalPrice": 27000.0
+            }
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "1d26d818-138e-5d11-b42c-6c46bc2de291",
+        "name": "q",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "SOQL: SELECT Id, ProductCode, Product2.Name, Product2.Family, Quantity, ListPrice, UnitPrice, Discount, TotalPrice FROM OpportunityLineItem WHERE OpportunityId = '<id>'",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "7474d535-c91b-5897-9a9d-27d809857e49",
+        "name": "line_items",
+        "path": "records",
+        "type": "array"
+      },
+      {
+        "id": "92392d68-8869-5352-bd88-f573033193eb",
+        "name": "line_count",
+        "path": "totalSize",
+        "type": "number"
+      },
+      {
+        "id": "860964d6-2555-575e-9ffc-83b616ad76bf",
+        "name": "done",
+        "path": "done",
+        "type": "boolean"
+      }
+    ]
+  }
+}

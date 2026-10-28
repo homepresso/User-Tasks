@@ -1,0 +1,20 @@
+-- task title ILIKE '%invoice 4%' (20) as authenticated
+SELECT id, title, status FROM public.tasks WHERE title ILIKE '%invoice 4%' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 20
+
+Limit  (cost=39421.98..39421.99 rows=4 width=56) (actual time=1526.837..1526.840 rows=20 loops=1)
+  Buffers: shared hit=143206
+  ->  Sort  (cost=39421.98..39421.99 rows=4 width=56) (actual time=1526.836..1526.838 rows=20 loops=1)
+        Sort Key: tasks.created_at DESC
+        Sort Method: top-N heapsort  Memory: 29kB
+        Buffers: shared hit=143206
+        ->  Seq Scan on tasks  (cost=7.77..39421.94 rows=4 width=56) (actual time=5.182..1526.452 rows=517 loops=1)
+              Filter: ((deleted_at IS NULL) AND CASE WHEN (get_current_tenant_id() IS NOT NULL) THEN (tenant_id = get_current_tenant_id()) ELSE (ANY (tenant_id = (hashed SubPlan 1).col1)) END AND (title ~~* '%invoice 4%'::text))
+              Rows Removed by Filter: 69493
+              Buffers: shared hit=143206
+              SubPlan 1
+                ->  ProjectSet  (cost=0.00..5.27 rows=1000 width=16) (never executed)
+                      ->  Result  (cost=0.00..0.01 rows=1 width=0) (never executed)
+Planning:
+  Buffers: shared hit=5
+Planning Time: 0.094 ms
+Execution Time: 1526.860 ms

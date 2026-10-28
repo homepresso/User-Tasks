@@ -1,0 +1,197 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "d569c815-a21d-5360-b730-fc2a34bd946b",
+  "asset": {
+    "id": "d569c815-a21d-5360-b730-fc2a34bd946b",
+    "name": "Incident severity",
+    "description": "Severity, response SLA and whether a formal investigation is needed, from the type of incident and the worst injury. First matching rule wins.",
+    "inputs": [
+      {
+        "key": "injury_level",
+        "label": "Worst injury",
+        "type": "text",
+        "id": "441863ef-6c3c-5bba-aac6-0c0951927d65"
+      },
+      {
+        "key": "incident_type",
+        "label": "Incident type",
+        "type": "text",
+        "id": "9564d894-ef85-503a-966c-ea14357725c9"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "severity",
+        "label": "Severity",
+        "type": "text",
+        "id": "43499d12-c751-5ead-9362-a58655360822"
+      },
+      {
+        "key": "sla_hours",
+        "label": "Respond within (hours)",
+        "type": "number",
+        "id": "8ec5b91c-9102-5730-bbde-f36259180e2d"
+      },
+      {
+        "key": "investigation_required",
+        "label": "Formal investigation",
+        "type": "boolean",
+        "id": "40b33e58-9aed-51ea-ad9d-f3c06f44d54d"
+      },
+      {
+        "key": "notifiable",
+        "label": "Possibly notifiable",
+        "type": "boolean",
+        "id": "bb400aca-f0dc-5d2e-9ce9-68f56cf5c4bc"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Serious injury or hospitalisation",
+        "conditions": [
+          {
+            "inputKey": "injury_level",
+            "operator": "equals",
+            "value": "Serious / hospital",
+            "id": "9a428130-3076-525e-8fdf-61ee41d3fdb8"
+          }
+        ],
+        "outputs": {
+          "severity": "Critical",
+          "sla_hours": 24,
+          "investigation_required": true,
+          "notifiable": true
+        },
+        "id": "74455b41-321e-5adb-a11f-bdb68044fead",
+        "enabled": true
+      },
+      {
+        "label": "Lost-time injury",
+        "conditions": [
+          {
+            "inputKey": "injury_level",
+            "operator": "equals",
+            "value": "Lost time",
+            "id": "420d9ae2-f535-54c8-9e2c-c84e182caece"
+          }
+        ],
+        "outputs": {
+          "severity": "High",
+          "sla_hours": 48,
+          "investigation_required": true,
+          "notifiable": false
+        },
+        "id": "fa32284e-1351-5968-afe9-80e03b4a6192",
+        "enabled": true
+      },
+      {
+        "label": "Medical treatment",
+        "conditions": [
+          {
+            "inputKey": "injury_level",
+            "operator": "equals",
+            "value": "Medical treatment",
+            "id": "0bc49cf1-2fcb-5d55-b239-0c5254922e37"
+          }
+        ],
+        "outputs": {
+          "severity": "High",
+          "sla_hours": 72,
+          "investigation_required": true,
+          "notifiable": false
+        },
+        "id": "65632fa7-1a33-50fe-8a19-b2ec759f9900",
+        "enabled": true
+      },
+      {
+        "label": "Environmental release",
+        "conditions": [
+          {
+            "inputKey": "incident_type",
+            "operator": "equals",
+            "value": "Environmental",
+            "id": "1f0bfb9f-9876-5c9a-b1ba-7fabb9e05b3f"
+          }
+        ],
+        "outputs": {
+          "severity": "High",
+          "sla_hours": 72,
+          "investigation_required": true,
+          "notifiable": true
+        },
+        "id": "0cca571d-45f9-501b-98bf-ef685b0c774b",
+        "enabled": true
+      },
+      {
+        "label": "Vehicle incident",
+        "conditions": [
+          {
+            "inputKey": "incident_type",
+            "operator": "equals",
+            "value": "Vehicle",
+            "id": "7852daf3-1f96-5c3e-ab37-478472538922"
+          }
+        ],
+        "outputs": {
+          "severity": "Medium",
+          "sla_hours": 96,
+          "investigation_required": true,
+          "notifiable": false
+        },
+        "id": "6d06217f-41b2-5841-ae85-b39288ff3659",
+        "enabled": true
+      },
+      {
+        "label": "First aid only",
+        "conditions": [
+          {
+            "inputKey": "injury_level",
+            "operator": "equals",
+            "value": "First aid",
+            "id": "ff4a936c-1f39-5173-91cb-34d55ba7b8b8"
+          }
+        ],
+        "outputs": {
+          "severity": "Medium",
+          "sla_hours": 120,
+          "investigation_required": false,
+          "notifiable": false
+        },
+        "id": "539b1f92-9b41-5d24-a692-90d31fc9e13d",
+        "enabled": true
+      },
+      {
+        "label": "Near miss",
+        "conditions": [
+          {
+            "inputKey": "incident_type",
+            "operator": "equals",
+            "value": "Near miss",
+            "id": "55b4fb22-f5b4-599d-bc59-eb170b4c0b9e"
+          }
+        ],
+        "outputs": {
+          "severity": "Low",
+          "sla_hours": 168,
+          "investigation_required": false,
+          "notifiable": false
+        },
+        "id": "fd453025-5855-5748-b1ce-ae8d8cba3595",
+        "enabled": true
+      },
+      {
+        "label": "Everything else",
+        "conditions": [],
+        "outputs": {
+          "severity": "Low",
+          "sla_hours": 120,
+          "investigation_required": false,
+          "notifiable": false
+        },
+        "id": "78f723a5-89fe-5177-b6d4-e2176ac1875f",
+        "enabled": true
+      }
+    ]
+  }
+}

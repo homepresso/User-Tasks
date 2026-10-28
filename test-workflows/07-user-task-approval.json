@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "webhook_received",
+      "label": "Webhook",
+      "position": { "x": 400, "y": 20 },
+      "config": {}
+    },
+    {
+      "id": "n1",
+      "type": "set_title",
+      "label": "Set Title",
+      "position": { "x": 400, "y": 160 },
+      "config": { "title": "Approval Request — {{_raw}}" }
+    },
+    {
+      "id": "n2",
+      "type": "user_task",
+      "label": "Manager Approval",
+      "position": { "x": 400, "y": 320 },
+      "config": {
+        "task_title": "Approve request",
+        "task_description": "Please review and approve or reject this request.",
+        "outcomes": ["Approved", "Rejected"],
+        "assignee_mode": "specific",
+        "fields": [
+          { "key": "amount", "label": "Amount", "type": "number", "required": true },
+          { "key": "reason", "label": "Reason", "type": "text", "placeholder": "Why approve or reject?" },
+          { "key": "urgent", "label": "Urgent", "type": "boolean" },
+          { "key": "category", "label": "Category", "type": "choice", "options": ["A", "B"], "default": "A" }
+        ]
+      }
+    },
+    {
+      "id": "n3",
+      "type": "condition",
+      "label": "Check Outcome",
+      "position": { "x": 400, "y": 500 },
+      "config": {
+        "branches": [{ "label": "Approved", "logic": "AND", "rules": [{ "field": "{{outcome}}", "operator": "equals", "value": "Approved" }] }],
+        "has_else": true
+      }
+    },
+    {
+      "id": "n4",
+      "type": "log",
+      "label": "Approved Path",
+      "position": { "x": 200, "y": 680 },
+      "config": { "message": "Request APPROVED — amount {{task_data.amount}}, category {{task_data.category}}" }
+    },
+    {
+      "id": "n5",
+      "type": "log",
+      "label": "Rejected Path",
+      "position": { "x": 600, "y": 680 },
+      "config": { "message": "Request REJECTED" }
+    },
+    {
+      "id": "n6",
+      "type": "update_task",
+      "label": "Update Status",
+      "position": { "x": 200, "y": 840 },
+      "config": { "field": "status", "value": "completed" }
+    },
+    {
+      "id": "n7",
+      "type": "update_task",
+      "label": "Mark Blocked",
+      "position": { "x": 600, "y": 840 },
+      "config": { "field": "status", "value": "blocked" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "t1", "target": "n1" },
+    { "id": "e2", "source": "n1", "target": "n2" },
+    { "id": "e3", "source": "n2", "target": "n3" },
+    { "id": "e4", "source": "n3", "target": "n4", "label": "Approved" },
+    { "id": "e5", "source": "n3", "target": "n5", "label": "Else" },
+    { "id": "e6", "source": "n4", "target": "n6" },
+    { "id": "e7", "source": "n5", "target": "n7" }
+  ],
+  "user_variables": [],
+  "swimlanes": []
+}

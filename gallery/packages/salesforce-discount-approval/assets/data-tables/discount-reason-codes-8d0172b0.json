@@ -1,0 +1,47 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "8d0172b0-25c2-5e94-9d8a-66eb69f6634c",
+  "asset": {
+    "id": "8d0172b0-25c2-5e94-9d8a-66eb69f6634c",
+    "name": "Discount reason codes",
+    "description": "Why a discount is justified, with the most each reason normally supports. The sales manager picks one in the approval form; its guidance and ceiling fill in.",
+    "columns": [
+      {
+        "id": "b7d4e025-c051-591f-88fc-ff6a6df70b8b",
+        "required": true,
+        "key": "code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "4144f9a3-6303-5739-bd70-c7a91ee671b6",
+        "required": true,
+        "key": "reason",
+        "name": "Reason",
+        "type": "text"
+      },
+      {
+        "id": "d5058ada-5521-5bf9-b80b-79eab6fee15f",
+        "required": false,
+        "key": "max_discount",
+        "name": "Normal ceiling (%)",
+        "type": "number"
+      },
+      {
+        "id": "b74ac7ba-fd5b-5a1d-8a45-cb9b30adf798",
+        "required": false,
+        "key": "evidence",
+        "name": "Evidence expected",
+        "type": "text"
+      },
+      {
+        "id": "ac896cfc-c362-56ab-8cda-907193574bb3",
+        "required": false,
+        "key": "finance_note",
+        "name": "Note for finance",
+        "type": "text"
+      }
+    ]
+  }
+}

@@ -1,0 +1,92 @@
+# Reference Azure profile (docs/deployment-profiles.md), emulated locally:
+#   Database   PostgreSQL 16 (Azure Database for PostgreSQL in the cloud; Entra
+#              token auth, DATABASE_AUTH=azure, is not emulated)
+#   Storage    Azurite (Blob Storage API)
+#   Secrets    Key Vault stand-in over TLS at https://usertasks.vault.azure.net,
+#              reached with a managed-identity token (IDENTITY_ENDPOINT, as on
+#              Container Apps); ENCRYPTION_KEY=secret://encryption-key
+#   Email      Communication Services Email stand-in (send + poll)
+#   Auth       built-in + an Entra ID OIDC stand-in (discovery only)
+#   Scheduler  external: the `tick` container calls /api/cron/tick every
+#              minute with CRON_SECRET, like the Container Apps Job
+#   Realtime   built-in SSE
+#   KMS        Key Vault key stand-in (wrapKey / unwrapKey, same TLS host):
+#              KMS_PROVIDER=azure_key_vault envelope encryption
+#   Cache      Valkey standing in for Azure Cache for Redis (password auth;
+#              Entra token auth, CACHE_REDIS_AUTH=entra, is not emulated)
+# The stand-ins are deploy/compose/mocks/cloud-mocks.mjs; their TLS
+# certificate comes from `npm run stack -- init --profile azure`
+# (deploy/compose/.state/certs). Real Azure resources: deploy/azure/.
+
+x-state: &certs ${USERTASKS_STATE_DIR:-./deploy/compose/.state}/certs:/certs:ro
+
+services:
+  app:
+    volumes:
+      - *certs
+    depends_on: !override
+      migrate:
+        condition: service_completed_successfully
+      mocks:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+
+  postgres:
+    profiles: [standalone, azure]
+
+  valkey:
+    profiles: [standalone, azure]
+
+  migrate:
+    profiles: [standalone, azure]
+    volumes:
+      - *certs
+    depends_on: !override
+      postgres:
+        condition: service_healthy
+      azurite:
+        condition: service_started
+      mocks:
+        condition: service_healthy
+
+  azurite:
+    profiles: [azure]
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    command: ["azurite-blob", "--blobHost", "0.0.0.0", "--skipApiVersionCheck", "--loose"]
+    restart: unless-stopped
+
+  mocks:
+    profiles: [azure]
+    image: node:22-alpine
+    command: ["node", "/mocks/cloud-mocks.mjs"]
+    environment:
+      MOCK_HTTP_PORT: "8080"
+      MOCK_HTTPS_PORT: "443"
+      MOCK_SECRETS: '{"encryption-key":"${MOCK_ENCRYPTION_KEY:-}","entra-client-secret":"local-entra-secret"}'
+      MOCK_KMS_SECRET: ${MOCK_KMS_SECRET:-}
+    volumes:
+      - ./deploy/compose/mocks:/mocks:ro
+      - *certs
+    networks:
+      default:
+        aliases: [usertasks.vault.azure.net, usertasks.communication.azure.com]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # The Container Apps Job: POST /api/cron/tick every minute.
+  tick:
+    profiles: [azure]
+    image: node:22-alpine
+    env_file:
+      - path: ${USERTASKS_ENV_FILE:-.env}
+        required: false
+    command: ["sh", "-c", "while true; do wget -q -O /dev/null --header \"Authorization: Bearer $$CRON_SECRET\" --post-data '' http://app:3000/api/cron/tick || echo tick failed; sleep 60; done"]
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped

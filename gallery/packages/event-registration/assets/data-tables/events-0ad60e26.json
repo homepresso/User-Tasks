@@ -1,0 +1,86 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "0ad60e26-f882-550f-836a-00d5e3270e7d",
+  "asset": {
+    "id": "0ad60e26-f882-550f-836a-00d5e3270e7d",
+    "name": "Events",
+    "description": "Events people can register for. Capacity caps confirmed places; extra registrations go on the waitlist. Set status Closed to take an event off the form.",
+    "columns": [
+      {
+        "id": "213c11a4-b8f6-5347-a204-c80117de7943",
+        "required": true,
+        "key": "event_code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "3efc2c24-3656-56fe-84af-ca6ac38db95b",
+        "required": true,
+        "key": "title",
+        "name": "Event",
+        "type": "text"
+      },
+      {
+        "id": "480b63c0-7051-53d3-a0c1-8e15f654b55e",
+        "required": true,
+        "key": "event_date",
+        "name": "Date",
+        "type": "date"
+      },
+      {
+        "id": "33105358-fbe2-5117-a7fc-5082b051e56b",
+        "required": false,
+        "key": "start_time",
+        "name": "Starts",
+        "type": "text"
+      },
+      {
+        "id": "d7a28088-e30f-51a9-a3a6-85736b7de1dd",
+        "required": false,
+        "key": "venue",
+        "name": "Venue",
+        "type": "text"
+      },
+      {
+        "id": "5f909072-f1da-5d02-a819-febd88c5f1e3",
+        "required": true,
+        "key": "capacity",
+        "name": "Capacity",
+        "type": "number"
+      },
+      {
+        "id": "c60c7610-f82c-519d-b129-a3826cd40b50",
+        "required": false,
+        "key": "organiser_name",
+        "name": "Organiser",
+        "type": "text"
+      },
+      {
+        "id": "af2d0aba-8e89-5b85-bb15-54acf7c27144",
+        "required": false,
+        "key": "organiser_email",
+        "name": "Organiser email",
+        "type": "email"
+      },
+      {
+        "id": "3ff9d174-f447-5ca1-9323-25dc35b1889f",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Open",
+          "Closed"
+        ]
+      },
+      {
+        "id": "4be13cc9-327a-58c1-9ed3-a2fee0ff233e",
+        "required": false,
+        "key": "description",
+        "name": "About",
+        "type": "text"
+      }
+    ]
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "7c47ecb6-718f-479f-adf4-2c3a1d3306e2",
+  "asset": {
+    "id": "7c47ecb6-718f-479f-adf4-2c3a1d3306e2",
+    "integration_id": "335b3ed0-a793-498e-aaef-1fdfad41a539",
+    "name": "Create access grant",
+    "description": "Add the user to the provisioning group for the application and role. Returns the grant id used to revoke it later.",
+    "tags": [
+      "access"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"employee_id\":\"{{employee_id}}\",\"application\":\"{{application}}\",\"role\":\"{{role}}\",\"group\":\"{{group}}\",\"expires_at\":\"{{expires_at}}\",\"request_reference\":\"{{request_reference}}\"}",
+      "path_template": "/access-grants",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "grant_id",
+              "type": "string",
+              "example": "GR-58213"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "active"
+            },
+            {
+              "name": "group",
+              "type": "string",
+              "example": "app-erp-ap-clerk"
+            },
+            {
+              "name": "provisioned_at",
+              "type": "string",
+              "example": "2026-10-26T09:12:00Z"
+            },
+            {
+              "name": "expires_at",
+              "type": "string",
+              "example": "2027-01-24T09:12:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "grant_id": "GR-58213",
+          "status": "active",
+          "group": "app-erp-ap-clerk",
+          "provisioned_at": "2026-10-26T09:12:00Z",
+          "expires_at": "2027-01-24T09:12:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "650ae7de-f70c-41ee-8871-d53dd9b16a00",
+        "name": "employee_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "a751df01-c4f5-4c38-9988-aa1cc45ca255",
+        "name": "application",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "a642e576-827b-47c5-8b55-4bb7bdcc02a0",
+        "name": "role",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "daeee256-72e3-43b7-b4b6-eaace164896b",
+        "name": "group",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "5362efaf-709a-41dc-8ed3-ca078dc10aa2",
+        "name": "expires_at",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "ISO date-time, empty for permanent access",
+        "default_value": ""
+      },
+      {
+        "id": "442ef3b7-b94d-4eea-99be-f61aaced94cb",
+        "name": "request_reference",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "fb1183ce-6639-4f32-bb9c-2c17f8a7c707",
+        "name": "grant_id",
+        "path": "grant_id",
+        "type": "string"
+      },
+      {
+        "id": "0298ce11-9e98-4e22-b980-26250c973853",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "759f826a-997a-4e68-9cb8-084c05da9db4",
+        "name": "provisioned_at",
+        "path": "provisioned_at",
+        "type": "string"
+      }
+    ]
+  }
+}

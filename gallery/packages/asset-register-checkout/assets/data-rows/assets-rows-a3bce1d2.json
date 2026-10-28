@@ -1,0 +1,139 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "a3bce1d2-e26c-5ce9-8d48-ed94be7e8562",
+  "asset": {
+    "id": "a3bce1d2-e26c-5ce9-8d48-ed94be7e8562",
+    "name": "Assets rows",
+    "rows": [
+      {
+        "id": "9732c1fa-3f7f-51e1-bf0b-b43bc3461421",
+        "data": {
+          "asset_tag": "AST-1001",
+          "name": "Loan laptop 14\" #1",
+          "category": "Laptop",
+          "location": "IT store, level 2",
+          "serial_number": "PF3K9X21",
+          "condition": "Good",
+          "status": "available",
+          "purchase_date": "2025-03-14",
+          "value": 1850
+        }
+      },
+      {
+        "id": "ddaa176c-489b-5ec3-90b4-aaa71e46c5ff",
+        "data": {
+          "asset_tag": "AST-1002",
+          "name": "Loan laptop 14\" #2",
+          "category": "Laptop",
+          "location": "IT store, level 2",
+          "serial_number": "PF3K9X44",
+          "condition": "Fair",
+          "status": "available",
+          "purchase_date": "2024-08-02",
+          "value": 1850
+        }
+      },
+      {
+        "id": "beaebd85-9bd3-5db9-a296-dfa110dfc1a3",
+        "data": {
+          "asset_tag": "AST-2001",
+          "name": "Portable projector",
+          "category": "AV equipment",
+          "location": "Reception cupboard",
+          "serial_number": "EP-77120",
+          "condition": "Good",
+          "status": "available",
+          "purchase_date": "2023-11-20",
+          "value": 1200
+        }
+      },
+      {
+        "id": "569d3dee-bae9-5617-be32-ee3bb1cbc552",
+        "data": {
+          "asset_tag": "AST-2002",
+          "name": "Conference speakerphone",
+          "category": "AV equipment",
+          "location": "Reception cupboard",
+          "serial_number": "JB-55021",
+          "condition": "New",
+          "status": "available",
+          "purchase_date": "2026-06-01",
+          "value": 420
+        }
+      },
+      {
+        "id": "75e74649-f2bd-5cf8-88ea-33f88014a0f8",
+        "data": {
+          "asset_tag": "AST-3001",
+          "name": "Mirrorless camera kit",
+          "category": "Camera",
+          "location": "Marketing store",
+          "serial_number": "SN-A7-30988",
+          "condition": "Good",
+          "status": "available",
+          "purchase_date": "2025-01-09",
+          "value": 3100
+        }
+      },
+      {
+        "id": "925a6581-07d6-5e49-b66b-664a14200b90",
+        "data": {
+          "asset_tag": "AST-4001",
+          "name": "Cordless drill set",
+          "category": "Tools",
+          "location": "Workshop",
+          "serial_number": "DW-18V-1180",
+          "condition": "Worn",
+          "status": "available",
+          "purchase_date": "2022-05-17",
+          "value": 380
+        }
+      },
+      {
+        "id": "73ab13d9-0e7f-55db-8d02-1fdcdc9544df",
+        "data": {
+          "asset_tag": "AST-4002",
+          "name": "Thermal imaging camera",
+          "category": "Tools",
+          "location": "Workshop",
+          "serial_number": "FL-E8-2231",
+          "condition": "Good",
+          "status": "checked out",
+          "checked_out_to": "sam.taylor@example.com",
+          "due_back": "2026-11-04",
+          "purchase_date": "2024-02-28",
+          "value": 4200
+        }
+      },
+      {
+        "id": "652c0459-7706-5d12-a556-fcda1973450e",
+        "data": {
+          "asset_tag": "AST-5001",
+          "name": "Pool car (hybrid hatchback)",
+          "category": "Vehicle",
+          "location": "Basement car park, bay 12",
+          "serial_number": "REG KXT482",
+          "condition": "Good",
+          "status": "available",
+          "purchase_date": "2024-10-01",
+          "value": 32000
+        }
+      },
+      {
+        "id": "b5e26d6a-4106-53a5-aebf-39235d1dc96f",
+        "data": {
+          "asset_tag": "AST-6001",
+          "name": "Height safety harness kit",
+          "category": "Safety equipment",
+          "location": "Workshop",
+          "serial_number": "HS-2290",
+          "condition": "Good",
+          "status": "in repair",
+          "purchase_date": "2023-04-11",
+          "value": 650
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "9afb9baf-f5e6-444e-9de7-1491ce7ac375",
+  "asset": {
+    "id": "9afb9baf-f5e6-444e-9de7-1491ce7ac375",
+    "integration_id": "d3641398-2f04-4b14-abaa-d97a82480a4c",
+    "name": "Post reconciliation summary",
+    "description": "Post the daily totals to an ops channel or monitoring webhook.",
+    "tags": [
+      "notifications"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"date\":\"{{date}}\",\"orders\":{{orders}},\"matched\":{{matched}},\"missing_invoice\":{{missing_invoice}},\"amount_mismatch\":{{amount_mismatch}},\"text\":\"{{text}}\"}",
+      "path_template": "/reconciliation-summary",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "ok",
+              "type": "boolean",
+              "example": true
+            },
+            {
+              "name": "id",
+              "type": "string",
+              "example": "msg-30812"
+            }
+          ]
+        },
+        "sample": {
+          "ok": true,
+          "id": "msg-30812"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "d694fc18-1db1-45ec-8550-9ccab6ee7bbd",
+        "name": "date",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "8f7842a6-ee10-46f3-b27d-527ac0b84901",
+        "name": "orders",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "56bd5eb2-e36c-4984-b669-d6da4faf2e29",
+        "name": "matched",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "978fea41-df74-4478-a898-b119b64bcf4c",
+        "name": "missing_invoice",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "cb57866a-1261-4f3b-9cc5-b0ca13ce8f08",
+        "name": "amount_mismatch",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "7c7c5481-3bc4-4bc7-a97c-0df2dc4879da",
+        "name": "text",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "af2d5073-d6c5-4eb6-bd71-891c8d4235c4",
+        "name": "ok",
+        "path": "ok",
+        "type": "boolean"
+      }
+    ]
+  }
+}

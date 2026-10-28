@@ -1,0 +1,238 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "2aeb403b-ee31-4e78-8435-1c7583259827",
+  "asset": {
+    "id": "2aeb403b-ee31-4e78-8435-1c7583259827",
+    "name": "Supplier risk",
+    "description": "Risk tier, review cadence and recommended action from the risk-intelligence scores, the supplier's criticality and annual spend. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "65b47d45-be2a-40d8-93a2-c3490d6868a0",
+        "key": "sanctions_hit",
+        "label": "Sanctions match",
+        "type": "boolean"
+      },
+      {
+        "id": "b148f9c9-84fc-4bf3-96ce-b3696b963daa",
+        "key": "financial_score",
+        "label": "Financial score (0-100)",
+        "type": "number"
+      },
+      {
+        "id": "88b46266-c1b9-473d-927c-42bd1d3cbe7c",
+        "key": "cyber_score",
+        "label": "Cyber score (0-100)",
+        "type": "number"
+      },
+      {
+        "id": "7bd9c4c9-f31c-45bd-b594-692b3c6498cf",
+        "key": "esg_flag_count",
+        "label": "ESG flags",
+        "type": "number"
+      },
+      {
+        "id": "adec20e1-c91a-4df7-9bcc-ecc1a5dec6af",
+        "key": "criticality",
+        "label": "Criticality",
+        "type": "text"
+      },
+      {
+        "id": "719803a5-d566-4445-a37a-b8481129636a",
+        "key": "annual_spend",
+        "label": "Annual spend",
+        "type": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "e0d4f75e-9767-4ea8-928b-33538d736f28",
+        "key": "risk_tier",
+        "label": "Risk tier",
+        "type": "text"
+      },
+      {
+        "id": "6759b1f0-867a-4d29-8486-2e9507aaf5f2",
+        "key": "review_months",
+        "label": "Review every (months)",
+        "type": "number"
+      },
+      {
+        "id": "58c433b1-723e-405e-860a-3743aff0fa5b",
+        "key": "action",
+        "label": "Recommended action",
+        "type": "text"
+      }
+    ],
+    "rules": [
+      {
+        "id": "83a9ea4b-a90d-4935-87f0-30d86020ff64",
+        "label": "Sanctions match",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "Critical",
+          "review_months": 1,
+          "action": "Stop new orders and refer to legal; plan exit"
+        },
+        "conditions": [
+          {
+            "id": "fa9e6721-4f2d-43f8-a8b0-4a4cb33982aa",
+            "inputKey": "sanctions_hit",
+            "operator": "equals",
+            "value": "true"
+          }
+        ]
+      },
+      {
+        "id": "d4619c1f-85d9-41f9-bbcf-994d6b5943b9",
+        "label": "Weak finances, critical supplier",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "High",
+          "review_months": 3,
+          "action": "Find a second source and agree a continuity plan"
+        },
+        "conditions": [
+          {
+            "id": "e29eed9c-2078-4fa5-966a-479c1cf5f826",
+            "inputKey": "financial_score",
+            "operator": "less_than",
+            "value": "40"
+          },
+          {
+            "id": "71235fa8-8c66-4c3e-8ced-273d71b70dcb",
+            "inputKey": "criticality",
+            "operator": "equals",
+            "value": "critical"
+          }
+        ]
+      },
+      {
+        "id": "8a124a1b-8c25-45f0-bdff-750d9bf1d324",
+        "label": "Weak finances, high criticality",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "High",
+          "review_months": 3,
+          "action": "Ask for current accounts; prepare a second source"
+        },
+        "conditions": [
+          {
+            "id": "ce9489ce-7f91-4774-a8c7-63b48a441c94",
+            "inputKey": "financial_score",
+            "operator": "less_than",
+            "value": "40"
+          },
+          {
+            "id": "16a5f466-7361-4066-af90-f91284748830",
+            "inputKey": "criticality",
+            "operator": "equals",
+            "value": "high"
+          }
+        ]
+      },
+      {
+        "id": "a515cf85-070c-4a8b-bd79-39532d44ba2b",
+        "label": "Weak cyber, large spend",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "High",
+          "review_months": 3,
+          "action": "Request a security remediation plan with dates"
+        },
+        "conditions": [
+          {
+            "id": "09860995-8005-4ca1-8567-657fbd47a6e2",
+            "inputKey": "cyber_score",
+            "operator": "less_than",
+            "value": "50"
+          },
+          {
+            "id": "42aea704-0594-470f-ab6f-8e96988b9b95",
+            "inputKey": "annual_spend",
+            "operator": "greater_than_or_equal",
+            "value": "250000"
+          }
+        ]
+      },
+      {
+        "id": "557e2dc4-4542-4ad8-a3a7-7723221bf55d",
+        "label": "Several ESG concerns",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "High",
+          "review_months": 6,
+          "action": "Request evidence against each ESG flag"
+        },
+        "conditions": [
+          {
+            "id": "439a01cd-b4cc-414a-af5f-f776f18d1f45",
+            "inputKey": "esg_flag_count",
+            "operator": "greater_than_or_equal",
+            "value": "2"
+          },
+          {
+            "id": "c0a6f436-6131-4133-af32-e9d572d12343",
+            "inputKey": "criticality",
+            "operator": "not_equals",
+            "value": "low"
+          }
+        ]
+      },
+      {
+        "id": "920bcd64-7b4e-4186-aa6d-044cdbda5f62",
+        "label": "Moderate financial risk",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "Medium",
+          "review_months": 6,
+          "action": "Monitor; request the latest accounts"
+        },
+        "conditions": [
+          {
+            "id": "9a86ddcd-f4ff-441c-a040-5368351ec849",
+            "inputKey": "financial_score",
+            "operator": "less_than",
+            "value": "60"
+          }
+        ]
+      },
+      {
+        "id": "55fb2f84-be07-46e6-bc1c-90eb5c28c0d3",
+        "label": "Moderate cyber risk",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "Medium",
+          "review_months": 6,
+          "action": "Send the security questionnaire"
+        },
+        "conditions": [
+          {
+            "id": "bda38235-7dd1-4d3d-8239-df2499e65a0f",
+            "inputKey": "cyber_score",
+            "operator": "less_than",
+            "value": "70"
+          }
+        ]
+      },
+      {
+        "id": "800dac7e-96ae-44c9-8d2b-de29abdedb2c",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "Low",
+          "review_months": 12,
+          "action": "Standard annual review"
+        },
+        "conditions": [
+          {
+            "id": "c34a4258-a03b-4aee-accc-8cf10be5e88c",
+            "inputKey": "sanctions_hit",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

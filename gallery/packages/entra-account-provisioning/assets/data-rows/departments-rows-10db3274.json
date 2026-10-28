@@ -1,0 +1,81 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "10db3274-4f9f-5f88-b7c1-c6e30b493e78",
+  "asset": {
+    "id": "10db3274-4f9f-5f88-b7c1-c6e30b493e78",
+    "name": "Departments rows",
+    "rows": [
+      {
+        "id": "78907487-81b3-5865-a696-a9d60c9fbe9b",
+        "data": {
+          "code": "FIN",
+          "name": "Finance",
+          "licence_name": "Microsoft 365 E3",
+          "licence_sku_id": "05e9a617-0261-4cee-bb44-138d3ef5d965",
+          "group_id": "b320e1c4-7a4f-4d0e-9c1e-2f5a7d1e9a01",
+          "group_name": "SG-Finance",
+          "usage_location": "NZ",
+          "mail_domain": "contoso.example.com",
+          "cost_centre": "CC-210"
+        }
+      },
+      {
+        "id": "82d4c75c-3b3c-51d2-8090-58ce15549163",
+        "data": {
+          "code": "ENG",
+          "name": "Engineering",
+          "licence_name": "Microsoft 365 E5",
+          "licence_sku_id": "06ebc4ee-1bb5-47dd-8120-11324bc54e06",
+          "group_id": "9a4d6b2e-3c1f-4e8a-b7d2-6f0c1e2d3a02",
+          "group_name": "SG-Engineering",
+          "usage_location": "NZ",
+          "mail_domain": "contoso.example.com",
+          "cost_centre": "CC-410"
+        }
+      },
+      {
+        "id": "9017b27c-f8a8-55b8-8c41-0354df77831d",
+        "data": {
+          "code": "SAL",
+          "name": "Sales",
+          "licence_name": "Microsoft 365 Business Premium",
+          "licence_sku_id": "cbdc14ab-d96c-4c30-b9f4-6ada7cdc1d46",
+          "group_id": "4f2a8c6d-1e3b-4a5c-9d7e-8b0a1c2d3a03",
+          "group_name": "SG-Sales",
+          "usage_location": "AU",
+          "mail_domain": "contoso.example.com",
+          "cost_centre": "CC-510"
+        }
+      },
+      {
+        "id": "b4dc3505-af7e-5539-a346-e9f5098dd45c",
+        "data": {
+          "code": "OPS",
+          "name": "Warehouse operations",
+          "licence_name": "Microsoft 365 F3",
+          "licence_sku_id": "66b55226-6b4f-492c-910c-a3b7a3c9d993",
+          "group_id": "7c1e3a5b-2d4f-4b6a-8c9e-0d1f2a3b4a04",
+          "group_name": "SG-Operations-Frontline",
+          "usage_location": "NZ",
+          "mail_domain": "contoso.example.com",
+          "cost_centre": "CC-620"
+        }
+      },
+      {
+        "id": "471e5f49-56e1-582a-a799-2a34e66059c5",
+        "data": {
+          "code": "PPL",
+          "name": "People & Culture",
+          "licence_name": "Microsoft 365 E3",
+          "licence_sku_id": "05e9a617-0261-4cee-bb44-138d3ef5d965",
+          "group_id": "2e5b7d9f-4a6c-4d8e-a0b2-c4d6e8f0a105",
+          "group_name": "SG-People",
+          "usage_location": "NZ",
+          "mail_domain": "contoso.example.com",
+          "cost_centre": "CC-120"
+        }
+      }
+    ]
+  }
+}

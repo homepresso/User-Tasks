@@ -1,0 +1,711 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "1d582a79-6d06-48f5-857f-646eae0a1378",
+  "asset": {
+    "id": "1d582a79-6d06-48f5-857f-646eae0a1378",
+    "name": "Supplier risk review",
+    "description": "When a supplier is added or flagged for review: gets the risk rating, applies the Supplier risk rules, writes the tier and next review date back, and sends high-risk suppliers to procurement.",
+    "trigger_type": "data_table_event",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "data_table_event",
+        "label": "Supplier added or flagged",
+        "position": {
+          "x": 660,
+          "y": 60
+        },
+        "config": {
+          "table_id": "771b33ea-8b3d-496a-87f5-bcfa9cd5364a",
+          "table_name": "Suppliers",
+          "event_types": [
+            "created",
+            "updated"
+          ]
+        }
+      },
+      {
+        "id": "guard",
+        "type": "condition",
+        "label": "Review needed?",
+        "position": {
+          "x": 660,
+          "y": 220
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Review",
+              "logic": "or",
+              "rules": [
+                {
+                  "field": "{{data_event_type}}",
+                  "operator": "equals",
+                  "value": "created"
+                },
+                {
+                  "field": "{{review_requested}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "skip",
+        "type": "end_workflow",
+        "label": "No review requested",
+        "position": {
+          "x": 980,
+          "y": 400
+        },
+        "config": {
+          "reason": "{{supplier_id}} {{data_event_type}} without a review request (or the workflow's own update)"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 660,
+          "y": 400
+        },
+        "config": {
+          "title": "Supplier risk: {{name}} ({{supplier_id}})"
+        }
+      },
+      {
+        "id": "rating",
+        "type": "call_reference",
+        "label": "Get risk rating",
+        "position": {
+          "x": 660,
+          "y": 560
+        },
+        "config": {
+          "reference_id": "79fc5897-196f-4280-a774-0d20d497494c",
+          "reference_name": "Get supplier risk rating",
+          "reference_method": "GET",
+          "input_mappings": {
+            "supplier_id": "{{supplier_id}}"
+          },
+          "output_mappings": {
+            "financial_score": {
+              "enabled": true,
+              "variableName": "financial_score"
+            },
+            "cyber_score": {
+              "enabled": true,
+              "variableName": "cyber_score"
+            },
+            "esg_flags": {
+              "enabled": true,
+              "variableName": "esg_flags"
+            },
+            "sanctions_hit": {
+              "enabled": true,
+              "variableName": "sanctions_hit"
+            },
+            "rating_date": {
+              "enabled": true,
+              "variableName": "rating_date"
+            },
+            "report_url": {
+              "enabled": true,
+              "variableName": "report_url"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "rated",
+        "type": "condition",
+        "label": "Rating found?",
+        "position": {
+          "x": 660,
+          "y": 720
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Found",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{get_risk_rating_status}}",
+                  "operator": "lt",
+                  "value": "400"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "no_rating",
+        "type": "log",
+        "label": "No rating",
+        "position": {
+          "x": 980,
+          "y": 900
+        },
+        "config": {
+          "message": "Risk rating for {{supplier_id}} failed with status {{get_risk_rating_status}}",
+          "level": "error"
+        }
+      },
+      {
+        "id": "unrated",
+        "type": "update_data_table",
+        "label": "Mark rating unavailable",
+        "position": {
+          "x": 980,
+          "y": 1060
+        },
+        "config": {
+          "table_id": "771b33ea-8b3d-496a-87f5-bcfa9cd5364a",
+          "table_name": "Suppliers",
+          "operation": "update",
+          "match_column": "supplier_id",
+          "match_value": "{{supplier_id}}",
+          "column_values": {
+            "review_requested": "{{=NOT(true)}}",
+            "review_status": "Rating unavailable"
+          }
+        }
+      },
+      {
+        "id": "esg_count",
+        "type": "set_variable",
+        "label": "Count ESG flags",
+        "position": {
+          "x": 660,
+          "y": 900
+        },
+        "config": {
+          "name": "esg_flag_count",
+          "expression": "{{=COUNT(esg_flags)}}"
+        }
+      },
+      {
+        "id": "esg_text",
+        "type": "set_variable",
+        "label": "ESG flags text",
+        "position": {
+          "x": 660,
+          "y": 1060
+        },
+        "config": {
+          "name": "esg_flag_text",
+          "expression": "{{=JOIN(\"; \", esg_flags)}}"
+        }
+      },
+      {
+        "id": "rules",
+        "type": "decision_table",
+        "label": "Supplier risk rules",
+        "position": {
+          "x": 660,
+          "y": 1220
+        },
+        "config": {
+          "decision_table_id": "2aeb403b-ee31-4e78-8435-1c7583259827",
+          "decision_table_name": "Supplier risk",
+          "input_mappings": {
+            "sanctions_hit": "{{sanctions_hit}}",
+            "financial_score": "{{financial_score}}",
+            "cyber_score": "{{cyber_score}}",
+            "esg_flag_count": "{{esg_flag_count}}",
+            "criticality": "{{criticality}}",
+            "annual_spend": "{{annual_spend}}"
+          }
+        }
+      },
+      {
+        "id": "next",
+        "type": "set_variable",
+        "label": "Next review date",
+        "position": {
+          "x": 660,
+          "y": 1380
+        },
+        "config": {
+          "name": "next_review_date",
+          "expression": "{{=FORMAT_DATE(ADD_DAYS(TODAY(), MULTIPLY(review_months, 30)), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "write",
+        "type": "update_data_table",
+        "label": "Write risk to supplier",
+        "position": {
+          "x": 660,
+          "y": 1540
+        },
+        "config": {
+          "table_id": "771b33ea-8b3d-496a-87f5-bcfa9cd5364a",
+          "table_name": "Suppliers",
+          "operation": "update",
+          "match_column": "supplier_id",
+          "match_value": "{{supplier_id}}",
+          "column_values": {
+            "review_requested": "{{=NOT(true)}}",
+            "risk_tier": "{{risk_tier}}",
+            "financial_score": "{{financial_score}}",
+            "cyber_score": "{{cyber_score}}",
+            "esg_flags": "{{esg_flag_text}}",
+            "sanctions_hit": "{{sanctions_hit}}",
+            "last_assessed": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "next_review_date": "{{next_review_date}}",
+            "review_status": "{{=IF(review_months <= 3, \"With procurement\", \"Assessed\")}}"
+          }
+        }
+      },
+      {
+        "id": "high",
+        "type": "condition",
+        "label": "High risk?",
+        "position": {
+          "x": 660,
+          "y": 1700
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "High risk",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{risk_tier}}",
+                  "operator": "in",
+                  "value": "High,Critical"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "alert",
+        "type": "send_email",
+        "label": "Email owner: flagged",
+        "position": {
+          "x": 660,
+          "y": 1880
+        },
+        "config": {
+          "to": "{{owner_email}}",
+          "email_template_id": "7c5a3eea-1a7c-4811-bb19-9165c5ea37a0"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Five-day review SLA",
+        "position": {
+          "x": 660,
+          "y": 2040
+        },
+        "config": {
+          "sla_label": "Supplier risk review",
+          "mode": "relative",
+          "amount": 5,
+          "unit": "days",
+          "warning_amount": 3,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "review",
+        "type": "user_task",
+        "label": "Review supplier risk",
+        "position": {
+          "x": 660,
+          "y": 2200
+        },
+        "config": {
+          "task_title": "Review {{risk_tier}} risk supplier {{name}} ({{supplier_id}})",
+          "task_description": "<p><strong>{{name}}</strong> ({{category}}, {{criticality}} criticality, annual spend {{annual_spend}}) was rated <strong>{{risk_tier}}</strong> by rule “{{rule_label}}”.</p><ul><li>Financial score {{financial_score}}</li><li>Cyber score {{cyber_score}}</li><li>ESG flags: {{esg_flag_text}}</li><li>Sanctions match: {{sanctions_hit}}</li></ul><p>Recommended action: <strong>{{action}}</strong>. Full report: <a href=\"{{report_url}}\">{{report_url}}</a></p><p>Accept the risk, agree a mitigation plan, or start an exit.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Accept",
+            "Mitigate",
+            "Exit"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "86924dcc-4660-4ba6-a7e7-cf5c2185fde3",
+          "assignee_variable": "{{procurement_lead_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "mitigation_plan",
+              "label": "Mitigation plan",
+              "type": "text",
+              "default": "{{action}}"
+            },
+            {
+              "key": "review_date",
+              "label": "Next review date",
+              "type": "date",
+              "required": true,
+              "default": "{{next_review_date}}"
+            },
+            {
+              "key": "notes",
+              "label": "Notes",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "review_date",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "mitigation_plan",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "notes",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "accept",
+              "label": "Accept",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Accept"
+            },
+            {
+              "id": "mitigate",
+              "label": "Mitigate",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Mitigate"
+            },
+            {
+              "id": "exit",
+              "label": "Exit",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Exit"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Supplier risk: {{name}}",
+            "align": "left",
+            "subtitle": "{{supplier_id}} · {{risk_tier}} risk · {{criticality}} criticality"
+          }
+        }
+      },
+      {
+        "id": "accept",
+        "type": "update_data_table",
+        "label": "Record risk accepted",
+        "position": {
+          "x": 340,
+          "y": 2380
+        },
+        "config": {
+          "table_id": "771b33ea-8b3d-496a-87f5-bcfa9cd5364a",
+          "table_name": "Suppliers",
+          "operation": "update",
+          "match_column": "supplier_id",
+          "match_value": "{{supplier_id}}",
+          "column_values": {
+            "review_status": "Risk accepted",
+            "next_review_date": "{{task_data.review_date}}",
+            "mitigation_plan": "{{task_data.notes}}"
+          }
+        }
+      },
+      {
+        "id": "mitigate",
+        "type": "update_data_table",
+        "label": "Record mitigation plan",
+        "position": {
+          "x": 660,
+          "y": 2380
+        },
+        "config": {
+          "table_id": "771b33ea-8b3d-496a-87f5-bcfa9cd5364a",
+          "table_name": "Suppliers",
+          "operation": "update",
+          "match_column": "supplier_id",
+          "match_value": "{{supplier_id}}",
+          "column_values": {
+            "review_status": "Mitigation in progress",
+            "next_review_date": "{{task_data.review_date}}",
+            "mitigation_plan": "{{task_data.mitigation_plan}}"
+          }
+        }
+      },
+      {
+        "id": "exit",
+        "type": "update_data_table",
+        "label": "Record exit",
+        "position": {
+          "x": 980,
+          "y": 2380
+        },
+        "config": {
+          "table_id": "771b33ea-8b3d-496a-87f5-bcfa9cd5364a",
+          "table_name": "Suppliers",
+          "operation": "update",
+          "match_column": "supplier_id",
+          "match_value": "{{supplier_id}}",
+          "column_values": {
+            "review_status": "Exit planned",
+            "next_review_date": "{{task_data.review_date}}",
+            "mitigation_plan": "{{task_data.mitigation_plan}}"
+          }
+        }
+      },
+      {
+        "id": "decided",
+        "type": "send_email",
+        "label": "Email owner: decision",
+        "position": {
+          "x": 660,
+          "y": 2540
+        },
+        "config": {
+          "to": "{{owner_email}}",
+          "email_template_id": "6bfc3ec6-3f24-4b52-a917-267f6bf49dcd"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Review complete",
+        "position": {
+          "x": 660,
+          "y": 2700
+        },
+        "config": {
+          "reason": "{{supplier_id}} {{risk_tier}}: {{outcome}}"
+        }
+      },
+      {
+        "id": "log_ok",
+        "type": "log",
+        "label": "Log assessment",
+        "position": {
+          "x": 980,
+          "y": 1880
+        },
+        "config": {
+          "message": "{{supplier_id}} {{name}} rated {{risk_tier}} ({{rule_label}}); next review {{next_review_date}}",
+          "level": "info"
+        }
+      },
+      {
+        "id": "assessed",
+        "type": "end_workflow",
+        "label": "Assessed",
+        "position": {
+          "x": 980,
+          "y": 2040
+        },
+        "config": {
+          "reason": "{{supplier_id}} rated {{risk_tier}}"
+        }
+      },
+      {
+        "id": "failed",
+        "type": "end_workflow",
+        "label": "Rating unavailable",
+        "position": {
+          "x": 980,
+          "y": 1220
+        },
+        "config": {
+          "reason": "No risk rating for {{supplier_id}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-guard",
+        "source": "trigger",
+        "target": "guard"
+      },
+      {
+        "id": "e-guard-title-review",
+        "source": "guard",
+        "target": "title",
+        "label": "Review"
+      },
+      {
+        "id": "e-guard-skip-else",
+        "source": "guard",
+        "target": "skip",
+        "label": "Else"
+      },
+      {
+        "id": "e-title-rating",
+        "source": "title",
+        "target": "rating"
+      },
+      {
+        "id": "e-rating-rated",
+        "source": "rating",
+        "target": "rated"
+      },
+      {
+        "id": "e-rated-esg_count-found",
+        "source": "rated",
+        "target": "esg_count",
+        "label": "Found"
+      },
+      {
+        "id": "e-rated-no_rating-else",
+        "source": "rated",
+        "target": "no_rating",
+        "label": "Else"
+      },
+      {
+        "id": "e-no_rating-unrated",
+        "source": "no_rating",
+        "target": "unrated"
+      },
+      {
+        "id": "e-unrated-failed",
+        "source": "unrated",
+        "target": "failed"
+      },
+      {
+        "id": "e-esg_count-esg_text",
+        "source": "esg_count",
+        "target": "esg_text"
+      },
+      {
+        "id": "e-esg_text-rules",
+        "source": "esg_text",
+        "target": "rules"
+      },
+      {
+        "id": "e-rules-next",
+        "source": "rules",
+        "target": "next"
+      },
+      {
+        "id": "e-next-write",
+        "source": "next",
+        "target": "write"
+      },
+      {
+        "id": "e-write-high",
+        "source": "write",
+        "target": "high"
+      },
+      {
+        "id": "e-high-alert-high-risk",
+        "source": "high",
+        "target": "alert",
+        "label": "High risk"
+      },
+      {
+        "id": "e-high-log_ok-else",
+        "source": "high",
+        "target": "log_ok",
+        "label": "Else"
+      },
+      {
+        "id": "e-log_ok-assessed",
+        "source": "log_ok",
+        "target": "assessed"
+      },
+      {
+        "id": "e-alert-sla",
+        "source": "alert",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-review",
+        "source": "sla",
+        "target": "review"
+      },
+      {
+        "id": "e-review-accept-accept",
+        "source": "review",
+        "target": "accept",
+        "label": "Accept"
+      },
+      {
+        "id": "e-review-mitigate-mitigate",
+        "source": "review",
+        "target": "mitigate",
+        "label": "Mitigate"
+      },
+      {
+        "id": "e-review-exit-exit",
+        "source": "review",
+        "target": "exit",
+        "label": "Exit"
+      },
+      {
+        "id": "e-accept-decided",
+        "source": "accept",
+        "target": "decided"
+      },
+      {
+        "id": "e-mitigate-decided",
+        "source": "mitigate",
+        "target": "decided"
+      },
+      {
+        "id": "e-exit-decided",
+        "source": "exit",
+        "target": "decided"
+      },
+      {
+        "id": "e-decided-done",
+        "source": "decided",
+        "target": "done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

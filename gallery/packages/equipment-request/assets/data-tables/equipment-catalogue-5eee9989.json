@@ -1,0 +1,54 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "5eee9989-73aa-4dca-b0a8-7b857a887cd9",
+  "asset": {
+    "id": "5eee9989-73aa-4dca-b0a8-7b857a887cd9",
+    "name": "Equipment catalogue",
+    "description": "Items employees can request, with the category, unit cost, whether approval is always required, lead time and supplier SKU. Edit to match your standard kit.",
+    "columns": [
+      {
+        "id": "2a94de71-e1dc-4863-a001-b23106f63878",
+        "required": true,
+        "key": "item",
+        "name": "Item",
+        "type": "text"
+      },
+      {
+        "id": "58261346-4243-4401-af0a-49ea12ebb037",
+        "required": true,
+        "key": "category",
+        "name": "Category",
+        "type": "text"
+      },
+      {
+        "id": "d1240b3d-20d6-4d1e-93bb-401d8234ff74",
+        "required": false,
+        "key": "unit_cost",
+        "name": "Unit cost",
+        "type": "number"
+      },
+      {
+        "id": "95f6e8c6-14b2-4dec-9d87-19476e634136",
+        "required": false,
+        "key": "approval_required",
+        "name": "Approval always required",
+        "type": "boolean"
+      },
+      {
+        "id": "41af7251-1814-41ef-bcbb-8567ddcf4100",
+        "required": false,
+        "key": "lead_time_days",
+        "name": "Lead time (days)",
+        "type": "number"
+      },
+      {
+        "id": "e39bdef8-36e5-4085-9630-f4e0f0cacff1",
+        "required": false,
+        "key": "supplier_sku",
+        "name": "Supplier SKU",
+        "type": "text"
+      }
+    ]
+  }
+}

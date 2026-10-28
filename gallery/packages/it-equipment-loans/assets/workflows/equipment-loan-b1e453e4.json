@@ -1,0 +1,668 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "b1e453e4-3c03-51c4-9605-01b6a7da4113",
+  "asset": {
+    "id": "b1e453e4-3c03-51c4-9605-01b6a7da4113",
+    "name": "Equipment loan",
+    "description": "A loan request from the form: logged, approved by the requester's manager, the device is re-checked and marked on loan, the borrower is emailed and a return check starts.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Loan requested",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "form_id": "f67a5cee-9aa9-52f9-bca0-1b884fdeeab6",
+          "form_name": "Equipment loan request"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Loan reference",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "name": "loan_ref",
+          "expression": "LN-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "vars",
+        "type": "set_variable",
+        "label": "Device details",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "name": "device",
+          "expression": "{{form.device_item.device}} {{form.device_item.model}}"
+        }
+      },
+      {
+        "id": "vars2",
+        "type": "set_variable",
+        "label": "Asset tag",
+        "position": {
+          "x": 400,
+          "y": 480
+        },
+        "config": {
+          "name": "asset_tag",
+          "expression": "{{form.device}}"
+        }
+      },
+      {
+        "id": "vars3",
+        "type": "set_variable",
+        "label": "Serial",
+        "position": {
+          "x": 400,
+          "y": 620
+        },
+        "config": {
+          "name": "serial",
+          "expression": "{{form.device_item.serial}}"
+        }
+      },
+      {
+        "id": "vars4",
+        "type": "set_variable",
+        "label": "Pick-up location",
+        "position": {
+          "x": 400,
+          "y": 760
+        },
+        "config": {
+          "name": "pickup_location",
+          "expression": "{{form.device_item.location}}"
+        }
+      },
+      {
+        "id": "vars5",
+        "type": "set_variable",
+        "label": "Borrower",
+        "position": {
+          "x": 400,
+          "y": 900
+        },
+        "config": {
+          "name": "borrower_name",
+          "expression": "{{form.borrower_name}}"
+        }
+      },
+      {
+        "id": "vars6",
+        "type": "set_variable",
+        "label": "Dates",
+        "position": {
+          "x": 400,
+          "y": 1040
+        },
+        "config": {
+          "name": "due_date",
+          "expression": "{{form.due_date}}"
+        }
+      },
+      {
+        "id": "vars7",
+        "type": "set_variable",
+        "label": "Start date",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "name": "start_date",
+          "expression": "{{form.start_date}}"
+        }
+      },
+      {
+        "id": "days",
+        "type": "set_variable",
+        "label": "Loan length",
+        "position": {
+          "x": 400,
+          "y": 1320
+        },
+        "config": {
+          "name": "loan_days",
+          "expression": "{{=DAY_DIFF(form.start_date, form.due_date)}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 1460
+        },
+        "config": {
+          "title": "Loan {{asset_tag}} to {{borrower_name}} until {{due_date}}"
+        }
+      },
+      {
+        "id": "log_req",
+        "type": "update_data_table",
+        "label": "Log the request",
+        "position": {
+          "x": 400,
+          "y": 1600
+        },
+        "config": {
+          "table_id": "dafdd4b5-a82f-5f39-82f9-c9d2031eccd3",
+          "table_name": "Loans",
+          "operation": "insert",
+          "column_values": {
+            "loan_ref": "{{loan_ref}}",
+            "asset_tag": "{{asset_tag}}",
+            "device": "{{device}}",
+            "serial": "{{serial}}",
+            "borrower_name": "{{borrower_name}}",
+            "borrower_email": "{{form.borrower_email}}",
+            "team": "{{form.team}}",
+            "purpose": "{{form.purpose}}",
+            "start_date": "{{start_date}}",
+            "due_date": "{{due_date}}",
+            "status": "Requested"
+          }
+        }
+      },
+      {
+        "id": "approve",
+        "type": "user_task",
+        "label": "Manager approval",
+        "position": {
+          "x": 400,
+          "y": 1760
+        },
+        "config": {
+          "task_title": "Approve loan: {{device}} for {{borrower_name}}",
+          "task_description": "<p><strong>{{borrower_name}}</strong> ({{form.team}}) would like to borrow <strong>{{device}}</strong> (asset {{asset_tag}}) from {{start_date}} to {{due_date}} ({{loan_days}} days).</p><p>Reason: {{form.purpose}}. {{form.details}}</p><p>Loans longer than four weeks should usually be a permanent equipment request instead.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.manager}}",
+          "fields": [
+            {
+              "key": "approved_until",
+              "label": "Approve until",
+              "type": "date",
+              "required": true,
+              "default": "{{form.due_date}}",
+              "help_text": "Shorten the loan if needed."
+            },
+            {
+              "key": "comment",
+              "label": "Comment for the borrower",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "approved_until",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Equipment loan",
+            "align": "left",
+            "subtitle": "{{borrower_name}} · {{asset_tag}} · {{loan_days}} days"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 720
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 2880,
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#4F46E5",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "due2",
+        "type": "set_variable",
+        "label": "Approved return date",
+        "position": {
+          "x": 200,
+          "y": 1920
+        },
+        "config": {
+          "name": "due_date",
+          "expression": "{{=COALESCE(task_data.approved_until, form.due_date)}}"
+        }
+      },
+      {
+        "id": "recheck",
+        "type": "update_data_table",
+        "label": "Is it still free?",
+        "position": {
+          "x": 200,
+          "y": 2080
+        },
+        "config": {
+          "table_id": "5e60b089-cef3-55de-b01c-8c9793c25fe3",
+          "table_name": "Loan pool",
+          "operation": "get",
+          "match_column": "asset_tag",
+          "match_value": "{{asset_tag}}",
+          "output_row_var": "pool_item"
+        }
+      },
+      {
+        "id": "free",
+        "type": "condition",
+        "label": "Still available?",
+        "position": {
+          "x": 200,
+          "y": 2240
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Available",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{pool_item.status}}",
+                  "operator": "equals",
+                  "value": "Available"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "out",
+        "type": "update_data_table",
+        "label": "Mark on loan",
+        "position": {
+          "x": 40,
+          "y": 2400
+        },
+        "config": {
+          "table_id": "5e60b089-cef3-55de-b01c-8c9793c25fe3",
+          "table_name": "Loan pool",
+          "operation": "update",
+          "match_column": "asset_tag",
+          "match_value": "{{asset_tag}}",
+          "column_values": {
+            "status": "On loan"
+          }
+        }
+      },
+      {
+        "id": "loan_row",
+        "type": "update_data_table",
+        "label": "Record the loan",
+        "position": {
+          "x": 40,
+          "y": 2560
+        },
+        "config": {
+          "table_id": "dafdd4b5-a82f-5f39-82f9-c9d2031eccd3",
+          "table_name": "Loans",
+          "operation": "update",
+          "match_column": "loan_ref",
+          "match_value": "{{loan_ref}}",
+          "column_values": {
+            "status": "On loan",
+            "due_date": "{{due_date}}",
+            "approver_comment": "{{task_data.comment}}"
+          }
+        }
+      },
+      {
+        "id": "ok_mail",
+        "type": "send_email",
+        "label": "Email the borrower",
+        "position": {
+          "x": 40,
+          "y": 2720
+        },
+        "config": {
+          "to": "{{form.borrower_email}}",
+          "email_template_id": "11cee4aa-5526-5bd7-85ff-b04e656c36fe"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "return",
+        "type": "call_sub_workflow",
+        "label": "Start the return check",
+        "position": {
+          "x": 40,
+          "y": 2880
+        },
+        "config": {
+          "sub_workflow_id": "05b39006-18ee-58be-b708-60ca813fee7b",
+          "sub_workflow_name": "Return check",
+          "input_mappings": {
+            "loan_ref": "{{loan_ref}}",
+            "asset_tag": "{{asset_tag}}",
+            "device": "{{device}}",
+            "serial": "{{serial}}",
+            "borrower_name": "{{borrower_name}}",
+            "borrower_email": "{{form.borrower_email}}",
+            "due_date": "{{due_date}}"
+          }
+        },
+        "executionMode": "async"
+      },
+      {
+        "id": "end_ok",
+        "type": "end_workflow",
+        "label": "On loan",
+        "position": {
+          "x": 40,
+          "y": 3040
+        },
+        "config": {
+          "reason": "{{asset_tag}} on loan to {{borrower_name}} until {{due_date}}"
+        }
+      },
+      {
+        "id": "gone_reason",
+        "type": "set_variable",
+        "label": "Reason: taken",
+        "position": {
+          "x": 360,
+          "y": 2400
+        },
+        "config": {
+          "name": "decline_reason",
+          "expression": "the device was booked by someone else before your loan was approved"
+        }
+      },
+      {
+        "id": "gone_row",
+        "type": "update_data_table",
+        "label": "Mark unavailable",
+        "position": {
+          "x": 360,
+          "y": 2560
+        },
+        "config": {
+          "table_id": "dafdd4b5-a82f-5f39-82f9-c9d2031eccd3",
+          "table_name": "Loans",
+          "operation": "update",
+          "match_column": "loan_ref",
+          "match_value": "{{loan_ref}}",
+          "column_values": {
+            "status": "Unavailable"
+          }
+        }
+      },
+      {
+        "id": "rej_reason",
+        "type": "set_variable",
+        "label": "Reason: rejected",
+        "position": {
+          "x": 680,
+          "y": 1920
+        },
+        "config": {
+          "name": "decline_reason",
+          "expression": "{{=COALESCE(task_data.comment, \"your manager did not approve the loan\")}}"
+        }
+      },
+      {
+        "id": "rej_row",
+        "type": "update_data_table",
+        "label": "Mark rejected",
+        "position": {
+          "x": 680,
+          "y": 2080
+        },
+        "config": {
+          "table_id": "dafdd4b5-a82f-5f39-82f9-c9d2031eccd3",
+          "table_name": "Loans",
+          "operation": "update",
+          "match_column": "loan_ref",
+          "match_value": "{{loan_ref}}",
+          "column_values": {
+            "status": "Rejected",
+            "approver_comment": "{{task_data.comment}}"
+          }
+        }
+      },
+      {
+        "id": "no_mail",
+        "type": "send_email",
+        "label": "Tell the borrower",
+        "position": {
+          "x": 520,
+          "y": 2720
+        },
+        "config": {
+          "to": "{{form.borrower_email}}",
+          "email_template_id": "671e21d5-334f-5b0d-bfce-4637240920c4"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "end_no",
+        "type": "end_workflow",
+        "label": "Not loaned",
+        "position": {
+          "x": 520,
+          "y": 2880
+        },
+        "config": {
+          "reason": "Loan {{loan_ref}} not approved: {{decline_reason}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-vars",
+        "source": "ref",
+        "target": "vars"
+      },
+      {
+        "id": "e-vars-vars2",
+        "source": "vars",
+        "target": "vars2"
+      },
+      {
+        "id": "e-vars2-vars3",
+        "source": "vars2",
+        "target": "vars3"
+      },
+      {
+        "id": "e-vars3-vars4",
+        "source": "vars3",
+        "target": "vars4"
+      },
+      {
+        "id": "e-vars4-vars5",
+        "source": "vars4",
+        "target": "vars5"
+      },
+      {
+        "id": "e-vars5-vars6",
+        "source": "vars5",
+        "target": "vars6"
+      },
+      {
+        "id": "e-vars6-vars7",
+        "source": "vars6",
+        "target": "vars7"
+      },
+      {
+        "id": "e-vars7-days",
+        "source": "vars7",
+        "target": "days"
+      },
+      {
+        "id": "e-days-title",
+        "source": "days",
+        "target": "title"
+      },
+      {
+        "id": "e-title-log_req",
+        "source": "title",
+        "target": "log_req"
+      },
+      {
+        "id": "e-log_req-approve",
+        "source": "log_req",
+        "target": "approve"
+      },
+      {
+        "id": "e-approve-due2-approve",
+        "source": "approve",
+        "target": "due2",
+        "label": "Approve"
+      },
+      {
+        "id": "e-due2-recheck",
+        "source": "due2",
+        "target": "recheck"
+      },
+      {
+        "id": "e-recheck-free",
+        "source": "recheck",
+        "target": "free"
+      },
+      {
+        "id": "e-free-out-available",
+        "source": "free",
+        "target": "out",
+        "label": "Available"
+      },
+      {
+        "id": "e-out-loan_row",
+        "source": "out",
+        "target": "loan_row"
+      },
+      {
+        "id": "e-loan_row-ok_mail",
+        "source": "loan_row",
+        "target": "ok_mail"
+      },
+      {
+        "id": "e-ok_mail-return",
+        "source": "ok_mail",
+        "target": "return"
+      },
+      {
+        "id": "e-return-end_ok",
+        "source": "return",
+        "target": "end_ok"
+      },
+      {
+        "id": "e-free-gone_reason-else",
+        "source": "free",
+        "target": "gone_reason",
+        "label": "Else"
+      },
+      {
+        "id": "e-gone_reason-gone_row",
+        "source": "gone_reason",
+        "target": "gone_row"
+      },
+      {
+        "id": "e-gone_row-no_mail",
+        "source": "gone_row",
+        "target": "no_mail"
+      },
+      {
+        "id": "e-approve-rej_reason-reject",
+        "source": "approve",
+        "target": "rej_reason",
+        "label": "Reject"
+      },
+      {
+        "id": "e-rej_reason-rej_row",
+        "source": "rej_reason",
+        "target": "rej_row"
+      },
+      {
+        "id": "e-rej_row-no_mail",
+        "source": "rej_row",
+        "target": "no_mail"
+      },
+      {
+        "id": "e-no_mail-end_no",
+        "source": "no_mail",
+        "target": "end_no"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

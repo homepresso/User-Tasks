@@ -1,0 +1,108 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "6b418448-6cb2-5b02-a81b-c5e0d653134c",
+  "asset": {
+    "id": "6b418448-6cb2-5b02-a81b-c5e0d653134c",
+    "name": "Reorders",
+    "description": "Every reorder the daily check raised: what, how many, the estimated cost and whether it was approved.",
+    "columns": [
+      {
+        "id": "39746291-0251-57c2-8fa6-881d11d9e2f1",
+        "required": true,
+        "key": "reorder_ref",
+        "name": "Reorder reference",
+        "type": "text"
+      },
+      {
+        "id": "41658489-8828-580f-80e7-d0dfc5465cbf",
+        "required": true,
+        "key": "sku",
+        "name": "SKU",
+        "type": "text"
+      },
+      {
+        "id": "f23ebd5e-3693-53d5-9ed6-f0a497b92f8c",
+        "required": false,
+        "key": "item",
+        "name": "Item",
+        "type": "text"
+      },
+      {
+        "id": "bc685d58-834a-538e-8a16-9c1d0b31e9a3",
+        "required": false,
+        "key": "on_hand",
+        "name": "On hand when raised",
+        "type": "number"
+      },
+      {
+        "id": "06636d3b-d5b1-5d4a-a081-84cffcaf0ea6",
+        "required": false,
+        "key": "quantity",
+        "name": "Quantity",
+        "type": "number"
+      },
+      {
+        "id": "c5a6f0ff-3cdc-5b61-98c6-5c5276f3f09e",
+        "required": false,
+        "key": "est_cost",
+        "name": "Estimated cost",
+        "type": "number"
+      },
+      {
+        "id": "20861752-6649-5811-b0f9-134083caa30c",
+        "required": false,
+        "key": "supplier",
+        "name": "Supplier",
+        "type": "text"
+      },
+      {
+        "id": "4962fb82-bf3f-54cb-aa0f-adfeefd16b90",
+        "required": false,
+        "key": "supplier_email",
+        "name": "Supplier email",
+        "type": "text"
+      },
+      {
+        "id": "52f09496-6269-551d-9148-a000c8ce623c",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "awaiting approval",
+          "ordered",
+          "skipped"
+        ]
+      },
+      {
+        "id": "1d7222d0-d26c-5ad9-8133-89ab5820b4cb",
+        "required": false,
+        "key": "raised_on",
+        "name": "Raised",
+        "type": "date"
+      },
+      {
+        "id": "fc4f3a9f-1f7c-5ca3-87ca-dd1ea077dc97",
+        "required": false,
+        "key": "decided_on",
+        "name": "Decided",
+        "type": "date"
+      },
+      {
+        "id": "fc333fef-0028-5aeb-9826-738837102d7b",
+        "required": false,
+        "key": "expected_by",
+        "name": "Expected by",
+        "type": "date"
+      },
+      {
+        "id": "b65d9dda-bdcf-54e7-af40-af07e172958b",
+        "required": false,
+        "key": "note",
+        "name": "Note",
+        "type": "text"
+      }
+    ]
+  }
+}

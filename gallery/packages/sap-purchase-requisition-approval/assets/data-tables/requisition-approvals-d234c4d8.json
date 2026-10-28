@@ -1,0 +1,89 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "d234c4d8-1e65-5aec-b20d-931ad5830f4e",
+  "asset": {
+    "id": "d234c4d8-1e65-5aec-b20d-931ad5830f4e",
+    "name": "Requisition approvals",
+    "description": "Every SAP purchase requisition routed through UserTasks: amount, approval level, decisions and the purchase order created.",
+    "columns": [
+      {
+        "id": "5f753bb0-758e-56a0-bbff-87016135e10e",
+        "required": true,
+        "key": "purchase_requisition",
+        "name": "Purchase requisition",
+        "type": "text"
+      },
+      {
+        "id": "5ad1cdce-a4bd-5c38-9ba5-6404665abbba",
+        "required": false,
+        "key": "description",
+        "name": "Description",
+        "type": "text"
+      },
+      {
+        "id": "704bf74e-1456-58ff-9941-de2fed27a224",
+        "required": false,
+        "key": "amount",
+        "name": "Amount",
+        "type": "number"
+      },
+      {
+        "id": "f2f6d840-93c2-5623-964e-cc950fe1b61b",
+        "required": false,
+        "key": "currency",
+        "name": "Currency",
+        "type": "text"
+      },
+      {
+        "id": "aa3df1cc-0d84-5dab-9761-c13ec89a364a",
+        "required": false,
+        "key": "material_group",
+        "name": "Material group",
+        "type": "text"
+      },
+      {
+        "id": "7eb031de-366c-557d-a320-c41eab04e66f",
+        "required": false,
+        "key": "plant",
+        "name": "Plant",
+        "type": "text"
+      },
+      {
+        "id": "b3236f01-a099-5012-b4a5-b50e2dcca22c",
+        "required": false,
+        "key": "approver_level",
+        "name": "Approver level",
+        "type": "text"
+      },
+      {
+        "id": "f3590142-12e3-5e6d-ad48-646709d5ad86",
+        "required": false,
+        "key": "cost_center",
+        "name": "Cost centre",
+        "type": "text"
+      },
+      {
+        "id": "71553db4-b811-5da8-a17d-f60a1d4cdb5d",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      },
+      {
+        "id": "5eb0d449-dc6d-5bc5-bc43-461ce36398b7",
+        "required": false,
+        "key": "purchase_order",
+        "name": "Purchase order",
+        "type": "text"
+      },
+      {
+        "id": "89f554bd-ff45-5b11-8751-bc29dfcc49a5",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      }
+    ]
+  }
+}

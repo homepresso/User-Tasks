@@ -1,0 +1,74 @@
+{
+  "id": "fde96576-8d00-46f4-87a2-ef1fe0ce0400",
+  "slug": "month-end-close-checklist",
+  "title": "Month-end close checklist",
+  "category": "finance",
+  "summary": "On the first of each month, open the close in the ERP and issue every checklist task with a deadline, evidence rule and an audit log.",
+  "description": "Month-end close checklist runs your close from a table instead of a spreadsheet passed around by email. At 06:00 on the first of each month it works out the period to close (the previous month, unless you pass one), opens the close period in your ERP and reads every active row of the Close checklist table.\n\nEach checklist row starts its own Close task run: the task is logged as open in the Close log, then assigned with a due date from its business-day deadline, a reminder and escalation to the assignee's manager. The person ticks Done and pastes the evidence link; where the checklist says evidence is required, the task comes back until a link is given. Blocked and not-applicable tasks are recorded with their notes. Every result is written to the Close log and back onto the checklist row.\n\nThe main run logs the close start, emails the finance team the list of tasks and completes, while the close tasks carry on in parallel. Edit the checklist rows, deadlines and owner roles to match your close calendar.",
+  "trigger": "schedule",
+  "entry_workflow": "12a5a42e-1c34-4408-8a6c-53a0f070a324",
+  "start": "Scheduled: runs at 06:00 on the first day of every month (Pacific/Auckland; change the time zone on the trigger). Start it manually with a period to re-run a close.",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "month-end close",
+    "checklist",
+    "controllership",
+    "audit trail",
+    "sub-workflow"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees"
+  ],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "ERP integration: set the base URL of your ERP API and an API token. Open close period posts to /close-periods; adjust it to your ERP's period-close API in Integrations.",
+    "Assignee: pick the controller who receives the close tasks (a run can pass controller_id). To split tasks by owner, add an owner user column to the checklist and map it in Issue close task.",
+    "Edit the Close checklist rows: task, area, owner role, business-day deadline, system and whether evidence is required. Untick Active to skip a task.",
+    "Set the entity code, the finance team email and the trigger time zone on the Month-end close workflow.",
+    "Email (optional): configure EMAIL_PROVIDER for the kick-off email (the step continues on error)."
+  ],
+  "steps": [
+    {
+      "title": "First of the month",
+      "body": "The schedule fires at 06:00 and the period to close is set to the previous month unless one is passed in."
+    },
+    {
+      "title": "Open the close",
+      "body": "Open close period starts the close in the ERP and returns the close id and deadline."
+    },
+    {
+      "title": "Issue each task",
+      "body": "Every active Close checklist row starts its own Close task run, so tasks progress in parallel."
+    },
+    {
+      "title": "Complete with evidence",
+      "body": "The controller marks each task done, blocked or not applicable; evidence is required where the checklist says so."
+    },
+    {
+      "title": "Keep the audit trail",
+      "body": "Each result is written to the Close log and the checklist row records the last period and status."
+    },
+    {
+      "title": "Kick-off summary",
+      "body": "The main run logs the close start and emails the finance team the tasks and the deadline."
+    }
+  ],
+  "sample_input": {
+    "period": "2026-09",
+    "entity": "NZ01"
+  },
+  "expect": "completed",
+  "icon": "calendar-check"
+}

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "48eb330f-2ddf-40f3-92db-354674c2e4fa",
+  "asset": {
+    "id": "48eb330f-2ddf-40f3-92db-354674c2e4fa",
+    "name": "Requisition not approved",
+    "description": "Sent to the requester when the manager rejects the requisition or procurement cancels it.",
+    "subject": "Requisition {{requisition_ref}} not approved",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your requisition was not approved</h2>\n  <p>Hi,</p>\n  <p>Requisition {{requisition_ref}} for <strong>{{item_description}}</strong> ({{currency}} {{=FORMAT_NUMBER(amount, 2)}}) did not go ahead.</p>\n  <p>Comment: {{task_data.comment}}</p>\n  <p>Talk to your manager or procurement before you resubmit.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the purchasing workflow at your company</p>\n</div>",
+    "text_body": "Your requisition was not approved\n  Hi,\n  Requisition {{requisition_ref}} for {{item_description}} ({{currency}} {{=FORMAT_NUMBER(amount, 2)}}) did not go ahead.\n  Comment: {{task_data.comment}}\n  Talk to your manager or procurement before you resubmit.\n  Sent by the purchasing workflow at your company",
+    "is_default": false
+  }
+}

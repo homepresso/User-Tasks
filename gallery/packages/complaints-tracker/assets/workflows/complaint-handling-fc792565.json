@@ -1,0 +1,986 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "fc792565-c3ba-5cdd-b138-859d59ff84be",
+  "asset": {
+    "id": "fc792565-c3ba-5cdd-b138-859d59ff84be",
+    "name": "Complaint handling",
+    "description": "A complaint is logged against a customer: priority and SLA from tier and category, the customer is acknowledged, and the handler resolves or escalates it to the team lead.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Complaint logged",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "form_id": "15b6898d-104a-5501-821f-f846dd0c15ff",
+          "form_name": "Log a complaint"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Complaint reference",
+        "position": {
+          "x": 400,
+          "y": 180
+        },
+        "config": {
+          "name": "complaint_ref",
+          "expression": "CMP-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "cust",
+        "type": "update_data_table",
+        "label": "Read the customer",
+        "position": {
+          "x": 400,
+          "y": 300
+        },
+        "config": {
+          "table_id": "08830b82-40c8-5d97-8484-e047dbef377b",
+          "table_name": "Customers",
+          "operation": "get",
+          "match_column": "account_no",
+          "match_value": "{{form.customer}}",
+          "output_row_var": "customer_row"
+        }
+      },
+      {
+        "id": "company",
+        "type": "set_variable",
+        "label": "Company",
+        "position": {
+          "x": 400,
+          "y": 420
+        },
+        "config": {
+          "name": "company",
+          "expression": "{{=COALESCE(customer_row.company, form.customer_item.company)}}"
+        }
+      },
+      {
+        "id": "tier",
+        "type": "set_variable",
+        "label": "Tier",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "name": "tier",
+          "expression": "{{=COALESCE(customer_row.tier, \"Standard\")}}"
+        }
+      },
+      {
+        "id": "contact",
+        "type": "set_variable",
+        "label": "Contact name",
+        "position": {
+          "x": 400,
+          "y": 660
+        },
+        "config": {
+          "name": "contact_name",
+          "expression": "{{=COALESCE(form.contact_name, customer_row.contact_name)}}"
+        }
+      },
+      {
+        "id": "email",
+        "type": "set_variable",
+        "label": "Contact email",
+        "position": {
+          "x": 400,
+          "y": 780
+        },
+        "config": {
+          "name": "contact_email",
+          "expression": "{{=COALESCE(form.contact_email, customer_row.contact_email)}}"
+        }
+      },
+      {
+        "id": "am",
+        "type": "set_variable",
+        "label": "Account manager",
+        "position": {
+          "x": 400,
+          "y": 900
+        },
+        "config": {
+          "name": "account_manager",
+          "expression": "{{customer_row.account_manager}}"
+        }
+      },
+      {
+        "id": "am_email",
+        "type": "set_variable",
+        "label": "Account manager email",
+        "position": {
+          "x": 400,
+          "y": 1020
+        },
+        "config": {
+          "name": "account_manager_email",
+          "expression": "{{customer_row.account_manager_email}}"
+        }
+      },
+      {
+        "id": "prio",
+        "type": "decision_table",
+        "label": "Priority and SLA",
+        "position": {
+          "x": 400,
+          "y": 1140
+        },
+        "config": {
+          "decision_table_id": "bed02acf-95af-542e-a21b-ae6336d209aa",
+          "decision_table_name": "Complaint priority",
+          "input_mappings": {
+            "tier": "{{tier}}",
+            "category": "{{form.category}}"
+          }
+        }
+      },
+      {
+        "id": "due",
+        "type": "set_variable",
+        "label": "Resolve by",
+        "position": {
+          "x": 400,
+          "y": 1260
+        },
+        "config": {
+          "name": "resolve_by",
+          "expression": "{{=ADD_HOURS(NOW(), sla_hours)}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 1380
+        },
+        "config": {
+          "title": "{{priority}} complaint · {{company}} · {{form.summary}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Resolution SLA",
+        "position": {
+          "x": 400,
+          "y": 1500
+        },
+        "config": {
+          "sla_label": "Complaint resolution",
+          "mode": "exact",
+          "due_at": "{{resolve_by}}",
+          "warning_amount": 4,
+          "warning_unit": "hours"
+        }
+      },
+      {
+        "id": "status_open",
+        "type": "set_variable",
+        "label": "Status: open",
+        "position": {
+          "x": 400,
+          "y": 1620
+        },
+        "config": {
+          "name": "complaint_status",
+          "expression": "open"
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Log the complaint",
+        "position": {
+          "x": 400,
+          "y": 1740
+        },
+        "config": {
+          "table_id": "c6eeddb6-62fb-5d3f-ae54-5d81a7871d3d",
+          "table_name": "Complaints",
+          "operation": "insert",
+          "column_values": {
+            "complaint_ref": "{{complaint_ref}}",
+            "account_no": "{{form.customer}}",
+            "company": "{{company}}",
+            "contact_email": "{{contact_email}}",
+            "tier": "{{tier}}",
+            "category": "{{form.category}}",
+            "summary": "{{form.summary}}",
+            "priority": "{{priority}}",
+            "received_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "respond_by": "{{resolve_by}}",
+            "account_manager": "{{account_manager}}",
+            "status": "open"
+          }
+        }
+      },
+      {
+        "id": "count",
+        "type": "update_data_table",
+        "label": "Count on the account",
+        "position": {
+          "x": 400,
+          "y": 1860
+        },
+        "config": {
+          "table_id": "08830b82-40c8-5d97-8484-e047dbef377b",
+          "table_name": "Customers",
+          "operation": "update",
+          "match_column": "account_no",
+          "match_value": "{{form.customer}}",
+          "column_values": {
+            "open_complaints": "{{=ADD(COALESCE(customer_row.open_complaints, 0), 1)}}"
+          }
+        }
+      },
+      {
+        "id": "ack",
+        "type": "send_email",
+        "label": "Acknowledge the customer",
+        "position": {
+          "x": 400,
+          "y": 1980
+        },
+        "config": {
+          "to": "{{contact_email}}",
+          "email_template_id": "974353ce-f522-56c5-9156-00fd2b761c6b"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "tell_am",
+        "type": "condition",
+        "label": "Tell the account manager?",
+        "position": {
+          "x": 400,
+          "y": 2100
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Notify",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{notify_account_manager}}",
+                  "operator": "is_true",
+                  "value": ""
+                },
+                {
+                  "field": "{{account_manager_email}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "am_mail",
+        "type": "send_email",
+        "label": "Alert the account manager",
+        "position": {
+          "x": 200,
+          "y": 2220
+        },
+        "config": {
+          "to": "{{account_manager_email}}",
+          "email_template_id": "1bfd9ccc-b943-5a51-8f9a-552c26ecd71a"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "resolve",
+        "type": "user_task",
+        "label": "Resolve the complaint",
+        "position": {
+          "x": 400,
+          "y": 2340
+        },
+        "config": {
+          "task_title": "{{priority}} complaint: {{company}} · {{form.summary}}",
+          "task_description": "<p><strong>{{company}}</strong> ({{tier}} · account {{form.customer}}) complained via {{form.channel}} about <strong>{{form.category}}</strong>{{=IF(IS_EMPTY(form.order_ref), \"\", CONCAT(\" (order \", form.order_ref, \")\"))}}:</p><p><strong>{{form.summary}}</strong><br>{{form.details}}</p><p>The customer wants: {{form.desired_outcome}}. Contact: {{contact_name}}, {{contact_email}}.</p><p>Priority <strong>{{priority}}</strong> (rule \"{{rule_label}}\"): call the customer within {{ack_hours}} hours and resolve by <strong>{{=FORMAT_DATE(resolve_by, \"DD/MM/YYYY HH:mm\")}} UTC</strong>.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Resolve",
+            "Escalate"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.handler}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{resolve_by}}",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 1440,
+          "fields": [
+            {
+              "key": "root_cause",
+              "label": "Root cause",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "Carrier delay",
+                "Warehouse error",
+                "Product defect",
+                "Billing error",
+                "Process gap",
+                "Staff conduct",
+                "Customer misunderstanding",
+                "Other"
+              ]
+            },
+            {
+              "key": "customer_contacted",
+              "label": "I spoke to the customer",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "resolution",
+              "label": "Resolution (sent to the customer)",
+              "type": "textarea",
+              "required": true
+            },
+            {
+              "key": "goodwill",
+              "label": "Goodwill credit",
+              "type": "currency",
+              "min": 0,
+              "default": "0"
+            },
+            {
+              "key": "internal_note",
+              "label": "Internal note",
+              "type": "textarea",
+              "help_text": "Not sent to the customer. With Escalate, say why."
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "root_cause",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "customer_contacted",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "resolution",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "goodwill",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "internal_note",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "resolve",
+              "label": "Resolve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Resolve"
+            },
+            {
+              "id": "escalate",
+              "label": "Escalate",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Escalate"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "{{priority}} · {{company}}",
+            "align": "left",
+            "subtitle": "{{form.summary}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#7C3AED",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "esc_status",
+        "type": "set_variable",
+        "label": "Status: escalated",
+        "position": {
+          "x": 700,
+          "y": 2480
+        },
+        "config": {
+          "name": "complaint_status",
+          "expression": "escalated"
+        }
+      },
+      {
+        "id": "esc_note",
+        "type": "set_variable",
+        "label": "Handler note",
+        "position": {
+          "x": 700,
+          "y": 2600
+        },
+        "config": {
+          "name": "handler_note",
+          "expression": "{{task_data.internal_note}}"
+        }
+      },
+      {
+        "id": "esc_row",
+        "type": "update_data_table",
+        "label": "Mark escalated",
+        "position": {
+          "x": 700,
+          "y": 2720
+        },
+        "config": {
+          "table_id": "c6eeddb6-62fb-5d3f-ae54-5d81a7871d3d",
+          "table_name": "Complaints",
+          "operation": "update",
+          "match_column": "complaint_ref",
+          "match_value": "{{complaint_ref}}",
+          "column_values": {
+            "status": "escalated",
+            "root_cause": "{{task_data.root_cause}}"
+          }
+        }
+      },
+      {
+        "id": "esc_mail",
+        "type": "send_email",
+        "label": "Tell the account manager",
+        "position": {
+          "x": 700,
+          "y": 2840
+        },
+        "config": {
+          "to": "{{account_manager_email}}",
+          "email_template_id": "1bfd9ccc-b943-5a51-8f9a-552c26ecd71a"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "lead",
+        "type": "user_task",
+        "label": "Escalated: team lead resolves",
+        "position": {
+          "x": 700,
+          "y": 2960
+        },
+        "config": {
+          "task_title": "Escalated {{priority}} complaint: {{company}} · {{form.summary}}",
+          "task_description": "<p><strong>{{company}}</strong> ({{tier}} · account {{form.customer}}) complained via {{form.channel}} about <strong>{{form.category}}</strong>{{=IF(IS_EMPTY(form.order_ref), \"\", CONCAT(\" (order \", form.order_ref, \")\"))}}:</p><p><strong>{{form.summary}}</strong><br>{{form.details}}</p><p>The customer wants: {{form.desired_outcome}}. Contact: {{contact_name}}, {{contact_email}}.</p><p>Priority <strong>{{priority}}</strong> (rule \"{{rule_label}}\"): call the customer within {{ack_hours}} hours and resolve by <strong>{{=FORMAT_DATE(resolve_by, \"DD/MM/YYYY HH:mm\")}} UTC</strong>.</p><p><strong>Escalated by the handler:</strong> {{handler_note}}</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Resolve",
+            "Return to handler"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.team_lead}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{resolve_by}}",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 1440,
+          "fields": [
+            {
+              "key": "root_cause",
+              "label": "Root cause",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "Carrier delay",
+                "Warehouse error",
+                "Product defect",
+                "Billing error",
+                "Process gap",
+                "Staff conduct",
+                "Customer misunderstanding",
+                "Other"
+              ]
+            },
+            {
+              "key": "customer_contacted",
+              "label": "I spoke to the customer",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "resolution",
+              "label": "Resolution (sent to the customer)",
+              "type": "textarea",
+              "required": true
+            },
+            {
+              "key": "goodwill",
+              "label": "Goodwill credit",
+              "type": "currency",
+              "min": 0,
+              "default": "0"
+            },
+            {
+              "key": "internal_note",
+              "label": "Internal note",
+              "type": "textarea",
+              "help_text": "Not sent to the customer. With Escalate, say why."
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "root_cause",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "customer_contacted",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "resolution",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "goodwill",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "internal_note",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "resolve",
+              "label": "Resolve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Resolve"
+            },
+            {
+              "id": "return",
+              "label": "Return to handler",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Return to handler"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "{{priority}} · {{company}}",
+            "align": "left",
+            "subtitle": "{{form.summary}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#7C3AED",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "back",
+        "type": "goto_activity",
+        "label": "Back to the handler",
+        "position": {
+          "x": 960,
+          "y": 3100
+        },
+        "config": {
+          "target_node_id": "resolve",
+          "target_node_label": "Resolve the complaint"
+        }
+      },
+      {
+        "id": "res_text",
+        "type": "set_variable",
+        "label": "Resolution",
+        "position": {
+          "x": 400,
+          "y": 3100
+        },
+        "config": {
+          "name": "resolution",
+          "expression": "{{task_data.resolution}}"
+        }
+      },
+      {
+        "id": "res_gw",
+        "type": "set_variable",
+        "label": "Goodwill credit",
+        "position": {
+          "x": 400,
+          "y": 3220
+        },
+        "config": {
+          "name": "goodwill",
+          "expression": "{{=COALESCE(task_data.goodwill, 0)}}"
+        }
+      },
+      {
+        "id": "res_row",
+        "type": "update_data_table",
+        "label": "Mark resolved",
+        "position": {
+          "x": 400,
+          "y": 3340
+        },
+        "config": {
+          "table_id": "c6eeddb6-62fb-5d3f-ae54-5d81a7871d3d",
+          "table_name": "Complaints",
+          "operation": "update",
+          "match_column": "complaint_ref",
+          "match_value": "{{complaint_ref}}",
+          "column_values": {
+            "status": "resolved",
+            "root_cause": "{{task_data.root_cause}}",
+            "resolution": "{{resolution}}",
+            "goodwill": "{{goodwill}}",
+            "resolved_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "res_cust",
+        "type": "update_data_table",
+        "label": "Read the account again",
+        "position": {
+          "x": 400,
+          "y": 3460
+        },
+        "config": {
+          "table_id": "08830b82-40c8-5d97-8484-e047dbef377b",
+          "table_name": "Customers",
+          "operation": "get",
+          "match_column": "account_no",
+          "match_value": "{{form.customer}}",
+          "output_row_var": "customer_now"
+        }
+      },
+      {
+        "id": "res_count",
+        "type": "update_data_table",
+        "label": "One fewer open",
+        "position": {
+          "x": 400,
+          "y": 3580
+        },
+        "config": {
+          "table_id": "08830b82-40c8-5d97-8484-e047dbef377b",
+          "table_name": "Customers",
+          "operation": "update",
+          "match_column": "account_no",
+          "match_value": "{{form.customer}}",
+          "column_values": {
+            "open_complaints": "{{=MAX(SUBTRACT(COALESCE(customer_now.open_complaints, 1), 1), 0)}}"
+          }
+        }
+      },
+      {
+        "id": "res_mail",
+        "type": "send_email",
+        "label": "Tell the customer",
+        "position": {
+          "x": 400,
+          "y": 3700
+        },
+        "config": {
+          "to": "{{contact_email}}",
+          "email_template_id": "fc067373-4200-5a57-942b-576212a57983"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Resolved",
+        "position": {
+          "x": 400,
+          "y": 3820
+        },
+        "config": {
+          "reason": "{{complaint_ref}} resolved ({{task_data.root_cause}})"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-cust",
+        "source": "ref",
+        "target": "cust"
+      },
+      {
+        "id": "e-cust-company",
+        "source": "cust",
+        "target": "company"
+      },
+      {
+        "id": "e-company-tier",
+        "source": "company",
+        "target": "tier"
+      },
+      {
+        "id": "e-tier-contact",
+        "source": "tier",
+        "target": "contact"
+      },
+      {
+        "id": "e-contact-email",
+        "source": "contact",
+        "target": "email"
+      },
+      {
+        "id": "e-email-am",
+        "source": "email",
+        "target": "am"
+      },
+      {
+        "id": "e-am-am_email",
+        "source": "am",
+        "target": "am_email"
+      },
+      {
+        "id": "e-am_email-prio",
+        "source": "am_email",
+        "target": "prio"
+      },
+      {
+        "id": "e-prio-due",
+        "source": "prio",
+        "target": "due"
+      },
+      {
+        "id": "e-due-title",
+        "source": "due",
+        "target": "title"
+      },
+      {
+        "id": "e-title-sla",
+        "source": "title",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-status_open",
+        "source": "sla",
+        "target": "status_open"
+      },
+      {
+        "id": "e-status_open-row",
+        "source": "status_open",
+        "target": "row"
+      },
+      {
+        "id": "e-row-count",
+        "source": "row",
+        "target": "count"
+      },
+      {
+        "id": "e-count-ack",
+        "source": "count",
+        "target": "ack"
+      },
+      {
+        "id": "e-ack-tell_am",
+        "source": "ack",
+        "target": "tell_am"
+      },
+      {
+        "id": "e-tell_am-am_mail-notify",
+        "source": "tell_am",
+        "target": "am_mail",
+        "label": "Notify"
+      },
+      {
+        "id": "e-tell_am-resolve-else",
+        "source": "tell_am",
+        "target": "resolve",
+        "label": "Else"
+      },
+      {
+        "id": "e-am_mail-resolve",
+        "source": "am_mail",
+        "target": "resolve"
+      },
+      {
+        "id": "e-resolve-res_text-resolve",
+        "source": "resolve",
+        "target": "res_text",
+        "label": "Resolve"
+      },
+      {
+        "id": "e-resolve-esc_status-escalate",
+        "source": "resolve",
+        "target": "esc_status",
+        "label": "Escalate"
+      },
+      {
+        "id": "e-esc_status-esc_note",
+        "source": "esc_status",
+        "target": "esc_note"
+      },
+      {
+        "id": "e-esc_note-esc_row",
+        "source": "esc_note",
+        "target": "esc_row"
+      },
+      {
+        "id": "e-esc_row-esc_mail",
+        "source": "esc_row",
+        "target": "esc_mail"
+      },
+      {
+        "id": "e-esc_mail-lead",
+        "source": "esc_mail",
+        "target": "lead"
+      },
+      {
+        "id": "e-lead-res_text-resolve",
+        "source": "lead",
+        "target": "res_text",
+        "label": "Resolve"
+      },
+      {
+        "id": "e-lead-back-return-to-handler",
+        "source": "lead",
+        "target": "back",
+        "label": "Return to handler"
+      },
+      {
+        "id": "e-res_text-res_gw",
+        "source": "res_text",
+        "target": "res_gw"
+      },
+      {
+        "id": "e-res_gw-res_row",
+        "source": "res_gw",
+        "target": "res_row"
+      },
+      {
+        "id": "e-res_row-res_cust",
+        "source": "res_row",
+        "target": "res_cust"
+      },
+      {
+        "id": "e-res_cust-res_count",
+        "source": "res_cust",
+        "target": "res_count"
+      },
+      {
+        "id": "e-res_count-res_mail",
+        "source": "res_count",
+        "target": "res_mail"
+      },
+      {
+        "id": "e-res_mail-done",
+        "source": "res_mail",
+        "target": "done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "da908ccd-f758-475b-82b7-25f04de8f4b4",
+  "asset": {
+    "id": "da908ccd-f758-475b-82b7-25f04de8f4b4",
+    "name": "Statutory deadlines",
+    "description": "Response deadline by jurisdiction and request type, whether it can be extended, and the legal basis to quote. First matching rule wins. Check these against your own legal advice.",
+    "inputs": [
+      {
+        "id": "7eb6ebf1-4f9b-4432-bc0d-7293c021384f",
+        "key": "jurisdiction",
+        "label": "Jurisdiction",
+        "type": "text"
+      },
+      {
+        "id": "59e84acf-6d4b-456a-bfb7-5630e27797d6",
+        "key": "request_type",
+        "label": "Request type",
+        "type": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "d0fc3388-76c6-4d3f-bebf-d4974df07b5b",
+        "key": "deadline_days",
+        "label": "Deadline (days)",
+        "type": "number"
+      },
+      {
+        "id": "7f7726a0-1f60-4e91-9add-8e6734c95b0b",
+        "key": "extension_allowed",
+        "label": "Extension allowed",
+        "type": "boolean"
+      },
+      {
+        "id": "8042b0ad-cc09-4720-ab28-d9925a60494c",
+        "key": "extension_days",
+        "label": "Extension (days)",
+        "type": "number"
+      },
+      {
+        "id": "8b741c25-b21a-4576-afbf-dae7845d911a",
+        "key": "legal_basis",
+        "label": "Legal basis",
+        "type": "text"
+      }
+    ],
+    "rules": [
+      {
+        "id": "9523f48a-d58a-40a0-b72d-fc81b69da3c1",
+        "label": "CCPA opt-out (objection)",
+        "enabled": true,
+        "outputs": {
+          "deadline_days": 15,
+          "extension_allowed": false,
+          "extension_days": 0,
+          "legal_basis": "CCPA regulations §7026 (opt-out of sale/sharing, 15 business days)"
+        },
+        "conditions": [
+          {
+            "id": "94af154f-6681-4065-b343-f9cbe0d263cc",
+            "inputKey": "jurisdiction",
+            "operator": "equals",
+            "value": "CCPA"
+          },
+          {
+            "id": "c38d12bc-89c1-4eff-9cbb-eb2a03ccdb2a",
+            "inputKey": "request_type",
+            "operator": "equals",
+            "value": "objection"
+          }
+        ]
+      },
+      {
+        "id": "d6dfef07-bbdd-4b96-af43-8d5b928f85f8",
+        "label": "CCPA access, deletion, correction, portability",
+        "enabled": true,
+        "outputs": {
+          "deadline_days": 45,
+          "extension_allowed": true,
+          "extension_days": 45,
+          "legal_basis": "Cal. Civ. Code §1798.130 (45 days, one 45-day extension)"
+        },
+        "conditions": [
+          {
+            "id": "d2e39337-ba58-4033-aca1-ec11853bf7f4",
+            "inputKey": "jurisdiction",
+            "operator": "equals",
+            "value": "CCPA"
+          }
+        ]
+      },
+      {
+        "id": "89aa6865-61ec-4072-90f7-5297d004c0f3",
+        "label": "EU GDPR",
+        "enabled": true,
+        "outputs": {
+          "deadline_days": 30,
+          "extension_allowed": true,
+          "extension_days": 60,
+          "legal_basis": "GDPR Art. 12(3) (one month, extendable by two months)"
+        },
+        "conditions": [
+          {
+            "id": "ac9a5ba3-28bc-4896-9ddd-b62a2b09413b",
+            "inputKey": "jurisdiction",
+            "operator": "equals",
+            "value": "EU-GDPR"
+          }
+        ]
+      },
+      {
+        "id": "ca4c9aaf-0fd5-4820-9854-237297aa14a2",
+        "label": "UK GDPR",
+        "enabled": true,
+        "outputs": {
+          "deadline_days": 30,
+          "extension_allowed": true,
+          "extension_days": 60,
+          "legal_basis": "UK GDPR Art. 12(3) (one month, extendable by two months)"
+        },
+        "conditions": [
+          {
+            "id": "fa8a7d5b-788c-4bb0-aa2b-87b76419e80e",
+            "inputKey": "jurisdiction",
+            "operator": "equals",
+            "value": "UK-GDPR"
+          }
+        ]
+      },
+      {
+        "id": "8b2ed1f7-226e-4f34-9043-94a9f4a94ec6",
+        "label": "Other jurisdictions",
+        "enabled": true,
+        "outputs": {
+          "deadline_days": 30,
+          "extension_allowed": false,
+          "extension_days": 0,
+          "legal_basis": "Company privacy policy (30 days)"
+        },
+        "conditions": [
+          {
+            "id": "73cffa0c-6e23-4b34-9485-412529aeb1d4",
+            "inputKey": "jurisdiction",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

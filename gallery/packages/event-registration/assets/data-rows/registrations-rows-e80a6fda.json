@@ -1,0 +1,49 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "e80a6fda-a5be-5085-8261-e68b582fc7b6",
+  "asset": {
+    "id": "e80a6fda-a5be-5085-8261-e68b582fc7b6",
+    "name": "Registrations rows",
+    "rows": [
+      {
+        "id": "68a9b971-bb6d-592c-9d1f-271b28045bae",
+        "data": {
+          "reg_ref": "REG-3f9a12c0",
+          "event_code": "EVT-WKS-1203",
+          "event_title": "Hands-on workshop: building forms",
+          "event_date": "2026-12-03",
+          "name": "Grace Kim",
+          "email": "grace.kim@example.com",
+          "company": "Northwind Traders",
+          "job_title": "Operations lead",
+          "dietary": "None",
+          "special_request": "",
+          "request_status": "None",
+          "request_reply": "",
+          "status": "Confirmed",
+          "registered_on": "2026-10-20"
+        }
+      },
+      {
+        "id": "74781f83-9d49-536c-9a00-64a8a2d000de",
+        "data": {
+          "reg_ref": "REG-81bd04e7",
+          "event_code": "EVT-BRK-1119",
+          "event_title": "Customer breakfast briefing: 2027 product roadmap",
+          "event_date": "2026-11-19",
+          "name": "Hugo Silva",
+          "email": "hugo.silva@example.com",
+          "company": "Contoso Facilities",
+          "job_title": "Facilities manager",
+          "dietary": "Vegetarian",
+          "special_request": "",
+          "request_status": "None",
+          "request_reply": "",
+          "status": "Confirmed",
+          "registered_on": "2026-10-22"
+        }
+      }
+    ]
+  }
+}

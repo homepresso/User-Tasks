@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "66e74134-76be-5949-aa72-98e1192fa3f9",
+  "asset": {
+    "id": "66e74134-76be-5949-aa72-98e1192fa3f9",
+    "name": "Discount not approved",
+    "description": "Sent to the opportunity owner when the sales manager or finance rejects the discount.",
+    "subject": "Discount not approved: {{opportunity_name}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\">\n  <div style=\"border-top:4px solid #B42318;padding-top:16px\"><h2 style=\"margin:0 0 12px;font-size:20px\">The discount was not approved</h2></div>\n  <p style=\"margin:0 0 12px\"><strong>{{opportunity_name}}</strong> · requested {{discount}}% on {{currency}} {{=FORMAT_NUMBER(amount, 0)}}</p>\n  <p style=\"margin:0 0 12px\">Rejected by {{rejected_by}}: {{approval_notes}}</p>\n  <p style=\"margin:0 0 12px\">Rework the quote within your authority (up to 10%) or resubmit with more evidence.</p>\n  <p style=\"color:#6E6759;font-size:13px;margin-top:20px\">Sent by the Salesforce discount approval workflow</p>\n</div>",
+    "text_body": "Discount not approved: {{opportunity_name}}\nRejected by {{rejected_by}}: {{approval_notes}}",
+    "is_default": false
+  }
+}

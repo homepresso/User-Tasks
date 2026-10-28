@@ -1,0 +1,350 @@
+{
+  "label": "phase1",
+  "updatedAt": "2026-10-24T20:54:38.069Z",
+  "environment": {
+    "machine": "Apple M1 Pro",
+    "cpus": 10,
+    "memory_gb": 32,
+    "os": "darwin 27.0.0 arm64",
+    "node": "v20.19.5",
+    "git_commit": "d72c1d65",
+    "git_branch": "perf",
+    "supabase_cli": "2.84.4",
+    "postgres_server": "17.6",
+    "docker": "28.3.2"
+  },
+  "suites": {
+    "engine": {
+      "data": {
+        "linear50": {
+          "label": "50-node linear",
+          "wall_ms": {
+            "n": 3,
+            "p50": 21.2,
+            "p95": 38.8,
+            "max": 38.8,
+            "mean": 27
+          },
+          "db_round_trips": 6,
+          "db_time_ms": 30,
+          "rows_written": 54,
+          "external_calls": 0,
+          "queue_kicks": 0,
+          "node_results": 50,
+          "by_op": {
+            "GET workflows": 1,
+            "GET workflow_versions": 1,
+            "POST workflow_runs": 1,
+            "RPC record_workflow_run": 1,
+            "POST workflow_logs": 1,
+            "PATCH workflow_runs": 1
+          },
+          "statuses": [
+            "completed",
+            "completed",
+            "completed"
+          ]
+        },
+        "loop500": {
+          "label": "loop ×500 (set_variable + condition + functions)",
+          "wall_ms": {
+            "n": 3,
+            "p50": 246.9,
+            "p95": 254.6,
+            "max": 254.6,
+            "mean": 235.1
+          },
+          "db_round_trips": 6,
+          "db_time_ms": 240,
+          "rows_written": 2507,
+          "external_calls": 0,
+          "queue_kicks": 0,
+          "node_results": 9,
+          "by_op": {
+            "GET workflows": 1,
+            "GET workflow_versions": 1,
+            "POST workflow_runs": 1,
+            "RPC record_workflow_run": 1,
+            "POST workflow_logs": 1,
+            "PATCH workflow_runs": 1
+          },
+          "statuses": [
+            "completed",
+            "completed",
+            "completed"
+          ]
+        },
+        "dataTable500": {
+          "label": "500 data-table inserts (+ active data_table_event workflow)",
+          "wall_ms": {
+            "n": 3,
+            "p50": 4617.1,
+            "p95": 4670,
+            "max": 4670,
+            "mean": 4630.2
+          },
+          "db_round_trips": 2507,
+          "db_time_ms": 4041,
+          "rows_written": 1006,
+          "external_calls": 0,
+          "queue_kicks": 500,
+          "node_results": 3,
+          "by_op": {
+            "GET workflows": 501,
+            "GET workflow_versions": 501,
+            "POST workflow_runs": 1,
+            "GET custom_tables": 501,
+            "POST custom_table_rows": 500,
+            "RPC enqueue_workflow": 500,
+            "RPC record_workflow_run": 1,
+            "POST workflow_logs": 1,
+            "PATCH workflow_runs": 1
+          },
+          "statuses": [
+            "completed",
+            "completed",
+            "completed"
+          ]
+        },
+        "decision200": {
+          "label": "decision table in loop ×200",
+          "wall_ms": {
+            "n": 3,
+            "p50": 79,
+            "p95": 87.6,
+            "max": 87.6,
+            "mean": 80.5
+          },
+          "db_round_trips": 7,
+          "db_time_ms": 91,
+          "rows_written": 606,
+          "external_calls": 0,
+          "queue_kicks": 0,
+          "node_results": 5,
+          "by_op": {
+            "GET workflows": 1,
+            "GET workflow_versions": 1,
+            "POST workflow_runs": 1,
+            "GET decision_tables": 1,
+            "RPC record_workflow_run": 1,
+            "POST workflow_logs": 1,
+            "PATCH workflow_runs": 1
+          },
+          "statuses": [
+            "completed",
+            "completed",
+            "completed"
+          ]
+        },
+        "callRef100": {
+          "label": "call_reference ×100 (local echo)",
+          "wall_ms": {
+            "n": 3,
+            "p50": 69.7,
+            "p95": 82.3,
+            "max": 82.3,
+            "mean": 64.7
+          },
+          "db_round_trips": 7,
+          "db_time_ms": 47,
+          "rows_written": 106,
+          "external_calls": 100,
+          "queue_kicks": 0,
+          "node_results": 3,
+          "by_op": {
+            "GET workflows": 1,
+            "GET workflow_versions": 1,
+            "POST workflow_runs": 1,
+            "GET integration_references": 1,
+            "RPC record_workflow_run": 1,
+            "POST workflow_logs": 1,
+            "PATCH workflow_runs": 1
+          },
+          "statuses": [
+            "completed",
+            "completed",
+            "completed"
+          ]
+        }
+      },
+      "tables": [
+        {
+          "title": "Engine (in-process executeWorkflow, 3 reps after 1 warm-up)",
+          "columns": [
+            "case",
+            "wall p50 ms",
+            "wall max ms",
+            "DB round trips",
+            "DB time ms",
+            "rows written",
+            "external calls",
+            "queue kicks"
+          ],
+          "rows": [
+            [
+              "50-node linear",
+              21.2,
+              38.8,
+              6,
+              26,
+              54,
+              0,
+              0
+            ],
+            [
+              "loop ×500 (set_variable + condition + functions)",
+              246.9,
+              254.6,
+              6,
+              205,
+              2507,
+              0,
+              0
+            ],
+            [
+              "500 data-table inserts (+ active data_table_event workflow)",
+              4617.1,
+              4670,
+              2507,
+              4038,
+              1006,
+              0,
+              500
+            ],
+            [
+              "decision table in loop ×200",
+              79,
+              87.6,
+              7,
+              91,
+              606,
+              0,
+              0
+            ],
+            [
+              "call_reference ×100 (local echo)",
+              69.7,
+              82.3,
+              7,
+              51,
+              106,
+              100,
+              0
+            ]
+          ]
+        },
+        {
+          "title": "Most frequent DB operations (last rep)",
+          "columns": [
+            "case",
+            "ops"
+          ],
+          "rows": [
+            [
+              "linear50",
+              "GET workflows ×1, GET workflow_versions ×1, POST workflow_runs ×1, RPC record_workflow_run ×1, POST workflow_logs ×1, PATCH workflow_runs ×1"
+            ],
+            [
+              "loop500",
+              "GET workflows ×1, GET workflow_versions ×1, POST workflow_runs ×1, RPC record_workflow_run ×1, POST workflow_logs ×1, PATCH workflow_runs ×1"
+            ],
+            [
+              "dataTable500",
+              "GET workflows ×501, GET workflow_versions ×501, GET custom_tables ×501, POST custom_table_rows ×500, RPC enqueue_workflow ×500, POST workflow_runs ×1"
+            ],
+            [
+              "decision200",
+              "GET workflows ×1, GET workflow_versions ×1, POST workflow_runs ×1, GET decision_tables ×1, RPC record_workflow_run ×1, POST workflow_logs ×1"
+            ],
+            [
+              "callRef100",
+              "GET workflows ×1, GET workflow_versions ×1, POST workflow_runs ×1, GET integration_references ×1, RPC record_workflow_run ×1, POST workflow_logs ×1"
+            ]
+          ]
+        }
+      ],
+      "notes": [
+        "dataTable500 enqueued 2000 data_table_event jobs over 4 runs (deleted afterwards, not executed).",
+        "Echo server received 400 requests.",
+        "wall = executeWorkflow call; DB round trips include fire-and-forget writes that settle after it returns. DB time sums request durations (parallel requests overlap)."
+      ],
+      "ranAt": "2026-10-24T20:54:37.577Z",
+      "durationMs": 23833
+    },
+    "probes": {
+      "data": {
+        "delay_over_30s": {
+          "configured_ms": 45000,
+          "wall_ms": 14,
+          "status": "waiting_for_event",
+          "run_status": "waiting_for_event",
+          "node_output": {
+            "delay_ms": 45000,
+            "resume_at": "2026-10-24T20:55:22.611Z"
+          },
+          "skipped": false
+        },
+        "double_evaluation": {
+          "whole_string_variable_reads": 1,
+          "mixed_string_variable_reads": 1,
+          "evaluated_twice": false
+        },
+        "resolve_expression_us": {
+          "plain_no_braces_200_vars": 0.05,
+          "single_variable": 0.7,
+          "whole_string_function": 2.46,
+          "mixed_string_function": 2.37
+        }
+      },
+      "tables": [
+        {
+          "title": "Correctness probes",
+          "columns": [
+            "probe",
+            "observed",
+            "verdict"
+          ],
+          "rows": [
+            [
+              "delay node, 45 s (cap 30 s)",
+              "run waiting_for_event in 14 ms; node output {\"delay_ms\":45000,\"resume_at\":\"2026-10-24T20:55:22.611Z\"}",
+              "ok: run waited/paused"
+            ],
+            [
+              "{{=UPPER(probe)}} vs \"x {{=UPPER(probe)}}\"",
+              "variable read 1× vs 1×",
+              "ok: evaluated once"
+            ]
+          ]
+        },
+        {
+          "title": "resolveExpression cost (µs/call, ctx with 200 variables)",
+          "columns": [
+            "expression",
+            "µs/call"
+          ],
+          "rows": [
+            [
+              "plain text, no {{",
+              0.05
+            ],
+            [
+              "\"Hello {{name}}\"",
+              0.7
+            ],
+            [
+              "{{=UPPER(CONCAT(\"a\", name))}} (whole string)",
+              2.46
+            ],
+            [
+              "x {{=UPPER(CONCAT(\"a\", name))}} (mixed)",
+              2.37
+            ]
+          ]
+        }
+      ],
+      "ranAt": "2026-10-24T20:54:38.607Z",
+      "durationMs": 491
+    }
+  }
+}

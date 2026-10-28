@@ -1,0 +1,25 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "757de745-9f02-46c3-8f8e-ad50d62ed8d6",
+  "asset": {
+    "id": "757de745-9f02-46c3-8f8e-ad50d62ed8d6",
+    "name": "Enrichment service",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://enrichment.example.com/v1",
+      "auth_type": "api_key",
+      "auth_config": {
+        "key_name": "X-API-Key",
+        "key_value": "__SECRET__",
+        "add_to": "header"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "sales",
+      "enrichment"
+    ]
+  }
+}

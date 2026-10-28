@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "e944aaff-3f5a-526c-a908-fc50733c829f",
+  "asset": {
+    "id": "e944aaff-3f5a-526c-a908-fc50733c829f",
+    "name": "Welcome to the team",
+    "description": "Sent to the new hire once the hiring manager confirms the first week is ready.",
+    "subject": "Welcome, {{worker_name}}: your first day on {{hire_date}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Welcome to the team, {{worker_name}}</h2>\n  <p>We are looking forward to seeing you on <strong>{{hire_date}}</strong> at {{location}}.</p>\n  <p>You join <strong>{{supervisory_org}}</strong> as {{business_title}}. Your manager {{manager_name}} has your first week planned: {{task_data.first_week_focus}}.</p>\n  <p>Your buddy is <strong>{{task_data.buddy}}</strong>, and IT is preparing: {{task_data.equipment}}.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the Workday new hire onboarding workflow</p>\n</div>",
+    "text_body": "Welcome to the team, {{worker_name}}\nFirst day: {{hire_date}} at {{location}}\nManager: {{manager_name}}\nBuddy: {{task_data.buddy}}\nEquipment: {{task_data.equipment}}",
+    "is_default": false
+  }
+}

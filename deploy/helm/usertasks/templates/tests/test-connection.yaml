@@ -1,0 +1,31 @@
+# `helm test <release>`: the Service answers the health endpoint. The full
+# smoke test (sign-in, files, SSE, email, scheduler) is scripts/helm-gate.ts.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "usertasks.fullname" . }}-test
+  labels:
+    {{- include "usertasks.labels" . | nindent 4 }}
+    app.kubernetes.io/component: test
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  {{- include "usertasks.podCommon" (dict "root" .) | nindent 2 }}
+  restartPolicy: Never
+  containers:
+    - name: health
+      image: {{ include "usertasks.image" . }}
+      imagePullPolicy: {{ .Values.image.pullPolicy }}
+      securityContext:
+        {{- toYaml .Values.securityContext | nindent 8 }}
+      command:
+        - node
+        - -e
+        - |
+          fetch('http://{{ include "usertasks.fullname" . }}:{{ .Values.service.port }}{{ .Values.app.probes.path }}')
+            .then(async (res) => { const body = await res.json(); console.log(res.status, JSON.stringify(body).slice(0, 200)); process.exit(res.ok && body.appUrl !== undefined ? 0 : 1) })
+            .catch((error) => { console.error(error.message); process.exit(1) })
+      resources:
+        requests: { cpu: 10m, memory: 64Mi }
+        limits: { memory: 256Mi }

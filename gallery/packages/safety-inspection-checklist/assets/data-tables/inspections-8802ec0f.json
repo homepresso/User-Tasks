@@ -1,0 +1,102 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "8802ec0f-01cb-58f0-b007-8b89d1f629ef",
+  "asset": {
+    "id": "8802ec0f-01cb-58f0-b007-8b89d1f629ef",
+    "name": "Inspections",
+    "description": "One row per site per month: the result of the checklist, the failed checks and the corrective action.",
+    "columns": [
+      {
+        "id": "acb74fed-4252-51fd-a63e-48a15c99a27d",
+        "required": true,
+        "key": "inspection_ref",
+        "name": "Inspection",
+        "type": "text"
+      },
+      {
+        "id": "f9cbf5ef-63e6-576f-921c-2fcbed1cf88f",
+        "required": true,
+        "key": "period",
+        "name": "Month",
+        "type": "text"
+      },
+      {
+        "id": "19b4aa0d-0e44-57df-b4ba-770b63bbcde9",
+        "required": false,
+        "key": "site_code",
+        "name": "Site code",
+        "type": "text"
+      },
+      {
+        "id": "f7fea351-cf6f-5a60-9d16-c209fed02b45",
+        "required": false,
+        "key": "site_name",
+        "name": "Site",
+        "type": "text"
+      },
+      {
+        "id": "58e336a4-96f7-5257-ac87-32441ebecd74",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Scheduled",
+          "Pass",
+          "Fail",
+          "Action complete"
+        ]
+      },
+      {
+        "id": "3b12dec3-191a-5605-a7a9-657e2562c238",
+        "required": false,
+        "key": "inspected_on",
+        "name": "Inspected on",
+        "type": "date"
+      },
+      {
+        "id": "c94d7d31-72de-535c-8f0c-5c0d3c1c562c",
+        "required": false,
+        "key": "inspector_notes",
+        "name": "Findings",
+        "type": "text"
+      },
+      {
+        "id": "38414e72-5954-5aed-8a23-cbb30df3e7da",
+        "required": false,
+        "key": "checks_failed",
+        "name": "Checks failed",
+        "type": "number"
+      },
+      {
+        "id": "6257d20d-f12d-5b32-84ed-18260b25e939",
+        "required": false,
+        "key": "photos_url",
+        "name": "Photos",
+        "type": "url"
+      },
+      {
+        "id": "fe328772-a2b1-5cb2-b336-4dd3f8a254d3",
+        "required": false,
+        "key": "corrective_action",
+        "name": "Corrective action",
+        "type": "text"
+      },
+      {
+        "id": "31001c70-bd1c-5769-a5b9-ca38f32e848c",
+        "required": false,
+        "key": "action_due",
+        "name": "Action due",
+        "type": "date"
+      },
+      {
+        "id": "90088805-2195-5918-aaef-b6fc7edd1d7a",
+        "required": false,
+        "key": "action_closed_on",
+        "name": "Action closed",
+        "type": "date"
+      }
+    ]
+  }
+}

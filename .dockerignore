@@ -1,0 +1,16 @@
+.git
+.next
+node_modules
+packages/*/node_modules
+packages/*/dist
+coverage
+backups
+supabase/.temp
+.env*
+!.env.example
+.claude
+.mcp.json
+.vercel
+*.tsbuildinfo
+deploy/compose/.state
+scripts/screenshots/.out

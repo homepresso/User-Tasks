@@ -1,0 +1,894 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "ea38212b-5384-4408-bbcf-1849b1873fc7",
+  "asset": {
+    "id": "ea38212b-5384-4408-bbcf-1849b1873fc7",
+    "name": "Expense claim",
+    "description": "An employee submits a claim; the category rules and approval policy decide whether it is auto-approved or reviewed, then the reimbursement is queued in the finance system.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Claim submitted",
+        "position": {
+          "x": 980,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "employee_id",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "expense_date",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "approver_id",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "claim_title",
+                      "span": 3
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "category",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "amount",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "currency",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "receipt_url",
+                      "span": 3
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "business_purpose",
+                      "span": 3
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#2F6FDE",
+                    "background": "#FFFFFF",
+                    "text": "#1B1916",
+                    "page": "#EEF3FC"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "header": {
+                  "enabled": true,
+                  "title": "Submit an expense claim",
+                  "subtitle": "Claims within the category limit with a receipt are approved fastest."
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 980,
+          "y": 220
+        },
+        "config": {
+          "title": "Expense: {{claim_title}} · {{currency}} {{amount}}"
+        }
+      },
+      {
+        "id": "reference",
+        "type": "set_variable",
+        "label": "Claim reference",
+        "position": {
+          "x": 980,
+          "y": 380
+        },
+        "config": {
+          "name": "claim_reference",
+          "expression": "EXP-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 6))}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Five-day SLA",
+        "position": {
+          "x": 980,
+          "y": 540
+        },
+        "config": {
+          "sla_label": "Expense claim",
+          "mode": "relative",
+          "amount": 5,
+          "unit": "days",
+          "warning_amount": 4,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "employee",
+        "type": "call_reference",
+        "label": "Get employee",
+        "position": {
+          "x": 980,
+          "y": 700
+        },
+        "config": {
+          "reference_id": "0b5e4816-404b-4450-a823-a3ba92d9116a",
+          "reference_name": "Get employee",
+          "reference_method": "GET",
+          "input_mappings": {
+            "employee_id": "{{employee_id}}"
+          },
+          "output_mappings": {
+            "name": {
+              "enabled": true,
+              "variableName": "employee_name"
+            },
+            "email": {
+              "enabled": true,
+              "variableName": "employee_email"
+            },
+            "cost_centre": {
+              "enabled": true,
+              "variableName": "cost_centre"
+            },
+            "manager_name": {
+              "enabled": true,
+              "variableName": "manager_name"
+            }
+          }
+        }
+      },
+      {
+        "id": "rules",
+        "type": "update_data_table",
+        "label": "Category rules",
+        "position": {
+          "x": 980,
+          "y": 860
+        },
+        "config": {
+          "table_id": "97ceae05-d174-4525-befd-f2c2ec0a80be",
+          "table_name": "Expense categories",
+          "operation": "get",
+          "match_column": "category",
+          "match_value": "{{category}}",
+          "output_row_var": "category_rule"
+        }
+      },
+      {
+        "id": "limit",
+        "type": "set_variable",
+        "label": "Over limit?",
+        "position": {
+          "x": 980,
+          "y": 1020
+        },
+        "config": {
+          "name": "over_limit",
+          "expression": "{{=IF(amount > category_rule.claim_limit, true, false)}}"
+        }
+      },
+      {
+        "id": "policy",
+        "type": "decision_table",
+        "label": "Approval policy",
+        "position": {
+          "x": 980,
+          "y": 1180
+        },
+        "config": {
+          "decision_table_id": "3400221e-b9d1-4587-a6cf-3812de09fad9",
+          "decision_table_name": "Expense approval policy",
+          "input_mappings": {
+            "amount": "{{amount}}",
+            "category": "{{category}}",
+            "over_limit": "{{over_limit}}"
+          }
+        }
+      },
+      {
+        "id": "auto",
+        "type": "condition",
+        "label": "Auto-approve?",
+        "position": {
+          "x": 980,
+          "y": 1340
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Auto-approve",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{auto_approve}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "auto_amount",
+        "type": "set_variable",
+        "label": "Approve as claimed",
+        "position": {
+          "x": 340,
+          "y": 1520
+        },
+        "config": {
+          "name": "approved_amount",
+          "expression": "{{amount}}"
+        }
+      },
+      {
+        "id": "review",
+        "type": "user_task",
+        "label": "Approve expense claim",
+        "position": {
+          "x": 980,
+          "y": 1520
+        },
+        "config": {
+          "task_title": "Approve {{employee_name}}: {{claim_title}} ({{currency}} {{amount}})",
+          "task_description": "<p><strong>{{employee_name}}</strong> claimed <strong>{{currency}} {{amount}}</strong> for <em>{{category}}</em> on {{expense_date}}.</p><p>Purpose: {{business_purpose}}</p><p>Receipt: <a href=\"{{receipt_url}}\">{{receipt_url}}</a></p><p>Policy rule “{{rule_label}}” needs <strong>{{approver_level}}</strong> approval. Category limit {{category_rule.claim_limit}}, GL {{category_rule.gl_code}}.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject",
+            "Send back"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "284ca96a-0956-4ea8-bc90-fd6fe1187c70",
+          "assignee_variable": "{{approver_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "expense_category",
+              "label": "Category",
+              "type": "lookup",
+              "required": true,
+              "default": "{{category}}",
+              "help_text": "Change the category to recode the claim; the GL code and limit follow.",
+              "lookup": {
+                "source": "table",
+                "table_id": "97ceae05-d174-4525-befd-f2c2ec0a80be",
+                "search_columns": [
+                  "category",
+                  "notes"
+                ],
+                "display_columns": [
+                  "category",
+                  "notes"
+                ],
+                "value_column": "category",
+                "fill": [
+                  {
+                    "from": "gl_code",
+                    "to": "gl_code"
+                  },
+                  {
+                    "from": "claim_limit",
+                    "to": "category_limit"
+                  }
+                ],
+                "sort": {
+                  "column": "category",
+                  "direction": "asc"
+                }
+              }
+            },
+            {
+              "key": "category_limit",
+              "label": "Category limit",
+              "type": "number",
+              "read_only": true,
+              "default": "{{category_rule.claim_limit}}"
+            },
+            {
+              "key": "approved_amount",
+              "label": "Approved amount",
+              "type": "number",
+              "required": true,
+              "default": "{{amount}}"
+            },
+            {
+              "key": "gl_code",
+              "label": "GL code",
+              "type": "text",
+              "required": true,
+              "default": "{{category_rule.gl_code}}"
+            },
+            {
+              "key": "cost_centre",
+              "label": "Cost centre",
+              "type": "text",
+              "required": true,
+              "default": "{{cost_centre}}"
+            },
+            {
+              "key": "comment",
+              "label": "Comment for the claimant",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "expense_category",
+                    "span": 2
+                  },
+                  {
+                    "field_key": "category_limit",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "approved_amount",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "gl_code",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "cost_centre",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            },
+            {
+              "id": "send_back",
+              "label": "Send back",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Send back"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Expense claim: {{claim_title}}",
+            "align": "left",
+            "subtitle": "{{employee_name}} · {{currency}} {{amount}} · {{category}}"
+          }
+        }
+      },
+      {
+        "id": "revise",
+        "type": "user_task",
+        "label": "Fix and resubmit claim",
+        "position": {
+          "x": 980,
+          "y": 1700
+        },
+        "config": {
+          "task_title": "Update your claim: {{claim_title}}",
+          "task_description": "<p>Your approver sent the claim back: {{task_data.comment}}</p><p>Correct the amount or add the receipt link, then resubmit.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Resubmit",
+            "Withdraw"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "74063085-5b5b-424a-bb4d-463d32475080",
+          "assignee_variable": "{{claimant_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "amount",
+              "label": "Amount",
+              "type": "number",
+              "required": true,
+              "default": "{{amount}}"
+            },
+            {
+              "key": "receipt_url",
+              "label": "Receipt link",
+              "type": "text",
+              "default": "{{receipt_url}}"
+            },
+            {
+              "key": "note",
+              "label": "Note for the approver",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "amount",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "receipt_url",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "note",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "resubmit",
+              "label": "Resubmit",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Resubmit"
+            },
+            {
+              "id": "withdraw",
+              "label": "Withdraw",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Withdraw"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Update your claim",
+            "align": "left",
+            "subtitle": "{{claim_title}} · sent back by your approver"
+          }
+        }
+      },
+      {
+        "id": "apply_fix",
+        "type": "set_variable",
+        "label": "Use corrected amount",
+        "position": {
+          "x": 980,
+          "y": 1880
+        },
+        "config": {
+          "name": "amount",
+          "expression": "{{task_data.amount}}"
+        }
+      },
+      {
+        "id": "back",
+        "type": "goto_activity",
+        "label": "Back to approval",
+        "position": {
+          "x": 980,
+          "y": 2040
+        },
+        "config": {
+          "target_node_id": "review",
+          "target_node_label": "Approve expense claim"
+        }
+      },
+      {
+        "id": "manual_amount",
+        "type": "set_variable",
+        "label": "Approved amount",
+        "position": {
+          "x": 340,
+          "y": 1700
+        },
+        "config": {
+          "name": "approved_amount",
+          "expression": "{{task_data.approved_amount}}"
+        }
+      },
+      {
+        "id": "pay",
+        "type": "call_reference",
+        "label": "Queue reimbursement",
+        "position": {
+          "x": 340,
+          "y": 1880
+        },
+        "config": {
+          "reference_id": "01aceae1-2290-4dce-a36f-127d79153c43",
+          "reference_name": "Create expense reimbursement",
+          "reference_method": "POST",
+          "input_mappings": {
+            "employee_id": "{{employee_id}}",
+            "claim_reference": "{{claim_reference}}",
+            "amount": "{{approved_amount}}",
+            "currency": "{{currency}}",
+            "gl_code": "{{=COALESCE(task_data.gl_code, category_rule.gl_code)}}",
+            "cost_centre": "{{=COALESCE(task_data.cost_centre, cost_centre)}}"
+          },
+          "output_mappings": {
+            "reimbursement_id": {
+              "enabled": true,
+              "variableName": "reimbursement_id"
+            },
+            "payment_run_date": {
+              "enabled": true,
+              "variableName": "payment_run_date"
+            }
+          }
+        }
+      },
+      {
+        "id": "notify_ok",
+        "type": "send_email",
+        "label": "Email claimant: approved",
+        "position": {
+          "x": 340,
+          "y": 2040
+        },
+        "config": {
+          "to": "{{employee_email}}",
+          "email_template_id": "89f2588a-0955-4ddb-a607-937bc4be9af8"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "notify_no",
+        "type": "send_email",
+        "label": "Email claimant: rejected",
+        "position": {
+          "x": 660,
+          "y": 1700
+        },
+        "config": {
+          "to": "{{employee_email}}",
+          "email_template_id": "028c1de6-e994-43a3-9af4-9483f78939b1"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "withdrawn",
+        "type": "log",
+        "label": "Claim withdrawn",
+        "position": {
+          "x": 1300,
+          "y": 1880
+        },
+        "config": {
+          "message": "Claim {{claim_reference}} withdrawn by the claimant",
+          "level": "info"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Paid",
+        "position": {
+          "x": 340,
+          "y": 2200
+        },
+        "config": {
+          "reason": "Claim {{claim_reference}} approved and queued ({{reimbursement_id}})"
+        }
+      },
+      {
+        "id": "closed",
+        "type": "end_workflow",
+        "label": "Closed",
+        "position": {
+          "x": 660,
+          "y": 2040
+        },
+        "config": {
+          "reason": "Claim {{claim_reference}} closed without payment"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-reference",
+        "source": "title",
+        "target": "reference"
+      },
+      {
+        "id": "e-reference-sla",
+        "source": "reference",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-employee",
+        "source": "sla",
+        "target": "employee"
+      },
+      {
+        "id": "e-employee-rules",
+        "source": "employee",
+        "target": "rules"
+      },
+      {
+        "id": "e-rules-limit",
+        "source": "rules",
+        "target": "limit"
+      },
+      {
+        "id": "e-limit-policy",
+        "source": "limit",
+        "target": "policy"
+      },
+      {
+        "id": "e-policy-auto",
+        "source": "policy",
+        "target": "auto"
+      },
+      {
+        "id": "e-auto-auto_amount-auto-approve",
+        "source": "auto",
+        "target": "auto_amount",
+        "label": "Auto-approve"
+      },
+      {
+        "id": "e-auto-review-else",
+        "source": "auto",
+        "target": "review",
+        "label": "Else"
+      },
+      {
+        "id": "e-review-manual_amount-approve",
+        "source": "review",
+        "target": "manual_amount",
+        "label": "Approve"
+      },
+      {
+        "id": "e-review-notify_no-reject",
+        "source": "review",
+        "target": "notify_no",
+        "label": "Reject"
+      },
+      {
+        "id": "e-review-revise-send-back",
+        "source": "review",
+        "target": "revise",
+        "label": "Send back"
+      },
+      {
+        "id": "e-revise-apply_fix-resubmit",
+        "source": "revise",
+        "target": "apply_fix",
+        "label": "Resubmit"
+      },
+      {
+        "id": "e-revise-withdrawn-withdraw",
+        "source": "revise",
+        "target": "withdrawn",
+        "label": "Withdraw"
+      },
+      {
+        "id": "e-apply_fix-back",
+        "source": "apply_fix",
+        "target": "back"
+      },
+      {
+        "id": "e-auto_amount-pay",
+        "source": "auto_amount",
+        "target": "pay"
+      },
+      {
+        "id": "e-manual_amount-pay",
+        "source": "manual_amount",
+        "target": "pay"
+      },
+      {
+        "id": "e-pay-notify_ok",
+        "source": "pay",
+        "target": "notify_ok"
+      },
+      {
+        "id": "e-notify_ok-done",
+        "source": "notify_ok",
+        "target": "done"
+      },
+      {
+        "id": "e-notify_no-closed",
+        "source": "notify_no",
+        "target": "closed"
+      },
+      {
+        "id": "e-withdrawn-closed",
+        "source": "withdrawn",
+        "target": "closed"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-employee_id",
+        "name": "employee_id",
+        "type": "string",
+        "description": "Employee number in the finance system (E-1001…)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Employee number"
+      },
+      {
+        "id": "v-claim_title",
+        "name": "claim_title",
+        "type": "string",
+        "description": "Short description, e.g. \"Client visit Wellington\"",
+        "defaultValue": "",
+        "required": true,
+        "label": "What is the claim for?"
+      },
+      {
+        "id": "v-category",
+        "name": "category",
+        "type": "string",
+        "description": "Expense category (see the Expense categories table)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Category",
+        "options": [
+          "travel",
+          "accommodation",
+          "meals",
+          "equipment",
+          "training",
+          "other"
+        ]
+      },
+      {
+        "id": "v-amount",
+        "name": "amount",
+        "type": "number",
+        "description": "Total including tax",
+        "defaultValue": "0",
+        "required": true,
+        "label": "Amount"
+      },
+      {
+        "id": "v-currency",
+        "name": "currency",
+        "type": "string",
+        "description": "ISO currency code",
+        "defaultValue": "NZD",
+        "label": "Currency",
+        "options": [
+          "NZD",
+          "AUD",
+          "USD",
+          "EUR",
+          "GBP"
+        ]
+      },
+      {
+        "id": "v-expense_date",
+        "name": "expense_date",
+        "type": "string",
+        "description": "Date of the expense",
+        "defaultValue": "",
+        "label": "Expense date",
+        "format": "date"
+      },
+      {
+        "id": "v-receipt_url",
+        "name": "receipt_url",
+        "type": "string",
+        "description": "Link to the receipt (PDF or photo)",
+        "defaultValue": "",
+        "label": "Receipt",
+        "format": "url"
+      },
+      {
+        "id": "v-business_purpose",
+        "name": "business_purpose",
+        "type": "string",
+        "description": "Why the expense was needed",
+        "defaultValue": "",
+        "label": "Business purpose"
+      },
+      {
+        "id": "v-approver_id",
+        "name": "approver_id",
+        "type": "string",
+        "description": "Optional: user id of the approver for this claim (overrides the default approver chosen on install)",
+        "defaultValue": "",
+        "label": "Approver (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

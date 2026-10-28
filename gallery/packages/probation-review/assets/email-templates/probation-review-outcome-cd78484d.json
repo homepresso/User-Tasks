@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "cd78484d-a15b-498f-83d4-7cf6c95a6a46",
+  "asset": {
+    "id": "cd78484d-a15b-498f-83d4-7cf6c95a6a46",
+    "name": "Probation review outcome",
+    "description": "Sent to the people team when a manager completes a probation review.",
+    "subject": "Probation {{probation_status}}: {{employee_name}} ({{job_title}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Probation review completed</h2>\n  <p><strong>{{employee_name}}</strong> ({{job_title}}, {{department}}) was reviewed by {{manager_name}}.</p>\n  <ul>\n    <li>Rating: {{task_data.performance_rating}}</li>\n    <li>Recommendation: {{task_data.recommendation}}</li>\n    <li>Outcome: <strong>{{probation_status}}</strong>{{=IF(CONTAINS(action, \"extend\"), CONCAT(\", new end date \", new_end_date), \"\")}}</li>\n  </ul>\n  <p>Development notes: {{task_data.development_notes}}</p>\n  <p><strong>Next step for HR:</strong> {{hr_action}}</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your probation review workflow</p>\n</div>",
+    "text_body": "Probation review completed\n  {{employee_name}} ({{job_title}}, {{department}}) was reviewed by {{manager_name}}.\n\n    Rating: {{task_data.performance_rating}}\n    Recommendation: {{task_data.recommendation}}\n    Outcome: {{probation_status}}{{=IF(CONTAINS(action, \"extend\"), CONCAT(\", new end date \", new_end_date), \"\")}}\n\n  Development notes: {{task_data.development_notes}}\n  Next step for HR: {{hr_action}}\n  Sent by your probation review workflow",
+    "is_default": false
+  }
+}

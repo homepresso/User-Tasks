@@ -1,0 +1,195 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "c2aa4f8c-d84b-5068-a490-a4d73bf2878a",
+  "asset": {
+    "id": "c2aa4f8c-d84b-5068-a490-a4d73bf2878a",
+    "integration_id": "98f7350e-af46-5054-9d15-51a4fdc36797",
+    "name": "Get time off requests",
+    "description": "Workday report-as-a-service (RaaS) JSON: time off requests updated since a date, with worker, manager, type, dates, units, status and whether the worker holds a critical role.",
+    "tags": [
+      "workday",
+      "raas",
+      "absence"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/service/customreport2/acme/ISU_UserTasks/Time_Off_Requests_Updated?format=json",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "Report_Entry",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "Request_ID",
+                    "type": "string",
+                    "example": "TOR-000981"
+                  },
+                  {
+                    "name": "Worker_ID",
+                    "type": "string",
+                    "example": "21508"
+                  },
+                  {
+                    "name": "Worker",
+                    "type": "string",
+                    "example": "Priya Raman"
+                  },
+                  {
+                    "name": "Supervisory_Organization",
+                    "type": "string",
+                    "example": "Data Platform (Sam Patel)"
+                  },
+                  {
+                    "name": "Manager",
+                    "type": "string",
+                    "example": "Sam Patel"
+                  },
+                  {
+                    "name": "Manager_Email",
+                    "type": "string",
+                    "example": "sam.patel@example.com"
+                  },
+                  {
+                    "name": "Time_Off_Type",
+                    "type": "string",
+                    "example": "Annual Leave"
+                  },
+                  {
+                    "name": "Start_Date",
+                    "type": "string",
+                    "example": "2026-11-23"
+                  },
+                  {
+                    "name": "End_Date",
+                    "type": "string",
+                    "example": "2026-11-25"
+                  },
+                  {
+                    "name": "Total_Units",
+                    "type": "string",
+                    "example": "3"
+                  },
+                  {
+                    "name": "Unit_of_Time",
+                    "type": "string",
+                    "example": "Days"
+                  },
+                  {
+                    "name": "Status",
+                    "type": "string",
+                    "example": "Approved"
+                  },
+                  {
+                    "name": "Critical_Role",
+                    "type": "string",
+                    "example": "1"
+                  },
+                  {
+                    "name": "Last_Updated",
+                    "type": "string",
+                    "example": "2026-10-28T01:10:00.000Z"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "sample": {
+          "Report_Entry": [
+            {
+              "Request_ID": "TOR-000981",
+              "Worker_ID": "21508",
+              "Worker": "Priya Raman",
+              "Supervisory_Organization": "Data Platform (Sam Patel)",
+              "Manager": "Sam Patel",
+              "Manager_Email": "sam.patel@example.com",
+              "Time_Off_Type": "Annual Leave",
+              "Start_Date": "2026-11-23",
+              "End_Date": "2026-11-25",
+              "Total_Units": "3",
+              "Unit_of_Time": "Days",
+              "Status": "Approved",
+              "Critical_Role": "1",
+              "Last_Updated": "2026-10-28T01:10:00.000Z"
+            },
+            {
+              "Request_ID": "TOR-000984",
+              "Worker_ID": "20177",
+              "Worker": "Marco Rossi",
+              "Supervisory_Organization": "Financial Planning & Analysis (Ana Lopez)",
+              "Manager": "Ana Lopez",
+              "Manager_Email": "ana.lopez@example.com",
+              "Time_Off_Type": "Annual Leave",
+              "Start_Date": "2026-12-21",
+              "End_Date": "2027-01-01",
+              "Total_Units": "8",
+              "Unit_of_Time": "Days",
+              "Status": "Submitted",
+              "Critical_Role": "0",
+              "Last_Updated": "2026-10-28T01:22:00.000Z"
+            },
+            {
+              "Request_ID": "TOR-000987",
+              "Worker_ID": "21490",
+              "Worker": "Tom Becker",
+              "Supervisory_Organization": "Sales West (Lena Ortiz)",
+              "Manager": "Lena Ortiz",
+              "Manager_Email": "lena.ortiz@example.com",
+              "Time_Off_Type": "Sick Leave",
+              "Start_Date": "2026-10-28",
+              "End_Date": "2026-10-28",
+              "Total_Units": "1",
+              "Unit_of_Time": "Days",
+              "Status": "Approved",
+              "Critical_Role": "0",
+              "Last_Updated": "2026-10-28T01:31:00.000Z"
+            }
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "00957e01-822d-5550-a5f5-0abdf19cbcf7",
+        "name": "Updated_From",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "59d00b6a-4a49-51bf-9e32-0aea8ad18010",
+        "name": "Supervisory_Organization",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "7df2504f-9ede-5fb2-8a0a-e30173a1d7fc",
+        "name": "requests",
+        "path": "Report_Entry",
+        "type": "array"
+      }
+    ]
+  }
+}

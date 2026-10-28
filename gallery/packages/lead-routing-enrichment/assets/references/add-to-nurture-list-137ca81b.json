@@ -1,0 +1,138 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "137ca81b-fe66-4aa1-8ad9-0bb7322e9447",
+  "asset": {
+    "id": "137ca81b-fe66-4aa1-8ad9-0bb7322e9447",
+    "integration_id": "6fe01153-7050-4f89-a20b-9b1a42910431",
+    "name": "Add to nurture list",
+    "description": "Add the contact to a marketing nurture list so it receives the nurture sequence.",
+    "tags": [
+      "marketing"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"email\":\"{{email}}\",\"first_name\":\"{{first_name}}\",\"company\":\"{{company}}\",\"fields\":{\"segment\":\"{{segment}}\",\"score\":{{score}},\"source\":\"{{source}}\"}}",
+      "path_template": "/marketing/lists/{{list_id}}/members",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "member_id",
+              "type": "string",
+              "example": "MBR-88120"
+            },
+            {
+              "name": "list_id",
+              "type": "string",
+              "example": "nurture-general"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "subscribed"
+            }
+          ]
+        },
+        "sample": {
+          "member_id": "MBR-88120",
+          "list_id": "nurture-general",
+          "status": "subscribed"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "c550bc30-817f-448b-a801-26d5c36a4855",
+        "name": "list_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Nurture list id",
+        "default_value": ""
+      },
+      {
+        "id": "3de49df0-f31a-4fa6-a8da-7c7a2b3d65c0",
+        "name": "email",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "7b669046-5887-4044-ae13-d6dc3bc6677f",
+        "name": "first_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "ec0393d1-70a1-4eb4-a0dd-19eb77225404",
+        "name": "company",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "3d5bbfe4-25fc-4e14-8ce4-464a24018483",
+        "name": "segment",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "4ec6bc2a-05bf-420a-9c24-617acda4fd23",
+        "name": "score",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "84f03e86-9d14-4361-882e-ac2cae3f3da4",
+        "name": "source",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "3791823c-d2b8-4d29-9e12-b5897a6cbaaf",
+        "name": "member_id",
+        "path": "member_id",
+        "type": "string"
+      },
+      {
+        "id": "5dbcd7cc-9129-469a-b884-dd429deca0a5",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      }
+    ]
+  }
+}

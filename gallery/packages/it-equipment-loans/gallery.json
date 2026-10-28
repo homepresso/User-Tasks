@@ -1,0 +1,82 @@
+{
+  "title": "IT equipment loans",
+  "category": "it-security",
+  "summary": "Staff borrow laptops, phones and headsets from a loan pool: manager approval, availability tracking, a return check with reminders and a full loan log.",
+  "description": "IT equipment loans replaces the spreadsheet and the sticky notes on the IT desk. People open the Equipment loan request form, pick a device from the Loan pool table (only devices whose status is Available are offered), say when they need it and pick their manager. The serial number, type and pick-up location fill in by themselves.\n\nThe Form submitted trigger logs the request in the Loans table and gives the manager an approval task with Approve and Reject buttons, a reminder and escalation to their own manager after two days. On approval the device is checked again (someone else may have taken it), marked On loan, and the borrower is emailed where to collect it.\n\nEach loan then starts a Return check sub-workflow: IT gets a check-in task due on the return date, with a reminder the day before. Checking it in records the condition and puts the device back in the pool (or into Repair when it is damaged); Extend moves the date and Not returned marks the loan overdue and chases the borrower. Everything is built in, so it works as soon as it is installed.",
+  "trigger": "form",
+  "entry_workflow": "b1e453e4-3c03-51c4-9605-01b6a7da4113",
+  "entry_form": "f67a5cee-9aa9-52f9-bca0-1b884fdeeab6",
+  "start": "Starts from a form page: share the Equipment loan request form (/f/<id>); each request starts the Equipment loan workflow.",
+  "difficulty": "starter",
+  "setup_minutes": 10,
+  "tags": [
+    "equipment",
+    "loans",
+    "it service desk",
+    "forms",
+    "lookup",
+    "sub-workflow",
+    "no integrations"
+  ],
+  "version": "1.0.1",
+  "changelog": [
+    {
+      "version": "1.0.1",
+      "date": "2026-10-28",
+      "notes": "Steps for the coordinator who set the package up are assigned to the workflow owner (workflow_owner_id), now that workflow_started_by names the person who started the run."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Nothing to configure: install it and share the Equipment loan request form from Forms.",
+    "Replace the sample devices in the Loan pool table with your own (asset tag, device, model, serial, status, pick-up location). Only rows with status Available appear on the form.",
+    "Return check tasks go to the person who installed the package (the IT desk). Change the assignee on the \"Check the device back in\" step to route them to someone else or a group.",
+    "Optional: set EMAIL_PROVIDER so borrower emails are delivered (the console provider logs them)."
+  ],
+  "steps": [
+    {
+      "title": "Request a device",
+      "body": "The form lists available devices from the Loan pool; serial, type and pick-up location fill in, and the requester picks their manager."
+    },
+    {
+      "title": "Manager approves",
+      "body": "The manager gets an Approve / Reject task and can shorten the loan; it reminds and escalates if left alone."
+    },
+    {
+      "title": "Device goes out",
+      "body": "The device is re-checked, marked On loan, the loan is recorded and the borrower is emailed where to collect it."
+    },
+    {
+      "title": "Return check",
+      "body": "A sub-workflow gives IT a check-in task due on the return date, with a reminder the day before."
+    },
+    {
+      "title": "Back in the pool",
+      "body": "Checking it in records the condition and makes the device Available again (or Repair); overdue loans are chased by email."
+    }
+  ],
+  "sample_input": {
+    "borrower_name": "Grace Kim",
+    "borrower_email": "grace.kim@example.com",
+    "team": "Marketing",
+    "manager": "$owner",
+    "device": "LT-1050",
+    "start_date": "2026-11-02",
+    "due_date": "2026-11-20",
+    "purpose": "Event or presentation",
+    "details": "Video editing for the product launch.",
+    "agree": true
+  },
+  "expect": "waiting",
+  "icon": "laptop",
+  "id": "80bf06a9-1186-51dc-b5ff-8ad59d7722d7",
+  "slug": "it-equipment-loans"
+}

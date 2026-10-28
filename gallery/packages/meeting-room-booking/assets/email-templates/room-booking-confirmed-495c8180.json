@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "495c8180-5661-527f-8672-fc253540153c",
+  "asset": {
+    "id": "495c8180-5661-527f-8672-fc253540153c",
+    "name": "Room booking confirmed",
+    "description": "Sent to the organiser when a booking is confirmed (automatically or by facilities).",
+    "subject": "Confirmed: {{room}} on {{booking_date}} at {{start_time}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1E1B4B\">\n  <h2 style=\"margin:0 0 12px;color:#4338CA\">{{room}} is booked</h2>\n  <p>Your booking for <strong>{{meeting_title}}</strong> is confirmed.</p>\n  <table style=\"border-collapse:collapse;font-size:14px\">\n    <tr><td style=\"padding:4px 12px 4px 0;color:#6B7280\">Room</td><td><strong>{{room}}</strong> (floor {{room_row.floor}}, {{room_row.capacity}} seats)</td></tr>\n    <tr><td style=\"padding:4px 12px 4px 0;color:#6B7280\">When</td><td>{{=FORMAT_DATE(booking_date, \"DD/MM/YYYY\")}} at {{start_time}} for {{duration_hours}} h</td></tr>\n    <tr><td style=\"padding:4px 12px 4px 0;color:#6B7280\">Attendees</td><td>{{attendees}}</td></tr>\n    <tr><td style=\"padding:4px 12px 4px 0;color:#6B7280\">Reference</td><td>{{booking_ref}}</td></tr>\n  </table>\n  <p>Equipment in the room: {{room_row.equipment}}.</p><p>{{=IF(IS_EMPTY(facilities_note), \"\", CONCAT(\"Note from facilities: \", facilities_note))}}</p>\n  <p style=\"color:#6B7280;font-size:13px\">Sent by the meeting room booking workflow</p>\n</div>",
+    "text_body": "Confirmed: {{room}} on {{booking_date}} at {{start_time}} for {{duration_hours}} h ({{meeting_title}}). Reference {{booking_ref}}.",
+    "is_default": false
+  }
+}

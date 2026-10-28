@@ -1,0 +1,475 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "09b0ea25-e6f3-5c5a-a3ff-1edcbe54f4bf",
+  "asset": {
+    "id": "09b0ea25-e6f3-5c5a-a3ff-1edcbe54f4bf",
+    "name": "Daily stock check",
+    "description": "Every morning: find active stock items at or below their reorder point (and not already on order), raise a reorder approval for each through the Raise reorder sub-workflow, and ask the buyer to confirm the counts.",
+    "trigger_type": "schedule",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "schedule",
+        "label": "Every day at 07:00",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "schedule_mode": "daily",
+          "time_of_day": "07:00",
+          "timezone": "Pacific/Auckland"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 180
+        },
+        "config": {
+          "title": "Stock check {{=FORMAT_DATE(TODAY(), \"DD/MM/YYYY\")}}"
+        }
+      },
+      {
+        "id": "list",
+        "type": "update_data_table",
+        "label": "Active stock items",
+        "position": {
+          "x": 400,
+          "y": 300
+        },
+        "config": {
+          "table_id": "d8ce1cb7-40f8-5e57-8c88-2c8795071bbb",
+          "table_name": "Stock items",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "active",
+              "operator": "eq",
+              "value": "true"
+            }
+          ],
+          "sort_column": "sku",
+          "sort_direction": "asc",
+          "limit": 500,
+          "output_rows_var": "items",
+          "output_count_var": "item_count"
+        }
+      },
+      {
+        "id": "zero",
+        "type": "set_variable",
+        "label": "No reorders yet",
+        "position": {
+          "x": 400,
+          "y": 420
+        },
+        "config": {
+          "name": "low_count",
+          "expression": "{{=0}}"
+        }
+      },
+      {
+        "id": "none",
+        "type": "set_variable",
+        "label": "Reorder list",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "name": "low_list",
+          "expression": ""
+        }
+      },
+      {
+        "id": "loop",
+        "type": "loop",
+        "label": "Each stock item",
+        "position": {
+          "x": 400,
+          "y": 660
+        },
+        "config": {
+          "items": "{{items}}",
+          "item_var": "item",
+          "index_var": "item_index"
+        }
+      },
+      {
+        "id": "low",
+        "type": "condition",
+        "label": "Below reorder point?",
+        "position": {
+          "x": 200,
+          "y": 800
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Reorder",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{=IF(item.on_hand <= item.reorder_point, true, false)}}",
+                  "operator": "is_true",
+                  "value": ""
+                },
+                {
+                  "field": "{{item.on_order}}",
+                  "operator": "is_false",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "count",
+        "type": "set_variable",
+        "label": "Count it",
+        "position": {
+          "x": 80,
+          "y": 940
+        },
+        "config": {
+          "name": "low_count",
+          "expression": "{{=ADD(low_count, 1)}}"
+        }
+      },
+      {
+        "id": "add",
+        "type": "set_variable",
+        "label": "Add to the list",
+        "position": {
+          "x": 80,
+          "y": 1060
+        },
+        "config": {
+          "name": "low_list",
+          "expression": "{{low_list}}<li>{{item.sku}} {{item.name}}: {{item.on_hand}} on hand (reorder point {{item.reorder_point}}), order {{item.reorder_qty}} from {{item.supplier}}</li>"
+        }
+      },
+      {
+        "id": "raise",
+        "type": "call_sub_workflow",
+        "label": "Raise the reorder",
+        "position": {
+          "x": 80,
+          "y": 1180
+        },
+        "config": {
+          "sub_workflow_id": "ead03240-469e-5c90-a693-55b9f35e2459",
+          "sub_workflow_name": "Raise reorder",
+          "input_mappings": {
+            "sku": "{{item.sku}}",
+            "name": "{{item.name}}",
+            "unit": "{{item.unit}}",
+            "on_hand": "{{item.on_hand}}",
+            "reorder_point": "{{item.reorder_point}}",
+            "reorder_qty": "{{item.reorder_qty}}",
+            "unit_cost": "{{item.unit_cost}}",
+            "supplier": "{{item.supplier}}",
+            "supplier_email": "{{item.supplier_email}}",
+            "lead_time_days": "{{item.lead_time_days}}",
+            "buyer_id": "{{buyer_id}}"
+          }
+        }
+      },
+      {
+        "id": "ok",
+        "type": "log",
+        "label": "Stock is fine",
+        "position": {
+          "x": 340,
+          "y": 940
+        },
+        "config": {
+          "message": "{{item.sku}}: {{item.on_hand}} on hand (reorder point {{item.reorder_point}}{{=IF(item.on_order, \", already on order\", \"\")}})",
+          "level": "debug"
+        }
+      },
+      {
+        "id": "any",
+        "type": "condition",
+        "label": "Anything to reorder?",
+        "position": {
+          "x": 640,
+          "y": 800
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Reorders raised",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{low_count}}",
+                  "operator": "gt",
+                  "value": "0"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "summary",
+        "type": "user_task",
+        "label": "Confirm the stock counts",
+        "position": {
+          "x": 640,
+          "y": 940
+        },
+        "config": {
+          "task_title": "Stock check {{=FORMAT_DATE(TODAY(), \"DD/MM\")}}: {{low_count}} items to reorder",
+          "task_description": "<p>This morning's stock check found <strong>{{low_count}}</strong> of {{item_count}} active items at or below their reorder point. A reorder approval task was raised for each:</p><ul>{{low_list}}</ul><p>Before approving the orders, check that the on-hand counts are right. Press <strong>Counts confirmed</strong>, or <strong>Recount needed</strong> if the shelf does not match (correct On hand in the Stock items table, then skip the affected reorders).</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Counts confirmed",
+            "Recount needed"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{=COALESCE(buyer_id, workflow_owner_id)}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 8,
+          "due_offset_unit": "hours",
+          "fields": [
+            {
+              "key": "checked_by",
+              "label": "Checked by",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "count_note",
+              "label": "Notes",
+              "type": "textarea",
+              "help_text": "Which items were off, and by how much."
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "checked_by",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "count_note",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "confirm",
+              "label": "Counts confirmed",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Counts confirmed"
+            },
+            {
+              "id": "recount",
+              "label": "Recount needed",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Recount needed"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Daily stock check",
+            "align": "left",
+            "subtitle": "{{low_count}} reorders raised today"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#0E7490",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 8,
+              "density": "compact",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "fine",
+        "type": "end_workflow",
+        "label": "Nothing to reorder",
+        "position": {
+          "x": 900,
+          "y": 940
+        },
+        "config": {
+          "reason": "All {{item_count}} active items are above their reorder points"
+        }
+      },
+      {
+        "id": "confirmed",
+        "type": "end_workflow",
+        "label": "Counts confirmed",
+        "position": {
+          "x": 520,
+          "y": 1080
+        },
+        "config": {
+          "reason": "{{low_count}} reorders raised; counts confirmed by {{task_data.checked_by}}"
+        }
+      },
+      {
+        "id": "recount",
+        "type": "log",
+        "label": "Recount needed",
+        "position": {
+          "x": 760,
+          "y": 1080
+        },
+        "config": {
+          "message": "Stock recount needed ({{task_data.checked_by}}): {{task_data.count_note}}",
+          "level": "warn"
+        }
+      },
+      {
+        "id": "recount_end",
+        "type": "end_workflow",
+        "label": "Recount flagged",
+        "position": {
+          "x": 760,
+          "y": 1200
+        },
+        "config": {
+          "reason": "Recount needed: {{task_data.count_note}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-list",
+        "source": "title",
+        "target": "list"
+      },
+      {
+        "id": "e-list-zero",
+        "source": "list",
+        "target": "zero"
+      },
+      {
+        "id": "e-zero-none",
+        "source": "zero",
+        "target": "none"
+      },
+      {
+        "id": "e-none-loop",
+        "source": "none",
+        "target": "loop"
+      },
+      {
+        "id": "e-loop-low-each-item",
+        "source": "loop",
+        "target": "low",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-low-count-reorder",
+        "source": "low",
+        "target": "count",
+        "label": "Reorder"
+      },
+      {
+        "id": "e-count-add",
+        "source": "count",
+        "target": "add"
+      },
+      {
+        "id": "e-add-raise",
+        "source": "add",
+        "target": "raise"
+      },
+      {
+        "id": "e-low-ok-else",
+        "source": "low",
+        "target": "ok",
+        "label": "Else"
+      },
+      {
+        "id": "e-loop-any-done",
+        "source": "loop",
+        "target": "any",
+        "label": "Done"
+      },
+      {
+        "id": "e-any-summary-reorders-raised",
+        "source": "any",
+        "target": "summary",
+        "label": "Reorders raised"
+      },
+      {
+        "id": "e-any-fine-else",
+        "source": "any",
+        "target": "fine",
+        "label": "Else"
+      },
+      {
+        "id": "e-summary-confirmed-counts-confirmed",
+        "source": "summary",
+        "target": "confirmed",
+        "label": "Counts confirmed"
+      },
+      {
+        "id": "e-summary-recount-recount-needed",
+        "source": "summary",
+        "target": "recount",
+        "label": "Recount needed"
+      },
+      {
+        "id": "e-recount-recount_end",
+        "source": "recount",
+        "target": "recount_end"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-buyer_id",
+        "name": "buyer_id",
+        "type": "string",
+        "description": "Optional: user id of the buyer who approves reorders and confirms the daily summary. Set it as the default after install; empty means the workflow owner.",
+        "defaultValue": "",
+        "required": false,
+        "label": "Buyer (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

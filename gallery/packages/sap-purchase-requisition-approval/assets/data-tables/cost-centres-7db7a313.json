@@ -1,0 +1,68 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "7db7a313-d524-5cb7-9748-ecb1d38af388",
+  "asset": {
+    "id": "7db7a313-d524-5cb7-9748-ecb1d38af388",
+    "name": "Cost centres",
+    "description": "Controlling cost centres the approver can charge: the approval form looks them up and shows the owner and remaining budget.",
+    "columns": [
+      {
+        "id": "8f23c73c-a6b5-51e4-bf91-6f3f02ee27c3",
+        "required": true,
+        "key": "cost_center",
+        "name": "Cost centre",
+        "type": "text"
+      },
+      {
+        "id": "ee7d029c-ef57-55de-bb83-045a77b930cd",
+        "required": false,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "3366d278-c106-57db-bd28-67d6f3f16e89",
+        "required": false,
+        "key": "company_code",
+        "name": "Company code",
+        "type": "text"
+      },
+      {
+        "id": "cb7ab6de-b66b-5079-b55f-3b828c4c6d2d",
+        "required": false,
+        "key": "controlling_area",
+        "name": "Controlling area",
+        "type": "text"
+      },
+      {
+        "id": "95b82c0e-0ff6-50e2-bfc9-b352c4b05863",
+        "required": false,
+        "key": "responsible",
+        "name": "Responsible",
+        "type": "text"
+      },
+      {
+        "id": "f97663a2-fda4-51ae-a9d3-f1f556e37542",
+        "required": false,
+        "key": "gl_account",
+        "name": "Default G/L account",
+        "type": "text"
+      },
+      {
+        "id": "3b6d7c53-ddb0-51bb-8776-1bf05d59fd33",
+        "required": false,
+        "key": "budget_remaining",
+        "name": "Budget remaining (EUR)",
+        "type": "number"
+      },
+      {
+        "id": "8adf9327-031f-5603-a599-f9946457ddad",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

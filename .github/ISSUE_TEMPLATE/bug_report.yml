@@ -1,0 +1,52 @@
+name: Bug report
+description: Something in UserTasks does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Security issues do not belong here**: see SECURITY.md.
+        Please remove secrets, API keys and personal data from logs and screenshots.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The smallest workflow, API call or CLI command that shows the problem.
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Release, commit SHA, or `usertasks --version` for the CLI.
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options:
+        - Hosted (usertasks.com)
+        - Self-hosted on Supabase
+        - Self-hosted standalone / on-prem (Docker, compose)
+        - Self-hosted on a cloud profile (AWS, Azure, Google Cloud)
+        - Local development
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and details
+      description: Relevant log lines, browser console output, provider settings. Redact secrets.
+      render: text

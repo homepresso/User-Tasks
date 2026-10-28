@@ -1,0 +1,131 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "b10bb1ea-c7fc-4437-b2f5-39ba3b4fdee7",
+  "asset": {
+    "id": "b10bb1ea-c7fc-4437-b2f5-39ba3b4fdee7",
+    "name": "Territories rows",
+    "rows": [
+      {
+        "id": "b9f1c27d-5944-4954-92ce-094acfbc00ca",
+        "data": {
+          "country_code": "NZ",
+          "country_name": "New Zealand",
+          "region": "ANZ",
+          "owner_name": "Mia Lopez",
+          "owner_email": "mia.lopez@example.com",
+          "queue": "ANZ inbound",
+          "nurture_list_id": "nurture-apac"
+        }
+      },
+      {
+        "id": "ab5ad9db-3196-4b74-b50b-e2d476a5ea74",
+        "data": {
+          "country_code": "AU",
+          "country_name": "Australia",
+          "region": "ANZ",
+          "owner_name": "Mia Lopez",
+          "owner_email": "mia.lopez@example.com",
+          "queue": "ANZ inbound",
+          "nurture_list_id": "nurture-apac"
+        }
+      },
+      {
+        "id": "55dd2354-8ecc-4c2e-a475-fd375e4bd7b1",
+        "data": {
+          "country_code": "SG",
+          "country_name": "Singapore",
+          "region": "APAC",
+          "owner_name": "Wei Tan",
+          "owner_email": "wei.tan@example.com",
+          "queue": "APAC inbound",
+          "nurture_list_id": "nurture-apac"
+        }
+      },
+      {
+        "id": "62c342cb-48d5-4403-8dd7-d55c70c7d685",
+        "data": {
+          "country_code": "JP",
+          "country_name": "Japan",
+          "region": "APAC",
+          "owner_name": "Wei Tan",
+          "owner_email": "wei.tan@example.com",
+          "queue": "APAC inbound",
+          "nurture_list_id": "nurture-apac"
+        }
+      },
+      {
+        "id": "d46fd7db-ba7f-45b3-b416-f4718f54e7fe",
+        "data": {
+          "country_code": "GB",
+          "country_name": "United Kingdom",
+          "region": "EMEA",
+          "owner_name": "Olivia Hart",
+          "owner_email": "olivia.hart@example.com",
+          "queue": "EMEA inbound",
+          "nurture_list_id": "nurture-emea"
+        }
+      },
+      {
+        "id": "f1f4ae67-a876-4bdc-baec-ad76b79c2e50",
+        "data": {
+          "country_code": "DE",
+          "country_name": "Germany",
+          "region": "EMEA",
+          "owner_name": "Jonas Weber",
+          "owner_email": "jonas.weber@example.com",
+          "queue": "DACH inbound",
+          "nurture_list_id": "nurture-emea"
+        }
+      },
+      {
+        "id": "6a8df4cd-a46b-4a70-b052-bb1622b12489",
+        "data": {
+          "country_code": "FR",
+          "country_name": "France",
+          "region": "EMEA",
+          "owner_name": "Olivia Hart",
+          "owner_email": "olivia.hart@example.com",
+          "queue": "EMEA inbound",
+          "nurture_list_id": "nurture-emea"
+        }
+      },
+      {
+        "id": "56db69e5-9e55-47db-8c93-971554b1515e",
+        "data": {
+          "country_code": "US",
+          "country_name": "United States",
+          "region": "North America",
+          "owner_name": "Ethan Brooks",
+          "owner_email": "ethan.brooks@example.com",
+          "queue": "NA inbound",
+          "nurture_list_id": "nurture-na"
+        }
+      },
+      {
+        "id": "b8507d97-8d9d-4c84-bf60-f05b6e92ee89",
+        "data": {
+          "country_code": "CA",
+          "country_name": "Canada",
+          "region": "North America",
+          "owner_name": "Ethan Brooks",
+          "owner_email": "ethan.brooks@example.com",
+          "queue": "NA inbound",
+          "nurture_list_id": "nurture-na"
+        }
+      },
+      {
+        "id": "8bf947bf-c2a1-494e-9076-648657d0644d",
+        "data": {
+          "country_code": "*",
+          "country_name": "Rest of world",
+          "region": "Rest of world",
+          "owner_name": "Inside sales",
+          "owner_email": "inside-sales@example.com",
+          "queue": "Global inbound",
+          "nurture_list_id": "nurture-general"
+        }
+      }
+    ]
+  }
+}

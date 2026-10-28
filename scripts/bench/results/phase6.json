@@ -1,0 +1,346 @@
+{
+  "label": "phase6",
+  "updatedAt": "2026-10-24T23:16:21.942Z",
+  "environment": {
+    "machine": "Apple M1 Pro",
+    "cpus": 10,
+    "memory_gb": 32,
+    "os": "darwin 27.0.0 arm64",
+    "node": "v20.19.5",
+    "git_commit": "bce7a20d",
+    "git_branch": "perf",
+    "supabase_cli": "2.122.0",
+    "postgres_server": "17.6",
+    "docker": "28.3.2"
+  },
+  "suites": {
+    "size": {
+      "data": {
+        "build_seconds": 37.2,
+        "client_chunks": {
+          "count": 117,
+          "bytes": 5839089,
+          "gzip_bytes": 1531402,
+          "largest": [
+            {
+              "file": "010tjym0h44v..js",
+              "bytes": 540153,
+              "gzip": 138261,
+              "libraries": "recharts"
+            },
+            {
+              "file": "0_zrhxs91x0kf.js",
+              "bytes": 277897,
+              "gzip": 49707,
+              "libraries": ""
+            },
+            {
+              "file": "0mc9_9lq.9nx-.js",
+              "bytes": 277897,
+              "gzip": 49693,
+              "libraries": ""
+            },
+            {
+              "file": "14..7~~-ew5lz.js",
+              "bytes": 277264,
+              "gzip": 48240,
+              "libraries": "lucide"
+            },
+            {
+              "file": "0-iymheo6-.4a.js",
+              "bytes": 265415,
+              "gzip": 65671,
+              "libraries": "react-query"
+            },
+            {
+              "file": "14pofykpskj6v.js",
+              "bytes": 226465,
+              "gzip": 70795,
+              "libraries": "react-dom"
+            },
+            {
+              "file": "177sbmcti1xvy.js",
+              "bytes": 224099,
+              "gzip": 59510,
+              "libraries": "supabase-js"
+            },
+            {
+              "file": "07f04x94vimry.js",
+              "bytes": 149408,
+              "gzip": 37735,
+              "libraries": "lucide"
+            },
+            {
+              "file": "0yzr_cghy18h_.js",
+              "bytes": 125099,
+              "gzip": 33034,
+              "libraries": "react-query"
+            },
+            {
+              "file": "03~yq9q893hmn.js",
+              "bytes": 112594,
+              "gzip": 39627,
+              "libraries": ""
+            }
+          ]
+        },
+        "client_css_bytes": 130122,
+        "route_first_load_js": [
+          {
+            "route": "/automations/[id]",
+            "bytes": 1603031,
+            "gzip": 424329,
+            "chunks": 21
+          },
+          {
+            "route": "/automations/runs/[id]",
+            "bytes": 1047224,
+            "gzip": 296452,
+            "chunks": 18
+          },
+          {
+            "route": "/reports",
+            "bytes": 1088132,
+            "gzip": 307477,
+            "chunks": 18
+          },
+          {
+            "route": "/reports/workflows",
+            "bytes": 1044582,
+            "gzip": 295466,
+            "chunks": 18
+          },
+          {
+            "route": "/reports/workflows/[id]",
+            "bytes": 1047180,
+            "gzip": 296459,
+            "chunks": 18
+          },
+          {
+            "route": "/reports/[id]",
+            "bytes": 1086168,
+            "gzip": 305576,
+            "chunks": 18
+          },
+          {
+            "route": "/reports/builder",
+            "bytes": 1167442,
+            "gzip": 326444,
+            "chunks": 19
+          },
+          {
+            "route": "/settings/api-keys",
+            "bytes": 1172090,
+            "gzip": 319440,
+            "chunks": 19
+          },
+          {
+            "route": "/docs/api-explorer",
+            "bytes": 738798,
+            "gzip": 202124,
+            "chunks": 13
+          },
+          {
+            "route": "/tasks",
+            "bytes": 1143400,
+            "gzip": 326329,
+            "chunks": 20
+          }
+        ],
+        "server_output_bytes": 198074368,
+        "standalone_bytes": null,
+        "node_modules_bytes": 907911168,
+        "docker_build_seconds": 96.5,
+        "docker_image_bytes": 92780630
+      },
+      "tables": [
+        {
+          "title": "Build & install size",
+          "columns": [
+            "measure",
+            "value"
+          ],
+          "rows": [
+            [
+              "client JS chunks (count)",
+              117
+            ],
+            [
+              "client JS total MB (gzip MB)",
+              "5.6 (1.5)"
+            ],
+            [
+              "client CSS KB",
+              127
+            ],
+            [
+              ".next/server MB",
+              188.9
+            ],
+            [
+              ".next/standalone MB",
+              null
+            ],
+            [
+              "node_modules MB",
+              865.9
+            ],
+            [
+              "Docker image MB",
+              88.5
+            ],
+            [
+              "next build s",
+              37.2
+            ]
+          ]
+        },
+        {
+          "title": "Largest client chunks",
+          "columns": [
+            "chunk",
+            "KB",
+            "gzip KB",
+            "contains"
+          ],
+          "rows": [
+            [
+              "010tjym0h44v..js",
+              527,
+              135,
+              "recharts"
+            ],
+            [
+              "0_zrhxs91x0kf.js",
+              271,
+              49,
+              null
+            ],
+            [
+              "0mc9_9lq.9nx-.js",
+              271,
+              49,
+              null
+            ],
+            [
+              "14..7~~-ew5lz.js",
+              271,
+              47,
+              "lucide"
+            ],
+            [
+              "0-iymheo6-.4a.js",
+              259,
+              64,
+              "react-query"
+            ],
+            [
+              "14pofykpskj6v.js",
+              221,
+              69,
+              "react-dom"
+            ],
+            [
+              "177sbmcti1xvy.js",
+              219,
+              58,
+              "supabase-js"
+            ],
+            [
+              "07f04x94vimry.js",
+              146,
+              37,
+              "lucide"
+            ],
+            [
+              "0yzr_cghy18h_.js",
+              122,
+              32,
+              "react-query"
+            ],
+            [
+              "03~yq9q893hmn.js",
+              110,
+              39,
+              null
+            ]
+          ]
+        },
+        {
+          "title": "First-load JS per route (root + route entry chunks; lazy chunks excluded)",
+          "columns": [
+            "route",
+            "KB",
+            "gzip KB",
+            "chunks"
+          ],
+          "rows": [
+            [
+              "/automations/[id]",
+              1565,
+              414,
+              21
+            ],
+            [
+              "/automations/runs/[id]",
+              1023,
+              290,
+              18
+            ],
+            [
+              "/reports",
+              1063,
+              300,
+              18
+            ],
+            [
+              "/reports/workflows",
+              1020,
+              289,
+              18
+            ],
+            [
+              "/reports/workflows/[id]",
+              1023,
+              290,
+              18
+            ],
+            [
+              "/reports/[id]",
+              1061,
+              298,
+              18
+            ],
+            [
+              "/reports/builder",
+              1140,
+              319,
+              19
+            ],
+            [
+              "/settings/api-keys",
+              1145,
+              312,
+              19
+            ],
+            [
+              "/docs/api-explorer",
+              721,
+              197,
+              13
+            ],
+            [
+              "/tasks",
+              1117,
+              319,
+              20
+            ]
+          ]
+        }
+      ],
+      "notes": [],
+      "ranAt": "2026-10-24T23:16:26.939Z",
+      "durationMs": 134567
+    }
+  }
+}

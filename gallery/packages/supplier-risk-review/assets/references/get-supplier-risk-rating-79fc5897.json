@@ -1,0 +1,231 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "79fc5897-196f-4280-a774-0d20d497494c",
+  "asset": {
+    "id": "79fc5897-196f-4280-a774-0d20d497494c",
+    "integration_id": "29adbaf2-780d-4db8-9ba3-afcc5a42009d",
+    "name": "Get supplier risk rating",
+    "description": "Current risk rating for a supplier from your risk-intelligence provider: financial health, cyber posture, ESG flags and sanctions screening.",
+    "tags": [
+      "risk"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/risk-ratings/{{supplier_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "supplier_id",
+              "type": "string",
+              "example": "SUP-104"
+            },
+            {
+              "name": "legal_name",
+              "type": "string",
+              "example": "Tailspin Components Ltd"
+            },
+            {
+              "name": "rated_at",
+              "type": "string",
+              "example": "2026-10-24"
+            },
+            {
+              "name": "financial",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "score",
+                  "type": "integer",
+                  "example": 38
+                },
+                {
+                  "name": "trend",
+                  "type": "string",
+                  "example": "falling"
+                },
+                {
+                  "name": "days_beyond_terms",
+                  "type": "integer",
+                  "example": 41
+                },
+                {
+                  "name": "summary",
+                  "type": "string",
+                  "example": "Two quarters of losses; credit line reduced"
+                }
+              ]
+            },
+            {
+              "name": "cyber",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "score",
+                  "type": "integer",
+                  "example": 46
+                },
+                {
+                  "name": "open_findings",
+                  "type": "integer",
+                  "example": 7
+                },
+                {
+                  "name": "critical_findings",
+                  "type": "integer",
+                  "example": 1
+                },
+                {
+                  "name": "summary",
+                  "type": "string",
+                  "example": "Exposed remote-access service; no MFA on admin portal"
+                }
+              ]
+            },
+            {
+              "name": "esg",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "score",
+                  "type": "integer",
+                  "example": 61
+                },
+                {
+                  "name": "flags",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "example": "Labour audit overdue"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "sanctions",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "match",
+                  "type": "boolean",
+                  "example": false
+                },
+                {
+                  "name": "lists_checked",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "example": "UN"
+                  }
+                },
+                {
+                  "name": "checked_at",
+                  "type": "string",
+                  "example": "2026-10-24"
+                }
+              ]
+            },
+            {
+              "name": "report_url",
+              "type": "string",
+              "example": "https://risk-intel.example.com/reports/SUP-104/2026-10-24"
+            }
+          ]
+        },
+        "sample": {
+          "supplier_id": "SUP-104",
+          "legal_name": "Tailspin Components Ltd",
+          "rated_at": "2026-10-24",
+          "financial": {
+            "score": 38,
+            "trend": "falling",
+            "days_beyond_terms": 41,
+            "summary": "Two quarters of losses; credit line reduced"
+          },
+          "cyber": {
+            "score": 46,
+            "open_findings": 7,
+            "critical_findings": 1,
+            "summary": "Exposed remote-access service; no MFA on admin portal"
+          },
+          "esg": {
+            "score": 61,
+            "flags": [
+              "Labour audit overdue",
+              "No published emissions data"
+            ]
+          },
+          "sanctions": {
+            "match": false,
+            "lists_checked": [
+              "UN",
+              "EU",
+              "UK"
+            ],
+            "checked_at": "2026-10-24"
+          },
+          "report_url": "https://risk-intel.example.com/reports/SUP-104/2026-10-24"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "f3f11b0e-abb9-4e08-9a71-6c516175471b",
+        "name": "supplier_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Supplier id as held in the Suppliers table, e.g. SUP-104",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "39295bbd-1420-4ce8-bf80-94eeb5290810",
+        "name": "financial_score",
+        "path": "financial.score",
+        "type": "number"
+      },
+      {
+        "id": "4ba94a2c-752e-4512-bf8d-9d6ab5d5e358",
+        "name": "cyber_score",
+        "path": "cyber.score",
+        "type": "number"
+      },
+      {
+        "id": "6bae25e7-8947-4a0d-9646-9e754d49669c",
+        "name": "esg_flags",
+        "path": "esg.flags",
+        "type": "array"
+      },
+      {
+        "id": "4d656937-65fa-46f4-b4b4-e1827338fdfb",
+        "name": "sanctions_hit",
+        "path": "sanctions.match",
+        "type": "boolean"
+      },
+      {
+        "id": "726727ba-3667-410d-95a1-94e39ee8beea",
+        "name": "rating_date",
+        "path": "rated_at",
+        "type": "string"
+      },
+      {
+        "id": "1aa1b8cb-15bc-4c5e-9964-942d4f69a25c",
+        "name": "report_url",
+        "path": "report_url",
+        "type": "string"
+      }
+    ]
+  }
+}

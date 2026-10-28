@@ -1,0 +1,116 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "a8d984b8-0cc7-4a96-bdbb-695ae6d6b40c",
+  "asset": {
+    "id": "a8d984b8-0cc7-4a96-bdbb-695ae6d6b40c",
+    "name": "Policies rows",
+    "rows": [
+      {
+        "id": "ca791048-09a7-4f77-a64a-0c8141a810f1",
+        "data": {
+          "policy_id": "POL-001",
+          "policy": "Code of conduct",
+          "version": "4.2",
+          "owner": "People & Culture",
+          "document_url": "https://intranet.example.com/policies/code-of-conduct",
+          "audience": "all",
+          "attestation_frequency": "annual",
+          "frequency_days": 365,
+          "next_due": "2026-11-01",
+          "active": true
+        }
+      },
+      {
+        "id": "5e0482a8-e3b9-413e-a678-61ea0b802079",
+        "data": {
+          "policy_id": "POL-002",
+          "policy": "Information security",
+          "version": "3.0",
+          "owner": "Security",
+          "document_url": "https://intranet.example.com/policies/information-security",
+          "audience": "all",
+          "attestation_frequency": "annual",
+          "frequency_days": 365,
+          "next_due": "2026-11-01",
+          "active": true
+        }
+      },
+      {
+        "id": "53f772af-ab7b-4fa9-87bf-478206b57945",
+        "data": {
+          "policy_id": "POL-003",
+          "policy": "Acceptable use of IT",
+          "version": "2.1",
+          "owner": "IT",
+          "document_url": "https://intranet.example.com/policies/acceptable-use",
+          "audience": "all",
+          "attestation_frequency": "annual",
+          "frequency_days": 365,
+          "next_due": "2027-03-01",
+          "active": true
+        }
+      },
+      {
+        "id": "a6a5ea88-a2b4-4a39-913a-af419968c3dc",
+        "data": {
+          "policy_id": "POL-004",
+          "policy": "Anti-bribery and gifts",
+          "version": "1.5",
+          "owner": "Legal",
+          "document_url": "https://intranet.example.com/policies/anti-bribery",
+          "audience": "Sales",
+          "attestation_frequency": "quarterly",
+          "frequency_days": 91,
+          "next_due": "2026-11-01",
+          "active": true
+        }
+      },
+      {
+        "id": "969d5084-514e-4bf5-8834-fa0301cee794",
+        "data": {
+          "policy_id": "POL-005",
+          "policy": "Delegated financial authority",
+          "version": "2.0",
+          "owner": "Finance",
+          "document_url": "https://intranet.example.com/policies/delegated-authority",
+          "audience": "Finance",
+          "attestation_frequency": "quarterly",
+          "frequency_days": 91,
+          "next_due": "2026-11-01",
+          "active": true
+        }
+      },
+      {
+        "id": "5804d5b5-8934-4a55-ab91-e48636f95a2c",
+        "data": {
+          "policy_id": "POL-006",
+          "policy": "Secure development",
+          "version": "1.3",
+          "owner": "Engineering",
+          "document_url": "https://intranet.example.com/policies/secure-development",
+          "audience": "Engineering",
+          "attestation_frequency": "annual",
+          "frequency_days": 365,
+          "next_due": "2026-10-15",
+          "active": true
+        }
+      },
+      {
+        "id": "7a49dffa-b567-45f9-ba5c-683001f4fa08",
+        "data": {
+          "policy_id": "POL-007",
+          "policy": "Remote working",
+          "version": "1.0",
+          "owner": "People & Culture",
+          "document_url": "https://intranet.example.com/policies/remote-working",
+          "audience": "all",
+          "attestation_frequency": "annual",
+          "frequency_days": 365,
+          "next_due": "2026-11-01",
+          "active": false
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "f8898e10-a58e-4b61-ac70-b1c3e2dce545",
+  "asset": {
+    "id": "f8898e10-a58e-4b61-ac70-b1c3e2dce545",
+    "name": "Access granted",
+    "description": "Sent to the requester when the access has been provisioned.",
+    "subject": "Access granted: {{application}} ({{role}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your access is ready</h2>\n  <p>Hi {{requester_name}},</p>\n  <p><strong>{{user_name}}</strong> now has <strong>{{role}}</strong> access to <strong>{{application}}</strong> (grant {{grant_id}}, request {{request_reference}}).</p>\n  <p>Duration: {{duration}}. {{=IF(IS_EMPTY(expires_at), \"Access stays until it is removed in an access review.\", CONCAT(\"Access is removed automatically on \", FORMAT_DATE(expires_at, \"DD/MM/YYYY\"), \".\"))}}</p>\n  <p style=\"color:#6E6759\">Approved via: {{approval_path}}</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your access request workflow</p>\n</div>",
+    "text_body": "Your access is ready\n  Hi {{requester_name}},\n  {{user_name}} now has {{role}} access to {{application}} (grant {{grant_id}}, request {{request_reference}}).\n  Duration: {{duration}}. {{=IF(IS_EMPTY(expires_at), \"Access stays until it is removed in an access review.\", CONCAT(\"Access is removed automatically on \", FORMAT_DATE(expires_at, \"DD/MM/YYYY\"), \".\"))}}\n  Approved via: {{approval_path}}\n  Sent by your access request workflow",
+    "is_default": false
+  }
+}

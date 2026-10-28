@@ -1,0 +1,16 @@
+-- workflow_logs for one run as authenticated
+SELECT * FROM public.workflow_logs WHERE run_id = '4b00d5a0-67af-4676-8078-9c084c579c15' ORDER BY created_at
+
+Sort  (cost=22.14..22.15 rows=5 width=140) (actual time=0.330..0.330 rows=10 loops=1)
+  Sort Key: workflow_logs.created_at
+  Sort Method: quicksort  Memory: 26kB
+  Buffers: shared hit=35
+  ->  Index Scan using idx_workflow_logs_run on workflow_logs  (cost=8.19..22.08 rows=5 width=140) (actual time=0.123..0.326 rows=10 loops=1)
+        Index Cond: (run_id = '4b00d5a0-67af-4676-8078-9c084c579c15'::uuid)
+        Filter: CASE WHEN (get_current_tenant_id() IS NOT NULL) THEN (tenant_id = get_current_tenant_id()) ELSE (ANY (tenant_id = (hashed SubPlan 1).col1)) END
+        Buffers: shared hit=35
+        SubPlan 1
+          ->  ProjectSet  (cost=0.00..5.27 rows=1000 width=16) (never executed)
+                ->  Result  (cost=0.00..0.01 rows=1 width=0) (never executed)
+Planning Time: 0.033 ms
+Execution Time: 0.341 ms

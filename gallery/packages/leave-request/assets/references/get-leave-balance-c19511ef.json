@@ -1,0 +1,182 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "c19511ef-b3ea-4546-821b-0ddefd96fb22",
+  "asset": {
+    "id": "c19511ef-b3ea-4546-821b-0ddefd96fb22",
+    "integration_id": "008f8831-fadc-489c-8e18-c75547ba4365",
+    "name": "Get leave balance",
+    "description": "The employee's current balance for one leave type, with their name, email and manager.",
+    "tags": [
+      "leave"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/leave-balances/{{employee_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "employee",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "E-1001"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "example": "Sam Carter"
+                },
+                {
+                  "name": "email",
+                  "type": "string",
+                  "example": "sam.carter@example.com"
+                },
+                {
+                  "name": "department",
+                  "type": "string",
+                  "example": "Sales"
+                },
+                {
+                  "name": "manager",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "id",
+                      "type": "string",
+                      "example": "E-0042"
+                    },
+                    {
+                      "name": "name",
+                      "type": "string",
+                      "example": "Priya Shah"
+                    },
+                    {
+                      "name": "email",
+                      "type": "string",
+                      "example": "priya.shah@example.com"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "leave_type",
+              "type": "string",
+              "example": "annual"
+            },
+            {
+              "name": "balance_days",
+              "type": "number",
+              "example": 14.5
+            },
+            {
+              "name": "booked_days",
+              "type": "integer",
+              "example": 3
+            },
+            {
+              "name": "accrual_per_month",
+              "type": "number",
+              "example": 1.67
+            },
+            {
+              "name": "as_of",
+              "type": "string",
+              "example": "2026-10-26"
+            }
+          ]
+        },
+        "sample": {
+          "employee": {
+            "id": "E-1001",
+            "name": "Sam Carter",
+            "email": "sam.carter@example.com",
+            "department": "Sales",
+            "manager": {
+              "id": "E-0042",
+              "name": "Priya Shah",
+              "email": "priya.shah@example.com"
+            }
+          },
+          "leave_type": "annual",
+          "balance_days": 14.5,
+          "booked_days": 3,
+          "accrual_per_month": 1.67,
+          "as_of": "2026-10-26"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "5560ea67-5676-4b54-9571-91268b64cb0e",
+        "name": "employee_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Employee number, e.g. E-1001",
+        "default_value": ""
+      },
+      {
+        "id": "8aad87fb-00ce-4537-9cba-08b4b7ef65a0",
+        "name": "leave_type",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "annual, sick, parental, bereavement or unpaid",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "66fad1db-3630-45f0-b6e7-a055752cf0f2",
+        "name": "employee_name",
+        "path": "employee.name",
+        "type": "string"
+      },
+      {
+        "id": "0ee89eef-8afe-4505-829f-75574f398d4e",
+        "name": "employee_email",
+        "path": "employee.email",
+        "type": "string"
+      },
+      {
+        "id": "3dc9554b-bbda-416c-89f6-f3e75d049d97",
+        "name": "manager_name",
+        "path": "employee.manager.name",
+        "type": "string"
+      },
+      {
+        "id": "565e70f6-3a0e-4676-9fbd-caa15ceaef9f",
+        "name": "manager_email",
+        "path": "employee.manager.email",
+        "type": "string"
+      },
+      {
+        "id": "faabf4b2-ada9-42e5-aca8-fb989ec4a104",
+        "name": "balance_days",
+        "path": "balance_days",
+        "type": "number"
+      },
+      {
+        "id": "1538841f-179f-4d5a-9a3f-27433cd2e251",
+        "name": "booked_days",
+        "path": "booked_days",
+        "type": "number"
+      }
+    ]
+  }
+}

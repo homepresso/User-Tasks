@@ -1,0 +1,196 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "0c25073e-b1cb-47b8-9f6e-76c8a40825d9",
+  "asset": {
+    "id": "0c25073e-b1cb-47b8-9f6e-76c8a40825d9",
+    "integration_id": "dc9225f2-3c51-49ab-b380-af4790eb773d",
+    "name": "Create employee",
+    "description": "Create the new hire in the HR system. Returns the employee number and the work email that will be issued.",
+    "tags": [
+      "employees"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"full_name\":\"{{full_name}}\",\"personal_email\":\"{{personal_email}}\",\"job_title\":\"{{job_title}}\",\"department\":\"{{department}}\",\"start_date\":\"{{start_date}}\",\"manager_name\":\"{{manager_name}}\",\"location\":\"{{location}}\",\"employment_type\":\"{{employment_type}}\"}",
+      "path_template": "/employees",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "E-1187"
+            },
+            {
+              "name": "employee_number",
+              "type": "string",
+              "example": "001187"
+            },
+            {
+              "name": "full_name",
+              "type": "string",
+              "example": "Jordan Lee"
+            },
+            {
+              "name": "work_email",
+              "type": "string",
+              "example": "jordan.lee@yourcompany.example"
+            },
+            {
+              "name": "job_title",
+              "type": "string",
+              "example": "Software Engineer"
+            },
+            {
+              "name": "department",
+              "type": "string",
+              "example": "engineering"
+            },
+            {
+              "name": "start_date",
+              "type": "string",
+              "example": "2026-11-16"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "pre_start"
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "example": "2026-10-26T09:12:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "id": "E-1187",
+          "employee_number": "001187",
+          "full_name": "Jordan Lee",
+          "work_email": "jordan.lee@yourcompany.example",
+          "job_title": "Software Engineer",
+          "department": "engineering",
+          "start_date": "2026-11-16",
+          "status": "pre_start",
+          "created_at": "2026-10-26T09:12:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "ec016495-bb56-46ab-a3fb-bf6299ea6ada",
+        "name": "full_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c4b190cb-fa8a-40af-b754-7431a9627967",
+        "name": "personal_email",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "3cbec836-ffa5-4478-be06-1280811ff6a5",
+        "name": "job_title",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "ab63081d-ec0b-4562-af7f-074aa76b9f9f",
+        "name": "department",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "20bf6a46-ec0a-4a05-a92c-23b77f7026a1",
+        "name": "start_date",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "78b53dca-8425-4ccd-b694-ae74fdbe4327",
+        "name": "manager_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "78239dff-0b0d-4a7d-8cd2-2e078512ace7",
+        "name": "location",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "afcf8e00-c3d2-410a-b677-925eb1f6a509",
+        "name": "employment_type",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "61116630-bc55-4c4b-9a5b-f303ec93d5f3",
+        "name": "employee_id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "43119e05-7205-4178-9dcf-6a4980abdde7",
+        "name": "employee_number",
+        "path": "employee_number",
+        "type": "string"
+      },
+      {
+        "id": "136bb813-04cb-49d3-9ca5-c5d9b9c5f2ce",
+        "name": "work_email",
+        "path": "work_email",
+        "type": "string"
+      },
+      {
+        "id": "2ce7d5c2-26c2-4dd7-8e90-f3b2f897284f",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      }
+    ]
+  }
+}

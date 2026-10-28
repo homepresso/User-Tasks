@@ -1,0 +1,166 @@
+import type { ConnectorDefinition } from '../registry'
+
+export const twilioConnector: ConnectorDefinition = {
+  key: 'twilio',
+  name: 'Twilio',
+  description: 'Send SMS, make voice calls, verify phone numbers, and manage communications',
+  category: 'communication',
+  icon: 'Phone',
+  color: '#F22F46',
+  docsUrl: 'https://www.twilio.com/docs/usage/api',
+  fields: [
+    {
+      key: 'from_number',
+      label: 'From Phone Number',
+      type: 'text',
+      placeholder: '+1234567890',
+      required: true,
+      helpText: 'Your Twilio phone number (E.164 format)',
+    },
+  ],
+  credentialFields: [
+    {
+      key: 'account_sid',
+      label: 'Account SID',
+      type: 'text',
+      placeholder: 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+      required: true,
+      helpText: 'Found on your Twilio Console dashboard',
+    },
+    {
+      key: 'auth_token',
+      label: 'Auth Token',
+      type: 'password',
+      required: true,
+      helpText: 'Found on your Twilio Console dashboard',
+    },
+  ],
+  referenceTemplates: [
+    // ─── SMS ───
+    {
+      key: 'send_sms',
+      name: 'Send SMS',
+      description: 'Send an SMS message',
+      method: 'POST',
+      pathTemplate: '/2010-04-01/Accounts/{{account_sid}}/Messages.json',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      bodyTemplate: 'To={{to_number}}&From={{from_number}}&Body={{message}}',
+      inputs: [
+        { name: 'to_number', type: 'string', required: true, description: 'Recipient phone number (E.164 format, e.g. +447911123456)' },
+        { name: 'from_number', type: 'string', required: false, description: 'Override sender number' },
+        { name: 'message', type: 'string', required: true, description: 'SMS message body (max 1600 chars)' },
+        { name: 'account_sid', type: 'string', required: false, description: 'Account SID override (auto-filled)' },
+      ],
+      outputs: [{ name: 'sid', type: 'string' }, { name: 'status', type: 'string' }, { name: 'date_created', type: 'string' }],
+    },
+    {
+      key: 'get_message',
+      name: 'Get Message Status',
+      description: 'Check the delivery status of a sent message',
+      method: 'GET',
+      pathTemplate: '/2010-04-01/Accounts/{{account_sid}}/Messages/{{message_sid}}.json',
+      inputs: [
+        { name: 'message_sid', type: 'string', required: true, description: 'Message SID (SM...)' },
+        { name: 'account_sid', type: 'string', required: false, description: 'Account SID override' },
+      ],
+      outputs: [{ name: 'sid', type: 'string' }, { name: 'status', type: 'string' }, { name: 'error_code', type: 'number' }, { name: 'error_message', type: 'string' }],
+    },
+    {
+      key: 'list_messages',
+      name: 'List Messages',
+      description: 'List sent and received messages',
+      method: 'GET',
+      pathTemplate: '/2010-04-01/Accounts/{{account_sid}}/Messages.json?To={{to_number}}&From={{from_number}}&DateSent>={{date_from}}&PageSize={{page_size}}',
+      inputs: [
+        { name: 'to_number', type: 'string', required: false, description: 'Filter by recipient' },
+        { name: 'from_number', type: 'string', required: false, description: 'Filter by sender' },
+        { name: 'date_from', type: 'string', required: false, description: 'Messages sent after this date (YYYY-MM-DD)' },
+        { name: 'page_size', type: 'number', required: false, description: 'Results per page', defaultValue: '20' },
+        { name: 'account_sid', type: 'string', required: false, description: 'Account SID override' },
+      ],
+      outputs: [{ name: 'messages', type: 'array' }],
+    },
+    // ─── Voice ───
+    {
+      key: 'make_call',
+      name: 'Make Voice Call',
+      description: 'Initiate an outbound voice call',
+      method: 'POST',
+      pathTemplate: '/2010-04-01/Accounts/{{account_sid}}/Calls.json',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      bodyTemplate: 'To={{to_number}}&From={{from_number}}&Url={{twiml_url}}&Twiml={{twiml}}',
+      inputs: [
+        { name: 'to_number', type: 'string', required: true, description: 'Number to call (E.164)' },
+        { name: 'from_number', type: 'string', required: false, description: 'Caller ID number' },
+        { name: 'twiml_url', type: 'string', required: false, description: 'URL returning TwiML instructions' },
+        { name: 'twiml', type: 'string', required: false, description: 'Inline TwiML (e.g. <Response><Say>Hello!</Say></Response>)' },
+        { name: 'account_sid', type: 'string', required: false, description: 'Account SID override' },
+      ],
+      outputs: [{ name: 'sid', type: 'string' }, { name: 'status', type: 'string' }],
+    },
+    {
+      key: 'get_call',
+      name: 'Get Call Status',
+      description: 'Check the status of a call',
+      method: 'GET',
+      pathTemplate: '/2010-04-01/Accounts/{{account_sid}}/Calls/{{call_sid}}.json',
+      inputs: [
+        { name: 'call_sid', type: 'string', required: true, description: 'Call SID (CA...)' },
+        { name: 'account_sid', type: 'string', required: false, description: 'Account SID override' },
+      ],
+      outputs: [{ name: 'sid', type: 'string' }, { name: 'status', type: 'string' }, { name: 'duration', type: 'string' }, { name: 'direction', type: 'string' }],
+    },
+    // ─── Verify (2FA) ───
+    {
+      key: 'send_verification',
+      name: 'Send Verification Code',
+      description: 'Send a verification code via SMS or voice for 2FA',
+      method: 'POST',
+      pathTemplate: '/v2/Services/{{verify_service_sid}}/Verifications',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      bodyTemplate: 'To={{to_number}}&Channel={{channel}}',
+      inputs: [
+        { name: 'verify_service_sid', type: 'string', required: true, description: 'Verify Service SID (VA...)' },
+        { name: 'to_number', type: 'string', required: true, description: 'Number to verify (E.164)' },
+        { name: 'channel', type: 'string', required: false, description: 'sms, call, or email', defaultValue: 'sms' },
+      ],
+      outputs: [{ name: 'sid', type: 'string' }, { name: 'status', type: 'string' }, { name: 'to', type: 'string' }],
+    },
+    {
+      key: 'check_verification',
+      name: 'Check Verification Code',
+      description: 'Verify a code entered by the user',
+      method: 'POST',
+      pathTemplate: '/v2/Services/{{verify_service_sid}}/VerificationCheck',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      bodyTemplate: 'To={{to_number}}&Code={{code}}',
+      inputs: [
+        { name: 'verify_service_sid', type: 'string', required: true, description: 'Verify Service SID' },
+        { name: 'to_number', type: 'string', required: true, description: 'Number that was verified' },
+        { name: 'code', type: 'string', required: true, description: 'Code entered by user' },
+      ],
+      outputs: [{ name: 'sid', type: 'string' }, { name: 'status', type: 'string' }, { name: 'valid', type: 'boolean' }],
+    },
+    // ─── Lookup ───
+    {
+      key: 'lookup_number',
+      name: 'Lookup Phone Number',
+      description: 'Look up information about a phone number (carrier, type, caller name)',
+      method: 'GET',
+      pathTemplate: '/v2/PhoneNumbers/{{phone_number}}?Fields={{fields}}',
+      inputs: [
+        { name: 'phone_number', type: 'string', required: true, description: 'Phone number (E.164)' },
+        { name: 'fields', type: 'string', required: false, description: 'Data to return: line_type_intelligence, caller_name, sim_swap', defaultValue: 'line_type_intelligence' },
+      ],
+      outputs: [{ name: 'phone_number', type: 'string' }, { name: 'country_code', type: 'string' }, { name: 'line_type_intelligence', type: 'object' }],
+    },
+  ],
+  buildIntegrationConfig: (_config, credentials) => ({
+    base_url: 'https://api.twilio.com',
+    auth_type: 'basic',
+    auth_config: {
+      username: credentials.account_sid,
+      password: credentials.auth_token,
+    },
+  }),
+}

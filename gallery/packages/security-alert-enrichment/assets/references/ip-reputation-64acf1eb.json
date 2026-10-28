@@ -1,0 +1,134 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "64acf1eb-ff89-4f44-9b27-7aac4e20c3d3",
+  "asset": {
+    "id": "64acf1eb-ff89-4f44-9b27-7aac4e20c3d3",
+    "integration_id": "a16f1bc9-18c8-4421-9761-8253c7c0b9f0",
+    "name": "IP reputation",
+    "description": "Reputation of an IP address: a 0-100 maliciousness score, categories and when it was last seen in threat feeds.",
+    "tags": [
+      "ip"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/ip/{{ip}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "ip",
+              "type": "string",
+              "example": "203.0.113.45"
+            },
+            {
+              "name": "reputation_score",
+              "type": "integer",
+              "example": 62
+            },
+            {
+              "name": "categories",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "example": "scanner"
+              }
+            },
+            {
+              "name": "geo",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "country",
+                  "type": "string",
+                  "example": "NL"
+                },
+                {
+                  "name": "asn",
+                  "type": "string",
+                  "example": "AS64500"
+                }
+              ]
+            },
+            {
+              "name": "first_seen",
+              "type": "string",
+              "example": "2026-08-02"
+            },
+            {
+              "name": "last_seen",
+              "type": "string",
+              "example": "2026-10-25"
+            },
+            {
+              "name": "reports",
+              "type": "integer",
+              "example": 41
+            }
+          ]
+        },
+        "sample": {
+          "ip": "203.0.113.45",
+          "reputation_score": 62,
+          "categories": [
+            "scanner",
+            "credential-stuffing"
+          ],
+          "geo": {
+            "country": "NL",
+            "asn": "AS64500"
+          },
+          "first_seen": "2026-08-02",
+          "last_seen": "2026-10-25",
+          "reports": 41
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "ba356aa1-f4ba-4694-923d-c4a3895c815b",
+        "name": "ip",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "IPv4 or IPv6 address",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "39162c31-4eea-4437-a271-27223f0cb1be",
+        "name": "reputation_score",
+        "path": "reputation_score",
+        "type": "number"
+      },
+      {
+        "id": "a8e46bb1-5220-4e2a-bf95-741b494c4976",
+        "name": "categories",
+        "path": "categories",
+        "type": "array"
+      },
+      {
+        "id": "0e8de1c4-7499-4e33-b3b2-992800ad8fc7",
+        "name": "country",
+        "path": "geo.country",
+        "type": "string"
+      },
+      {
+        "id": "5b650498-8ae6-42cf-9400-35cd1cea5b82",
+        "name": "last_seen",
+        "path": "last_seen",
+        "type": "string"
+      }
+    ]
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "id": "5a90e018-560f-4227-a7b9-27065511d3e3",
+  "slug": "leave-request",
+  "title": "Leave request",
+  "category": "hr-people",
+  "summary": "Employees request leave from a form; the balance, leave-type rules and an approval policy decide auto-approval, manager or HR review, then the leave is booked.",
+  "description": "Leave request handles annual, sick, parental, bereavement and unpaid leave from one form. The employee enters the leave type, dates, number of working days and an optional reason.\n\nThe workflow reads the current balance from your HR system, looks up the leave type in the Leave types table (paid, certificate, notice, automatic limit) and works out the balance after the request and whether enough notice was given. The Leave approval decision table then approves short requests automatically, or sends them to the manager, and brings HR in for parental leave, unpaid leave or requests beyond the balance.\n\nThe manager can approve, decline or ask for a change; changed requests go back to the employee and are re-checked against the policy. Approved leave is booked in the HR system, added to the team calendar and confirmed by email. Adapt the leave types, notice periods and approval rules to your policy.",
+  "trigger": "form",
+  "entry_workflow": "26503da5-3687-44c3-9402-204608bf1a0a",
+  "start": "Starts from a form: the employee fills in the leave request (Run dialog in the app, or your intranet posting it to the start API).",
+  "difficulty": "starter",
+  "setup_minutes": 10,
+  "tags": [
+    "leave",
+    "time off",
+    "approvals",
+    "decision table",
+    "hr"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: a themed start form with a grid and header, Approve / Decline / Ask for change buttons on the manager step, and an HR step with a Leave types lookup that shows whether the leave is paid and needs a certificate."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "HR system integration: set the base URL and API token. The references expect GET /leave-balances/{employee_id}?leave_type=…, POST /leave-bookings and (optional) POST /team-calendar/entries; adjust them to your HR system.",
+    "Assignees: pick the default approving manager, the HR partner and the employee contact for change requests. Runs can pass manager_id, hr_owner_id and employee_user_id.",
+    "Edit the Leave types rows (notice, automatic limit, certificates) and the Leave approval rules to your leave policy.",
+    "Email: configure EMAIL_PROVIDER on the instance so the approved and declined emails are delivered (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Leave requested",
+      "body": "The employee enters the leave type, start and end dates, working days and an optional reason."
+    },
+    {
+      "title": "Check balance and rules",
+      "body": "The HR system returns the current balance; the Leave types row gives the notice period, automatic limit and whether the balance is reduced."
+    },
+    {
+      "title": "Apply the policy",
+      "body": "The Leave approval decision table approves short requests automatically and decides when a manager and HR review."
+    },
+    {
+      "title": "Manager decides",
+      "body": "The manager approves, declines or asks for a change. Changed requests return to the employee and are checked again."
+    },
+    {
+      "title": "HR when needed",
+      "body": "For parental leave, unpaid leave or requests beyond the balance, HR confirms the pay arrangement."
+    },
+    {
+      "title": "Book and confirm",
+      "body": "The leave is booked in the HR system, added to the team calendar and the employee is emailed."
+    }
+  ],
+  "sample_input": {
+    "employee_id": "E-1001",
+    "leave_type": "annual",
+    "start_date": "2026-12-14",
+    "end_date": "2026-12-18",
+    "days": 5,
+    "reason": "Family trip before the holidays"
+  },
+  "expect": "waiting",
+  "icon": "calendar-days"
+}

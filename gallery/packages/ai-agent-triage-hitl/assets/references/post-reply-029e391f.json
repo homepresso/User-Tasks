@@ -1,0 +1,104 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "029e391f-463c-4eb8-b3c9-120c5d877231",
+  "asset": {
+    "id": "029e391f-463c-4eb8-b3c9-120c5d877231",
+    "integration_id": "307dbb48-f993-4741-b526-bb4870989220",
+    "name": "Post reply",
+    "description": "Post a public reply to the customer on the ticket.",
+    "tags": [
+      "tickets"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"body\":{{body}},\"public\":true,\"author\":\"{{author}}\"}",
+      "path_template": "/tickets/{{ticket_id}}/replies",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "reply_id",
+              "type": "string",
+              "example": "RPL-66120"
+            },
+            {
+              "name": "ticket_id",
+              "type": "string",
+              "example": "T-48213"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "sent"
+            },
+            {
+              "name": "sent_at",
+              "type": "string",
+              "example": "2026-10-26T09:41:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "reply_id": "RPL-66120",
+          "ticket_id": "T-48213",
+          "status": "sent",
+          "sent_at": "2026-10-26T09:41:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "3b31620a-77db-4203-8919-d44f85e121d0",
+        "name": "ticket_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "9e647eaf-a0c9-48e0-9673-fe2ebbb3909a",
+        "name": "body",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Reply text (JSON-encoded string)",
+        "default_value": ""
+      },
+      {
+        "id": "ff9fdda4-30f9-4c2d-b08b-5135ecaaa3da",
+        "name": "author",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "062ddf0c-b4cd-4f6e-9bc9-48e44dd7d40b",
+        "name": "reply_id",
+        "path": "reply_id",
+        "type": "string"
+      },
+      {
+        "id": "c0b38b93-3181-4451-abcc-3f4ed5ac082e",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      }
+    ]
+  }
+}

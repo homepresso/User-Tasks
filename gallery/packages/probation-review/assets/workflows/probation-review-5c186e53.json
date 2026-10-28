@@ -1,0 +1,422 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "5c186e53-8150-4ff3-aad4-2ba0a052add8",
+  "asset": {
+    "id": "5c186e53-8150-4ff3-aad4-2ba0a052add8",
+    "name": "Probation review",
+    "description": "Sub-workflow for one employee: the manager reviews the probation, the outcome table decides confirm / extend / end, the HR system is updated and HR is emailed.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Review requested",
+        "position": {
+          "x": 580,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 580,
+          "y": 220
+        },
+        "config": {
+          "title": "Probation review: {{employee_name}} · ends {{probation_end_date}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Before probation ends",
+        "position": {
+          "x": 580,
+          "y": 380
+        },
+        "config": {
+          "sla_label": "Probation review",
+          "mode": "exact",
+          "due_at": "{{probation_end_date}}",
+          "warning_amount": 5,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "manager",
+        "type": "user_task",
+        "label": "Review probation",
+        "position": {
+          "x": 580,
+          "y": 540
+        },
+        "config": {
+          "task_title": "Probation review for {{employee_name}} (ends {{probation_end_date}})",
+          "task_description": "<p><strong>{{employee_name}}</strong> joined as {{job_title}} in {{department}} on {{start_date}}. Their probation ends on <strong>{{probation_end_date}}</strong>.</p><p>Rate their performance, recommend an outcome and note development areas. HR acts on your recommendation.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Submit review"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "b3fbfc66-827d-4449-8cda-86d578a5b616",
+          "assignee_variable": "{{reviewer_id}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{probation_end_date}}",
+          "reminders": [
+            {
+              "offset_minutes": 4320
+            },
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "performance_rating",
+              "label": "Performance rating",
+              "type": "choice",
+              "options": [
+                "exceeds expectations",
+                "meets expectations",
+                "below expectations"
+              ],
+              "required": true
+            },
+            {
+              "key": "recommendation",
+              "label": "Recommendation",
+              "type": "choice",
+              "options": [
+                "confirm",
+                "extend",
+                "end"
+              ],
+              "required": true
+            },
+            {
+              "key": "development_notes",
+              "label": "Development notes",
+              "type": "text",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "performance_rating",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "recommendation",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "development_notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "submit_review",
+              "label": "Submit review",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Submit review"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Probation review: {{employee_name}}",
+            "align": "left",
+            "subtitle": "{{job_title}} · {{department}} · ends {{probation_end_date}}"
+          }
+        }
+      },
+      {
+        "id": "outcome",
+        "type": "decision_table",
+        "label": "Probation outcome",
+        "position": {
+          "x": 580,
+          "y": 720
+        },
+        "config": {
+          "decision_table_id": "09a8470d-869a-415e-b44e-f72facfe94d4",
+          "decision_table_name": "Probation outcome",
+          "input_mappings": {
+            "recommendation": "{{task_data.recommendation}}",
+            "performance_rating": "{{task_data.performance_rating}}"
+          }
+        }
+      },
+      {
+        "id": "new_end",
+        "type": "set_variable",
+        "label": "New end date",
+        "position": {
+          "x": 580,
+          "y": 880
+        },
+        "config": {
+          "name": "new_end_date",
+          "expression": "{{=IF(extension_weeks > 0, FORMAT_DATE(ADD_DAYS(probation_end_date, MULTIPLY(extension_weeks, 7)), \"YYYY-MM-DD\"), \"\")}}"
+        }
+      },
+      {
+        "id": "update",
+        "type": "call_reference",
+        "label": "Update probation",
+        "position": {
+          "x": 580,
+          "y": 1040
+        },
+        "config": {
+          "reference_id": "0e80ac6f-1f04-4245-a0a0-cdd1b5689c0e",
+          "reference_name": "Update probation",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "employee_id": "{{employee_id}}",
+            "status": "{{probation_status}}",
+            "outcome": "{{action}}",
+            "new_end_date": "{{new_end_date}}",
+            "rating": "{{task_data.performance_rating}}",
+            "notes": "{{task_data.development_notes}}"
+          }
+        }
+      },
+      {
+        "id": "notify_hr",
+        "type": "send_email",
+        "label": "Email HR",
+        "position": {
+          "x": 580,
+          "y": 1200
+        },
+        "config": {
+          "to": "{{hr_email}}",
+          "email_template_id": "cd78484d-a15b-498f-83d4-7cf6c95a6a46"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "passed",
+        "type": "condition",
+        "label": "Confirmed?",
+        "position": {
+          "x": 580,
+          "y": 1360
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Confirmed",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{action}}",
+                  "operator": "equals",
+                  "value": "confirm"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "notify_employee",
+        "type": "send_email",
+        "label": "Email employee",
+        "position": {
+          "x": 340,
+          "y": 1540
+        },
+        "config": {
+          "to": "{{employee_email}}",
+          "email_template_id": "351a3834-004b-45ec-a0f2-696e30ebd92c"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Reviewed",
+        "position": {
+          "x": 580,
+          "y": 1700
+        },
+        "config": {
+          "reason": "Probation for {{employee_name}}: {{probation_status}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-sla",
+        "source": "title",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-manager",
+        "source": "sla",
+        "target": "manager"
+      },
+      {
+        "id": "e-manager-outcome-submit-review",
+        "source": "manager",
+        "target": "outcome",
+        "label": "Submit review"
+      },
+      {
+        "id": "e-outcome-new_end",
+        "source": "outcome",
+        "target": "new_end"
+      },
+      {
+        "id": "e-new_end-update",
+        "source": "new_end",
+        "target": "update"
+      },
+      {
+        "id": "e-update-notify_hr",
+        "source": "update",
+        "target": "notify_hr"
+      },
+      {
+        "id": "e-notify_hr-passed",
+        "source": "notify_hr",
+        "target": "passed"
+      },
+      {
+        "id": "e-passed-notify_employee-confirmed",
+        "source": "passed",
+        "target": "notify_employee",
+        "label": "Confirmed"
+      },
+      {
+        "id": "e-passed-done-else",
+        "source": "passed",
+        "target": "done",
+        "label": "Else"
+      },
+      {
+        "id": "e-notify_employee-done",
+        "source": "notify_employee",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-employee_id",
+        "name": "employee_id",
+        "type": "string",
+        "description": "Employee id in the HR system",
+        "defaultValue": "",
+        "required": true,
+        "label": "Employee id"
+      },
+      {
+        "id": "v-employee_name",
+        "name": "employee_name",
+        "type": "string",
+        "description": "Employee name",
+        "defaultValue": "",
+        "required": true,
+        "label": "Employee"
+      },
+      {
+        "id": "v-employee_email",
+        "name": "employee_email",
+        "type": "string",
+        "description": "Employee work email",
+        "defaultValue": "",
+        "label": "Employee email",
+        "format": "email"
+      },
+      {
+        "id": "v-job_title",
+        "name": "job_title",
+        "type": "string",
+        "description": "Job title",
+        "defaultValue": "",
+        "label": "Job title"
+      },
+      {
+        "id": "v-department",
+        "name": "department",
+        "type": "string",
+        "description": "Department",
+        "defaultValue": "",
+        "label": "Department"
+      },
+      {
+        "id": "v-start_date",
+        "name": "start_date",
+        "type": "string",
+        "description": "Start date",
+        "defaultValue": "",
+        "label": "Start date",
+        "format": "date"
+      },
+      {
+        "id": "v-probation_end_date",
+        "name": "probation_end_date",
+        "type": "string",
+        "description": "Current probation end date",
+        "defaultValue": "",
+        "required": true,
+        "label": "Probation ends",
+        "format": "date"
+      },
+      {
+        "id": "v-manager_name",
+        "name": "manager_name",
+        "type": "string",
+        "description": "Line manager name",
+        "defaultValue": "",
+        "label": "Manager"
+      },
+      {
+        "id": "v-hr_email",
+        "name": "hr_email",
+        "type": "string",
+        "description": "People team mailbox for outcomes",
+        "defaultValue": "",
+        "label": "HR email",
+        "format": "email"
+      },
+      {
+        "id": "v-reviewer_id",
+        "name": "reviewer_id",
+        "type": "string",
+        "description": "Optional: user id of the reviewing manager (overrides the install-time default)",
+        "defaultValue": "",
+        "label": "Reviewer (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

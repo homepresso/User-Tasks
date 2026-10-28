@@ -1,0 +1,934 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "1a923e6b-f394-5a63-aef6-7ea9cf92f054",
+  "asset": {
+    "id": "1a923e6b-f394-5a63-aef6-7ea9cf92f054",
+    "name": "Site inspection",
+    "description": "One site's monthly inspection: a checklist task with Pass / Fail buttons; a failure is recorded, the site manager is emailed and a corrective action task follows.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Inspection scheduled",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "title": "Safety inspection {{site_name}} {{period}}"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Inspection reference",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "name": "inspection_ref",
+          "expression": "{{site_code}}-{{period}}"
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Schedule the inspection",
+        "position": {
+          "x": 400,
+          "y": 480
+        },
+        "config": {
+          "table_id": "8802ec0f-01cb-58f0-b007-8b89d1f629ef",
+          "table_name": "Inspections",
+          "operation": "insert",
+          "column_values": {
+            "inspection_ref": "{{inspection_ref}}",
+            "period": "{{period}}",
+            "site_code": "{{site_code}}",
+            "site_name": "{{site_name}}",
+            "status": "Scheduled"
+          }
+        }
+      },
+      {
+        "id": "check",
+        "type": "user_task",
+        "label": "Inspect the site",
+        "position": {
+          "x": 400,
+          "y": 620
+        },
+        "config": {
+          "task_title": "Safety inspection: {{site_name}} ({{period}})",
+          "task_description": "<p>Walk through <strong>{{site_name}}</strong> ({{site_type}}) with the site manager, {{site_manager}}, and tick every check that is met.</p><p>Choose <strong>Pass</strong> when everything is in order; choose <strong>Fail</strong> if any check is not met, describing what you found. A corrective action is raised for failed inspections.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Pass",
+            "Fail"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "fields": [
+            {
+              "key": "h0",
+              "label": "Fire safety",
+              "type": "heading"
+            },
+            {
+              "key": "fire_exits_clear",
+              "label": "Fire exits and escape routes clear",
+              "type": "boolean"
+            },
+            {
+              "key": "extinguishers_tagged",
+              "label": "Extinguishers in place and in date",
+              "type": "boolean"
+            },
+            {
+              "key": "alarm_tested",
+              "label": "Fire alarm tested this month",
+              "type": "boolean"
+            },
+            {
+              "key": "evac_plan_posted",
+              "label": "Evacuation plan posted",
+              "type": "boolean"
+            },
+            {
+              "key": "div1",
+              "label": "Divider",
+              "type": "divider"
+            },
+            {
+              "key": "h1",
+              "label": "Housekeeping and access",
+              "type": "heading"
+            },
+            {
+              "key": "walkways_clear",
+              "label": "Walkways and stairs clear, no trip hazards",
+              "type": "boolean"
+            },
+            {
+              "key": "spills_clear",
+              "label": "No spills or leaks",
+              "type": "boolean"
+            },
+            {
+              "key": "lighting_ok",
+              "label": "Lighting working, incl. emergency lights",
+              "type": "boolean"
+            },
+            {
+              "key": "storage_safe",
+              "label": "Racking and storage stable, heavy items low",
+              "type": "boolean"
+            },
+            {
+              "key": "div2",
+              "label": "Divider",
+              "type": "divider"
+            },
+            {
+              "key": "h2",
+              "label": "Equipment and electrical",
+              "type": "heading"
+            },
+            {
+              "key": "guards_fitted",
+              "label": "Machine guards fitted and working",
+              "type": "boolean"
+            },
+            {
+              "key": "electrical_tagged",
+              "label": "Electrical equipment tested and tagged",
+              "type": "boolean"
+            },
+            {
+              "key": "ladders_ok",
+              "label": "Ladders and steps in good condition",
+              "type": "boolean"
+            },
+            {
+              "key": "ppe_available",
+              "label": "Required PPE available and worn",
+              "type": "boolean"
+            },
+            {
+              "key": "div3",
+              "label": "Divider",
+              "type": "divider"
+            },
+            {
+              "key": "h3",
+              "label": "First aid and welfare",
+              "type": "heading"
+            },
+            {
+              "key": "first_aid_stocked",
+              "label": "First aid kit stocked and in date",
+              "type": "boolean"
+            },
+            {
+              "key": "first_aiders_listed",
+              "label": "First aiders listed and current",
+              "type": "boolean"
+            },
+            {
+              "key": "chemicals_labelled",
+              "label": "Chemicals labelled, safety data sheets available",
+              "type": "boolean"
+            },
+            {
+              "key": "noticeboard_current",
+              "label": "Health and safety noticeboard current",
+              "type": "boolean"
+            },
+            {
+              "key": "div_end",
+              "label": "Divider",
+              "type": "divider"
+            },
+            {
+              "key": "h_find",
+              "label": "Findings",
+              "type": "heading",
+              "help_text": "Untick any check that is not met and describe it below. Fail raises a corrective action."
+            },
+            {
+              "key": "findings",
+              "label": "Findings and hazards found",
+              "type": "textarea"
+            },
+            {
+              "key": "photos_url",
+              "label": "Link to photos",
+              "type": "url"
+            },
+            {
+              "key": "inspected_on",
+              "label": "Inspected on",
+              "type": "date",
+              "required": true,
+              "default": "{{=TODAY()}}"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "h0",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "fire_exits_clear",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "extinguishers_tagged",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "alarm_tested",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "evac_plan_posted",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "div1",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "h1",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "walkways_clear",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "spills_clear",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "lighting_ok",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "storage_safe",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "div2",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "h2",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "guards_fitted",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "electrical_tagged",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "ladders_ok",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "ppe_available",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "div3",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "h3",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "first_aid_stocked",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "first_aiders_listed",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "chemicals_labelled",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "noticeboard_current",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "div_end",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "h_find",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "findings",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "photos_url",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "inspected_on",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "pass",
+              "label": "Pass",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Pass"
+            },
+            {
+              "id": "fail",
+              "label": "Fail",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Fail"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Monthly safety inspection",
+            "align": "left",
+            "subtitle": "{{site_name}} · {{period}}"
+          },
+          "due_date_mode": "absolute",
+          "due_date": "{{due_date}}",
+          "reminders": [
+            {
+              "offset_minutes": 2880
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320,
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#CA8A04",
+                  "background": "#FFFFFF",
+                  "text": "#1C1917",
+                  "page": "#FEF9E7"
+                }
+              },
+              "radius": 10,
+              "density": "compact",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "pass_row",
+        "type": "update_data_table",
+        "label": "Record pass",
+        "position": {
+          "x": 160,
+          "y": 780
+        },
+        "config": {
+          "table_id": "8802ec0f-01cb-58f0-b007-8b89d1f629ef",
+          "table_name": "Inspections",
+          "operation": "update",
+          "match_column": "inspection_ref",
+          "match_value": "{{inspection_ref}}",
+          "column_values": {
+            "status": "Pass",
+            "inspected_on": "{{task_data.inspected_on}}",
+            "inspector_notes": "{{task_data.findings}}",
+            "checks_failed": "0",
+            "photos_url": "{{task_data.photos_url}}"
+          }
+        }
+      },
+      {
+        "id": "pass_site",
+        "type": "update_data_table",
+        "label": "Update the site",
+        "position": {
+          "x": 160,
+          "y": 920
+        },
+        "config": {
+          "table_id": "48c27394-9f97-5091-b748-ae73590b0f50",
+          "table_name": "Inspection sites",
+          "operation": "update",
+          "match_column": "site_code",
+          "match_value": "{{site_code}}",
+          "column_values": {
+            "last_inspected": "{{task_data.inspected_on}}",
+            "last_result": "Pass"
+          }
+        }
+      },
+      {
+        "id": "pass_end",
+        "type": "end_workflow",
+        "label": "Passed",
+        "position": {
+          "x": 160,
+          "y": 1060
+        },
+        "config": {
+          "reason": "{{site_name}} passed its {{period}} inspection"
+        }
+      },
+      {
+        "id": "count",
+        "type": "set_variable",
+        "label": "Count failed checks",
+        "position": {
+          "x": 640,
+          "y": 780
+        },
+        "config": {
+          "name": "failed_count",
+          "expression": "{{=SUM(IF(task_data.fire_exits_clear, 0, 1), IF(task_data.extinguishers_tagged, 0, 1), IF(task_data.alarm_tested, 0, 1), IF(task_data.evac_plan_posted, 0, 1), IF(task_data.walkways_clear, 0, 1), IF(task_data.spills_clear, 0, 1), IF(task_data.lighting_ok, 0, 1), IF(task_data.storage_safe, 0, 1), IF(task_data.guards_fitted, 0, 1), IF(task_data.electrical_tagged, 0, 1), IF(task_data.ladders_ok, 0, 1), IF(task_data.ppe_available, 0, 1), IF(task_data.first_aid_stocked, 0, 1), IF(task_data.first_aiders_listed, 0, 1), IF(task_data.chemicals_labelled, 0, 1), IF(task_data.noticeboard_current, 0, 1))}}"
+        }
+      },
+      {
+        "id": "due",
+        "type": "set_variable",
+        "label": "Action due date",
+        "position": {
+          "x": 640,
+          "y": 920
+        },
+        "config": {
+          "name": "action_due",
+          "expression": "{{=FORMAT_DATE(ADD_DAYS(TODAY(), 7), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "fail_row",
+        "type": "update_data_table",
+        "label": "Record fail",
+        "position": {
+          "x": 640,
+          "y": 1060
+        },
+        "config": {
+          "table_id": "8802ec0f-01cb-58f0-b007-8b89d1f629ef",
+          "table_name": "Inspections",
+          "operation": "update",
+          "match_column": "inspection_ref",
+          "match_value": "{{inspection_ref}}",
+          "column_values": {
+            "status": "Fail",
+            "inspected_on": "{{task_data.inspected_on}}",
+            "inspector_notes": "{{task_data.findings}}",
+            "checks_failed": "{{failed_count}}",
+            "photos_url": "{{task_data.photos_url}}",
+            "action_due": "{{action_due}}"
+          }
+        }
+      },
+      {
+        "id": "fail_site",
+        "type": "update_data_table",
+        "label": "Flag the site",
+        "position": {
+          "x": 640,
+          "y": 1200
+        },
+        "config": {
+          "table_id": "48c27394-9f97-5091-b748-ae73590b0f50",
+          "table_name": "Inspection sites",
+          "operation": "update",
+          "match_column": "site_code",
+          "match_value": "{{site_code}}",
+          "column_values": {
+            "last_inspected": "{{task_data.inspected_on}}",
+            "last_result": "Fail"
+          }
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email the site manager",
+        "position": {
+          "x": 640,
+          "y": 1340
+        },
+        "config": {
+          "to": "{{site_manager_email}}",
+          "email_template_id": "a0a130f1-b047-59cf-bd0d-478bcc1facaa"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "fix",
+        "type": "user_task",
+        "label": "Corrective action",
+        "position": {
+          "x": 640,
+          "y": 1480
+        },
+        "config": {
+          "task_title": "Corrective action: {{site_name}} ({{failed_count}} failed checks)",
+          "task_description": "<p>The {{period}} inspection of <strong>{{site_name}}</strong> failed {{failed_count}} check(s).</p><p>Findings: {{task_data.findings}}</p><p>Agree the fix with {{site_manager}}, make sure it is done by {{action_due}}, and record what was done.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Completed",
+            "Re-inspect"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "fields": [
+            {
+              "key": "action_taken",
+              "label": "What was done",
+              "type": "textarea",
+              "required": true
+            },
+            {
+              "key": "closed_on",
+              "label": "Completed on",
+              "type": "date",
+              "required": true,
+              "default": "{{=TODAY()}}"
+            },
+            {
+              "key": "evidence_url",
+              "label": "Evidence (photo or document link)",
+              "type": "url"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "action_taken",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "closed_on",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "evidence_url",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "done",
+              "label": "Action completed",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Completed"
+            },
+            {
+              "id": "again",
+              "label": "Inspect again",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Re-inspect"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Corrective action",
+            "align": "left",
+            "subtitle": "{{site_name}} · due {{action_due}}"
+          },
+          "due_date_mode": "absolute",
+          "due_date": "{{action_due}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 2880
+        }
+      },
+      {
+        "id": "fix_row",
+        "type": "update_data_table",
+        "label": "Record the action",
+        "position": {
+          "x": 520,
+          "y": 1640
+        },
+        "config": {
+          "table_id": "8802ec0f-01cb-58f0-b007-8b89d1f629ef",
+          "table_name": "Inspections",
+          "operation": "update",
+          "match_column": "inspection_ref",
+          "match_value": "{{inspection_ref}}",
+          "column_values": {
+            "status": "Action complete",
+            "corrective_action": "{{task_data.action_taken}}",
+            "action_closed_on": "{{task_data.closed_on}}"
+          }
+        }
+      },
+      {
+        "id": "fix_end",
+        "type": "end_workflow",
+        "label": "Action complete",
+        "position": {
+          "x": 520,
+          "y": 1780
+        },
+        "config": {
+          "reason": "Corrective action complete at {{site_name}}"
+        }
+      },
+      {
+        "id": "again",
+        "type": "goto_activity",
+        "label": "Inspect again",
+        "position": {
+          "x": 820,
+          "y": 1640
+        },
+        "config": {
+          "target_node_id": "check",
+          "target_node_label": "Inspect the site"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-ref",
+        "source": "title",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-row",
+        "source": "ref",
+        "target": "row"
+      },
+      {
+        "id": "e-row-check",
+        "source": "row",
+        "target": "check"
+      },
+      {
+        "id": "e-check-pass_row-pass",
+        "source": "check",
+        "target": "pass_row",
+        "label": "Pass"
+      },
+      {
+        "id": "e-pass_row-pass_site",
+        "source": "pass_row",
+        "target": "pass_site"
+      },
+      {
+        "id": "e-pass_site-pass_end",
+        "source": "pass_site",
+        "target": "pass_end"
+      },
+      {
+        "id": "e-check-count-fail",
+        "source": "check",
+        "target": "count",
+        "label": "Fail"
+      },
+      {
+        "id": "e-count-due",
+        "source": "count",
+        "target": "due"
+      },
+      {
+        "id": "e-due-fail_row",
+        "source": "due",
+        "target": "fail_row"
+      },
+      {
+        "id": "e-fail_row-fail_site",
+        "source": "fail_row",
+        "target": "fail_site"
+      },
+      {
+        "id": "e-fail_site-mail",
+        "source": "fail_site",
+        "target": "mail"
+      },
+      {
+        "id": "e-mail-fix",
+        "source": "mail",
+        "target": "fix"
+      },
+      {
+        "id": "e-fix-fix_row-completed",
+        "source": "fix",
+        "target": "fix_row",
+        "label": "Completed"
+      },
+      {
+        "id": "e-fix_row-fix_end",
+        "source": "fix_row",
+        "target": "fix_end"
+      },
+      {
+        "id": "e-fix-again-re-inspect",
+        "source": "fix",
+        "target": "again",
+        "label": "Re-inspect"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-site_code",
+        "name": "site_code",
+        "type": "string",
+        "description": "Site code from the Inspection sites table",
+        "defaultValue": "",
+        "required": true,
+        "label": "Site code"
+      },
+      {
+        "id": "v-site_name",
+        "name": "site_name",
+        "type": "string",
+        "description": "Site name",
+        "defaultValue": "",
+        "required": false,
+        "label": "Site"
+      },
+      {
+        "id": "v-site_type",
+        "name": "site_type",
+        "type": "string",
+        "description": "Kind of site",
+        "defaultValue": "",
+        "required": false,
+        "label": "Type"
+      },
+      {
+        "id": "v-site_manager",
+        "name": "site_manager",
+        "type": "string",
+        "description": "Site manager name",
+        "defaultValue": "",
+        "required": false,
+        "label": "Site manager"
+      },
+      {
+        "id": "v-site_manager_email",
+        "name": "site_manager_email",
+        "type": "string",
+        "description": "Emailed when the inspection fails",
+        "defaultValue": "",
+        "required": false,
+        "label": "Site manager email",
+        "format": "email"
+      },
+      {
+        "id": "v-period",
+        "name": "period",
+        "type": "string",
+        "description": "Inspection month, YYYY-MM",
+        "defaultValue": "",
+        "required": true,
+        "label": "Month"
+      },
+      {
+        "id": "v-due_date",
+        "name": "due_date",
+        "type": "string",
+        "description": "Inspect by (YYYY-MM-DD)",
+        "defaultValue": "",
+        "required": false,
+        "label": "Due",
+        "format": "date"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

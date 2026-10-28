@@ -1,0 +1,460 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "bbea5157-e255-4ac5-a442-4ca32bcb05db",
+  "asset": {
+    "id": "bbea5157-e255-4ac5-a442-4ca32bcb05db",
+    "name": "Monthly policy attestation",
+    "description": "On the first of each month: finds the policies due for attestation, lists active employees from the HR system and starts an Attest policy run for every employee the policies apply to.",
+    "trigger_type": "schedule",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "schedule",
+        "label": "1st of the month, 08:00",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {
+          "schedule_mode": "monthly",
+          "day_of_month": 1,
+          "time_of_day": "08:00",
+          "timezone": "UTC"
+        }
+      },
+      {
+        "id": "date",
+        "type": "set_variable",
+        "label": "Campaign date",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "name": "campaign_date",
+          "expression": "{{=FORMAT_DATE(COALESCE(as_of, TODAY()), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "cid",
+        "type": "set_variable",
+        "label": "Campaign reference",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "name": "campaign_id",
+          "expression": "ATT-{{=FORMAT_DATE(campaign_date, \"YYYY-MM\")}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "title": "Policy attestation {{campaign_id}}"
+        }
+      },
+      {
+        "id": "due",
+        "type": "update_data_table",
+        "label": "Policies due",
+        "position": {
+          "x": 340,
+          "y": 700
+        },
+        "config": {
+          "table_id": "a8d984b8-0cc7-4a96-bdbb-695ae6d6b40c",
+          "table_name": "Policies",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "active",
+              "operator": "eq",
+              "value": "true"
+            },
+            {
+              "column": "next_due",
+              "operator": "lte",
+              "value": "{{campaign_date}}"
+            }
+          ],
+          "sort_column": "policy_id",
+          "limit": 200,
+          "output_rows_var": "due_policies",
+          "output_count_var": "policy_count"
+        }
+      },
+      {
+        "id": "any",
+        "type": "condition",
+        "label": "Anything due?",
+        "position": {
+          "x": 340,
+          "y": 860
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Policies due",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{policy_count}}",
+                  "operator": "gt",
+                  "value": "0"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "names",
+        "type": "set_variable",
+        "label": "Policy names",
+        "position": {
+          "x": 340,
+          "y": 1040
+        },
+        "config": {
+          "name": "policy_names",
+          "expression": "{{=JOIN(\", \", PLUCK(due_policies, \"policy\"))}}"
+        }
+      },
+      {
+        "id": "employees",
+        "type": "call_reference",
+        "label": "List active employees",
+        "position": {
+          "x": 340,
+          "y": 1200
+        },
+        "config": {
+          "reference_id": "127fc508-5cb2-4946-a3c0-20242b998974",
+          "reference_name": "List active employees",
+          "reference_method": "GET",
+          "input_mappings": {
+            "status": "active"
+          },
+          "output_mappings": {
+            "employees": {
+              "enabled": true,
+              "variableName": "employees"
+            },
+            "total": {
+              "enabled": true,
+              "variableName": "employee_total"
+            }
+          }
+        }
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each employee",
+        "position": {
+          "x": 340,
+          "y": 1360
+        },
+        "config": {
+          "items": "{{employees}}",
+          "item_var": "employee"
+        }
+      },
+      {
+        "id": "applies",
+        "type": "collection_filter",
+        "label": "Policies for this employee",
+        "position": {
+          "x": 660,
+          "y": 1540
+        },
+        "config": {
+          "collection": "{{due_policies}}",
+          "field": "audience",
+          "operator": "in",
+          "value": "all,{{employee.department}}",
+          "output_var": "applicable_policies"
+        }
+      },
+      {
+        "id": "has",
+        "type": "condition",
+        "label": "Any apply?",
+        "position": {
+          "x": 660,
+          "y": 1700
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Applies",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{=COUNT(applicable_policies)}}",
+                  "operator": "gt",
+                  "value": "0"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "start",
+        "type": "call_sub_workflow",
+        "label": "Start Attest policy",
+        "position": {
+          "x": 660,
+          "y": 1880
+        },
+        "config": {
+          "sub_workflow_id": "3ccc8879-1afd-430a-8efa-7e1c28d18187",
+          "sub_workflow_name": "Attest policy",
+          "input_mappings": {
+            "employee": "{{employee}}",
+            "applicable_policies": "{{applicable_policies}}",
+            "campaign_id": "{{campaign_id}}",
+            "employee_user_id": "{{employee.workspace_user_id}}"
+          }
+        },
+        "executionMode": "async"
+      },
+      {
+        "id": "skip",
+        "type": "log",
+        "label": "Nothing for this employee",
+        "position": {
+          "x": 980,
+          "y": 1880
+        },
+        "config": {
+          "message": "{{employee.name}} ({{employee.department}}): no policies due",
+          "level": "info"
+        }
+      },
+      {
+        "id": "roll",
+        "type": "loop",
+        "label": "Each due policy",
+        "position": {
+          "x": 340,
+          "y": 2040
+        },
+        "config": {
+          "items": "{{due_policies}}",
+          "item_var": "policy"
+        }
+      },
+      {
+        "id": "next",
+        "type": "update_data_table",
+        "label": "Set next due date",
+        "position": {
+          "x": 660,
+          "y": 2220
+        },
+        "config": {
+          "table_id": "a8d984b8-0cc7-4a96-bdbb-695ae6d6b40c",
+          "table_name": "Policies",
+          "operation": "update",
+          "row_id": "{{policy.row_id}}",
+          "column_values": {
+            "next_due": "{{=FORMAT_DATE(ADD_DAYS(campaign_date, policy.frequency_days), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "log",
+        "type": "log",
+        "label": "Log campaign",
+        "position": {
+          "x": 340,
+          "y": 2380
+        },
+        "config": {
+          "message": "Campaign {{campaign_id}}: {{policy_count}} policies ({{policy_names}}) sent to {{employee_total}} employees",
+          "level": "info"
+        }
+      },
+      {
+        "id": "summary",
+        "type": "send_email",
+        "label": "Email compliance: summary",
+        "position": {
+          "x": 340,
+          "y": 2540
+        },
+        "config": {
+          "to": "{{compliance_email}}",
+          "email_template_id": "9be03c64-40b4-49c8-a167-6b3304a68d82"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Campaign sent",
+        "position": {
+          "x": 340,
+          "y": 2700
+        },
+        "config": {
+          "reason": "Campaign {{campaign_id}} sent to {{employee_total}} employees"
+        }
+      },
+      {
+        "id": "none",
+        "type": "end_workflow",
+        "label": "Nothing due",
+        "position": {
+          "x": 660,
+          "y": 1040
+        },
+        "config": {
+          "reason": "No policies due for attestation on {{campaign_date}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-date",
+        "source": "trigger",
+        "target": "date"
+      },
+      {
+        "id": "e-date-cid",
+        "source": "date",
+        "target": "cid"
+      },
+      {
+        "id": "e-cid-title",
+        "source": "cid",
+        "target": "title"
+      },
+      {
+        "id": "e-title-due",
+        "source": "title",
+        "target": "due"
+      },
+      {
+        "id": "e-due-any",
+        "source": "due",
+        "target": "any"
+      },
+      {
+        "id": "e-any-names-policies-due",
+        "source": "any",
+        "target": "names",
+        "label": "Policies due"
+      },
+      {
+        "id": "e-any-none-else",
+        "source": "any",
+        "target": "none",
+        "label": "Else"
+      },
+      {
+        "id": "e-names-employees",
+        "source": "names",
+        "target": "employees"
+      },
+      {
+        "id": "e-employees-each",
+        "source": "employees",
+        "target": "each"
+      },
+      {
+        "id": "e-each-applies-each-item",
+        "source": "each",
+        "target": "applies",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-applies-has",
+        "source": "applies",
+        "target": "has"
+      },
+      {
+        "id": "e-has-start-applies",
+        "source": "has",
+        "target": "start",
+        "label": "Applies"
+      },
+      {
+        "id": "e-has-skip-else",
+        "source": "has",
+        "target": "skip",
+        "label": "Else"
+      },
+      {
+        "id": "e-each-roll-done",
+        "source": "each",
+        "target": "roll",
+        "label": "Done"
+      },
+      {
+        "id": "e-roll-next-each-item",
+        "source": "roll",
+        "target": "next",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-roll-log-done",
+        "source": "roll",
+        "target": "log",
+        "label": "Done"
+      },
+      {
+        "id": "e-log-summary",
+        "source": "log",
+        "target": "summary"
+      },
+      {
+        "id": "e-summary-done",
+        "source": "summary",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-as_of",
+        "name": "as_of",
+        "type": "string",
+        "description": "Optional: run the campaign as if today were this date (YYYY-MM-DD). Empty = today.",
+        "defaultValue": "",
+        "label": "As of date",
+        "format": "date"
+      },
+      {
+        "id": "v-compliance_email",
+        "name": "compliance_email",
+        "type": "string",
+        "description": "Who receives the campaign summary",
+        "defaultValue": "compliance@example.com",
+        "label": "Compliance email",
+        "format": "email"
+      },
+      {
+        "id": "v-compliance_officer_id",
+        "name": "compliance_officer_id",
+        "type": "string",
+        "description": "Optional: user id of the compliance officer for questions (otherwise the one chosen on install)",
+        "defaultValue": ""
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

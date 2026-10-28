@@ -1,0 +1,82 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "48c27394-9f97-5091-b748-ae73590b0f50",
+  "asset": {
+    "id": "48c27394-9f97-5091-b748-ae73590b0f50",
+    "name": "Inspection sites",
+    "description": "Sites inspected every month. Untick Inspect monthly to skip a site; the site manager is emailed when an inspection fails.",
+    "columns": [
+      {
+        "id": "b8a6e792-8083-5042-8322-57e9646eb89c",
+        "required": true,
+        "key": "site_code",
+        "name": "Site code",
+        "type": "text"
+      },
+      {
+        "id": "b61d01fc-9759-5746-969b-090979f399e3",
+        "required": true,
+        "key": "name",
+        "name": "Site",
+        "type": "text"
+      },
+      {
+        "id": "cd2729b5-0ed0-503e-b73f-77c8f63e19f5",
+        "required": false,
+        "key": "address",
+        "name": "Address",
+        "type": "text"
+      },
+      {
+        "id": "ac4041d3-92f9-54e8-bb46-d62fc1e330cf",
+        "required": false,
+        "key": "site_type",
+        "name": "Type",
+        "type": "select",
+        "options": [
+          "Office",
+          "Warehouse",
+          "Workshop",
+          "Retail",
+          "Laboratory"
+        ]
+      },
+      {
+        "id": "7ad52fd3-3e92-5a3f-8659-42662fed0644",
+        "required": false,
+        "key": "site_manager",
+        "name": "Site manager",
+        "type": "text"
+      },
+      {
+        "id": "9a6de969-715e-5eb9-a6c5-7e5538d1c020",
+        "required": false,
+        "key": "site_manager_email",
+        "name": "Site manager email",
+        "type": "email"
+      },
+      {
+        "id": "d488c0be-ab0d-522e-82ad-a5344fd2b798",
+        "required": false,
+        "key": "inspect_monthly",
+        "name": "Inspect monthly",
+        "type": "boolean"
+      },
+      {
+        "id": "3d430af7-3efd-53a1-a35f-5f8d48e65655",
+        "required": false,
+        "key": "last_inspected",
+        "name": "Last inspected",
+        "type": "date"
+      },
+      {
+        "id": "5ac468f3-3970-558f-96ad-79133ac36165",
+        "required": false,
+        "key": "last_result",
+        "name": "Last result",
+        "type": "text"
+      }
+    ]
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "0e80ac6f-1f04-4245-a0a0-cdd1b5689c0e",
+  "asset": {
+    "id": "0e80ac6f-1f04-4245-a0a0-cdd1b5689c0e",
+    "integration_id": "f9984e61-7f57-4954-8daf-66c705f8156d",
+    "name": "Update probation",
+    "description": "Record the probation outcome: passed, extended (with the new end date) or ended.",
+    "tags": [
+      "probation"
+    ],
+    "request_config": {
+      "method": "PATCH",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"status\":\"{{status}}\",\"outcome\":\"{{outcome}}\",\"new_end_date\":\"{{new_end_date}}\",\"rating\":\"{{rating}}\",\"notes\":\"{{notes}}\"}",
+      "path_template": "/employees/{{employee_id}}/probation",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "employee_id",
+              "type": "string",
+              "example": "E-1150"
+            },
+            {
+              "name": "probation",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "status",
+                  "type": "string",
+                  "example": "passed"
+                },
+                {
+                  "name": "end_date",
+                  "type": "string",
+                  "example": "2026-11-13"
+                },
+                {
+                  "name": "reviewed_at",
+                  "type": "string",
+                  "example": "2026-10-28T09:00:00Z"
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "employee_id": "E-1150",
+          "probation": {
+            "status": "passed",
+            "end_date": "2026-11-13",
+            "reviewed_at": "2026-10-28T09:00:00Z"
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "891c16c4-209a-4b58-a373-639580f706b8",
+        "name": "employee_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "7e5b30ec-cbe7-434d-a5fb-a95bd452bf68",
+        "name": "status",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "a373fee6-4c5f-45ab-ba19-f21dacb85230",
+        "name": "outcome",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "a0984058-d56e-4897-bf52-3df481169161",
+        "name": "new_end_date",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "3fce49a0-9610-49ac-b6bb-b723dd67fbb4",
+        "name": "rating",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "b324f554-10f8-40c4-9495-a4c9ce838583",
+        "name": "notes",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "33594df0-1a48-4696-99fd-90fc0e874aa8",
+        "name": "status",
+        "path": "probation.status",
+        "type": "string"
+      },
+      {
+        "id": "a1fb2541-f9f0-4690-9e0b-bcb4e16392f9",
+        "name": "end_date",
+        "path": "probation.end_date",
+        "type": "string"
+      }
+    ]
+  }
+}

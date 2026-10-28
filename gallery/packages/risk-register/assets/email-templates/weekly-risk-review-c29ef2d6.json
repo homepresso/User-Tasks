@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "c29ef2d6-08ee-5791-9ad0-bd95213ba0bc",
+  "asset": {
+    "id": "c29ef2d6-08ee-5791-9ad0-bd95213ba0bc",
+    "name": "Weekly risk review",
+    "description": "Sent to the risk committee by the weekly review with the risks that came due.",
+    "subject": "Risk review: {{due_count}} risks due this week",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1F1A1A\">\n  <h2 style=\"margin:0 0 12px;color:#B91C1C\">Weekly risk review</h2>\n  <p><strong>{{due_count}}</strong> open risks were due for review. Each owner has a review task.</p>\n  <p>{{due_list}}</p>\n  <p style=\"color:#6B7280;font-size:13px\">Sent by the weekly risk review workflow</p>\n</div>",
+    "text_body": "Weekly risk review: {{due_count}} risks due. {{due_list}}",
+    "is_default": false
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "de3ca3db-1860-41b7-bf79-cabf2d1bf559",
+  "asset": {
+    "id": "de3ca3db-1860-41b7-bf79-cabf2d1bf559",
+    "integration_id": "1f800028-d7ac-4299-8afa-dbeea2d4cdca",
+    "name": "Disable user",
+    "description": "Disable a leaver: block sign-in, revoke sessions and remove group memberships.",
+    "tags": [
+      "users"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"reason\":\"{{reason}}\",\"effective_date\":\"{{effective_date}}\",\"revoke_sessions\":true,\"remove_groups\":true}",
+      "path_template": "/users/{{user_id}}/disable",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "u-91d0f4"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "disabled"
+            },
+            {
+              "name": "sessions_revoked",
+              "type": "integer",
+              "example": 3
+            },
+            {
+              "name": "groups_removed",
+              "type": "integer",
+              "example": 6
+            },
+            {
+              "name": "disabled_at",
+              "type": "string",
+              "example": "2026-10-26T02:00:12Z"
+            }
+          ]
+        },
+        "sample": {
+          "id": "u-91d0f4",
+          "status": "disabled",
+          "sessions_revoked": 3,
+          "groups_removed": 6,
+          "disabled_at": "2026-10-26T02:00:12Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "f1661cce-7f52-4c9e-b72d-08dbf9f01e8a",
+        "name": "user_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "63af038a-6327-455b-93f1-9b6791efd96f",
+        "name": "reason",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "2c90db09-0786-44ec-90e3-e2152d1f7d2f",
+        "name": "effective_date",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "d4de329d-6ba3-40a8-97ff-848e21001dc6",
+        "name": "id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "feca2a27-1e30-42cb-b38a-a49c8dc559b8",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      }
+    ]
+  }
+}

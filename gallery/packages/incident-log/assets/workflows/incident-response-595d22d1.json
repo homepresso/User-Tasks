@@ -1,0 +1,718 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "595d22d1-3b8b-53cc-879e-fbb6c9b97f84",
+  "asset": {
+    "id": "595d22d1-3b8b-53cc-879e-fbb6c9b97f84",
+    "name": "Incident response",
+    "description": "An incident report from the form: rated by the severity decision table, logged in the register under a 7-year retention policy, the site manager emailed, and investigated against an SLA when needed.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Incident reported",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "form_id": "35fe982c-2df3-5325-bfd9-d8eb8ef711ee",
+          "form_name": "Report a workplace incident"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Incident reference",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "name": "incident_ref",
+          "expression": "INC-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "site",
+        "type": "update_data_table",
+        "label": "Read the site",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "table_id": "6e0dcd36-3cbf-5554-84c6-106e05a4fb99",
+          "table_name": "Incident sites",
+          "operation": "get",
+          "match_column": "site_code",
+          "match_value": "{{form.site}}",
+          "output_row_var": "site_row"
+        }
+      },
+      {
+        "id": "sname",
+        "type": "set_variable",
+        "label": "Site name",
+        "position": {
+          "x": 400,
+          "y": 480
+        },
+        "config": {
+          "name": "site_name",
+          "expression": "{{site_row.name}}"
+        }
+      },
+      {
+        "id": "smgr",
+        "type": "set_variable",
+        "label": "Site manager",
+        "position": {
+          "x": 400,
+          "y": 620
+        },
+        "config": {
+          "name": "site_manager",
+          "expression": "{{site_row.site_manager}}"
+        }
+      },
+      {
+        "id": "rate",
+        "type": "decision_table",
+        "label": "Rate the incident",
+        "position": {
+          "x": 400,
+          "y": 760
+        },
+        "config": {
+          "decision_table_id": "d569c815-a21d-5360-b730-fc2a34bd946b",
+          "decision_table_name": "Incident severity",
+          "input_mappings": {
+            "injury_level": "{{form.injury_level}}",
+            "incident_type": "{{form.incident_type}}"
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 900
+        },
+        "config": {
+          "title": "[{{severity}}] {{form.incident_type}} at {{site_name}} ({{incident_ref}})"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Response SLA",
+        "position": {
+          "x": 400,
+          "y": 1040
+        },
+        "config": {
+          "sla_label": "Incident response",
+          "mode": "relative",
+          "amount": "{{sla_hours}}",
+          "unit": "hours",
+          "warning_amount": "{{=ROUND(sla_hours * 0.75, 0)}}",
+          "warning_unit": "hours"
+        }
+      },
+      {
+        "id": "due",
+        "type": "set_variable",
+        "label": "Respond by",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "name": "respond_by",
+          "expression": "{{=ADD_HOURS(NOW(), sla_hours)}}"
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Add to the register",
+        "position": {
+          "x": 400,
+          "y": 1320
+        },
+        "config": {
+          "table_id": "87911136-89dc-51e8-b9d8-b7af1780b37c",
+          "table_name": "Incidents",
+          "operation": "insert",
+          "apply_retention_policy": true,
+          "retention_policy_id": "b8085040-da62-5024-945f-becf2e47c72c",
+          "column_values": {
+            "incident_ref": "{{incident_ref}}",
+            "reported_on": "{{=TODAY()}}",
+            "occurred_at": "{{form.occurred_at}}",
+            "site_code": "{{form.site}}",
+            "site_name": "{{site_name}}",
+            "location_detail": "{{form.location_detail}}",
+            "incident_type": "{{form.incident_type}}",
+            "injury_level": "{{form.injury_level}}",
+            "severity": "{{severity}}",
+            "sla_hours": "{{sla_hours}}",
+            "investigation_required": "{{investigation_required}}",
+            "notifiable": "{{notifiable}}",
+            "reporter_name": "{{form.reporter_name}}",
+            "reporter_email": "{{form.reporter_email}}",
+            "description": "{{form.description}}",
+            "immediate_action": "{{form.immediate_action}}",
+            "status": "Open"
+          }
+        }
+      },
+      {
+        "id": "tell",
+        "type": "send_email",
+        "label": "Email the site manager",
+        "position": {
+          "x": 400,
+          "y": 1460
+        },
+        "config": {
+          "to": "{{site_row.site_manager_email}}",
+          "email_template_id": "b0d2deb8-6737-563e-b289-3aca4afa074a"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "need",
+        "type": "condition",
+        "label": "Investigation needed?",
+        "position": {
+          "x": 400,
+          "y": 1600
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Investigate",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{investigation_required}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "inv_status",
+        "type": "update_data_table",
+        "label": "Mark investigating",
+        "position": {
+          "x": 200,
+          "y": 1740
+        },
+        "config": {
+          "table_id": "87911136-89dc-51e8-b9d8-b7af1780b37c",
+          "table_name": "Incidents",
+          "operation": "update",
+          "match_column": "incident_ref",
+          "match_value": "{{incident_ref}}",
+          "column_values": {
+            "status": "Investigating"
+          }
+        }
+      },
+      {
+        "id": "investigate",
+        "type": "user_task",
+        "label": "Investigate the incident",
+        "position": {
+          "x": 200,
+          "y": 1880
+        },
+        "config": {
+          "task_title": "Investigate {{incident_ref}}: {{form.incident_type}} at {{site_name}} [{{severity}}]",
+          "task_description": "<p><strong>{{form.incident_type}}</strong> ({{form.injury_level}} injury) at <strong>{{site_name}}</strong>, {{form.location_detail}}, on {{form.occurred_at}}. Reported by {{form.reporter_name}}; people involved: {{form.people_involved}}; witnesses: {{form.witnesses}}.</p><p>{{form.description}}</p><p>Immediate action: {{form.immediate_action}}</p><p>Severity <strong>{{severity}}</strong>, respond within {{sla_hours}} hours.{{=IF(notifiable, \" This may be notifiable to the regulator: check and notify without delay.\", \"\")}}</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Close",
+            "Escalate"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "fields": [
+            {
+              "key": "h",
+              "label": "Findings",
+              "type": "heading"
+            },
+            {
+              "key": "root_cause",
+              "label": "Root cause",
+              "type": "textarea",
+              "required": true
+            },
+            {
+              "key": "contributing",
+              "label": "Contributing factors",
+              "type": "multi_choice",
+              "options": [
+                "Procedure",
+                "Training",
+                "Equipment",
+                "Environment",
+                "Supervision",
+                "Fatigue",
+                "Other"
+              ]
+            },
+            {
+              "key": "corrective_actions",
+              "label": "Corrective actions",
+              "type": "textarea",
+              "required": true
+            },
+            {
+              "key": "action_owner",
+              "label": "Action owner",
+              "type": "text"
+            },
+            {
+              "key": "action_due",
+              "label": "Actions due",
+              "type": "date"
+            },
+            {
+              "key": "regulator_notified",
+              "label": "Regulator notified (if required)",
+              "type": "boolean"
+            },
+            {
+              "key": "escalation_reason",
+              "label": "Why escalate? (for Escalate)",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "h",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "root_cause",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "contributing",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "corrective_actions",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "action_owner",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "action_due",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "regulator_notified",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "escalation_reason",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "close",
+              "label": "Close investigation",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Close"
+            },
+            {
+              "id": "escalate",
+              "label": "Escalate",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Escalate"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Incident investigation",
+            "align": "left",
+            "subtitle": "{{incident_ref}} · {{severity}} · {{site_name}}"
+          },
+          "due_date_mode": "absolute",
+          "due_date": "{{respond_by}}",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 1440,
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#C2410C",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 8,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "close",
+        "type": "update_data_table",
+        "label": "Close the incident",
+        "position": {
+          "x": 40,
+          "y": 2040
+        },
+        "config": {
+          "table_id": "87911136-89dc-51e8-b9d8-b7af1780b37c",
+          "table_name": "Incidents",
+          "operation": "update",
+          "match_column": "incident_ref",
+          "match_value": "{{incident_ref}}",
+          "column_values": {
+            "status": "Closed",
+            "root_cause": "{{task_data.root_cause}}",
+            "corrective_actions": "{{task_data.corrective_actions}}",
+            "closed_on": "{{=TODAY()}}"
+          }
+        }
+      },
+      {
+        "id": "end_closed",
+        "type": "end_workflow",
+        "label": "Closed",
+        "position": {
+          "x": 40,
+          "y": 2200
+        },
+        "config": {
+          "reason": "{{incident_ref}} investigated and closed"
+        }
+      },
+      {
+        "id": "esc",
+        "type": "update_data_table",
+        "label": "Mark escalated",
+        "position": {
+          "x": 360,
+          "y": 2040
+        },
+        "config": {
+          "table_id": "87911136-89dc-51e8-b9d8-b7af1780b37c",
+          "table_name": "Incidents",
+          "operation": "update",
+          "match_column": "incident_ref",
+          "match_value": "{{incident_ref}}",
+          "column_values": {
+            "status": "Escalated",
+            "root_cause": "{{task_data.root_cause}}",
+            "corrective_actions": "{{task_data.corrective_actions}}"
+          }
+        }
+      },
+      {
+        "id": "esc_mail",
+        "type": "send_email",
+        "label": "Tell the site manager",
+        "position": {
+          "x": 360,
+          "y": 2200
+        },
+        "config": {
+          "to": "{{site_row.site_manager_email}}",
+          "email_template_id": "006a4713-f6f3-5be7-891c-a996aac1aac5"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "senior",
+        "type": "user_task",
+        "label": "Senior review",
+        "position": {
+          "x": 360,
+          "y": 2360
+        },
+        "config": {
+          "task_title": "Senior review of escalated incident {{incident_ref}}",
+          "task_description": "<p>The investigation of the {{form.incident_type}} at {{site_name}} was escalated: {{task_data.escalation_reason}}</p><p>Root cause: {{task_data.root_cause}}</p><p>Proposed actions: {{task_data.corrective_actions}}</p>",
+          "task_priority": "urgent",
+          "outcomes": [
+            "Close"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "fields": [
+            {
+              "key": "decision",
+              "label": "Decision and further actions",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "decision",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "close",
+              "label": "Close incident",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Close"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Escalated incident",
+            "align": "left",
+            "subtitle": "{{incident_ref}} · {{site_name}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 1440
+        }
+      },
+      {
+        "id": "close2",
+        "type": "update_data_table",
+        "label": "Close after review",
+        "position": {
+          "x": 360,
+          "y": 2520
+        },
+        "config": {
+          "table_id": "87911136-89dc-51e8-b9d8-b7af1780b37c",
+          "table_name": "Incidents",
+          "operation": "update",
+          "match_column": "incident_ref",
+          "match_value": "{{incident_ref}}",
+          "column_values": {
+            "status": "Closed",
+            "corrective_actions": "{{task_data.decision}}",
+            "closed_on": "{{=TODAY()}}"
+          }
+        }
+      },
+      {
+        "id": "end_esc",
+        "type": "end_workflow",
+        "label": "Closed after review",
+        "position": {
+          "x": 360,
+          "y": 2680
+        },
+        "config": {
+          "reason": "{{incident_ref}} closed after senior review"
+        }
+      },
+      {
+        "id": "logged",
+        "type": "end_workflow",
+        "label": "Logged",
+        "position": {
+          "x": 720,
+          "y": 1740
+        },
+        "config": {
+          "reason": "{{incident_ref}} logged ({{severity}}); no formal investigation needed"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-site",
+        "source": "ref",
+        "target": "site"
+      },
+      {
+        "id": "e-site-sname",
+        "source": "site",
+        "target": "sname"
+      },
+      {
+        "id": "e-sname-smgr",
+        "source": "sname",
+        "target": "smgr"
+      },
+      {
+        "id": "e-smgr-rate",
+        "source": "smgr",
+        "target": "rate"
+      },
+      {
+        "id": "e-rate-title",
+        "source": "rate",
+        "target": "title"
+      },
+      {
+        "id": "e-title-sla",
+        "source": "title",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-due",
+        "source": "sla",
+        "target": "due"
+      },
+      {
+        "id": "e-due-log",
+        "source": "due",
+        "target": "log"
+      },
+      {
+        "id": "e-log-tell",
+        "source": "log",
+        "target": "tell"
+      },
+      {
+        "id": "e-tell-need",
+        "source": "tell",
+        "target": "need"
+      },
+      {
+        "id": "e-need-inv_status-investigate",
+        "source": "need",
+        "target": "inv_status",
+        "label": "Investigate"
+      },
+      {
+        "id": "e-inv_status-investigate",
+        "source": "inv_status",
+        "target": "investigate"
+      },
+      {
+        "id": "e-investigate-close-close",
+        "source": "investigate",
+        "target": "close",
+        "label": "Close"
+      },
+      {
+        "id": "e-close-end_closed",
+        "source": "close",
+        "target": "end_closed"
+      },
+      {
+        "id": "e-investigate-esc-escalate",
+        "source": "investigate",
+        "target": "esc",
+        "label": "Escalate"
+      },
+      {
+        "id": "e-esc-esc_mail",
+        "source": "esc",
+        "target": "esc_mail"
+      },
+      {
+        "id": "e-esc_mail-senior",
+        "source": "esc_mail",
+        "target": "senior"
+      },
+      {
+        "id": "e-senior-close2-close",
+        "source": "senior",
+        "target": "close2",
+        "label": "Close"
+      },
+      {
+        "id": "e-close2-end_esc",
+        "source": "close2",
+        "target": "end_esc"
+      },
+      {
+        "id": "e-need-logged-else",
+        "source": "need",
+        "target": "logged",
+        "label": "Else"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

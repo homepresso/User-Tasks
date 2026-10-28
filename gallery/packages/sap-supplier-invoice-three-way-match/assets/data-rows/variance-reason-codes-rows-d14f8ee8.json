@@ -1,0 +1,56 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "d14f8ee8-b8f1-5481-8ba8-0e55adf6617d",
+  "asset": {
+    "id": "d14f8ee8-b8f1-5481-8ba8-0e55adf6617d",
+    "name": "Variance reason codes rows",
+    "rows": [
+      {
+        "id": "eb98f171-cf92-556c-9bc4-5af2be2abb04",
+        "data": {
+          "code": "PRC-AGREED",
+          "description": "Price increase agreed with the buyer (PO not yet updated)",
+          "payment_block": "",
+          "typical_action": "Approve variance"
+        }
+      },
+      {
+        "id": "9dd24147-234f-5cd3-a8f6-8e97d8944419",
+        "data": {
+          "code": "QTY-GR-LATE",
+          "description": "Goods delivered, goods receipt not yet posted",
+          "payment_block": "R",
+          "typical_action": "Hold"
+        }
+      },
+      {
+        "id": "23a264b8-1503-58c4-95e4-66f3318302bf",
+        "data": {
+          "code": "QTY-SHORT",
+          "description": "Supplier invoiced more than was delivered",
+          "payment_block": "R",
+          "typical_action": "Reject"
+        }
+      },
+      {
+        "id": "d38301d6-2169-5141-8d9d-43df041a6961",
+        "data": {
+          "code": "PRC-WRONG",
+          "description": "Invoice price does not match the contract",
+          "payment_block": "R",
+          "typical_action": "Reject"
+        }
+      },
+      {
+        "id": "9f604745-fe09-5229-8384-6e4b4b3965b3",
+        "data": {
+          "code": "FREIGHT",
+          "description": "Freight or surcharge included in the unit price",
+          "payment_block": "",
+          "typical_action": "Approve variance"
+        }
+      }
+    ]
+  }
+}

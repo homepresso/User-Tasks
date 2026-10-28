@@ -1,0 +1,466 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "8739d451-5c62-485e-88b0-1df1f0e5a313",
+  "asset": {
+    "id": "8739d451-5c62-485e-88b0-1df1f0e5a313",
+    "name": "Close task",
+    "description": "One month-end close task: logs it as open, assigns it to the controller with a deadline, requires evidence where the checklist says so, then records the result in the Close log and on the checklist row.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Close task issued",
+        "position": {
+          "x": 660,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 660,
+          "y": 220
+        },
+        "config": {
+          "title": "Close {{period}} · {{task_code}} {{task_name}}"
+        }
+      },
+      {
+        "id": "key",
+        "type": "set_variable",
+        "label": "Log key",
+        "position": {
+          "x": 660,
+          "y": 380
+        },
+        "config": {
+          "name": "log_key",
+          "expression": "{{entity}}-{{period}}-{{task_code}}"
+        }
+      },
+      {
+        "id": "due",
+        "type": "set_variable",
+        "label": "Due date",
+        "position": {
+          "x": 660,
+          "y": 540
+        },
+        "config": {
+          "name": "due_date",
+          "expression": "{{=FORMAT_DATE(ADD_DAYS(TODAY(), ADD(due_business_day, 1)), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "log_open",
+        "type": "update_data_table",
+        "label": "Log as open",
+        "position": {
+          "x": 660,
+          "y": 700
+        },
+        "config": {
+          "table_id": "e677ea33-373c-4f86-a6e0-4bc7443cc49e",
+          "table_name": "Close log",
+          "operation": "insert",
+          "column_values": {
+            "log_key": "{{log_key}}",
+            "period": "{{period}}",
+            "entity": "{{entity}}",
+            "task_code": "{{task_code}}",
+            "task": "{{task_name}}",
+            "area": "{{area}}",
+            "status": "open",
+            "due_date": "{{due_date}}",
+            "close_id": "{{close_id}}"
+          },
+          "output_row_id_var": "log_row_id"
+        }
+      },
+      {
+        "id": "work",
+        "type": "user_task",
+        "label": "Complete close task",
+        "position": {
+          "x": 660,
+          "y": 860
+        },
+        "config": {
+          "task_title": "{{period}} close · {{task_code}}: {{task_name}}",
+          "task_description": "<p><strong>{{task_name}}</strong> ({{area}}) for <strong>{{entity}} {{period}}</strong>, owned by the {{owner_role}}, in {{system}}.</p><p>Due on business day {{due_business_day}} ({{due_date}}). Evidence required: {{evidence_required}}.</p><p>Tick Done and paste the link to the reconciliation, journal or workpaper.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Done",
+            "Blocked",
+            "Not applicable"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "0ab695bb-385a-4847-8911-645a411f4a78",
+          "assignee_variable": "{{controller_id}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{due_date}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 10080,
+          "fields": [
+            {
+              "key": "done",
+              "label": "Done",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "evidence_link",
+              "label": "Evidence link",
+              "type": "text"
+            },
+            {
+              "key": "notes",
+              "label": "Notes (adjustments posted, open items)",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      {
+        "id": "evidence",
+        "type": "condition",
+        "label": "Evidence missing?",
+        "position": {
+          "x": 660,
+          "y": 1040
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Missing",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{evidence_required}}",
+                  "operator": "equals",
+                  "value": "true"
+                },
+                {
+                  "field": "{{task_data.evidence_link}}",
+                  "operator": "is_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "retry",
+        "type": "goto_activity",
+        "label": "Ask for evidence",
+        "position": {
+          "x": 340,
+          "y": 1220
+        },
+        "config": {
+          "target_node_id": "work",
+          "target_node_label": "Complete close task"
+        }
+      },
+      {
+        "id": "log_done",
+        "type": "update_data_table",
+        "label": "Log as done",
+        "position": {
+          "x": 660,
+          "y": 1220
+        },
+        "config": {
+          "table_id": "e677ea33-373c-4f86-a6e0-4bc7443cc49e",
+          "table_name": "Close log",
+          "operation": "update",
+          "match_column": "log_key",
+          "match_value": "{{log_key}}",
+          "column_values": {
+            "status": "done",
+            "evidence_link": "{{task_data.evidence_link}}",
+            "notes": "{{task_data.notes}}",
+            "completed_at": "{{=NOW()}}"
+          }
+        }
+      },
+      {
+        "id": "row_done",
+        "type": "update_data_table",
+        "label": "Update checklist",
+        "position": {
+          "x": 660,
+          "y": 1380
+        },
+        "config": {
+          "table_id": "f9136632-14a2-47b8-a18d-0bd8310d35d5",
+          "table_name": "Close checklist",
+          "operation": "update",
+          "match_column": "task_code",
+          "match_value": "{{task_code}}",
+          "column_values": {
+            "last_period": "{{period}}",
+            "last_status": "done",
+            "last_completed_at": "{{=NOW()}}"
+          }
+        }
+      },
+      {
+        "id": "end_done",
+        "type": "end_workflow",
+        "label": "Task signed off",
+        "position": {
+          "x": 660,
+          "y": 1540
+        },
+        "config": {
+          "reason": "{{task_code}} done for {{period}}"
+        }
+      },
+      {
+        "id": "log_other",
+        "type": "update_data_table",
+        "label": "Log blocked / n.a.",
+        "position": {
+          "x": 980,
+          "y": 1040
+        },
+        "config": {
+          "table_id": "e677ea33-373c-4f86-a6e0-4bc7443cc49e",
+          "table_name": "Close log",
+          "operation": "update",
+          "match_column": "log_key",
+          "match_value": "{{log_key}}",
+          "column_values": {
+            "status": "{{=LOWER(outcome)}}",
+            "notes": "{{task_data.notes}}"
+          }
+        }
+      },
+      {
+        "id": "row_other",
+        "type": "update_data_table",
+        "label": "Update checklist status",
+        "position": {
+          "x": 980,
+          "y": 1220
+        },
+        "config": {
+          "table_id": "f9136632-14a2-47b8-a18d-0bd8310d35d5",
+          "table_name": "Close checklist",
+          "operation": "update",
+          "match_column": "task_code",
+          "match_value": "{{task_code}}",
+          "column_values": {
+            "last_period": "{{period}}",
+            "last_status": "{{=LOWER(outcome)}}"
+          }
+        }
+      },
+      {
+        "id": "warn",
+        "type": "log",
+        "label": "Log exception",
+        "position": {
+          "x": 980,
+          "y": 1380
+        },
+        "config": {
+          "message": "Close {{period}} task {{task_code}} marked {{outcome}}: {{task_data.notes}}",
+          "level": "warn"
+        }
+      },
+      {
+        "id": "end_other",
+        "type": "end_workflow",
+        "label": "Task closed",
+        "position": {
+          "x": 980,
+          "y": 1540
+        },
+        "config": {
+          "reason": "{{task_code}} {{outcome}} for {{period}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-key",
+        "source": "title",
+        "target": "key"
+      },
+      {
+        "id": "e-key-due",
+        "source": "key",
+        "target": "due"
+      },
+      {
+        "id": "e-due-log_open",
+        "source": "due",
+        "target": "log_open"
+      },
+      {
+        "id": "e-log_open-work",
+        "source": "log_open",
+        "target": "work"
+      },
+      {
+        "id": "e-work-evidence-done",
+        "source": "work",
+        "target": "evidence",
+        "label": "Done"
+      },
+      {
+        "id": "e-work-log_other-blocked",
+        "source": "work",
+        "target": "log_other",
+        "label": "Blocked"
+      },
+      {
+        "id": "e-work-log_other-not-applicable",
+        "source": "work",
+        "target": "log_other",
+        "label": "Not applicable"
+      },
+      {
+        "id": "e-evidence-retry-missing",
+        "source": "evidence",
+        "target": "retry",
+        "label": "Missing"
+      },
+      {
+        "id": "e-evidence-log_done-else",
+        "source": "evidence",
+        "target": "log_done",
+        "label": "Else"
+      },
+      {
+        "id": "e-log_done-row_done",
+        "source": "log_done",
+        "target": "row_done"
+      },
+      {
+        "id": "e-row_done-end_done",
+        "source": "row_done",
+        "target": "end_done"
+      },
+      {
+        "id": "e-log_other-row_other",
+        "source": "log_other",
+        "target": "row_other"
+      },
+      {
+        "id": "e-row_other-warn",
+        "source": "row_other",
+        "target": "warn"
+      },
+      {
+        "id": "e-warn-end_other",
+        "source": "warn",
+        "target": "end_other"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-task_code",
+        "name": "task_code",
+        "type": "string",
+        "description": "Checklist code, e.g. MEC-01",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-task_name",
+        "name": "task_name",
+        "type": "string",
+        "description": "What has to be done",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-area",
+        "name": "area",
+        "type": "string",
+        "description": "Close area (Cash, Payables…)",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-owner_role",
+        "name": "owner_role",
+        "type": "string",
+        "description": "Role that owns the task",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-due_business_day",
+        "name": "due_business_day",
+        "type": "number",
+        "description": "Business day of the close the task is due",
+        "defaultValue": "3"
+      },
+      {
+        "id": "v-system",
+        "name": "system",
+        "type": "string",
+        "description": "System the work happens in",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-evidence_required",
+        "name": "evidence_required",
+        "type": "boolean",
+        "description": "Whether an evidence link is required to sign off",
+        "defaultValue": "true"
+      },
+      {
+        "id": "v-period",
+        "name": "period",
+        "type": "string",
+        "description": "Period being closed, YYYY-MM",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-entity",
+        "name": "entity",
+        "type": "string",
+        "description": "Entity / company code",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-close_id",
+        "name": "close_id",
+        "type": "string",
+        "description": "ERP close id",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-controller_id",
+        "name": "controller_id",
+        "type": "string",
+        "description": "Optional: user id who receives the close tasks (overrides the install-time default)",
+        "defaultValue": ""
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

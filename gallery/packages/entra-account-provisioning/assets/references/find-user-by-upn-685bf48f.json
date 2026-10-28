@@ -1,0 +1,100 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "685bf48f-6507-5f88-9581-bd82c87810da",
+  "asset": {
+    "id": "685bf48f-6507-5f88-9581-bd82c87810da",
+    "integration_id": "55b8dad9-6e91-5ac6-a9e4-74cc61cbe7b2",
+    "name": "Find user by UPN",
+    "description": "Check whether the user principal name is already taken (GET /users?$filter=userPrincipalName eq '...'&$select=id,displayName,userPrincipalName).",
+    "tags": [
+      "users"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/users",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "@odata.context",
+              "type": "string",
+              "example": "https://graph.microsoft.example.com/v1.0/$metadata#users(id,displayName,userPrincipalName,accountEnabled)"
+            },
+            {
+              "name": "value",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "id",
+                    "type": "string",
+                    "example": "6e7b768e-07e2-4810-8459-485f84f8f204"
+                  },
+                  {
+                    "name": "displayName",
+                    "type": "string",
+                    "example": "Ana Lopez"
+                  },
+                  {
+                    "name": "userPrincipalName",
+                    "type": "string",
+                    "example": "ana.lopez@contoso.example.com"
+                  },
+                  {
+                    "name": "accountEnabled",
+                    "type": "boolean",
+                    "example": true
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "sample": {
+          "@odata.context": "https://graph.microsoft.example.com/v1.0/$metadata#users(id,displayName,userPrincipalName,accountEnabled)",
+          "value": []
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "ce7c02d5-de10-50c1-a924-885f5942ac60",
+        "name": "$filter",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "OData filter, e.g. userPrincipalName eq 'ana.lopez@contoso.example.com'",
+        "default_value": ""
+      },
+      {
+        "id": "3365d05d-a764-5a3c-906e-1b19c92bb46e",
+        "name": "$select",
+        "type": "string",
+        "source": "static",
+        "location": "query",
+        "required": false,
+        "description": "Fields to return",
+        "default_value": "id,displayName,userPrincipalName,accountEnabled"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "45457787-e857-5ade-a418-59e36a924fb4",
+        "name": "existing_users",
+        "path": "value",
+        "type": "array"
+      }
+    ]
+  }
+}

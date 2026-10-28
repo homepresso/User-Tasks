@@ -1,0 +1,128 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "ee351bd7-4c84-4fe2-a209-b62f746dee06",
+  "asset": {
+    "id": "ee351bd7-4c84-4fe2-a209-b62f746dee06",
+    "integration_id": "67cd1f32-620a-4b1d-b812-388e8016357d",
+    "name": "Find CRM subject",
+    "description": "Contacts and leads in the CRM that match the data subject's email.",
+    "tags": [
+      "dsar"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/subjects",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "total",
+              "type": "integer",
+              "example": 1
+            },
+            {
+              "name": "data",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "id",
+                    "type": "string",
+                    "example": "CRM-58213"
+                  },
+                  {
+                    "name": "name",
+                    "type": "string",
+                    "example": "Robin James"
+                  },
+                  {
+                    "name": "email",
+                    "type": "string",
+                    "example": "robin.james@example.com"
+                  },
+                  {
+                    "name": "created_at",
+                    "type": "string",
+                    "example": "2023-04-18"
+                  },
+                  {
+                    "name": "last_activity_at",
+                    "type": "string",
+                    "example": "2026-09-30"
+                  },
+                  {
+                    "name": "record_types",
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "example": "contact"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "sample": {
+          "total": 1,
+          "data": [
+            {
+              "id": "CRM-58213",
+              "name": "Robin James",
+              "email": "robin.james@example.com",
+              "created_at": "2023-04-18",
+              "last_activity_at": "2026-09-30",
+              "record_types": [
+                "contact",
+                "opportunities",
+                "marketing consent"
+              ]
+            }
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "ad2f8952-90a4-4b79-bc53-d4b19688526a",
+        "name": "email",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "Data subject email",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "6a562568-3cd2-4e3d-8998-dc5cfcc3ae6c",
+        "name": "match_count",
+        "path": "total",
+        "type": "number"
+      },
+      {
+        "id": "7a0cb5fe-6f67-48f6-934d-56a96d4822b9",
+        "name": "subject_id",
+        "path": "data.0.id",
+        "type": "string"
+      },
+      {
+        "id": "1883a156-8d2a-4e09-b722-9007b3435707",
+        "name": "record_types",
+        "path": "data.0.record_types",
+        "type": "array"
+      }
+    ]
+  }
+}

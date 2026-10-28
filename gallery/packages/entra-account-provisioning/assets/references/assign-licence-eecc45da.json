@@ -1,0 +1,138 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "eecc45da-6122-5173-b7f6-945a47dbadd8",
+  "asset": {
+    "id": "eecc45da-6122-5173-b7f6-945a47dbadd8",
+    "integration_id": "55b8dad9-6e91-5ac6-a9e4-74cc61cbe7b2",
+    "name": "Assign licence",
+    "description": "Assign the department's Microsoft 365 licence (POST /users/{id}/assignLicense with addLicenses[].skuId). Returns the user.",
+    "tags": [
+      "licences"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"addLicenses\":[{\"skuId\":\"{{sku_id}}\",\"disabledPlans\":[]}],\"removeLicenses\":[]}",
+      "path_template": "/users/{{user_id}}/assignLicense",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "@odata.context",
+              "type": "string",
+              "example": "https://graph.microsoft.example.com/v1.0/$metadata#users/$entity"
+            },
+            {
+              "name": "id",
+              "type": "string",
+              "example": "6e7b768e-07e2-4810-8459-485f84f8f204"
+            },
+            {
+              "name": "businessPhones",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "displayName",
+              "type": "string",
+              "example": "Ana Lopez"
+            },
+            {
+              "name": "givenName",
+              "type": "string",
+              "example": "Ana"
+            },
+            {
+              "name": "surname",
+              "type": "string",
+              "example": "Lopez"
+            },
+            {
+              "name": "jobTitle",
+              "type": "string",
+              "example": "Financial Analyst"
+            },
+            {
+              "name": "mail",
+              "type": "string",
+              "example": ""
+            },
+            {
+              "name": "mobilePhone",
+              "type": "string",
+              "example": ""
+            },
+            {
+              "name": "officeLocation",
+              "type": "string",
+              "example": "Auckland"
+            },
+            {
+              "name": "preferredLanguage",
+              "type": "string",
+              "example": ""
+            },
+            {
+              "name": "userPrincipalName",
+              "type": "string",
+              "example": "ana.lopez@contoso.example.com"
+            }
+          ]
+        },
+        "sample": {
+          "@odata.context": "https://graph.microsoft.example.com/v1.0/$metadata#users/$entity",
+          "id": "6e7b768e-07e2-4810-8459-485f84f8f204",
+          "businessPhones": [],
+          "displayName": "Ana Lopez",
+          "givenName": "Ana",
+          "surname": "Lopez",
+          "jobTitle": "Financial Analyst",
+          "mail": null,
+          "mobilePhone": null,
+          "officeLocation": "Auckland",
+          "preferredLanguage": null,
+          "userPrincipalName": "ana.lopez@contoso.example.com"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "331cefd2-2ac6-5cd8-b18b-a945afb9a330",
+        "name": "user_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Entra object id of the user",
+        "default_value": ""
+      },
+      {
+        "id": "b4b970db-0f99-5da7-9c3e-69926417f103",
+        "name": "sku_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Licence SKU id (GET /subscribedSkus lists yours)",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "50fea39b-db60-57c9-86ec-ff3aa3a124fb",
+        "name": "licensed_user_id",
+        "path": "id",
+        "type": "string"
+      }
+    ]
+  }
+}

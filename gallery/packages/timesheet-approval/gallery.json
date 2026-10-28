@@ -1,0 +1,84 @@
+{
+  "title": "Timesheet approval",
+  "category": "hr-people",
+  "summary": "A weekly timesheet form with Mon–Fri hours and a project lookup; totals and overtime are calculated, approvers approve or reject, and long weeks get a second check.",
+  "description": "Timesheet approval replaces emailed spreadsheets with one tidy form. Employees open the Weekly timesheet form page, pick the project from the Projects table (client and billable fill in by themselves), enter hours for Monday to Friday in a single row, describe the work, give a reason for any overtime and pick their approver as a Person. Submit shows a success screen.\n\nThe Form submitted trigger starts the workflow: it adds up the week, works out overtime above 40 hours and the billable value at the project rate, records everything in the Timesheets table and checks the week with the Timesheet checks decision table.\n\nThe approver gets a task with the hours laid out per day, the project budget used so far and Approve and Reject buttons with a comment. Weeks over 40 hours go on to an overtime check by payroll or a second manager. Approved hours are added to the project's hours, and the employee is emailed the decision with the comments. No integrations needed.",
+  "trigger": "form",
+  "entry_workflow": "f4d0fd4d-11c9-5adf-bf2e-96679a2c452b",
+  "entry_form": "62b97974-e5f8-5d18-9345-dcb5528f46bc",
+  "start": "Starts from a form page: share the Weekly timesheet form (/f/<id>); each submission (one per project per week) starts an approval.",
+  "difficulty": "starter",
+  "setup_minutes": 10,
+  "tags": [
+    "timesheets",
+    "approvals",
+    "overtime",
+    "forms",
+    "lookup",
+    "decision table",
+    "no integrations"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Replace the sample rows in Projects with your projects: code, client, billable, hourly rate and hours budget. Untick Active for closed projects.",
+    "Share the Weekly timesheet form link (/f/<id>) with staff.",
+    "Adjust the Timesheet checks decision table if your overtime threshold is not 40 hours.",
+    "Optional: set EMAIL_PROVIDER so decisions are emailed (the console provider logs them)."
+  ],
+  "steps": [
+    {
+      "title": "Fill in the week",
+      "body": "The employee picks the project (client and billable fill in), enters Mon–Fri hours and picks their approver."
+    },
+    {
+      "title": "Totals",
+      "body": "The workflow adds up the hours, works out overtime above 40 and the billable value, and records the timesheet."
+    },
+    {
+      "title": "Checks",
+      "body": "The Timesheet checks decision table decides whether the week needs a second, overtime check."
+    },
+    {
+      "title": "Approve or reject",
+      "body": "The approver sees the hours per day and the project budget and presses Approve or Reject with a comment."
+    },
+    {
+      "title": "Overtime check",
+      "body": "Weeks over 40 hours go to the overtime checker (or back to the approver) before they count as approved."
+    },
+    {
+      "title": "Tell the employee",
+      "body": "Approved hours are added to the project, and the employee is emailed the decision and comments."
+    }
+  ],
+  "sample_input": {
+    "employee_name": "Jordan Lee",
+    "employee_email": "jordan.lee@example.com",
+    "week_ending": "2026-10-30",
+    "project": "PRJ-1057",
+    "mon": 9,
+    "tue": 9.5,
+    "wed": 8,
+    "thu": 10,
+    "fri": 7.5,
+    "work_summary": "Mapped the customer master fields and ran two trial loads of open sales orders.",
+    "overtime_reason": "Trial load had to finish before the cut-over rehearsal on Friday.",
+    "approver": "$owner",
+    "overtime_checker": "$owner"
+  },
+  "expect": "waiting",
+  "icon": "timer",
+  "id": "9349f9a0-4662-52ec-8d7a-9fbd81231d66",
+  "slug": "timesheet-approval"
+}

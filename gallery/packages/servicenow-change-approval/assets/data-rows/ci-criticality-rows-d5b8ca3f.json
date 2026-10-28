@@ -1,0 +1,66 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "d5b8ca3f-b869-5d23-a894-6be09de8a8ac",
+  "asset": {
+    "id": "d5b8ca3f-b869-5d23-a894-6be09de8a8ac",
+    "name": "CI criticality rows",
+    "rows": [
+      {
+        "id": "15761968-9f76-5ba6-9680-64d8407500b5",
+        "data": {
+          "ci_name": "Payments Gateway",
+          "ci_class": "cmdb_ci_appl",
+          "criticality": "critical",
+          "business_service": "Online Checkout",
+          "support_group": "Payments Platform",
+          "freeze_exempt": false
+        }
+      },
+      {
+        "id": "8124aa09-4fb2-5092-830b-d3c1de4c0188",
+        "data": {
+          "ci_name": "Customer Identity (SSO)",
+          "ci_class": "cmdb_ci_service_auto",
+          "criticality": "critical",
+          "business_service": "Customer Identity",
+          "support_group": "Identity Engineering",
+          "freeze_exempt": false
+        }
+      },
+      {
+        "id": "0efe16fb-2f36-5e20-92cd-80384a7b9e09",
+        "data": {
+          "ci_name": "Order DB Cluster",
+          "ci_class": "cmdb_ci_db_instance",
+          "criticality": "high",
+          "business_service": "Order Management",
+          "support_group": "Database Operations",
+          "freeze_exempt": false
+        }
+      },
+      {
+        "id": "42fe033e-9a21-5166-a3ed-652889fe1971",
+        "data": {
+          "ci_name": "Intranet Portal",
+          "ci_class": "cmdb_ci_web_server",
+          "criticality": "low",
+          "business_service": "Employee Portal",
+          "support_group": "Workplace Tech",
+          "freeze_exempt": true
+        }
+      },
+      {
+        "id": "2328ffc6-1188-5563-9f8d-3b8f5bce8ef8",
+        "data": {
+          "ci_name": "Reporting Warehouse",
+          "ci_class": "cmdb_ci_db_instance",
+          "criticality": "medium",
+          "business_service": "Analytics",
+          "support_group": "Data Platform",
+          "freeze_exempt": true
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "55b8dad9-6e91-5ac6-a9e4-74cc61cbe7b2",
+  "asset": {
+    "id": "55b8dad9-6e91-5ac6-a9e4-74cc61cbe7b2",
+    "name": "Microsoft Graph",
+    "description": "Microsoft Graph v1.0 for Microsoft Entra ID and Microsoft 365. Use an app registration with application permissions User.ReadWrite.All, GroupMember.ReadWrite.All, LicenseAssignment.ReadWrite.All (and UserAuthenticationMethod.ReadWrite.All for Temporary Access Passes); the token is a client-credentials bearer token.",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://graph.microsoft.example.com/v1.0",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {
+        "Accept": "application/json"
+      }
+    },
+    "is_active": true,
+    "tags": [
+      "microsoft 365",
+      "entra id",
+      "identity"
+    ]
+  }
+}

@@ -1,0 +1,593 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "87961606-21d5-4175-b804-0da13934e4aa",
+  "asset": {
+    "id": "87961606-21d5-4175-b804-0da13934e4aa",
+    "name": "Employee offboarding",
+    "description": "A manager or HR submits a leaver; the offboarding controls decide access timing, exit interview and garden leave, then IT, payroll and HR complete their steps and the termination is recorded.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Leaver submitted",
+        "position": {
+          "x": 580,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "employee",
+        "type": "call_reference",
+        "label": "Get employee",
+        "position": {
+          "x": 580,
+          "y": 220
+        },
+        "config": {
+          "reference_id": "2725263d-a4de-4d53-a3e4-a62b2b5b2be0",
+          "reference_name": "Get employee",
+          "reference_method": "GET",
+          "input_mappings": {
+            "employee_id": "{{employee_id}}"
+          },
+          "output_mappings": {
+            "name": {
+              "enabled": true,
+              "variableName": "employee_name"
+            },
+            "email": {
+              "enabled": true,
+              "variableName": "employee_email"
+            },
+            "job_title": {
+              "enabled": true,
+              "variableName": "job_title"
+            },
+            "manager_name": {
+              "enabled": true,
+              "variableName": "manager_name"
+            },
+            "manager_email": {
+              "enabled": true,
+              "variableName": "manager_email"
+            },
+            "privileged_access": {
+              "enabled": true,
+              "variableName": "privileged_access"
+            },
+            "systems": {
+              "enabled": true,
+              "variableName": "systems"
+            },
+            "devices": {
+              "enabled": true,
+              "variableName": "devices"
+            },
+            "leave_balance_days": {
+              "enabled": true,
+              "variableName": "leave_balance_days"
+            }
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 580,
+          "y": 380
+        },
+        "config": {
+          "title": "Offboarding: {{employee_name}} · last day {{last_working_day}} · {{reason}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Done by last day",
+        "position": {
+          "x": 580,
+          "y": 540
+        },
+        "config": {
+          "sla_label": "Offboarding",
+          "mode": "exact",
+          "due_at": "{{last_working_day}}",
+          "warning_amount": 2,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "controls",
+        "type": "decision_table",
+        "label": "Offboarding controls",
+        "position": {
+          "x": 580,
+          "y": 700
+        },
+        "config": {
+          "decision_table_id": "d952964d-0ecc-4849-b14a-14fd0c620cdc",
+          "decision_table_name": "Offboarding controls",
+          "input_mappings": {
+            "reason": "{{reason}}",
+            "privileged_access": "{{privileged_access}}"
+          }
+        }
+      },
+      {
+        "id": "log_controls",
+        "type": "log",
+        "label": "Log controls",
+        "position": {
+          "x": 580,
+          "y": 860
+        },
+        "config": {
+          "message": "{{employee_name}}: revoke access {{revocation_timing}}, exit interview {{exit_interview}}, garden leave {{garden_leave}} (rule {{rule_label}})",
+          "level": "info"
+        }
+      },
+      {
+        "id": "it",
+        "type": "user_task",
+        "label": "Revoke access and recover equipment",
+        "position": {
+          "x": 580,
+          "y": 1020
+        },
+        "config": {
+          "task_title": "Offboard {{employee_name}}: revoke access ({{revocation_timing}}) and recover equipment",
+          "task_description": "<p><strong>{{employee_name}}</strong> ({{job_title}}) leaves on <strong>{{last_working_day}}</strong>. Reason: {{reason}}.</p><p>Revoke access: <strong>{{revocation_timing}}</strong>. Privileged access: {{privileged_access}}.</p><p>Systems: {{systems}}</p><p>Devices to recover: {{devices}}</p><p>Notes: {{notes}}</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Done",
+            "Equipment outstanding"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "64f3a8f5-3719-44c6-9a40-e29270059628",
+          "assignee_variable": "{{it_owner_id}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{last_working_day}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "devices_returned",
+              "label": "All devices returned",
+              "type": "boolean",
+              "required": true,
+              "default": "false"
+            },
+            {
+              "key": "accounts_disabled",
+              "label": "All accounts disabled",
+              "type": "boolean",
+              "required": true,
+              "default": "false"
+            },
+            {
+              "key": "it_notes",
+              "label": "Notes",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      {
+        "id": "notify_equipment",
+        "type": "send_email",
+        "label": "Email manager: outstanding",
+        "position": {
+          "x": 820,
+          "y": 1200
+        },
+        "config": {
+          "to": "{{manager_email}}",
+          "email_template_id": "564d62ce-ae57-49a7-88ef-148101209edf"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "payroll",
+        "type": "user_task",
+        "label": "Final pay",
+        "position": {
+          "x": 580,
+          "y": 1360
+        },
+        "config": {
+          "task_title": "Final pay for {{employee_name}} (last day {{last_working_day}})",
+          "task_description": "<p>Calculate the final pay for <strong>{{employee_name}}</strong> ({{employee_id}}). Annual leave balance in the HR system: <strong>{{leave_balance_days}} days</strong>.</p><p>Reason: {{reason}}. Garden leave: {{garden_leave}}.</p><p>Notes: {{notes}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Final pay scheduled"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "82638f63-11b4-4b48-a580-770f2591e96b",
+          "assignee_variable": "{{payroll_owner_id}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{last_working_day}}",
+          "fields": [
+            {
+              "key": "leave_payout_days",
+              "label": "Leave payout (days)",
+              "type": "number",
+              "required": true,
+              "default": "{{leave_balance_days}}"
+            },
+            {
+              "key": "final_pay_date",
+              "label": "Final pay date",
+              "type": "date",
+              "required": true
+            },
+            {
+              "key": "deductions",
+              "label": "Deductions (e.g. unreturned equipment)",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      {
+        "id": "pay_days",
+        "type": "set_variable",
+        "label": "Leave payout days",
+        "position": {
+          "x": 580,
+          "y": 1540
+        },
+        "config": {
+          "name": "leave_payout_days",
+          "expression": "{{task_data.leave_payout_days}}"
+        }
+      },
+      {
+        "id": "pay_date",
+        "type": "set_variable",
+        "label": "Final pay date",
+        "position": {
+          "x": 580,
+          "y": 1700
+        },
+        "config": {
+          "name": "final_pay_date",
+          "expression": "{{task_data.final_pay_date}}"
+        }
+      },
+      {
+        "id": "needs_exit",
+        "type": "condition",
+        "label": "Exit interview?",
+        "position": {
+          "x": 580,
+          "y": 1860
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Exit interview",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{exit_interview}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "exit",
+        "type": "user_task",
+        "label": "Exit interview",
+        "position": {
+          "x": 340,
+          "y": 2040
+        },
+        "config": {
+          "task_title": "Exit interview with {{employee_name}}",
+          "task_description": "<p>Offer <strong>{{employee_name}}</strong> ({{job_title}}) an exit interview before {{last_working_day}} and record the main themes.</p>",
+          "task_priority": "low",
+          "outcomes": [
+            "Completed",
+            "Declined by employee"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "c93adaa2-5ce6-49b5-9ce8-30d9269db93b",
+          "assignee_variable": "{{hr_owner_id}}",
+          "due_date_mode": "absolute",
+          "due_date": "{{last_working_day}}",
+          "fields": [
+            {
+              "key": "primary_reason",
+              "label": "Main reason for leaving",
+              "type": "choice",
+              "options": [
+                "Career progression",
+                "Pay and benefits",
+                "Manager or team",
+                "Workload",
+                "Relocation",
+                "Personal",
+                "Other"
+              ]
+            },
+            {
+              "key": "would_recommend",
+              "label": "Would recommend us as an employer",
+              "type": "boolean"
+            },
+            {
+              "key": "feedback",
+              "label": "Feedback summary",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      {
+        "id": "record",
+        "type": "call_reference",
+        "label": "Record termination",
+        "position": {
+          "x": 580,
+          "y": 2220
+        },
+        "config": {
+          "reference_id": "7a2a5067-dac3-4d9e-909c-bb959b6618d2",
+          "reference_name": "Record termination",
+          "reference_method": "POST",
+          "input_mappings": {
+            "employee_id": "{{employee_id}}",
+            "last_working_day": "{{last_working_day}}",
+            "reason": "{{reason}}",
+            "rehire_eligible": "{{rehire_eligible}}",
+            "leave_payout_days": "{{leave_payout_days}}",
+            "final_pay_date": "{{final_pay_date}}",
+            "notes": "{{notes}}"
+          },
+          "output_mappings": {
+            "termination_id": {
+              "enabled": true,
+              "variableName": "termination_id"
+            }
+          }
+        }
+      },
+      {
+        "id": "notify_leaver",
+        "type": "send_email",
+        "label": "Email leaver",
+        "position": {
+          "x": 580,
+          "y": 2380
+        },
+        "config": {
+          "to": "{{employee_email}}",
+          "email_template_id": "69f7d83d-06c4-4567-8570-053bb8a07ca9"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "notify_manager",
+        "type": "send_email",
+        "label": "Email manager: complete",
+        "position": {
+          "x": 580,
+          "y": 2540
+        },
+        "config": {
+          "to": "{{manager_email}}",
+          "email_template_id": "4439f6c4-3396-4b81-b3c3-97f1021e3274"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Offboarded",
+        "position": {
+          "x": 580,
+          "y": 2700
+        },
+        "config": {
+          "reason": "{{employee_name}} offboarded ({{termination_id}})"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-employee",
+        "source": "trigger",
+        "target": "employee"
+      },
+      {
+        "id": "e-employee-title",
+        "source": "employee",
+        "target": "title"
+      },
+      {
+        "id": "e-title-sla",
+        "source": "title",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-controls",
+        "source": "sla",
+        "target": "controls"
+      },
+      {
+        "id": "e-controls-log_controls",
+        "source": "controls",
+        "target": "log_controls"
+      },
+      {
+        "id": "e-log_controls-it",
+        "source": "log_controls",
+        "target": "it"
+      },
+      {
+        "id": "e-it-payroll-done",
+        "source": "it",
+        "target": "payroll",
+        "label": "Done"
+      },
+      {
+        "id": "e-it-notify_equipment-equipment-outstanding",
+        "source": "it",
+        "target": "notify_equipment",
+        "label": "Equipment outstanding"
+      },
+      {
+        "id": "e-notify_equipment-payroll",
+        "source": "notify_equipment",
+        "target": "payroll"
+      },
+      {
+        "id": "e-payroll-pay_days-final-pay-scheduled",
+        "source": "payroll",
+        "target": "pay_days",
+        "label": "Final pay scheduled"
+      },
+      {
+        "id": "e-pay_days-pay_date",
+        "source": "pay_days",
+        "target": "pay_date"
+      },
+      {
+        "id": "e-pay_date-needs_exit",
+        "source": "pay_date",
+        "target": "needs_exit"
+      },
+      {
+        "id": "e-needs_exit-exit-exit-interview",
+        "source": "needs_exit",
+        "target": "exit",
+        "label": "Exit interview"
+      },
+      {
+        "id": "e-needs_exit-record-else",
+        "source": "needs_exit",
+        "target": "record",
+        "label": "Else"
+      },
+      {
+        "id": "e-exit-record-completed",
+        "source": "exit",
+        "target": "record",
+        "label": "Completed"
+      },
+      {
+        "id": "e-exit-record-declined-by-employee",
+        "source": "exit",
+        "target": "record",
+        "label": "Declined by employee"
+      },
+      {
+        "id": "e-record-notify_leaver",
+        "source": "record",
+        "target": "notify_leaver"
+      },
+      {
+        "id": "e-notify_leaver-notify_manager",
+        "source": "notify_leaver",
+        "target": "notify_manager"
+      },
+      {
+        "id": "e-notify_manager-done",
+        "source": "notify_manager",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-employee_id",
+        "name": "employee_id",
+        "type": "string",
+        "description": "Employee number in the HR system (E-1042…)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Employee number"
+      },
+      {
+        "id": "v-last_working_day",
+        "name": "last_working_day",
+        "type": "string",
+        "description": "Last working day",
+        "defaultValue": "",
+        "required": true,
+        "label": "Last working day",
+        "format": "date"
+      },
+      {
+        "id": "v-reason",
+        "name": "reason",
+        "type": "string",
+        "description": "Reason for leaving",
+        "defaultValue": "",
+        "required": true,
+        "label": "Reason",
+        "options": [
+          "resignation",
+          "redundancy",
+          "end of contract",
+          "dismissal"
+        ]
+      },
+      {
+        "id": "v-rehire_eligible",
+        "name": "rehire_eligible",
+        "type": "boolean",
+        "description": "Would you rehire this person?",
+        "defaultValue": "true",
+        "label": "Eligible for rehire"
+      },
+      {
+        "id": "v-notes",
+        "name": "notes",
+        "type": "string",
+        "description": "Anything IT, payroll or HR should know (handover, notice period, agreements)",
+        "defaultValue": "",
+        "label": "Notes"
+      },
+      {
+        "id": "v-it_owner_id",
+        "name": "it_owner_id",
+        "type": "string",
+        "description": "Optional: user id of the IT person who revokes access (overrides the install-time default)",
+        "defaultValue": "",
+        "label": "IT owner (user id)"
+      },
+      {
+        "id": "v-payroll_owner_id",
+        "name": "payroll_owner_id",
+        "type": "string",
+        "description": "Optional: user id of the payroll officer",
+        "defaultValue": "",
+        "label": "Payroll (user id)"
+      },
+      {
+        "id": "v-hr_owner_id",
+        "name": "hr_owner_id",
+        "type": "string",
+        "description": "Optional: user id of the HR partner who runs the exit interview",
+        "defaultValue": "",
+        "label": "HR partner (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

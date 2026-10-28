@@ -1,0 +1,11 @@
+-- event_stream cursor read (101 after cursor) as service_role
+SELECT * FROM public.event_stream WHERE tenant_id = '0be0c000-0000-4000-8000-000000000001' AND id > 571341 ORDER BY id LIMIT 101
+
+Limit  (cost=0.43..7.79 rows=101 width=333) (actual time=0.008..0.030 rows=101 loops=1)
+  Buffers: shared hit=8
+  ->  Index Scan using event_stream_pkey on event_stream  (cost=0.43..39289.29 rows=539310 width=333) (actual time=0.008..0.022 rows=101 loops=1)
+        Index Cond: (id > 571341)
+        Filter: (tenant_id = '0be0c000-0000-4000-8000-000000000001'::uuid)
+        Buffers: shared hit=8
+Planning Time: 0.042 ms
+Execution Time: 0.041 ms

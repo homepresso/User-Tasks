@@ -1,0 +1,54 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "b8c1bf12-b13e-565d-a29a-b9bea1f2a4e4",
+  "asset": {
+    "id": "b8c1bf12-b13e-565d-a29a-b9bea1f2a4e4",
+    "name": "Staff",
+    "description": "People who must acknowledge policies. Untick Active for leavers; Department and Manager appear on the tracker tasks.",
+    "columns": [
+      {
+        "id": "01ea93c4-8f97-554d-828f-b0e94593149a",
+        "required": true,
+        "key": "email",
+        "name": "Email",
+        "type": "email"
+      },
+      {
+        "id": "42dcef9e-87a4-5ed2-9c22-30e6a4e047fd",
+        "required": true,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "dbca54ef-bfa8-537f-b776-e7947466d941",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "text"
+      },
+      {
+        "id": "562b288b-02c8-50f6-b3cf-cc391cc6e375",
+        "required": false,
+        "key": "manager_name",
+        "name": "Manager",
+        "type": "text"
+      },
+      {
+        "id": "fd656da3-8361-50a9-ac26-ec5f5b47eaf6",
+        "required": false,
+        "key": "location",
+        "name": "Location",
+        "type": "text"
+      },
+      {
+        "id": "31057734-e845-5512-a259-1dd20e5d7d96",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

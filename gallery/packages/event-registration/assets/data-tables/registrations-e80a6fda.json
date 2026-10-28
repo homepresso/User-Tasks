@@ -1,0 +1,121 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "e80a6fda-a5be-5085-8261-e68b582fc7b6",
+  "asset": {
+    "id": "e80a6fda-a5be-5085-8261-e68b582fc7b6",
+    "name": "Registrations",
+    "description": "Everyone who registered: confirmed or waitlisted, their dietary needs and any special request and its answer.",
+    "columns": [
+      {
+        "id": "7babec6b-b0aa-5271-a0c8-6513bf3c52b8",
+        "required": true,
+        "key": "reg_ref",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "7bb91ddc-f2e2-5b31-a7d9-92624cdf1530",
+        "required": true,
+        "key": "event_code",
+        "name": "Event code",
+        "type": "text"
+      },
+      {
+        "id": "0a61ebd4-acb7-5e0b-8730-553ae55f17b8",
+        "required": false,
+        "key": "event_title",
+        "name": "Event",
+        "type": "text"
+      },
+      {
+        "id": "cfd990c1-5347-5842-88f9-d154a0ba7000",
+        "required": false,
+        "key": "event_date",
+        "name": "Date",
+        "type": "date"
+      },
+      {
+        "id": "b5258ff1-790b-5037-879f-a640a81f7398",
+        "required": true,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "514e8473-26b4-5ac6-a857-81336c6858f5",
+        "required": true,
+        "key": "email",
+        "name": "Email",
+        "type": "email"
+      },
+      {
+        "id": "369db8e8-77a8-5093-8f73-9ea3f55562b4",
+        "required": false,
+        "key": "company",
+        "name": "Company",
+        "type": "text"
+      },
+      {
+        "id": "c97afa3b-2e1f-52b7-a0a5-df9e2404f849",
+        "required": false,
+        "key": "job_title",
+        "name": "Job title",
+        "type": "text"
+      },
+      {
+        "id": "a6851036-650b-59c2-aeca-634dbcb859b6",
+        "required": false,
+        "key": "dietary",
+        "name": "Dietary",
+        "type": "text"
+      },
+      {
+        "id": "230dc3d2-7b91-54b7-9a55-ef7c0e9624a7",
+        "required": false,
+        "key": "special_request",
+        "name": "Special request",
+        "type": "text"
+      },
+      {
+        "id": "ce4257f5-ebeb-57f7-8b3d-533e4ae4dd4c",
+        "required": false,
+        "key": "request_status",
+        "name": "Request",
+        "type": "select",
+        "options": [
+          "None",
+          "Pending",
+          "Confirmed",
+          "Declined"
+        ]
+      },
+      {
+        "id": "f6440c95-699c-54e9-95cf-362a40e6d885",
+        "required": false,
+        "key": "request_reply",
+        "name": "Reply to the request",
+        "type": "text"
+      },
+      {
+        "id": "058b3af0-587c-51b2-a0fe-2ccd2d95bb9f",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Confirmed",
+          "Waitlisted",
+          "Cancelled"
+        ]
+      },
+      {
+        "id": "d94879d1-0505-5d75-a92c-b4df81264573",
+        "required": false,
+        "key": "registered_on",
+        "name": "Registered",
+        "type": "date"
+      }
+    ]
+  }
+}

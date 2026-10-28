@@ -1,0 +1,22 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "6fe01153-7050-4f89-a20b-9b1a42910431",
+  "asset": {
+    "id": "6fe01153-7050-4f89-a20b-9b1a42910431",
+    "name": "Marketing platform",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://marketing.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "marketing"
+    ]
+  }
+}

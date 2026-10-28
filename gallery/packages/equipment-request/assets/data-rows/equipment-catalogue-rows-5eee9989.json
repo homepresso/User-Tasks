@@ -1,0 +1,99 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "5eee9989-73aa-4dca-b0a8-7b857a887cd9",
+  "asset": {
+    "id": "5eee9989-73aa-4dca-b0a8-7b857a887cd9",
+    "name": "Equipment catalogue rows",
+    "rows": [
+      {
+        "id": "ae8155e9-57ef-4016-8a6a-1ed9a6bca513",
+        "data": {
+          "item": "Standard laptop 14-inch",
+          "category": "computer",
+          "unit_cost": 1650,
+          "approval_required": true,
+          "lead_time_days": 5,
+          "supplier_sku": "NB-14-STD-16"
+        }
+      },
+      {
+        "id": "ce3b4fef-64a4-478c-a330-ccddb475778b",
+        "data": {
+          "item": "Developer laptop 16-inch",
+          "category": "computer",
+          "unit_cost": 3200,
+          "approval_required": true,
+          "lead_time_days": 10,
+          "supplier_sku": "NB-16-DEV-32"
+        }
+      },
+      {
+        "id": "0ecc0194-94af-476c-abe6-2006c68f4f58",
+        "data": {
+          "item": "27-inch monitor",
+          "category": "peripheral",
+          "unit_cost": 420,
+          "approval_required": false,
+          "lead_time_days": 3,
+          "supplier_sku": "MON-27-QHD"
+        }
+      },
+      {
+        "id": "bbaeac18-a28e-4db2-98da-5e57de607893",
+        "data": {
+          "item": "Docking station",
+          "category": "peripheral",
+          "unit_cost": 260,
+          "approval_required": false,
+          "lead_time_days": 3,
+          "supplier_sku": "DOCK-USBC-2"
+        }
+      },
+      {
+        "id": "760262e8-6b0d-4799-a8c3-c28525897458",
+        "data": {
+          "item": "Keyboard and mouse",
+          "category": "peripheral",
+          "unit_cost": 85,
+          "approval_required": false,
+          "lead_time_days": 2,
+          "supplier_sku": "KBM-WL-01"
+        }
+      },
+      {
+        "id": "3c0d9f81-af64-43ed-973b-b9c14e3c477e",
+        "data": {
+          "item": "Noise-cancelling headset",
+          "category": "audio",
+          "unit_cost": 310,
+          "approval_required": false,
+          "lead_time_days": 3,
+          "supplier_sku": "HS-NC-BT"
+        }
+      },
+      {
+        "id": "4b30756f-b728-4405-897e-941127244118",
+        "data": {
+          "item": "Mobile phone",
+          "category": "mobile",
+          "unit_cost": 1100,
+          "approval_required": true,
+          "lead_time_days": 5,
+          "supplier_sku": "PH-STD-128"
+        }
+      },
+      {
+        "id": "1035416e-510f-4157-9261-baee0edbe781",
+        "data": {
+          "item": "Ergonomic chair",
+          "category": "furniture",
+          "unit_cost": 780,
+          "approval_required": true,
+          "lead_time_days": 14,
+          "supplier_sku": "CH-ERGO-02"
+        }
+      }
+    ]
+  }
+}

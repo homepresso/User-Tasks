@@ -1,0 +1,61 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "b10bb1ea-c7fc-4437-b2f5-39ba3b4fdee7",
+  "asset": {
+    "id": "b10bb1ea-c7fc-4437-b2f5-39ba3b4fdee7",
+    "name": "Territories",
+    "description": "Sales territory by country: region, the owning rep and the CRM queue. Countries not listed go to the Rest of world row (country code \"*\").",
+    "columns": [
+      {
+        "id": "22520009-9f0a-4cf7-a22d-aa866842a095",
+        "required": true,
+        "key": "country_code",
+        "name": "Country code",
+        "type": "text"
+      },
+      {
+        "id": "c6f9f254-60ac-4250-aae4-f73d4ec2e9a4",
+        "required": false,
+        "key": "country_name",
+        "name": "Country",
+        "type": "text"
+      },
+      {
+        "id": "45e42047-cb7b-4bf7-bfb8-cb7cf7d65573",
+        "required": true,
+        "key": "region",
+        "name": "Region",
+        "type": "text"
+      },
+      {
+        "id": "f89c192d-9002-4380-8935-b6df93e6754b",
+        "required": false,
+        "key": "owner_name",
+        "name": "Owner",
+        "type": "text"
+      },
+      {
+        "id": "ae3e15c1-87b2-450e-b33b-87f2bd8062bd",
+        "required": true,
+        "key": "owner_email",
+        "name": "Owner email",
+        "type": "text"
+      },
+      {
+        "id": "58e3c824-3512-4cd1-afcb-13af0f7562d5",
+        "required": false,
+        "key": "queue",
+        "name": "CRM queue",
+        "type": "text"
+      },
+      {
+        "id": "ec96f1f0-a2e8-458e-867e-e9260be242f4",
+        "required": false,
+        "key": "nurture_list_id",
+        "name": "Nurture list",
+        "type": "text"
+      }
+    ]
+  }
+}

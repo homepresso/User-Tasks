@@ -1,0 +1,146 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "01aceae1-2290-4dce-a36f-127d79153c43",
+  "asset": {
+    "id": "01aceae1-2290-4dce-a36f-127d79153c43",
+    "integration_id": "38608541-ea8e-4bf2-825a-a43d1eb771ee",
+    "name": "Create expense reimbursement",
+    "description": "Queue the reimbursement in the next expense payment run.",
+    "tags": [
+      "payments"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"employee_id\":\"{{employee_id}}\",\"claim_reference\":\"{{claim_reference}}\",\"amount\":{{amount}},\"currency\":\"{{currency}}\",\"gl_code\":\"{{gl_code}}\",\"cost_centre\":\"{{cost_centre}}\"}",
+      "path_template": "/expense-reimbursements",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "reimbursement_id",
+              "type": "string",
+              "example": "RMB-20931"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "scheduled"
+            },
+            {
+              "name": "payment_run_date",
+              "type": "string",
+              "example": "2026-10-30"
+            },
+            {
+              "name": "amount",
+              "type": "integer",
+              "example": 640
+            },
+            {
+              "name": "currency",
+              "type": "string",
+              "example": "NZD"
+            }
+          ]
+        },
+        "sample": {
+          "reimbursement_id": "RMB-20931",
+          "status": "scheduled",
+          "payment_run_date": "2026-10-30",
+          "amount": 640,
+          "currency": "NZD"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "2f0af2d7-8635-46d9-a898-73fc3fa1d4b9",
+        "name": "employee_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "b1b558f5-f5fa-42d6-9d75-47e171dad50a",
+        "name": "claim_reference",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "f1417c2d-b0a5-41c0-915f-1974302b7d8d",
+        "name": "amount",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "cb3a5c67-a7ea-40d0-8fc2-3273388ad2a5",
+        "name": "currency",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "6e8d9e4e-2abf-476c-920f-3ea760da3055",
+        "name": "gl_code",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "bda66a97-af50-4e30-8e8a-024b51408aa9",
+        "name": "cost_centre",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "6eb66d62-7655-41ea-aec3-1de1ccf9b942",
+        "name": "reimbursement_id",
+        "path": "reimbursement_id",
+        "type": "string"
+      },
+      {
+        "id": "e7dc9a04-9dfa-4efb-802c-ba60f318f392",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "b18b573e-24c7-4504-bff9-005ef4687a04",
+        "name": "payment_run_date",
+        "path": "payment_run_date",
+        "type": "string"
+      }
+    ]
+  }
+}

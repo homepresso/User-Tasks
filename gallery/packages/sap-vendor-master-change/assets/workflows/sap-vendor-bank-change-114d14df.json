@@ -1,0 +1,1208 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "114d14df-2231-593e-9f2a-4facd11b02e9",
+  "asset": {
+    "id": "114d14df-2231-593e-9f2a-4facd11b02e9",
+    "name": "SAP vendor bank change",
+    "description": "A requested supplier bank detail change is compared with SAP, reviewed by finance, verified by call-back, approved by treasury (four eyes) and written to SAP, with every step in the audit log.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Bank change requested",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "requester_email",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "supplier",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "company_code",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "new_bank_country",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "new_iban",
+                      "span": 2
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "new_swift",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "new_bank_key",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "effective_date",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "new_holder",
+                      "span": 3
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "evidence_reference",
+                      "span": 3
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "reason",
+                      "span": 3
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#1D4ED8",
+                    "background": "#FFFFFF",
+                    "text": "#0F172A",
+                    "page": "#E8EEF9",
+                    "page_to": "#F8FAFC"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "font": {
+                  "source": "google",
+                  "family": "IBM Plex Sans"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Change reference",
+        "position": {
+          "x": 400,
+          "y": 220
+        },
+        "config": {
+          "name": "change_ref",
+          "expression": "VMC-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "sup",
+        "type": "call_reference",
+        "label": "Get supplier",
+        "position": {
+          "x": 400,
+          "y": 380
+        },
+        "config": {
+          "reference_id": "0cc10e33-7f18-5c34-944f-1fb9d6e31506",
+          "reference_name": "Get supplier",
+          "reference_method": "GET",
+          "input_mappings": {
+            "supplier": "{{supplier}}"
+          },
+          "output_mappings": {
+            "supplier_name": {
+              "enabled": true,
+              "variableName": "supplier_name"
+            },
+            "account_group": {
+              "enabled": true,
+              "variableName": "account_group"
+            },
+            "vat_registration": {
+              "enabled": true,
+              "variableName": "vat_registration"
+            },
+            "supplier_country": {
+              "enabled": true,
+              "variableName": "supplier_country"
+            },
+            "payment_blocked": {
+              "enabled": true,
+              "variableName": "payment_blocked"
+            },
+            "posting_blocked": {
+              "enabled": true,
+              "variableName": "posting_blocked"
+            }
+          }
+        }
+      },
+      {
+        "id": "comp",
+        "type": "call_reference",
+        "label": "Get supplier company data",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "reference_id": "daac2bb4-e92a-5b11-86f5-6be8f8d2457d",
+          "reference_name": "Get supplier company data",
+          "reference_method": "GET",
+          "input_mappings": {
+            "supplier": "{{supplier}}",
+            "company_code": "{{company_code}}"
+          },
+          "output_mappings": {
+            "payment_terms": {
+              "enabled": true,
+              "variableName": "payment_terms"
+            },
+            "payment_methods": {
+              "enabled": true,
+              "variableName": "payment_methods"
+            },
+            "house_bank": {
+              "enabled": true,
+              "variableName": "house_bank"
+            },
+            "payment_block": {
+              "enabled": true,
+              "variableName": "payment_block"
+            }
+          }
+        }
+      },
+      {
+        "id": "banks",
+        "type": "call_reference",
+        "label": "Get bank details",
+        "position": {
+          "x": 400,
+          "y": 700
+        },
+        "config": {
+          "reference_id": "59c4581d-48d6-5350-811a-d256be597cdc",
+          "reference_name": "Get supplier bank details",
+          "reference_method": "GET",
+          "input_mappings": {
+            "supplier": "{{supplier}}"
+          },
+          "output_mappings": {
+            "banks": {
+              "enabled": true,
+              "variableName": "banks"
+            },
+            "current_bank_id": {
+              "enabled": true,
+              "variableName": "current_bank_id"
+            },
+            "current_iban": {
+              "enabled": true,
+              "variableName": "current_iban"
+            },
+            "current_swift": {
+              "enabled": true,
+              "variableName": "current_swift"
+            },
+            "current_bank_country": {
+              "enabled": true,
+              "variableName": "current_bank_country"
+            },
+            "current_bank_name": {
+              "enabled": true,
+              "variableName": "current_bank_name"
+            },
+            "current_holder": {
+              "enabled": true,
+              "variableName": "current_holder"
+            }
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 860
+        },
+        "config": {
+          "title": "Bank change {{change_ref}}: {{supplier_name}} ({{supplier}})"
+        }
+      },
+      {
+        "id": "cc",
+        "type": "set_variable",
+        "label": "Country changed?",
+        "position": {
+          "x": 400,
+          "y": 1020
+        },
+        "config": {
+          "name": "country_changed",
+          "expression": "{{=IF(UPPER(new_bank_country) != UPPER(current_bank_country), true, false)}}"
+        }
+      },
+      {
+        "id": "hm",
+        "type": "set_variable",
+        "label": "Holder matches name?",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "name": "holder_matches",
+          "expression": "{{=IF(UPPER(TRIM(new_holder)) == UPPER(TRIM(supplier_name)), true, false)}}"
+        }
+      },
+      {
+        "id": "last4",
+        "type": "set_variable",
+        "label": "IBAN last four",
+        "position": {
+          "x": 400,
+          "y": 1340
+        },
+        "config": {
+          "name": "iban_last4",
+          "expression": "{{=RIGHT(REPLACE(new_iban, \" \", \"\"), 4)}}"
+        }
+      },
+      {
+        "id": "next_id",
+        "type": "set_variable",
+        "label": "New bank id",
+        "position": {
+          "x": 400,
+          "y": 1500
+        },
+        "config": {
+          "name": "new_bank_id",
+          "expression": "{{=PAD_LEFT(TO_STRING(TO_NUMBER(COALESCE(current_bank_id, \"0\")) + 1), 4, \"0\")}}"
+        }
+      },
+      {
+        "id": "risk",
+        "type": "decision_table",
+        "label": "Bank change risk",
+        "position": {
+          "x": 400,
+          "y": 1660
+        },
+        "config": {
+          "decision_table_id": "575a6012-0d3c-5ea7-9ad4-2a86d272ded4",
+          "decision_table_name": "Bank change risk",
+          "input_mappings": {
+            "country_changed": "{{country_changed}}",
+            "holder_matches": "{{holder_matches}}",
+            "payment_blocked": "{{payment_blocked}}"
+          }
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Change SLA",
+        "position": {
+          "x": 400,
+          "y": 1820
+        },
+        "config": {
+          "sla_label": "Bank change decision",
+          "mode": "relative",
+          "amount": 3,
+          "unit": "days",
+          "warning_amount": 2,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "a_req",
+        "type": "update_data_table",
+        "label": "Audit: requested",
+        "position": {
+          "x": 400,
+          "y": 1980
+        },
+        "config": {
+          "table_id": "1603064a-9e72-56fc-87c8-4f96c1160014",
+          "table_name": "Vendor change audit log",
+          "operation": "insert",
+          "column_values": {
+            "change_ref": "{{change_ref}}",
+            "supplier": "{{supplier}}",
+            "supplier_name": "{{supplier_name}}",
+            "step": "requested",
+            "decision": "Submitted",
+            "actor": "{{requester_email}}",
+            "old_value": "{{current_iban}}",
+            "new_value": "{{new_iban}}",
+            "risk": "{{risk}}",
+            "notes": "{{reason}} · evidence {{evidence_reference}}",
+            "logged_at": "{{=NOW()}}"
+          }
+        }
+      },
+      {
+        "id": "review",
+        "type": "user_task",
+        "label": "Finance review",
+        "position": {
+          "x": 400,
+          "y": 2140
+        },
+        "config": {
+          "task_title": "Review bank change for {{supplier_name}} ({{supplier}}), risk {{risk}}",
+          "task_description": "<p>{{requester_email}} asks to change the bank details of <strong>{{supplier_name}}</strong> ({{supplier}}, company code {{company_code}}, terms {{payment_terms}}) from <strong>{{effective_date}}</strong>.</p><table style=\"border-collapse:collapse\"><tr><th></th><th align=\"left\">Current in SAP</th><th align=\"left\">Requested</th></tr><tr><td>Bank country</td><td>{{current_bank_country}}</td><td><strong>{{new_bank_country}}</strong></td></tr><tr><td>IBAN</td><td>{{current_iban}}</td><td><strong>{{new_iban}}</strong></td></tr><tr><td>SWIFT</td><td>{{current_swift}}</td><td>{{new_swift}}</td></tr><tr><td>Holder</td><td>{{current_holder}}</td><td>{{new_holder}}</td></tr></table><p>Evidence: {{evidence_reference}}. Reason: {{reason}}.</p><p>Risk rule “{{rule_label}}”: <strong>{{risk}}</strong>, {{callbacks_required}} call-back(s) required.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "4e12570b-6580-501e-9627-8d926a4a8eaa",
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 480
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 2880,
+          "fields": [
+            {
+              "key": "evidence_checked",
+              "label": "Supplier letter / form checked against the request",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "iban_valid",
+              "label": "IBAN checksum and bank name validated",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "open_items",
+              "label": "Open payments to hold until verified",
+              "type": "text"
+            },
+            {
+              "key": "comment",
+              "label": "Review notes",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "evidence_checked",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "iban_valid",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "open_items",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Finance review",
+            "align": "left",
+            "subtitle": "{{supplier_name}} · {{change_ref}} · risk {{risk}}"
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ]
+        }
+      },
+      {
+        "id": "a_rev",
+        "type": "update_data_table",
+        "label": "Audit: finance review",
+        "position": {
+          "x": 240,
+          "y": 2320
+        },
+        "config": {
+          "table_id": "1603064a-9e72-56fc-87c8-4f96c1160014",
+          "table_name": "Vendor change audit log",
+          "operation": "insert",
+          "column_values": {
+            "change_ref": "{{change_ref}}",
+            "supplier": "{{supplier}}",
+            "supplier_name": "{{supplier_name}}",
+            "step": "finance review",
+            "decision": "Approve",
+            "actor": "{{task.assignee_id}}",
+            "old_value": "",
+            "new_value": "",
+            "risk": "{{risk}}",
+            "notes": "{{task_data.comment}}",
+            "logged_at": "{{=NOW()}}"
+          }
+        }
+      },
+      {
+        "id": "callback",
+        "type": "user_task",
+        "label": "Call-back verification",
+        "position": {
+          "x": 240,
+          "y": 2480
+        },
+        "config": {
+          "task_title": "Call {{supplier_name}} to verify the new bank details ({{change_ref}})",
+          "task_description": "<p>Call the supplier on a number you already hold (SAP master data, a previous invoice or the contract), <strong>never</strong> one from the change request. Confirm the account holder and the last four digits of the IBAN: <strong>{{iban_last4}}</strong>.</p><p>{{callbacks_required}} call-back(s) required for {{risk}} risk.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Verified",
+            "Failed"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "0fcd7476-a964-5d6a-a5de-b2660f98db0d",
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "number_source",
+              "label": "Phone number taken from",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "SAP supplier master",
+                "Previous invoice",
+                "Signed contract",
+                "Supplier portal profile"
+              ],
+              "display": "radio"
+            },
+            {
+              "key": "contact_name",
+              "label": "Person spoken to",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "phone_number",
+              "label": "Number called",
+              "type": "phone",
+              "required": true
+            },
+            {
+              "key": "holder_confirmed",
+              "label": "Account holder confirmed",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "iban_confirmed",
+              "label": "Last four IBAN digits confirmed",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "second_contact",
+              "label": "Second contact confirmed (high risk)",
+              "type": "boolean"
+            },
+            {
+              "key": "notes",
+              "label": "Call notes",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "number_source",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "contact_name",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "phone_number",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "holder_confirmed",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "iban_confirmed",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "second_contact",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Call-back verification",
+            "align": "left",
+            "subtitle": "{{supplier_name}} · IBAN ending {{iban_last4}}"
+          },
+          "form_buttons": [
+            {
+              "id": "verified",
+              "label": "Verified",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Verified"
+            },
+            {
+              "id": "failed",
+              "label": "Could not verify",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Failed"
+            }
+          ]
+        }
+      },
+      {
+        "id": "a_cb",
+        "type": "update_data_table",
+        "label": "Audit: call-back",
+        "position": {
+          "x": 80,
+          "y": 2660
+        },
+        "config": {
+          "table_id": "1603064a-9e72-56fc-87c8-4f96c1160014",
+          "table_name": "Vendor change audit log",
+          "operation": "insert",
+          "column_values": {
+            "change_ref": "{{change_ref}}",
+            "supplier": "{{supplier}}",
+            "supplier_name": "{{supplier_name}}",
+            "step": "call-back",
+            "decision": "Verified",
+            "actor": "{{task.assignee_id}}",
+            "old_value": "",
+            "new_value": "{{task_data.contact_name}} via {{task_data.number_source}}",
+            "risk": "{{risk}}",
+            "notes": "{{task_data.notes}}",
+            "logged_at": "{{=NOW()}}"
+          }
+        }
+      },
+      {
+        "id": "treasury",
+        "type": "user_task",
+        "label": "Treasury approval",
+        "position": {
+          "x": 80,
+          "y": 2820
+        },
+        "config": {
+          "task_title": "Approve bank change for {{supplier_name}} ({{change_ref}})",
+          "task_description": "<p>Finance reviewed and the supplier confirmed the change by call-back. Second approval (four eyes) before the bank details change in SAP.</p><table style=\"border-collapse:collapse\"><tr><th></th><th align=\"left\">Current in SAP</th><th align=\"left\">Requested</th></tr><tr><td>Bank country</td><td>{{current_bank_country}}</td><td><strong>{{new_bank_country}}</strong></td></tr><tr><td>IBAN</td><td>{{current_iban}}</td><td><strong>{{new_iban}}</strong></td></tr><tr><td>SWIFT</td><td>{{current_swift}}</td><td>{{new_swift}}</td></tr><tr><td>Holder</td><td>{{current_holder}}</td><td>{{new_holder}}</td></tr></table><p>Effective {{effective_date}}. Risk {{risk}}.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "394a4384-e534-547d-9a03-d09f6e7f4732",
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "fields": [
+            {
+              "key": "four_eyes",
+              "label": "I did not request or review this change",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "four_eyes",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Treasury approval",
+            "align": "left",
+            "subtitle": "{{supplier_name}} · {{change_ref}}"
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ]
+        }
+      },
+      {
+        "id": "add",
+        "type": "call_reference",
+        "label": "Add new bank detail",
+        "position": {
+          "x": -80,
+          "y": 3000
+        },
+        "config": {
+          "reference_id": "24fd1381-1120-5ab1-9069-0da72468e4bc",
+          "reference_name": "Add supplier bank detail",
+          "reference_method": "POST",
+          "input_mappings": {
+            "supplier": "{{supplier}}",
+            "bank_id": "{{new_bank_id}}",
+            "bank_country": "{{new_bank_country}}",
+            "bank_number": "{{new_bank_key}}",
+            "swift": "{{new_swift}}",
+            "iban": "{{=REPLACE(new_iban, \" \", \"\")}}",
+            "holder": "{{new_holder}}",
+            "valid_from": "{{effective_date}}"
+          },
+          "output_mappings": {
+            "new_bank_id": {
+              "enabled": true,
+              "variableName": "created_bank_id"
+            }
+          }
+        }
+      },
+      {
+        "id": "vto",
+        "type": "set_variable",
+        "label": "Old detail ends",
+        "position": {
+          "x": -80,
+          "y": 3160
+        },
+        "config": {
+          "name": "valid_to",
+          "expression": "{{=FORMAT_DATE(SUBTRACT_DAYS(effective_date, 1), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "end",
+        "type": "call_reference",
+        "label": "End old bank detail",
+        "position": {
+          "x": -80,
+          "y": 3320
+        },
+        "config": {
+          "reference_id": "48ac6936-af97-54b3-a7e0-dd757852be4c",
+          "reference_name": "End old bank detail",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "supplier": "{{supplier}}",
+            "bank_id": "{{current_bank_id}}",
+            "valid_to": "{{valid_to}}"
+          },
+          "output_mappings": {}
+        }
+      },
+      {
+        "id": "a_post",
+        "type": "update_data_table",
+        "label": "Audit: posted",
+        "position": {
+          "x": -80,
+          "y": 3480
+        },
+        "config": {
+          "table_id": "1603064a-9e72-56fc-87c8-4f96c1160014",
+          "table_name": "Vendor change audit log",
+          "operation": "insert",
+          "column_values": {
+            "change_ref": "{{change_ref}}",
+            "supplier": "{{supplier}}",
+            "supplier_name": "{{supplier_name}}",
+            "step": "posted",
+            "decision": "Approve",
+            "actor": "{{task.assignee_id}}",
+            "old_value": "{{current_bank_id}} {{current_iban}}",
+            "new_value": "{{created_bank_id}} {{new_iban}}",
+            "risk": "{{risk}}",
+            "notes": "Live from {{effective_date}}. {{task_data.comment}}",
+            "logged_at": "{{=NOW()}}"
+          }
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email requester",
+        "position": {
+          "x": -80,
+          "y": 3640
+        },
+        "config": {
+          "to": "{{requester_email}}",
+          "email_template_id": "074c0adf-8bc7-5ae9-a4b3-7db6324b7880"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Bank details changed",
+        "position": {
+          "x": -80,
+          "y": 3800
+        },
+        "config": {
+          "reason": "{{change_ref}}: {{supplier_name}} now paid to IBAN ending {{iban_last4}} from {{effective_date}}"
+        }
+      },
+      {
+        "id": "a_rej",
+        "type": "update_data_table",
+        "label": "Audit: rejected",
+        "position": {
+          "x": 720,
+          "y": 2660
+        },
+        "config": {
+          "table_id": "1603064a-9e72-56fc-87c8-4f96c1160014",
+          "table_name": "Vendor change audit log",
+          "operation": "insert",
+          "column_values": {
+            "change_ref": "{{change_ref}}",
+            "supplier": "{{supplier}}",
+            "supplier_name": "{{supplier_name}}",
+            "step": "rejected",
+            "decision": "Reject",
+            "actor": "{{task.assignee_id}}",
+            "old_value": "{{current_iban}}",
+            "new_value": "{{new_iban}}",
+            "risk": "{{risk}}",
+            "notes": "{{task_data.comment}}{{task_data.notes}}",
+            "logged_at": "{{=NOW()}}"
+          }
+        }
+      },
+      {
+        "id": "rejected",
+        "type": "end_workflow",
+        "label": "Change rejected",
+        "position": {
+          "x": 720,
+          "y": 2820
+        },
+        "config": {
+          "reason": "{{change_ref}} rejected; SAP unchanged"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-sup",
+        "source": "ref",
+        "target": "sup"
+      },
+      {
+        "id": "e-sup-comp",
+        "source": "sup",
+        "target": "comp"
+      },
+      {
+        "id": "e-comp-banks",
+        "source": "comp",
+        "target": "banks"
+      },
+      {
+        "id": "e-banks-title",
+        "source": "banks",
+        "target": "title"
+      },
+      {
+        "id": "e-title-cc",
+        "source": "title",
+        "target": "cc"
+      },
+      {
+        "id": "e-cc-hm",
+        "source": "cc",
+        "target": "hm"
+      },
+      {
+        "id": "e-hm-last4",
+        "source": "hm",
+        "target": "last4"
+      },
+      {
+        "id": "e-last4-next_id",
+        "source": "last4",
+        "target": "next_id"
+      },
+      {
+        "id": "e-next_id-risk",
+        "source": "next_id",
+        "target": "risk"
+      },
+      {
+        "id": "e-risk-sla",
+        "source": "risk",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-a_req",
+        "source": "sla",
+        "target": "a_req"
+      },
+      {
+        "id": "e-a_req-review",
+        "source": "a_req",
+        "target": "review"
+      },
+      {
+        "id": "e-review-a_rev-approve",
+        "source": "review",
+        "target": "a_rev",
+        "label": "Approve"
+      },
+      {
+        "id": "e-review-a_rej-reject",
+        "source": "review",
+        "target": "a_rej",
+        "label": "Reject"
+      },
+      {
+        "id": "e-a_rev-callback",
+        "source": "a_rev",
+        "target": "callback"
+      },
+      {
+        "id": "e-callback-a_cb-verified",
+        "source": "callback",
+        "target": "a_cb",
+        "label": "Verified"
+      },
+      {
+        "id": "e-callback-a_rej-failed",
+        "source": "callback",
+        "target": "a_rej",
+        "label": "Failed"
+      },
+      {
+        "id": "e-a_cb-treasury",
+        "source": "a_cb",
+        "target": "treasury"
+      },
+      {
+        "id": "e-treasury-add-approve",
+        "source": "treasury",
+        "target": "add",
+        "label": "Approve"
+      },
+      {
+        "id": "e-treasury-a_rej-reject",
+        "source": "treasury",
+        "target": "a_rej",
+        "label": "Reject"
+      },
+      {
+        "id": "e-add-vto",
+        "source": "add",
+        "target": "vto"
+      },
+      {
+        "id": "e-vto-end",
+        "source": "vto",
+        "target": "end"
+      },
+      {
+        "id": "e-end-a_post",
+        "source": "end",
+        "target": "a_post"
+      },
+      {
+        "id": "e-a_post-mail",
+        "source": "a_post",
+        "target": "mail"
+      },
+      {
+        "id": "e-mail-done",
+        "source": "mail",
+        "target": "done"
+      },
+      {
+        "id": "e-a_rej-rejected",
+        "source": "a_rej",
+        "target": "rejected"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-requester_email",
+        "name": "requester_email",
+        "type": "string",
+        "description": "Who is asking: gets the confirmation",
+        "defaultValue": "",
+        "required": true,
+        "label": "Your email",
+        "format": "email"
+      },
+      {
+        "id": "v-supplier",
+        "name": "supplier",
+        "type": "string",
+        "description": "SAP supplier / business partner number, e.g. 17300001",
+        "defaultValue": "",
+        "required": true,
+        "label": "Supplier number"
+      },
+      {
+        "id": "v-company_code",
+        "name": "company_code",
+        "type": "string",
+        "description": "Company code the supplier is paid from",
+        "defaultValue": "1010",
+        "required": true,
+        "label": "Company code"
+      },
+      {
+        "id": "v-new_bank_country",
+        "name": "new_bank_country",
+        "type": "string",
+        "description": "ISO country of the new bank account",
+        "defaultValue": "",
+        "required": true,
+        "label": "Bank country",
+        "options": [
+          "DE",
+          "NL",
+          "FR",
+          "GB",
+          "US",
+          "AU",
+          "NZ"
+        ]
+      },
+      {
+        "id": "v-new_iban",
+        "name": "new_iban",
+        "type": "string",
+        "description": "IBAN of the new account (or account number where IBAN does not apply)",
+        "defaultValue": "",
+        "required": true,
+        "label": "New IBAN"
+      },
+      {
+        "id": "v-new_swift",
+        "name": "new_swift",
+        "type": "string",
+        "description": "BIC of the new bank",
+        "defaultValue": "",
+        "required": false,
+        "label": "SWIFT / BIC"
+      },
+      {
+        "id": "v-new_bank_key",
+        "name": "new_bank_key",
+        "type": "string",
+        "description": "Bank key / sort code, if your country needs it",
+        "defaultValue": "",
+        "required": false,
+        "label": "Bank key"
+      },
+      {
+        "id": "v-new_holder",
+        "name": "new_holder",
+        "type": "string",
+        "description": "Account holder name exactly as on the bank letter",
+        "defaultValue": "",
+        "required": true,
+        "label": "Account holder"
+      },
+      {
+        "id": "v-effective_date",
+        "name": "effective_date",
+        "type": "string",
+        "description": "First day payments go to the new account",
+        "defaultValue": "",
+        "required": true,
+        "label": "Effective from",
+        "format": "date"
+      },
+      {
+        "id": "v-evidence_reference",
+        "name": "evidence_reference",
+        "type": "string",
+        "description": "Reference of the supplier letter / signed form (document id or link)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Evidence"
+      },
+      {
+        "id": "v-reason",
+        "name": "reason",
+        "type": "string",
+        "description": "Why the supplier is changing bank",
+        "defaultValue": "",
+        "required": false,
+        "label": "Reason"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

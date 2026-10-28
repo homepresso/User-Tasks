@@ -1,0 +1,130 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "494849e5-c6df-5851-b6f3-10d0df9d5d6a",
+  "asset": {
+    "id": "494849e5-c6df-5851-b6f3-10d0df9d5d6a",
+    "name": "Booking approval",
+    "description": "When a pool car booking needs the fleet coordinator's approval. First matching rule wins; the last rule is the default.",
+    "inputs": [
+      {
+        "key": "over_capacity",
+        "label": "More people than seats",
+        "type": "boolean",
+        "id": "27686a7c-e984-5f8f-9219-a48aeb890c53"
+      },
+      {
+        "key": "distance_km",
+        "label": "Return distance (km)",
+        "type": "number",
+        "id": "22be100f-dc05-51f5-9f10-2edd2535ccad"
+      },
+      {
+        "key": "trip_days",
+        "label": "Length (days)",
+        "type": "number",
+        "id": "21fdda6f-de93-5648-a48c-3f489178dfe9"
+      },
+      {
+        "key": "weekend",
+        "label": "Includes a weekend",
+        "type": "boolean",
+        "id": "6763eb55-1559-51e7-86d0-235e116981df"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "approval_needed",
+        "label": "Needs approval",
+        "type": "boolean",
+        "id": "7571d872-b591-5d75-829b-2fd24a133641"
+      },
+      {
+        "key": "approval_reason",
+        "label": "Reason",
+        "type": "text",
+        "id": "76845349-25f5-5fd5-9b15-dd204edf1dbd"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Too many people",
+        "conditions": [
+          {
+            "inputKey": "over_capacity",
+            "operator": "equals",
+            "value": "true",
+            "id": "28a64c84-0e9e-5180-9869-a069c7d5f699"
+          }
+        ],
+        "outputs": {
+          "approval_needed": true,
+          "approval_reason": "More people travelling than the vehicle has seats"
+        },
+        "id": "c18da1a1-084f-5a1b-817e-36eee84c3146",
+        "enabled": true
+      },
+      {
+        "label": "Long trip",
+        "conditions": [
+          {
+            "inputKey": "distance_km",
+            "operator": "greater_than_or_equal",
+            "value": "300",
+            "id": "30e01666-ef8a-53f6-beec-9650a6aeba46"
+          }
+        ],
+        "outputs": {
+          "approval_needed": true,
+          "approval_reason": "Long trip (300 km or more)"
+        },
+        "id": "aac17df8-64f0-5b99-9a5f-d914d2c37c75",
+        "enabled": true
+      },
+      {
+        "label": "Multi-day",
+        "conditions": [
+          {
+            "inputKey": "trip_days",
+            "operator": "greater_than",
+            "value": "3",
+            "id": "725c0f88-2778-5a99-89de-ea227c94b7d8"
+          }
+        ],
+        "outputs": {
+          "approval_needed": true,
+          "approval_reason": "Booked for more than three days"
+        },
+        "id": "8e24398d-ef3e-575e-be02-6808031d37b6",
+        "enabled": true
+      },
+      {
+        "label": "Weekend use",
+        "conditions": [
+          {
+            "inputKey": "weekend",
+            "operator": "equals",
+            "value": "true",
+            "id": "90faf0b7-b7c6-5b64-a7b3-0180742768a4"
+          }
+        ],
+        "outputs": {
+          "approval_needed": true,
+          "approval_reason": "Weekend use"
+        },
+        "id": "8552e4bc-f4b5-5f6b-ada4-467b1931d3fb",
+        "enabled": true
+      },
+      {
+        "label": "Standard booking",
+        "conditions": [],
+        "outputs": {
+          "approval_needed": false,
+          "approval_reason": ""
+        },
+        "id": "b176188f-8a2b-57d0-931e-0874ad301fc9",
+        "enabled": true
+      }
+    ]
+  }
+}

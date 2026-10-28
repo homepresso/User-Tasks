@@ -1,0 +1,353 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "webhook_received",
+      "label": "Inbound Request",
+      "position": { "x": 500, "y": 20 },
+      "config": {}
+    },
+    {
+      "id": "n1",
+      "type": "set_variable",
+      "label": "Set Department",
+      "position": { "x": 500, "y": 140 },
+      "config": { "name": "department", "expression": "engineering" }
+    },
+    {
+      "id": "n2",
+      "type": "json_build_array",
+      "label": "Init Employee List",
+      "position": { "x": 500, "y": 280 },
+      "config": {
+        "items": [
+          { "value": "{\"name\": \"Alice Chen\", \"role\": \"senior\", \"department\": \"engineering\", \"salary\": 145000, \"years\": 8}" },
+          { "value": "{\"name\": \"Bob Martinez\", \"role\": \"junior\", \"department\": \"engineering\", \"salary\": 72000, \"years\": 2}" },
+          { "value": "{\"name\": \"Carol Davis\", \"role\": \"senior\", \"department\": \"design\", \"salary\": 130000, \"years\": 6}" },
+          { "value": "{\"name\": \"Dave Kim\", \"role\": \"mid\", \"department\": \"engineering\", \"salary\": 105000, \"years\": 4}" },
+          { "value": "{\"name\": \"Eve Johnson\", \"role\": \"junior\", \"department\": \"design\", \"salary\": 68000, \"years\": 1}" },
+          { "value": "{\"name\": \"Frank Lee\", \"role\": \"lead\", \"department\": \"engineering\", \"salary\": 165000, \"years\": 12}" },
+          { "value": "{\"name\": \"Grace Patel\", \"role\": \"mid\", \"department\": \"marketing\", \"salary\": 95000, \"years\": 3}" }
+        ],
+        "output_var": "employees"
+      }
+    },
+    {
+      "id": "n3",
+      "type": "collection_count",
+      "label": "Count All Employees",
+      "position": { "x": 500, "y": 420 },
+      "config": { "collection": "{{employees}}", "output_var": "total_employees" }
+    },
+    {
+      "id": "n4",
+      "type": "collection_filter",
+      "label": "Filter by Department",
+      "position": { "x": 500, "y": 560 },
+      "config": { "collection": "{{employees}}", "field": "department", "operator": "equals", "value": "{{department}}", "output_var": "dept_employees" }
+    },
+    {
+      "id": "n5",
+      "type": "collection_count",
+      "label": "Count Dept Employees",
+      "position": { "x": 500, "y": 700 },
+      "config": { "collection": "{{dept_employees}}", "output_var": "dept_count" }
+    },
+    {
+      "id": "n6",
+      "type": "condition",
+      "label": "Any in Department?",
+      "position": { "x": 500, "y": 840 },
+      "config": {
+        "branches": [
+          { "label": "Has Employees", "logic": "AND", "rules": [{ "field": "{{dept_count}}", "operator": "greater_than", "value": "0" }] }
+        ],
+        "has_else": true
+      }
+    },
+    {
+      "id": "n7",
+      "type": "log",
+      "label": "No Employees Found",
+      "position": { "x": 800, "y": 980 },
+      "config": { "message": "ERROR: No employees found in department '{{department}}'" }
+    },
+    {
+      "id": "n8",
+      "type": "end_workflow",
+      "label": "Abort — Empty Dept",
+      "position": { "x": 800, "y": 1120 },
+      "config": { "reason": "No employees in {{department}}" }
+    },
+    {
+      "id": "n9",
+      "type": "collection_sort",
+      "label": "Sort by Salary DESC",
+      "position": { "x": 300, "y": 980 },
+      "config": { "collection": "{{dept_employees}}", "field": "salary", "direction": "desc", "output_var": "sorted_by_salary" }
+    },
+    {
+      "id": "n10",
+      "type": "collection_get",
+      "label": "Get Top Earner",
+      "position": { "x": 300, "y": 1120 },
+      "config": { "collection": "{{sorted_by_salary}}", "by": "index", "index": 0, "output_var": "top_earner" }
+    },
+    {
+      "id": "n11",
+      "type": "collection_get",
+      "label": "Get Last Earner",
+      "position": { "x": 600, "y": 1120 },
+      "config": { "collection": "{{sorted_by_salary}}", "by": "last", "output_var": "lowest_earner" }
+    },
+    {
+      "id": "n12",
+      "type": "modify_string",
+      "label": "Uppercase Top Name",
+      "position": { "x": 300, "y": 1260 },
+      "config": { "input": "{{top_earner.name}}", "operation": "uppercase", "output_var": "top_name_upper" }
+    },
+    {
+      "id": "n13",
+      "type": "modify_string",
+      "label": "Slugify Department",
+      "position": { "x": 600, "y": 1260 },
+      "config": { "input": "{{department}}", "operation": "slug", "output_var": "dept_slug" }
+    },
+    {
+      "id": "n14",
+      "type": "collection_unique",
+      "label": "Unique Roles",
+      "position": { "x": 300, "y": 1400 },
+      "config": { "collection": "{{dept_employees}}", "field": "role", "output_var": "unique_roles" }
+    },
+    {
+      "id": "n15",
+      "type": "collection_join",
+      "label": "Join Role Names",
+      "position": { "x": 300, "y": 1540 },
+      "config": { "collection": "{{unique_roles}}", "field": "role", "separator": ", ", "output_var": "role_list" }
+    },
+    {
+      "id": "n16",
+      "type": "loop",
+      "label": "Process Each Employee",
+      "position": { "x": 500, "y": 1700 },
+      "config": { "items": "{{dept_employees}}", "item_var": "emp", "index_var": "emp_idx" }
+    },
+    {
+      "id": "n17",
+      "type": "switch_case",
+      "label": "Route by Role",
+      "position": { "x": 500, "y": 1860 },
+      "config": {
+        "field": "{{emp.role}}",
+        "cases": ["lead", "senior", "mid", "junior"],
+        "has_default": true
+      }
+    },
+    {
+      "id": "n18",
+      "type": "math",
+      "label": "Lead Bonus (20%)",
+      "position": { "x": 100, "y": 2020 },
+      "config": { "expression": "{{emp.salary}} * 0.20", "output_var": "bonus" }
+    },
+    {
+      "id": "n19",
+      "type": "math",
+      "label": "Senior Bonus (15%)",
+      "position": { "x": 300, "y": 2020 },
+      "config": { "expression": "{{emp.salary}} * 0.15", "output_var": "bonus" }
+    },
+    {
+      "id": "n20",
+      "type": "math",
+      "label": "Mid Bonus (10%)",
+      "position": { "x": 500, "y": 2020 },
+      "config": { "expression": "{{emp.salary}} * 0.10", "output_var": "bonus" }
+    },
+    {
+      "id": "n21",
+      "type": "math",
+      "label": "Junior Bonus (5%)",
+      "position": { "x": 700, "y": 2020 },
+      "config": { "expression": "{{emp.salary}} * 0.05", "output_var": "bonus" }
+    },
+    {
+      "id": "n22",
+      "type": "log",
+      "label": "Unknown Role Error",
+      "position": { "x": 900, "y": 2020 },
+      "config": { "message": "ERROR: Unknown role '{{emp.role}}' for {{emp.name}}" }
+    },
+    {
+      "id": "n23",
+      "type": "set_variable",
+      "label": "Round Bonus",
+      "position": { "x": 400, "y": 2180 },
+      "config": { "name": "bonus_rounded", "expression": "{{=ROUND(bonus, 2)}}" }
+    },
+    {
+      "id": "n24",
+      "type": "text_template",
+      "label": "Build Employee Line",
+      "position": { "x": 400, "y": 2320 },
+      "config": {
+        "template": "[{{=ADD(emp_idx, 1)}}] {{emp.name}} ({{emp.role}}) — Salary: ${{=FORMAT_NUMBER(emp.salary, 0)}} — Bonus: ${{bonus_rounded}}",
+        "output_var": "emp_line"
+      }
+    },
+    {
+      "id": "n25",
+      "type": "log",
+      "label": "Log Employee",
+      "position": { "x": 400, "y": 2460 },
+      "config": { "message": "{{emp_line}}" }
+    },
+    {
+      "id": "n26",
+      "type": "collection_filter",
+      "label": "Filter Seniors+",
+      "position": { "x": 200, "y": 2640 },
+      "config": { "collection": "{{dept_employees}}", "field": "years", "operator": "gte", "value": "5", "output_var": "senior_staff" }
+    },
+    {
+      "id": "n27",
+      "type": "collection_count",
+      "label": "Count Seniors",
+      "position": { "x": 500, "y": 2640 },
+      "config": { "collection": "{{senior_staff}}", "output_var": "senior_count" }
+    },
+    {
+      "id": "n28",
+      "type": "collection_join",
+      "label": "Join Senior Names",
+      "position": { "x": 200, "y": 2780 },
+      "config": { "collection": "{{senior_staff}}", "field": "name", "separator": " | ", "output_var": "senior_names" }
+    },
+    {
+      "id": "n29",
+      "type": "regex",
+      "label": "Extract First Names",
+      "position": { "x": 500, "y": 2780 },
+      "config": { "input": "{{senior_names}}", "pattern": "([A-Z][a-z]+)\\s", "flags": "g", "operation": "match", "output_var": "first_names" }
+    },
+    {
+      "id": "n30",
+      "type": "modify_string",
+      "label": "Reverse Names",
+      "position": { "x": 500, "y": 2920 },
+      "config": { "input": "{{senior_names}}", "operation": "reverse", "output_var": "reversed_names" }
+    },
+    {
+      "id": "n31",
+      "type": "math",
+      "label": "Avg Salary",
+      "position": { "x": 200, "y": 2920 },
+      "config": { "expression": "(145000 + 72000 + 105000 + 165000) / 4", "output_var": "avg_salary" }
+    },
+    {
+      "id": "n32",
+      "type": "condition",
+      "label": "High Avg Salary?",
+      "position": { "x": 350, "y": 3080 },
+      "config": {
+        "branches": [
+          { "label": "Very High", "logic": "AND", "rules": [{ "field": "{{avg_salary}}", "operator": "greater_than", "value": "130000" }] },
+          { "label": "High", "logic": "AND", "rules": [{ "field": "{{avg_salary}}", "operator": "greater_than", "value": "100000" }] }
+        ],
+        "has_else": true
+      }
+    },
+    {
+      "id": "n33",
+      "type": "log",
+      "label": "Alert: Very High",
+      "position": { "x": 100, "y": 3240 },
+      "config": { "message": "ALERT: Very high avg salary ${{=ROUND(avg_salary, 0)}} — review needed" }
+    },
+    {
+      "id": "n34",
+      "type": "log",
+      "label": "Note: High",
+      "position": { "x": 350, "y": 3240 },
+      "config": { "message": "NOTE: High avg salary ${{=ROUND(avg_salary, 0)}}" }
+    },
+    {
+      "id": "n35",
+      "type": "log",
+      "label": "OK: Normal",
+      "position": { "x": 600, "y": 3240 },
+      "config": { "message": "OK: Avg salary ${{=ROUND(avg_salary, 0)}} within normal range" }
+    },
+    {
+      "id": "n36",
+      "type": "text_template",
+      "label": "Build Summary",
+      "position": { "x": 350, "y": 3400 },
+      "config": {
+        "template": "=== DEPARTMENT REPORT: {{=UPPER(department)}} ===\nTotal company employees: {{total_employees}}\nDepartment employees: {{dept_count}}\nTop earner: {{top_name_upper}} (${{top_earner.salary}})\nLowest earner: {{lowest_earner.name}} (${{lowest_earner.salary}})\nRoles present: {{role_list}}\nSenior staff (5+ yrs): {{senior_count}} — {{senior_names}}\nAvg salary: ${{=ROUND(avg_salary, 0)}}\nDepartment slug: {{dept_slug}}\n================================",
+        "output_var": "report"
+      }
+    },
+    {
+      "id": "n37",
+      "type": "log",
+      "label": "Log Final Report",
+      "position": { "x": 350, "y": 3540 },
+      "config": { "message": "{{report}}" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "t1", "target": "n1" },
+    { "id": "e2", "source": "n1", "target": "n2" },
+    { "id": "e3", "source": "n2", "target": "n3" },
+    { "id": "e4", "source": "n3", "target": "n4" },
+    { "id": "e5", "source": "n4", "target": "n5" },
+    { "id": "e6", "source": "n5", "target": "n6" },
+    { "id": "e7", "source": "n6", "target": "n7", "label": "Else" },
+    { "id": "e8", "source": "n7", "target": "n8" },
+    { "id": "e9", "source": "n6", "target": "n9", "label": "Has Employees" },
+    { "id": "e10", "source": "n9", "target": "n10" },
+    { "id": "e11", "source": "n9", "target": "n11" },
+    { "id": "e12", "source": "n10", "target": "n12" },
+    { "id": "e13", "source": "n11", "target": "n13" },
+    { "id": "e14", "source": "n12", "target": "n14" },
+    { "id": "e15", "source": "n13", "target": "n14" },
+    { "id": "e16", "source": "n14", "target": "n15" },
+    { "id": "e17", "source": "n15", "target": "n16" },
+    { "id": "e18", "source": "n16", "target": "n17", "label": "Each Item" },
+    { "id": "e19", "source": "n17", "target": "n18", "label": "lead" },
+    { "id": "e20", "source": "n17", "target": "n19", "label": "senior" },
+    { "id": "e21", "source": "n17", "target": "n20", "label": "mid" },
+    { "id": "e22", "source": "n17", "target": "n21", "label": "junior" },
+    { "id": "e23", "source": "n17", "target": "n22", "label": "Default" },
+    { "id": "e24", "source": "n18", "target": "n23" },
+    { "id": "e25", "source": "n19", "target": "n23" },
+    { "id": "e26", "source": "n20", "target": "n23" },
+    { "id": "e27", "source": "n21", "target": "n23" },
+    { "id": "e28", "source": "n23", "target": "n24" },
+    { "id": "e29", "source": "n24", "target": "n25" },
+    { "id": "e30", "source": "n16", "target": "n26", "label": "Done" },
+    { "id": "e31", "source": "n26", "target": "n27" },
+    { "id": "e32", "source": "n26", "target": "n28" },
+    { "id": "e33", "source": "n27", "target": "n29" },
+    { "id": "e34", "source": "n28", "target": "n31" },
+    { "id": "e35", "source": "n29", "target": "n30" },
+    { "id": "e36", "source": "n30", "target": "n32" },
+    { "id": "e37", "source": "n31", "target": "n32" },
+    { "id": "e38", "source": "n32", "target": "n33", "label": "Very High" },
+    { "id": "e39", "source": "n32", "target": "n34", "label": "High" },
+    { "id": "e40", "source": "n32", "target": "n35", "label": "Else" },
+    { "id": "e41", "source": "n33", "target": "n36" },
+    { "id": "e42", "source": "n34", "target": "n36" },
+    { "id": "e43", "source": "n35", "target": "n36" },
+    { "id": "e44", "source": "n36", "target": "n37" }
+  ],
+  "user_variables": [
+    { "id": "v1", "name": "department", "type": "string", "defaultValue": "engineering", "description": "Department to analyze" }
+  ],
+  "swimlanes": []
+}

@@ -1,0 +1,27 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "1603064a-9e72-56fc-87c8-4f96c1160014",
+  "asset": {
+    "id": "1603064a-9e72-56fc-87c8-4f96c1160014",
+    "name": "Vendor change audit log rows",
+    "rows": [
+      {
+        "id": "fb99ac4f-2664-5fcf-8d96-b52b80732644",
+        "data": {
+          "change_ref": "VMC-20260914-2B7C",
+          "supplier": "17300044",
+          "supplier_name": "Contoso Logistics BV",
+          "step": "posted",
+          "decision": "Approve",
+          "actor": "treasury",
+          "old_value": "NL02ABNA0123456789",
+          "new_value": "NL20INGB0001234567",
+          "risk": "medium",
+          "notes": "Verified by call to number on contract",
+          "logged_at": "2026-09-15T09:12:00Z"
+        }
+      }
+    ]
+  }
+}

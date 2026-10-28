@@ -1,0 +1,82 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "5e60b089-cef3-55de-b01c-8c9793c25fe3",
+  "asset": {
+    "id": "5e60b089-cef3-55de-b01c-8c9793c25fe3",
+    "name": "Loan pool",
+    "description": "Loanable IT equipment. The request form only offers devices whose status is Available; the workflow sets On loan / Available / Repair as devices go out and come back.",
+    "columns": [
+      {
+        "id": "9ec56019-fe4e-51fc-b37e-c1423e54f564",
+        "required": true,
+        "key": "asset_tag",
+        "name": "Asset tag",
+        "type": "text"
+      },
+      {
+        "id": "9bde88ed-cc28-562b-82c1-b9a285529f02",
+        "required": true,
+        "key": "device",
+        "name": "Device",
+        "type": "text"
+      },
+      {
+        "id": "a4a37ac1-9526-5ec4-be8d-41ca182f3817",
+        "required": false,
+        "key": "type",
+        "name": "Type",
+        "type": "select",
+        "options": [
+          "Laptop",
+          "Phone",
+          "Headset",
+          "Tablet",
+          "Monitor",
+          "Projector"
+        ]
+      },
+      {
+        "id": "0c30ea03-db16-5355-8af4-9326ec5091e3",
+        "required": false,
+        "key": "model",
+        "name": "Model",
+        "type": "text"
+      },
+      {
+        "id": "5974d6d1-1830-557a-8804-003e8ebeab00",
+        "required": true,
+        "key": "serial",
+        "name": "Serial number",
+        "type": "text"
+      },
+      {
+        "id": "44e726bc-f8e9-53bc-b1f3-2d626cf5d4f5",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Available",
+          "On loan",
+          "Repair",
+          "Retired"
+        ]
+      },
+      {
+        "id": "a9986d11-26f6-59b0-ad8b-5a4d4800f8b6",
+        "required": false,
+        "key": "location",
+        "name": "Pick-up location",
+        "type": "text"
+      },
+      {
+        "id": "245287e8-10a1-5f84-a98c-f2edeb5f9f83",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      }
+    ]
+  }
+}

@@ -1,0 +1,657 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "e4361734-9d71-5aba-ab8a-6e3fefe6af77",
+  "asset": {
+    "id": "e4361734-9d71-5aba-ab8a-6e3fefe6af77",
+    "name": "Petty cash claim",
+    "description": "Started by the claim form's Submit button: checks the cost centre's float, applies the Petty cash limits decision table, asks the budget holder when needed and records the claim in the ledger.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Claim submitted",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Claim reference",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "name": "claim_ref",
+          "expression": "PC-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "month",
+        "type": "set_variable",
+        "label": "Month",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "name": "month",
+          "expression": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM\")}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 480
+        },
+        "config": {
+          "title": "Petty cash {{claim_ref}}: NZD {{amount}} · {{claimant_name}}"
+        }
+      },
+      {
+        "id": "cc",
+        "type": "update_data_table",
+        "label": "Read the cost centre",
+        "position": {
+          "x": 400,
+          "y": 620
+        },
+        "config": {
+          "table_id": "c05c6b36-1d8e-5009-8968-9eb90f252379",
+          "table_name": "Petty cash cost centres",
+          "operation": "get",
+          "match_column": "code",
+          "match_value": "{{cost_centre}}",
+          "output_row_var": "cost_centre_row"
+        }
+      },
+      {
+        "id": "spent",
+        "type": "update_data_table",
+        "label": "Paid this month",
+        "position": {
+          "x": 400,
+          "y": 760
+        },
+        "config": {
+          "table_id": "d4aaece8-ff18-5e74-928b-8b7f27eebde5",
+          "table_name": "Petty cash ledger",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "cost_centre",
+              "operator": "eq",
+              "value": "{{cost_centre}}"
+            },
+            {
+              "column": "month",
+              "operator": "eq",
+              "value": "{{month}}"
+            },
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Paid"
+            }
+          ],
+          "limit": 500,
+          "output_rows_var": "paid_rows",
+          "output_count_var": "paid_count"
+        }
+      },
+      {
+        "id": "used",
+        "type": "set_variable",
+        "label": "Float used",
+        "position": {
+          "x": 400,
+          "y": 900
+        },
+        "config": {
+          "name": "float_used",
+          "expression": "{{=SUM(PLUCK(paid_rows, \"amount\"))}}"
+        }
+      },
+      {
+        "id": "over",
+        "type": "set_variable",
+        "label": "Over the float?",
+        "position": {
+          "x": 400,
+          "y": 1040
+        },
+        "config": {
+          "name": "over_float",
+          "expression": "{{=float_used + amount > COALESCE(cost_centre_row.monthly_float, 0)}}"
+        }
+      },
+      {
+        "id": "receipt",
+        "type": "set_variable",
+        "label": "Receipt attached?",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "name": "has_receipt",
+          "expression": "{{=NOT(IS_EMPTY(receipt_url))}}"
+        }
+      },
+      {
+        "id": "rules",
+        "type": "decision_table",
+        "label": "Apply the limits",
+        "position": {
+          "x": 400,
+          "y": 1320
+        },
+        "config": {
+          "decision_table_id": "96da570b-c820-5b76-be90-6ff085722f9b",
+          "decision_table_name": "Petty cash limits",
+          "input_mappings": {
+            "amount": "{{amount}}",
+            "has_receipt": "{{has_receipt}}",
+            "over_float": "{{over_float}}"
+          }
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Add to the ledger",
+        "position": {
+          "x": 400,
+          "y": 1460
+        },
+        "config": {
+          "table_id": "d4aaece8-ff18-5e74-928b-8b7f27eebde5",
+          "table_name": "Petty cash ledger",
+          "operation": "insert",
+          "column_values": {
+            "claim_ref": "{{claim_ref}}",
+            "claimed_on": "{{=TODAY()}}",
+            "month": "{{month}}",
+            "claimant_name": "{{claimant_name}}",
+            "claimant_email": "{{claimant_email}}",
+            "cost_centre": "{{cost_centre}}",
+            "gl_code": "{{cost_centre_row.gl_code}}",
+            "category": "{{category}}",
+            "spent_on": "{{spent_on}}",
+            "description": "{{description}}",
+            "amount": "{{amount}}",
+            "receipt_url": "{{receipt_url}}",
+            "route": "{{route}}",
+            "status": "Awaiting approval"
+          }
+        }
+      },
+      {
+        "id": "path",
+        "type": "condition",
+        "label": "Route",
+        "position": {
+          "x": 400,
+          "y": 1600
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Auto-reject",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{auto_reject}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            },
+            {
+              "label": "Auto-approve",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{auto_approve}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "approve",
+        "type": "user_task",
+        "label": "Budget holder approval",
+        "position": {
+          "x": 400,
+          "y": 1760
+        },
+        "config": {
+          "task_title": "Approve petty cash: NZD {{amount}} for {{claimant_name}} ({{cost_centre}})",
+          "task_description": "<p><strong>{{claimant_name}}</strong> claims <strong>NZD {{amount}}</strong> from <strong>{{cost_centre_row.name}}</strong> ({{cost_centre}}) for {{description}} ({{category}}, bought {{spent_on}}).</p><p>Receipt: <a href=\"{{receipt_url}}\">{{receipt_url}}</a></p><p>Float this month: NZD {{float_used}} paid of {{cost_centre_row.monthly_float}}. Rule: {{route}}: {{note}}.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{approver}}",
+          "fields": [
+            {
+              "key": "receipt_ok",
+              "label": "Receipt checked and matches the amount",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "gl_code",
+              "label": "GL account",
+              "type": "text",
+              "default": "{{cost_centre_row.gl_code}}"
+            },
+            {
+              "key": "comment",
+              "label": "Comment for the claimant",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "receipt_ok",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "gl_code",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Petty cash claim",
+            "align": "left",
+            "subtitle": "{{claim_ref}} · NZD {{amount}} · {{cost_centre}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320,
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#15803D",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "pay",
+        "type": "update_data_table",
+        "label": "Mark paid",
+        "position": {
+          "x": 160,
+          "y": 1920
+        },
+        "config": {
+          "table_id": "d4aaece8-ff18-5e74-928b-8b7f27eebde5",
+          "table_name": "Petty cash ledger",
+          "operation": "update",
+          "match_column": "claim_ref",
+          "match_value": "{{claim_ref}}",
+          "column_values": {
+            "status": "Paid",
+            "paid_on": "{{=TODAY()}}",
+            "gl_code": "{{=COALESCE(task_data.gl_code, cost_centre_row.gl_code)}}",
+            "approver_comment": "{{task_data.comment}}"
+          }
+        }
+      },
+      {
+        "id": "ok_mail",
+        "type": "send_email",
+        "label": "Email the claimant",
+        "position": {
+          "x": 160,
+          "y": 2080
+        },
+        "config": {
+          "to": "{{claimant_email}}",
+          "email_template_id": "72a6ec53-a7bd-5a21-a152-06409073e40a"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "ok_end",
+        "type": "end_workflow",
+        "label": "Paid",
+        "position": {
+          "x": 160,
+          "y": 2240
+        },
+        "config": {
+          "reason": "{{claim_ref}} paid: NZD {{amount}} from {{cost_centre}}"
+        }
+      },
+      {
+        "id": "rej",
+        "type": "set_variable",
+        "label": "Reason",
+        "position": {
+          "x": 680,
+          "y": 1920
+        },
+        "config": {
+          "name": "decline_reason",
+          "expression": "{{=IF(auto_reject, note, COALESCE(task_data.comment, \"the budget holder did not approve it\"))}}"
+        }
+      },
+      {
+        "id": "rej_row",
+        "type": "update_data_table",
+        "label": "Mark rejected",
+        "position": {
+          "x": 680,
+          "y": 2080
+        },
+        "config": {
+          "table_id": "d4aaece8-ff18-5e74-928b-8b7f27eebde5",
+          "table_name": "Petty cash ledger",
+          "operation": "update",
+          "match_column": "claim_ref",
+          "match_value": "{{claim_ref}}",
+          "column_values": {
+            "status": "Rejected",
+            "approver_comment": "{{decline_reason}}"
+          }
+        }
+      },
+      {
+        "id": "no_mail",
+        "type": "send_email",
+        "label": "Tell the claimant",
+        "position": {
+          "x": 680,
+          "y": 2240
+        },
+        "config": {
+          "to": "{{claimant_email}}",
+          "email_template_id": "c174dd4d-3af0-5cb5-b8eb-50bc1e8c6504"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "no_end",
+        "type": "end_workflow",
+        "label": "Declined",
+        "position": {
+          "x": 680,
+          "y": 2400
+        },
+        "config": {
+          "reason": "{{claim_ref}} declined: {{decline_reason}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-month",
+        "source": "ref",
+        "target": "month"
+      },
+      {
+        "id": "e-month-title",
+        "source": "month",
+        "target": "title"
+      },
+      {
+        "id": "e-title-cc",
+        "source": "title",
+        "target": "cc"
+      },
+      {
+        "id": "e-cc-spent",
+        "source": "cc",
+        "target": "spent"
+      },
+      {
+        "id": "e-spent-used",
+        "source": "spent",
+        "target": "used"
+      },
+      {
+        "id": "e-used-over",
+        "source": "used",
+        "target": "over"
+      },
+      {
+        "id": "e-over-receipt",
+        "source": "over",
+        "target": "receipt"
+      },
+      {
+        "id": "e-receipt-rules",
+        "source": "receipt",
+        "target": "rules"
+      },
+      {
+        "id": "e-rules-row",
+        "source": "rules",
+        "target": "row"
+      },
+      {
+        "id": "e-row-path",
+        "source": "row",
+        "target": "path"
+      },
+      {
+        "id": "e-path-rej-auto-reject",
+        "source": "path",
+        "target": "rej",
+        "label": "Auto-reject"
+      },
+      {
+        "id": "e-path-pay-auto-approve",
+        "source": "path",
+        "target": "pay",
+        "label": "Auto-approve"
+      },
+      {
+        "id": "e-path-approve-else",
+        "source": "path",
+        "target": "approve",
+        "label": "Else"
+      },
+      {
+        "id": "e-approve-pay-approve",
+        "source": "approve",
+        "target": "pay",
+        "label": "Approve"
+      },
+      {
+        "id": "e-approve-rej-reject",
+        "source": "approve",
+        "target": "rej",
+        "label": "Reject"
+      },
+      {
+        "id": "e-pay-ok_mail",
+        "source": "pay",
+        "target": "ok_mail"
+      },
+      {
+        "id": "e-ok_mail-ok_end",
+        "source": "ok_mail",
+        "target": "ok_end"
+      },
+      {
+        "id": "e-rej-rej_row",
+        "source": "rej",
+        "target": "rej_row"
+      },
+      {
+        "id": "e-rej_row-no_mail",
+        "source": "rej_row",
+        "target": "no_mail"
+      },
+      {
+        "id": "e-no_mail-no_end",
+        "source": "no_mail",
+        "target": "no_end"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-claimant_name",
+        "name": "claimant_name",
+        "type": "string",
+        "description": "Who is claiming",
+        "defaultValue": "",
+        "required": true,
+        "label": "Your name"
+      },
+      {
+        "id": "v-claimant_email",
+        "name": "claimant_email",
+        "type": "string",
+        "description": "Claimant email",
+        "defaultValue": "",
+        "required": true,
+        "label": "Email",
+        "format": "email"
+      },
+      {
+        "id": "v-cost_centre",
+        "name": "cost_centre",
+        "type": "string",
+        "description": "Cost centre code, e.g. CC-100",
+        "defaultValue": "",
+        "required": true,
+        "label": "Cost centre"
+      },
+      {
+        "id": "v-approver",
+        "name": "approver",
+        "type": "string",
+        "description": "User id of the budget holder who approves the claim",
+        "defaultValue": "",
+        "required": true,
+        "label": "Budget holder"
+      },
+      {
+        "id": "v-amount",
+        "name": "amount",
+        "type": "number",
+        "description": "Amount in NZD",
+        "defaultValue": "",
+        "required": true,
+        "label": "Amount"
+      },
+      {
+        "id": "v-category",
+        "name": "category",
+        "type": "string",
+        "description": "What kind of purchase",
+        "defaultValue": "",
+        "required": false,
+        "label": "Category"
+      },
+      {
+        "id": "v-spent_on",
+        "name": "spent_on",
+        "type": "string",
+        "description": "When it was bought",
+        "defaultValue": "",
+        "required": false,
+        "label": "Date of purchase",
+        "format": "date"
+      },
+      {
+        "id": "v-description",
+        "name": "description",
+        "type": "string",
+        "description": "What was bought and why",
+        "defaultValue": "",
+        "required": true,
+        "label": "What for"
+      },
+      {
+        "id": "v-receipt_url",
+        "name": "receipt_url",
+        "type": "string",
+        "description": "Link to the photo or scan of the receipt",
+        "defaultValue": "",
+        "required": false,
+        "label": "Receipt",
+        "format": "url"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

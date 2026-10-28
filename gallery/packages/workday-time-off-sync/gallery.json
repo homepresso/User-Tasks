@@ -1,0 +1,69 @@
+{
+  "title": "Workday time-off request sync",
+  "category": "hr-people",
+  "summary": "Every 30 minutes, time off requests from a Workday report sync to a Team calendar table; long or critical absences get a manager cover check.",
+  "description": "Workday time-off request sync keeps a team calendar in UserTasks in step with Workday Absence Management. Every 30 minutes it calls a Workday report-as-a-service (RaaS) report that returns the time off requests updated in the last two hours, as JSON Report_Entry rows: worker, team, manager, type, dates, units, status and a critical-role flag.\n\nEach request is matched to the Team calendar table by its request id: new requests are added and known ones updated with the latest dates and status, so cancellations and changes flow through. The Cover check decision table then decides whether the absence needs a cover check: critical roles, five or more days away and long-term leave do; cancelled, denied and short absences do not.\n\nFor each request that needs one, an async Confirm time off cover sub-workflow gives the manager a task form with Confirm cover and Flag a gap buttons, and the answer is written back to the calendar row. The sync itself completes in seconds; the cover checks wait for the managers.",
+  "trigger": "schedule",
+  "entry_workflow": "1ff02aea-b42e-5c53-85c6-19f3d6b7bd7e",
+  "start": "Runs every 30 minutes on its Schedule trigger (change the interval there). Run it on demand with lookback_hours to catch up a longer period.",
+  "difficulty": "intermediate",
+  "setup_minutes": 20,
+  "tags": [
+    "time off",
+    "absence",
+    "workday",
+    "scheduled",
+    "sync",
+    "decision table"
+  ],
+  "needs": [
+    "rest_api",
+    "assignees"
+  ],
+  "setup": [
+    "Workday integration: base URL https://<services-host>/ccx and an OAuth 2.0 bearer token (or switch the integration to Basic with the integration system user). Replace \"acme\" in the reference path with your tenant.",
+    "Create the RaaS report ISU_UserTasks/Time_Off_Requests_Updated (advanced, web service enabled) with prompts Updated_From and Supervisory_Organization and the fields listed in the README, and share it with the integration system user.",
+    "Assignees: pick the default manager who confirms cover (runs can pass manager_user_id).",
+    "Adjust the Cover check rules (days threshold, critical roles, leave types) to your policy."
+  ],
+  "steps": [
+    {
+      "title": "Every 30 minutes",
+      "body": "The schedule calls the Workday RaaS report for time off requests updated in the last two hours."
+    },
+    {
+      "title": "Sync the calendar",
+      "body": "Each request is added to the Team calendar table or, if it is already there, updated with the latest dates and status."
+    },
+    {
+      "title": "Cover rules",
+      "body": "The Cover check decision table decides from status, type, days and the critical-role flag whether cover must be confirmed."
+    },
+    {
+      "title": "Manager confirms",
+      "body": "An async sub-workflow gives the manager a task form: Confirm cover (with the person) or Flag a gap."
+    },
+    {
+      "title": "Summary",
+      "body": "The run logs how many requests were synced and how many cover checks started."
+    }
+  ],
+  "sample_input": {
+    "lookback_hours": 2
+  },
+  "expect": "completed",
+  "icon": "calendar-range",
+  "systems": [
+    "Workday"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "id": "0178f825-43e5-5d21-9c31-8805145f9147",
+  "slug": "workday-time-off-sync"
+}

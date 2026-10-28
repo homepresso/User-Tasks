@@ -1,0 +1,85 @@
+{
+  "title": "Workplace incident log",
+  "category": "operations-compliance",
+  "summary": "A safety-themed incident form, severity and SLA from a decision table, an incident register with 7-year retention and an investigation task with Close / Escalate.",
+  "description": "Workplace incident log gives everyone one simple place to report injuries, near misses, damage and environmental incidents. The Report a workplace incident form has a safety-orange theme and a grid layout; picking the site from the Incident sites table fills in the site manager.\n\nEach report starts the Incident response workflow through its Form submitted trigger. The Incident severity decision table turns the incident type and worst injury into a severity, a response time in hours, whether a formal investigation is needed and whether the regulator may need to be told. The workflow sets an SLA, adds the incident to the Incidents register (with a 7-year review retention policy applied to the row) and emails the site manager.\n\nWhen an investigation is needed, the health and safety lead gets an investigation task due within the SLA, with root cause, contributing factors and corrective actions, and Close or Escalate buttons. Escalations email the site manager and go to a senior review. Everything is built in.",
+  "trigger": "form",
+  "entry_workflow": "595d22d1-3b8b-53cc-879e-fbb6c9b97f84",
+  "entry_form": "35fe982c-2df3-5325-bfd9-d8eb8ef711ee",
+  "start": "Starts from a form page: share the Report a workplace incident form (/f/<id>) or put it on a QR code at each site; each report starts the workflow.",
+  "difficulty": "intermediate",
+  "setup_minutes": 10,
+  "tags": [
+    "health and safety",
+    "incidents",
+    "decision table",
+    "sla",
+    "retention",
+    "forms",
+    "no integrations"
+  ],
+  "version": "1.0.1",
+  "changelog": [
+    {
+      "version": "1.0.1",
+      "date": "2026-10-28",
+      "notes": "Steps for the coordinator who set the package up are assigned to the workflow owner (workflow_owner_id), now that workflow_started_by names the person who started the run."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Nothing to configure: install it and share the Report a workplace incident form from Forms.",
+    "Replace the sample rows in Incident sites with your workplaces and their site managers.",
+    "Investigation tasks go to the person who installed the package (the health and safety lead). Change the assignee on the investigation and senior review steps to route them elsewhere.",
+    "Review the Incident severity decision table against your own safety policy (SLA hours, when to investigate, notifiable events).",
+    "Optional: set EMAIL_PROVIDER so site managers receive the emails."
+  ],
+  "steps": [
+    {
+      "title": "Report",
+      "body": "Anyone fills in the themed form; choosing the site fills in the site manager."
+    },
+    {
+      "title": "Rate",
+      "body": "The Incident severity decision table sets severity, response hours, investigation and notifiable flags."
+    },
+    {
+      "title": "Log and notify",
+      "body": "An SLA starts, the incident goes into the register with a 7-year retention policy and the site manager is emailed."
+    },
+    {
+      "title": "Investigate",
+      "body": "The safety lead records root cause and corrective actions, due within the SLA, with a reminder and escalation."
+    },
+    {
+      "title": "Close or escalate",
+      "body": "Close completes the record; Escalate emails the site manager and starts a senior review."
+    }
+  ],
+  "sample_input": {
+    "site": "AKL-DC",
+    "occurred_at": "2026-10-27T14:30",
+    "location_detail": "Racking aisle 12",
+    "incident_type": "Injury",
+    "injury_level": "Medical treatment",
+    "people_involved": "Warehouse operator",
+    "witnesses": "Shift supervisor",
+    "description": "Operator strained their back lifting a carton from the bottom shelf; seen by the GP the same afternoon.",
+    "immediate_action": "Operator sent to the GP, carton moved to waist height.",
+    "reporter_name": "Hugo Silva",
+    "reporter_email": "hugo.silva@example.com",
+    "area_safe": true
+  },
+  "expect": "waiting",
+  "icon": "file-warning",
+  "id": "278bc2d0-4652-574f-b450-23eddd28e865",
+  "slug": "incident-log"
+}

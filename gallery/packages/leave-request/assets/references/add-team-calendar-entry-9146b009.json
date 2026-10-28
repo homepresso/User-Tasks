@@ -1,0 +1,102 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "9146b009-5f0b-44dc-9ca7-37d6cf0c5cdd",
+  "asset": {
+    "id": "9146b009-5f0b-44dc-9ca7-37d6cf0c5cdd",
+    "integration_id": "008f8831-fadc-489c-8e18-c75547ba4365",
+    "name": "Add team calendar entry",
+    "description": "Optional: add an \"away\" entry to the team calendar for the approved dates.",
+    "tags": [
+      "calendar"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"employee_id\":\"{{employee_id}}\",\"title\":\"{{title}}\",\"start_date\":\"{{start_date}}\",\"end_date\":\"{{end_date}}\"}",
+      "path_template": "/team-calendar/entries",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "entry_id",
+              "type": "string",
+              "example": "CAL-77120"
+            },
+            {
+              "name": "calendar",
+              "type": "string",
+              "example": "Sales team"
+            },
+            {
+              "name": "created",
+              "type": "boolean",
+              "example": true
+            }
+          ]
+        },
+        "sample": {
+          "entry_id": "CAL-77120",
+          "calendar": "Sales team",
+          "created": true
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "e6a663b6-2c52-4a2f-801f-b0ca71aa0f41",
+        "name": "employee_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c096e0f9-7b81-4edf-af87-36d6b2ef72c4",
+        "name": "title",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "d4bb4785-ed25-4347-a71a-ae6a658f0bd6",
+        "name": "start_date",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "8d3a755f-b512-42d6-8fd4-b1e1eeead0e4",
+        "name": "end_date",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "273a1ea1-2da0-41e8-81d1-11cb94085df7",
+        "name": "entry_id",
+        "path": "entry_id",
+        "type": "string"
+      }
+    ]
+  }
+}

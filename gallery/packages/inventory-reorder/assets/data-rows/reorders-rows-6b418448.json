@@ -1,0 +1,29 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "6b418448-6cb2-5b02-a81b-c5e0d653134c",
+  "asset": {
+    "id": "6b418448-6cb2-5b02-a81b-c5e0d653134c",
+    "name": "Reorders rows",
+    "rows": [
+      {
+        "id": "13191b83-d388-5810-b90c-69bbbf45634e",
+        "data": {
+          "reorder_ref": "RO-20261026-4KQ1",
+          "sku": "OFF-TONER-K",
+          "item": "Toner cartridge, black",
+          "on_hand": 2,
+          "quantity": 4,
+          "est_cost": 356,
+          "supplier": "Office Direct",
+          "supplier_email": "orders@officedirect.example.com",
+          "status": "ordered",
+          "raised_on": "2026-10-26",
+          "decided_on": "2026-10-26",
+          "expected_by": "2026-10-28",
+          "note": "Standard order"
+        }
+      }
+    ]
+  }
+}

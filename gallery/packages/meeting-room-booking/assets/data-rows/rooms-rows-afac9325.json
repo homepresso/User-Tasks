@@ -1,0 +1,95 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "afac9325-bb0f-5e00-b601-3003fdd80f79",
+  "asset": {
+    "id": "afac9325-bb0f-5e00-b601-3003fdd80f79",
+    "name": "Rooms rows",
+    "rows": [
+      {
+        "id": "34c161f3-4a10-5452-8da1-0848b623f426",
+        "data": {
+          "room": "Kauri",
+          "floor": "2",
+          "capacity": 4,
+          "equipment": "TV screen, whiteboard",
+          "video_conferencing": true,
+          "accessible": true,
+          "bookable": true
+        }
+      },
+      {
+        "id": "ad6f7d43-7b49-5f04-90e9-181acb8da1e2",
+        "data": {
+          "room": "Rimu",
+          "floor": "2",
+          "capacity": 6,
+          "equipment": "TV screen, speakerphone, whiteboard",
+          "video_conferencing": true,
+          "accessible": true,
+          "bookable": true
+        }
+      },
+      {
+        "id": "3f43fe77-b493-5661-85ee-0738580f4e52",
+        "data": {
+          "room": "Totara",
+          "floor": "3",
+          "capacity": 8,
+          "equipment": "Projector, whiteboard",
+          "video_conferencing": false,
+          "accessible": true,
+          "bookable": true
+        }
+      },
+      {
+        "id": "5eba19a4-bf61-5d73-9706-838fe80fff6d",
+        "data": {
+          "room": "Harbour View",
+          "floor": "5",
+          "capacity": 10,
+          "equipment": "Dual screens, ceiling microphones, camera",
+          "video_conferencing": true,
+          "accessible": true,
+          "bookable": true
+        }
+      },
+      {
+        "id": "493d048b-f8be-5c40-8287-85d3e2220165",
+        "data": {
+          "room": "Boardroom",
+          "floor": "5",
+          "capacity": 16,
+          "equipment": "Dual screens, ceiling microphones, camera, catering bench",
+          "video_conferencing": true,
+          "accessible": true,
+          "bookable": true
+        }
+      },
+      {
+        "id": "9e7ee464-6035-5de2-af49-3c76b0906c43",
+        "data": {
+          "room": "Training Room",
+          "floor": "1",
+          "capacity": 24,
+          "equipment": "Projector, lectern microphone, 12 laptops, movable desks",
+          "video_conferencing": true,
+          "accessible": true,
+          "bookable": true
+        }
+      },
+      {
+        "id": "92993d82-cf2c-5ad8-89fb-042eb17519fd",
+        "data": {
+          "room": "Quiet Room",
+          "floor": "3",
+          "capacity": 2,
+          "equipment": "None (phone booth)",
+          "video_conferencing": false,
+          "accessible": false,
+          "bookable": true
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "052f65f1-f63c-4cfa-972d-12a8fb5bf0b8",
+  "asset": {
+    "id": "052f65f1-f63c-4cfa-972d-12a8fb5bf0b8",
+    "integration_id": "6d6b9008-fcfe-463d-b597-fccec99d0518",
+    "name": "Release reservation",
+    "description": "Release a stock reservation when the order does not go ahead.",
+    "tags": [
+      "inventory"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"reason\":\"{{reason}}\"}",
+      "path_template": "/reservations/{{reservation_id}}/release",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "reservation_id",
+              "type": "string",
+              "example": "RSV-771204"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "released"
+            }
+          ]
+        },
+        "sample": {
+          "reservation_id": "RSV-771204",
+          "status": "released"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "01be2f64-9867-483b-a605-ff7e47d7b8e3",
+        "name": "reservation_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "38e4207d-25f6-4f75-96e1-93b58f5dc435",
+        "name": "reason",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "dd355ede-2983-4179-ad8e-ae620304abd9",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      }
+    ]
+  }
+}

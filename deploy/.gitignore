@@ -1,0 +1,10 @@
+# Terraform working files and state (never commit state: it holds generated secrets)
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+# Compiled Bicep
+azure/bicep/main.json
+azure/bicep/main.parameters.json

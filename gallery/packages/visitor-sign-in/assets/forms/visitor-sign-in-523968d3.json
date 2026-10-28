@@ -1,0 +1,248 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "523968d3-46a7-5400-bec4-4275f5655a6d",
+  "asset": {
+    "id": "523968d3-46a7-5400-bec4-4275f5655a6d",
+    "name": "Visitor sign-in",
+    "description": "The reception tablet form: visitors sign in, pick who they are visiting, and their host is told.",
+    "tags": [
+      "visitors",
+      "reception"
+    ],
+    "fields": [
+      {
+        "key": "visitor_name",
+        "label": "Your name",
+        "type": "text",
+        "required": true,
+        "placeholder": "First and last name"
+      },
+      {
+        "key": "company",
+        "label": "Company",
+        "type": "text"
+      },
+      {
+        "key": "visitor_email",
+        "label": "Email",
+        "type": "email"
+      },
+      {
+        "key": "visitor_phone",
+        "label": "Mobile",
+        "type": "phone"
+      },
+      {
+        "key": "host",
+        "label": "Who are you visiting?",
+        "type": "lookup",
+        "required": true,
+        "help_text": "Start typing a name",
+        "lookup": {
+          "source": "table",
+          "table_id": "79ab1927-d86a-519b-9a18-a084f7f472a4",
+          "search_columns": [
+            "name",
+            "team"
+          ],
+          "display_columns": [
+            "name",
+            "team"
+          ],
+          "value_column": "email",
+          "fill": [
+            {
+              "from": "email",
+              "to": "host_email"
+            },
+            {
+              "from": "team",
+              "to": "host_team"
+            }
+          ],
+          "filters": [
+            {
+              "column": "active",
+              "operator": "eq",
+              "value": "true"
+            }
+          ],
+          "sort": {
+            "column": "name",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "host_email",
+        "label": "Host email",
+        "type": "email",
+        "read_only": true
+      },
+      {
+        "key": "host_team",
+        "label": "Team",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "purpose",
+        "label": "Purpose of visit",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Meeting",
+          "Interview",
+          "Delivery",
+          "Contractor work",
+          "Event",
+          "Other"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "nda_required",
+        "label": "I will be shown confidential information (NDA)",
+        "type": "boolean"
+      },
+      {
+        "key": "agree",
+        "label": "I have read the site safety notice",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "visitor_name",
+              "span": 1
+            },
+            {
+              "field_key": "company",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "visitor_email",
+              "span": 1
+            },
+            {
+              "field_key": "visitor_phone",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "host",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "host_email",
+              "span": 1
+            },
+            {
+              "field_key": "host_team",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "purpose",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "nda_required",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "agree",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#0F766E",
+            "background": "#FFFFFF",
+            "text": "#14231F",
+            "page": "#E6F2EF",
+            "page_to": "#F7FBFA"
+          }
+        },
+        "radius": 14,
+        "density": "comfortable",
+        "button_placement": "full",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Sign in",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Welcome, {{visitor_name}}",
+            "screen_button": "submit_another",
+            "text": "{{host_item.name}} has been told you are here. Please take a seat; they will collect you from reception.",
+            "screen_button_label": "Next visitor"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Welcome",
+      "align": "center",
+      "subtitle": "Sign in and we will let your host know you are here."
+    }
+  }
+}

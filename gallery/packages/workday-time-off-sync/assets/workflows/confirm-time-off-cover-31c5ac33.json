@@ -1,0 +1,335 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "31c5ac33-7616-57e0-bc8a-bc3a31c76d12",
+  "asset": {
+    "id": "31c5ac33-7616-57e0-bc8a-bc3a31c76d12",
+    "name": "Confirm time off cover",
+    "description": "Sub-workflow: the manager names who covers a time off request, or flags a gap.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Cover check requested",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 220
+        },
+        "config": {
+          "title": "Cover for {{worker}}: {{start_date}} to {{end_date}}"
+        }
+      },
+      {
+        "id": "confirm",
+        "type": "user_task",
+        "label": "Manager confirms cover",
+        "position": {
+          "x": 400,
+          "y": 380
+        },
+        "config": {
+          "task_title": "Confirm cover for {{worker}} ({{time_off_type}}, {{start_date}} to {{end_date}})",
+          "task_description": "<p><strong>{{worker}}</strong> ({{team}}) is away <strong>{{days}} days</strong> from {{start_date}} to {{end_date}} ({{time_off_type}}, Workday request {{request_id}}).</p><p>{{cover_reason}}. Name who covers, or flag the gap.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Confirm cover",
+            "Flag"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "af4a8060-8a37-59ed-a90e-bcc61251bd95",
+          "assignee_variable": "{{manager_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "cover_person",
+              "label": "Covered by",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "handover_done",
+              "label": "Handover booked",
+              "type": "boolean"
+            },
+            {
+              "key": "cover_plan",
+              "label": "Cover plan",
+              "type": "textarea",
+              "placeholder": "Who picks up what, out-of-office message, escalation contact"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "cover_person",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "handover_done",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "cover_plan",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Cover check",
+            "align": "left",
+            "subtitle": "{{worker}} · {{start_date}} to {{end_date}}"
+          },
+          "form_buttons": [
+            {
+              "id": "confirm",
+              "label": "Confirm cover",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Confirm cover"
+            },
+            {
+              "id": "flag",
+              "label": "Flag a gap",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Flag"
+            }
+          ]
+        }
+      },
+      {
+        "id": "ok",
+        "type": "update_data_table",
+        "label": "Record cover",
+        "position": {
+          "x": 240,
+          "y": 560
+        },
+        "config": {
+          "table_id": "18aa17ec-9dbd-56fa-a285-2e9f5ae13747",
+          "table_name": "Team calendar",
+          "operation": "update",
+          "match_column": "request_id",
+          "match_value": "{{request_id}}",
+          "column_values": {
+            "cover_status": "confirmed",
+            "cover_person": "{{task_data.cover_person}}"
+          }
+        }
+      },
+      {
+        "id": "gap",
+        "type": "update_data_table",
+        "label": "Record gap",
+        "position": {
+          "x": 560,
+          "y": 560
+        },
+        "config": {
+          "table_id": "18aa17ec-9dbd-56fa-a285-2e9f5ae13747",
+          "table_name": "Team calendar",
+          "operation": "update",
+          "match_column": "request_id",
+          "match_value": "{{request_id}}",
+          "column_values": {
+            "cover_status": "gap flagged"
+          }
+        }
+      },
+      {
+        "id": "warn",
+        "type": "log",
+        "label": "Cover gap",
+        "position": {
+          "x": 560,
+          "y": 720
+        },
+        "config": {
+          "message": "Cover gap for {{worker}} {{start_date}} to {{end_date}}: {{task_data.cover_plan}}",
+          "level": "warn"
+        }
+      },
+      {
+        "id": "end_ok",
+        "type": "end_workflow",
+        "label": "Cover confirmed",
+        "position": {
+          "x": 240,
+          "y": 720
+        },
+        "config": {
+          "reason": "{{worker}} covered by {{task_data.cover_person}}"
+        }
+      },
+      {
+        "id": "end_gap",
+        "type": "end_workflow",
+        "label": "Gap flagged",
+        "position": {
+          "x": 560,
+          "y": 880
+        },
+        "config": {
+          "reason": "Cover gap flagged for {{worker}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-confirm",
+        "source": "title",
+        "target": "confirm"
+      },
+      {
+        "id": "e-confirm-ok-confirm-cover",
+        "source": "confirm",
+        "target": "ok",
+        "label": "Confirm cover"
+      },
+      {
+        "id": "e-confirm-gap-flag",
+        "source": "confirm",
+        "target": "gap",
+        "label": "Flag"
+      },
+      {
+        "id": "e-ok-end_ok",
+        "source": "ok",
+        "target": "end_ok"
+      },
+      {
+        "id": "e-gap-warn",
+        "source": "gap",
+        "target": "warn"
+      },
+      {
+        "id": "e-warn-end_gap",
+        "source": "warn",
+        "target": "end_gap"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-request_id",
+        "name": "request_id",
+        "type": "string",
+        "description": "Workday time off request id",
+        "defaultValue": "",
+        "required": true,
+        "label": "Request id"
+      },
+      {
+        "id": "v-worker",
+        "name": "worker",
+        "type": "string",
+        "description": "Who is away",
+        "defaultValue": "",
+        "required": true,
+        "label": "Worker"
+      },
+      {
+        "id": "v-team",
+        "name": "team",
+        "type": "string",
+        "description": "Supervisory organization",
+        "defaultValue": "",
+        "required": false,
+        "label": "Team"
+      },
+      {
+        "id": "v-time_off_type",
+        "name": "time_off_type",
+        "type": "string",
+        "description": "Time off type",
+        "defaultValue": "",
+        "required": false,
+        "label": "Type"
+      },
+      {
+        "id": "v-start_date",
+        "name": "start_date",
+        "type": "string",
+        "description": "First day away",
+        "defaultValue": "",
+        "required": false,
+        "label": "From",
+        "format": "date"
+      },
+      {
+        "id": "v-end_date",
+        "name": "end_date",
+        "type": "string",
+        "description": "Last day away",
+        "defaultValue": "",
+        "required": false,
+        "label": "To",
+        "format": "date"
+      },
+      {
+        "id": "v-days",
+        "name": "days",
+        "type": "number",
+        "description": "Days away",
+        "defaultValue": "",
+        "required": false,
+        "label": "Days"
+      },
+      {
+        "id": "v-cover_reason",
+        "name": "cover_reason",
+        "type": "string",
+        "description": "Why a cover check is needed",
+        "defaultValue": "",
+        "required": false,
+        "label": "Reason"
+      },
+      {
+        "id": "v-manager_user_id",
+        "name": "manager_user_id",
+        "type": "string",
+        "description": "Optional: UserTasks user id of the manager who confirms cover",
+        "defaultValue": "",
+        "required": false,
+        "label": "Manager (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

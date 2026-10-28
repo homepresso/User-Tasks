@@ -1,0 +1,178 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "69cc95f4-2379-4b5e-bc97-ddc229ecb0ef",
+  "asset": {
+    "id": "69cc95f4-2379-4b5e-bc97-ddc229ecb0ef",
+    "integration_id": "ac959fb4-04de-423e-b0d9-4c56dfb3b6a3",
+    "name": "Create incident",
+    "description": "Open an incident with the calculated priority, the service and assignment group from the Service owners table.",
+    "tags": [
+      "incidents"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"short_description\":\"{{short_description}}\",\"description\":\"{{description}}\",\"service\":\"{{service}}\",\"priority\":\"{{priority}}\",\"assignment_group\":\"{{assignment_group}}\",\"source\":\"{{source}}\",\"host\":\"{{host}}\",\"dedupe_key\":\"{{dedupe_key}}\"}",
+      "path_template": "/incidents",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "f3a1c9e2-5b7d-4c11-9a8e-2d6b0c4e7f10"
+            },
+            {
+              "name": "number",
+              "type": "string",
+              "example": "INC0048213"
+            },
+            {
+              "name": "state",
+              "type": "string",
+              "example": "new"
+            },
+            {
+              "name": "priority",
+              "type": "string",
+              "example": "P2"
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "example": "https://itsm.example.com/incidents/INC0048213"
+            },
+            {
+              "name": "opened_at",
+              "type": "string",
+              "example": "2026-10-26T08:41:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "id": "f3a1c9e2-5b7d-4c11-9a8e-2d6b0c4e7f10",
+          "number": "INC0048213",
+          "state": "new",
+          "priority": "P2",
+          "url": "https://itsm.example.com/incidents/INC0048213",
+          "opened_at": "2026-10-26T08:41:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "9e841004-af97-4cbc-a032-87be5c01eaa8",
+        "name": "short_description",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "e0dc1e12-1fa7-4514-93f5-5e7686f35165",
+        "name": "description",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "e606121c-b783-48e5-8ed6-2d3fc091d918",
+        "name": "service",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c5917ce6-8b75-4dbf-962b-624d68a75b91",
+        "name": "priority",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "86a8c246-dbe1-4612-86ac-8cf141d12a95",
+        "name": "assignment_group",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "f4ad65d8-1149-4b9e-8a1d-dea248a446f6",
+        "name": "source",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "1b4db59c-d380-4bf2-9b28-e56af624048d",
+        "name": "host",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "6e3e3836-585c-41e7-9331-d1dae6ba47fd",
+        "name": "dedupe_key",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "5eb04e52-9d15-4aa0-9800-cf96552c4ce2",
+        "name": "id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "d9f3e202-3f7a-408f-b0b9-f134db773713",
+        "name": "number",
+        "path": "number",
+        "type": "string"
+      },
+      {
+        "id": "be6ec457-dcc5-4fb8-b35a-22eab1c3066c",
+        "name": "url",
+        "path": "url",
+        "type": "string"
+      },
+      {
+        "id": "61cf4b0a-8ca5-461a-bf7a-e2f1a9430816",
+        "name": "state",
+        "path": "state",
+        "type": "string"
+      }
+    ]
+  }
+}

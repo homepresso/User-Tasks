@@ -1,0 +1,9 @@
+{
+  "_comment": "Browser database client allowlist (providers phases 2, 4 and 9). The browser no longer queries the database (data reads go through lib/server-read.ts and server actions) and no longer talks to an auth service (phase 9: sign-in, sign-out, resets and SSO run in server actions / routes that set httpOnly cookies). Only these files may import the browser Supabase client (lib/supabase/client or lib/providers/db/browser) — the Supabase realtime provider, loaded lazily and only when REALTIME_PROVIDER=supabase; none may call .from()/.select()/writes/rpc/storage/auth on it. Enforced by __tests__/provider-seams.test.ts.",
+  "importers": [
+    {
+      "path": "lib/providers/realtime/supabase.ts",
+      "reason": "realtime: the Supabase RealtimeProvider (postgres_changes), loaded lazily and only when REALTIME_PROVIDER=supabase"
+    }
+  ]
+}

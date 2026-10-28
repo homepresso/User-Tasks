@@ -1,0 +1,130 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "d4aaece8-ff18-5e74-928b-8b7f27eebde5",
+  "asset": {
+    "id": "d4aaece8-ff18-5e74-928b-8b7f27eebde5",
+    "name": "Petty cash ledger",
+    "description": "Every claim with its decision and payment: the month-end reconciliation of the cash tin and the GL journal start here.",
+    "columns": [
+      {
+        "id": "39098cbc-0f01-5775-84f0-1149183d3441",
+        "required": true,
+        "key": "claim_ref",
+        "name": "Claim",
+        "type": "text"
+      },
+      {
+        "id": "7be1823a-1a54-5660-a33d-40abf821aa80",
+        "required": false,
+        "key": "claimed_on",
+        "name": "Claimed",
+        "type": "date"
+      },
+      {
+        "id": "fe7834b5-54c3-5ba0-b885-5305816c8356",
+        "required": false,
+        "key": "month",
+        "name": "Month",
+        "type": "text"
+      },
+      {
+        "id": "218a52c3-7f60-59a4-9aa8-8390359c2846",
+        "required": false,
+        "key": "claimant_name",
+        "name": "Claimant",
+        "type": "text"
+      },
+      {
+        "id": "b883f065-770f-51b1-8d99-e2bfa9084414",
+        "required": false,
+        "key": "claimant_email",
+        "name": "Claimant email",
+        "type": "email"
+      },
+      {
+        "id": "6f99bf87-a29d-500e-b0ed-3bf39980dfa3",
+        "required": false,
+        "key": "cost_centre",
+        "name": "Cost centre",
+        "type": "text"
+      },
+      {
+        "id": "19bf1183-c1a1-501b-ad21-0da0501b635c",
+        "required": false,
+        "key": "gl_code",
+        "name": "GL account",
+        "type": "text"
+      },
+      {
+        "id": "faea76bd-48e5-5a2a-88a3-b2ffceebb6c0",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "text"
+      },
+      {
+        "id": "c3d88620-7643-57aa-b4d9-52c90b906e07",
+        "required": false,
+        "key": "spent_on",
+        "name": "Date of purchase",
+        "type": "date"
+      },
+      {
+        "id": "a458aa35-a955-54d1-9ef8-c09b73300902",
+        "required": false,
+        "key": "description",
+        "name": "What for",
+        "type": "text"
+      },
+      {
+        "id": "79f14a60-91b6-5da7-a534-ae759bea6e65",
+        "required": false,
+        "key": "amount",
+        "name": "Amount (NZD)",
+        "type": "number"
+      },
+      {
+        "id": "93199abb-de99-58eb-bdc7-585242808da2",
+        "required": false,
+        "key": "receipt_url",
+        "name": "Receipt",
+        "type": "url"
+      },
+      {
+        "id": "384e03c4-77f0-541d-8e0f-21c3a7e5af97",
+        "required": false,
+        "key": "route",
+        "name": "Decision rule",
+        "type": "text"
+      },
+      {
+        "id": "fa98b83c-96da-5888-b88b-d3f84bf2463c",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Awaiting approval",
+          "Approved",
+          "Paid",
+          "Rejected"
+        ]
+      },
+      {
+        "id": "ff78102d-2ebd-5010-8adf-69006d2fcac9",
+        "required": false,
+        "key": "approver_comment",
+        "name": "Approver comment",
+        "type": "text"
+      },
+      {
+        "id": "d3700639-ac32-5c5c-87b1-b3190083ef16",
+        "required": false,
+        "key": "paid_on",
+        "name": "Paid",
+        "type": "date"
+      }
+    ]
+  }
+}

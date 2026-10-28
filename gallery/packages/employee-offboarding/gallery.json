@@ -1,0 +1,74 @@
+{
+  "id": "bb276d8f-836c-476a-9faa-764e6f9732d7",
+  "slug": "employee-offboarding",
+  "title": "Employee offboarding",
+  "category": "hr-people",
+  "summary": "A manager submits a leaver; access is revoked on the right day, equipment recovered, final pay scheduled, the exit interview held and the termination recorded.",
+  "description": "Employee offboarding coordinates everything that has to happen when someone leaves. A manager or HR fills in the start form: employee number, last working day, reason, whether they are eligible for rehire and any notes.\n\nThe workflow reads the employee from your HR system (job, manager, privileged access, devices, leave balance) and evaluates the Offboarding controls decision table. Dismissals and leavers with privileged access lose access immediately; others on their last day. The table also decides whether an exit interview is offered and whether garden leave applies.\n\nIT then revokes access and recovers equipment (the manager is emailed if anything is outstanding), payroll confirms the leave payout and final pay date, and HR runs the exit interview when required. The termination is recorded in the HR system, and the leaver and manager receive confirmation emails. Adapt the control rules to your security policy and the API paths to your HR system.",
+  "trigger": "form",
+  "entry_workflow": "87961606-21d5-4175-b804-0da13934e4aa",
+  "start": "Starts from a form: the manager or HR fills in the leaver details (Run dialog in the app, or your HR portal posting them to the start API).",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "offboarding",
+    "leavers",
+    "access revocation",
+    "payroll",
+    "hr"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "HR system integration: set the base URL and API token. The references expect GET /employees/{id} (with manager, privileged_access, devices and leave_balance) and POST /employees/{id}/terminations; adjust paths and the response model to your HR system.",
+    "Assignees: pick the default IT owner, payroll officer and HR partner. Runs can pass it_owner_id, payroll_owner_id and hr_owner_id instead.",
+    "Edit the Offboarding controls rules to match your security and HR policy (revocation timing, exit interviews, garden leave).",
+    "Email: configure EMAIL_PROVIDER on the instance so the leaver and manager emails are delivered (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Leaver submitted",
+      "body": "The start form collects the employee number, last working day, reason, rehire eligibility and notes."
+    },
+    {
+      "title": "Read the employee",
+      "body": "Get employee returns the job, manager, privileged access flag, issued devices and leave balance."
+    },
+    {
+      "title": "Apply the controls",
+      "body": "The Offboarding controls decision table sets the access revocation timing, exit interview and garden leave."
+    },
+    {
+      "title": "IT revokes and recovers",
+      "body": "IT disables accounts and recovers devices; the manager is emailed if anything is outstanding."
+    },
+    {
+      "title": "Payroll and exit interview",
+      "body": "Payroll confirms the leave payout and final pay date; HR runs the exit interview when the controls require one."
+    },
+    {
+      "title": "Record and confirm",
+      "body": "The termination is recorded in the HR system and the leaver and manager get confirmation emails."
+    }
+  ],
+  "sample_input": {
+    "employee_id": "E-1042",
+    "last_working_day": "2026-11-27",
+    "reason": "resignation",
+    "rehire_eligible": true,
+    "notes": "Four weeks notice. Handover of the on-call rota to the platform team."
+  },
+  "expect": "waiting",
+  "icon": "user-minus"
+}

@@ -1,0 +1,30 @@
+# cp terraform.tfvars.example terraform.tfvars
+subscription_id     = "00000000-0000-0000-0000-000000000000"
+location            = "westeurope"
+resource_group_name = "rg-usertasks"
+name                = "usertasks"
+
+# First apply: false (registry, database, storage, Key Vault, email).
+# Push the image, then apply again with true.
+deploy_apps = true
+image_tag   = "latest"
+
+# app_url             = "https://tasks.example.com"   # custom domain; default: generated Container Apps URL
+instance_admin_emails = "ops@example.com"
+
+auth_provider = "builtin"
+# Entra ID sign-in (register <APP_URL>/auth/sso/entra/callback; store the client
+# secret in the Key Vault as "entra-client-secret"):
+# auth_sso_providers = "[{\"id\":\"entra\",\"type\":\"oidc\",\"preset\":\"entra\",\"tenantId\":\"<tenant id>\",\"clientId\":\"<app id>\",\"clientSecret\":\"secret://entra-client-secret\",\"allowedDomains\":[\"example.com\"]}]"
+
+# postgres_entra_admin = {
+#   object_id      = "<group object id>"
+#   principal_name = "UserTasks DB Admins"
+#   principal_type = "Group"
+# }
+
+postgres_sku                = "B_Standard_B1ms"
+# Azure Cache for Redis (Entra auth) as the shared cache; Standard for production.
+cache_enabled = true
+cache_sku     = "Basic"
+communication_data_location = "Europe"

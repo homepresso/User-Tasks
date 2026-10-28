@@ -1,0 +1,75 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "ccd8472c-8073-5eab-b8ae-502da0447567",
+  "asset": {
+    "id": "ccd8472c-8073-5eab-b8ae-502da0447567",
+    "integration_id": "e3d58d05-b9c4-589d-b1df-20fcb1b3c7a0",
+    "name": "Update discount approval",
+    "description": "Write the decision to the opportunity (PATCH /sobjects/Opportunity/{id}): Discount_Approval_Status__c, the approved discount and approver notes. Salesforce answers 204 No Content.",
+    "tags": [
+      "opportunity"
+    ],
+    "request_config": {
+      "method": "PATCH",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"Discount_Approval_Status__c\":\"{{status}}\",\"Approved_Discount_Percent__c\":{{approved_discount}},\"Discount_Approval_Notes__c\":\"{{notes}}\"}",
+      "path_template": "/sobjects/Opportunity/{{opportunity_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": []
+        },
+        "sample": {},
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "7552e95c-9e7d-5915-b064-7f3c650516bc",
+        "name": "opportunity_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Opportunity Id",
+        "default_value": ""
+      },
+      {
+        "id": "6871b460-f54f-5369-b754-66e677861070",
+        "name": "status",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Approved / Rejected",
+        "default_value": ""
+      },
+      {
+        "id": "c1acc946-8743-5996-9c65-4d2ae0c74833",
+        "name": "approved_discount",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Approved discount percent (0 when rejected)",
+        "default_value": ""
+      },
+      {
+        "id": "ae0d016b-a097-5976-803d-ce1e30fba22f",
+        "name": "notes",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "Approver notes",
+        "default_value": ""
+      }
+    ],
+    "outputs": []
+  }
+}

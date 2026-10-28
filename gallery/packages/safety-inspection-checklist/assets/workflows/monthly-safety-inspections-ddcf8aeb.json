@@ -1,0 +1,353 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "ddcf8aeb-94a5-5e34-ba0b-7e1c7a4d8210",
+  "asset": {
+    "id": "ddcf8aeb-94a5-5e34-ba0b-7e1c7a4d8210",
+    "name": "Monthly safety inspections",
+    "description": "On the first of each month, schedule a checklist inspection for every site (one Site inspection run each) and give the safety lead a round sign-off task.",
+    "trigger_type": "schedule",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "schedule",
+        "label": "1st of the month 07:00",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "schedule_mode": "monthly",
+          "day_of_month": 1,
+          "time_of_day": "07:00",
+          "timezone": "Pacific/Auckland"
+        }
+      },
+      {
+        "id": "period",
+        "type": "set_variable",
+        "label": "Month",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "name": "period",
+          "expression": "{{=IF(IS_EMPTY(period), FORMAT_DATE(TODAY(), \"YYYY-MM\"), period)}}"
+        }
+      },
+      {
+        "id": "due",
+        "type": "set_variable",
+        "label": "Due date",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "name": "due_date",
+          "expression": "{{=FORMAT_DATE(ADD_DAYS(TODAY(), COALESCE(TO_NUMBER(days_to_inspect), 14)), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 480
+        },
+        "config": {
+          "title": "Safety inspections {{period}}"
+        }
+      },
+      {
+        "id": "sites",
+        "type": "update_data_table",
+        "label": "Sites to inspect",
+        "position": {
+          "x": 400,
+          "y": 620
+        },
+        "config": {
+          "table_id": "48c27394-9f97-5091-b748-ae73590b0f50",
+          "table_name": "Inspection sites",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "inspect_monthly",
+              "operator": "eq",
+              "value": "true"
+            }
+          ],
+          "sort_column": "name",
+          "sort_direction": "asc",
+          "limit": 200,
+          "output_rows_var": "site_list",
+          "output_count_var": "site_count"
+        }
+      },
+      {
+        "id": "loop",
+        "type": "loop",
+        "label": "Each site",
+        "position": {
+          "x": 400,
+          "y": 760
+        },
+        "config": {
+          "items": "{{site_list}}",
+          "item_var": "site",
+          "index_var": "site_index"
+        }
+      },
+      {
+        "id": "issue",
+        "type": "call_sub_workflow",
+        "label": "Schedule the inspection",
+        "position": {
+          "x": 160,
+          "y": 900
+        },
+        "config": {
+          "sub_workflow_id": "1a923e6b-f394-5a63-aef6-7ea9cf92f054",
+          "sub_workflow_name": "Site inspection",
+          "input_mappings": {
+            "site_code": "{{site.site_code}}",
+            "site_name": "{{site.name}}",
+            "site_type": "{{site.site_type}}",
+            "site_manager": "{{site.site_manager}}",
+            "site_manager_email": "{{site.site_manager_email}}",
+            "period": "{{period}}",
+            "due_date": "{{due_date}}"
+          }
+        },
+        "executionMode": "async"
+      },
+      {
+        "id": "names",
+        "type": "set_variable",
+        "label": "Site names",
+        "position": {
+          "x": 640,
+          "y": 900
+        },
+        "config": {
+          "name": "site_names",
+          "expression": "{{=JOIN(\", \", PLUCK(site_list, \"name\"))}}"
+        }
+      },
+      {
+        "id": "signoff",
+        "type": "user_task",
+        "label": "Sign off the inspection round",
+        "position": {
+          "x": 640,
+          "y": 1040
+        },
+        "config": {
+          "task_title": "Sign off safety inspections for {{period}}",
+          "task_description": "<p>{{site_count}} inspections were scheduled for {{period}}, due by {{due_date}}: {{site_names}}.</p><p>Each site has its own checklist task. When they are all done, check the <strong>Inspections</strong> table for failures and open corrective actions, then sign the round off for the health and safety committee.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Signed off",
+            "Follow-up needed"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "fields": [
+            {
+              "key": "summary",
+              "label": "Summary for the committee",
+              "type": "textarea",
+              "required": true
+            },
+            {
+              "key": "open_actions",
+              "label": "Open corrective actions",
+              "type": "number",
+              "default": "0"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "summary",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "open_actions",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "ok",
+              "label": "Sign off",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Signed off"
+            },
+            {
+              "id": "follow",
+              "label": "Follow-up needed",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Follow-up needed"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Monthly inspection round",
+            "align": "left",
+            "subtitle": "{{period}} · {{site_count}} sites"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 21,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 2880
+            }
+          ],
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#CA8A04",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 10,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "log",
+        "type": "log",
+        "label": "Round result",
+        "position": {
+          "x": 640,
+          "y": 1180
+        },
+        "config": {
+          "message": "Inspection round {{period}}: {{outcome}}. {{task_data.summary}}",
+          "level": "info"
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Round closed",
+        "position": {
+          "x": 640,
+          "y": 1320
+        },
+        "config": {
+          "reason": "Inspection round {{period}} {{outcome}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-period",
+        "source": "trigger",
+        "target": "period"
+      },
+      {
+        "id": "e-period-due",
+        "source": "period",
+        "target": "due"
+      },
+      {
+        "id": "e-due-title",
+        "source": "due",
+        "target": "title"
+      },
+      {
+        "id": "e-title-sites",
+        "source": "title",
+        "target": "sites"
+      },
+      {
+        "id": "e-sites-loop",
+        "source": "sites",
+        "target": "loop"
+      },
+      {
+        "id": "e-loop-issue-each-item",
+        "source": "loop",
+        "target": "issue",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-loop-names-done",
+        "source": "loop",
+        "target": "names",
+        "label": "Done"
+      },
+      {
+        "id": "e-names-signoff",
+        "source": "names",
+        "target": "signoff"
+      },
+      {
+        "id": "e-signoff-log-signed-off",
+        "source": "signoff",
+        "target": "log",
+        "label": "Signed off"
+      },
+      {
+        "id": "e-signoff-log-follow-up-needed",
+        "source": "signoff",
+        "target": "log",
+        "label": "Follow-up needed"
+      },
+      {
+        "id": "e-log-end",
+        "source": "log",
+        "target": "end"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-period",
+        "name": "period",
+        "type": "string",
+        "description": "Optional: the month to inspect (YYYY-MM); defaults to the current month.",
+        "defaultValue": "",
+        "required": false,
+        "label": "Month"
+      },
+      {
+        "id": "v-days_to_inspect",
+        "name": "days_to_inspect",
+        "type": "number",
+        "description": "Days the inspectors have to complete the checklist",
+        "defaultValue": "14",
+        "required": false,
+        "label": "Days to inspect"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

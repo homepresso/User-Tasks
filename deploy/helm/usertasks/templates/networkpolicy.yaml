@@ -1,0 +1,100 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $np := .Values.networkPolicy }}
+# Who may reach the web app: the release's own pods (jobs, tests) and
+# networkPolicy.ingress.from (empty: anyone in the cluster).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "usertasks.fullname" . }}-app
+  labels:
+    {{- include "usertasks.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "usertasks.componentLabels" (dict "root" . "component" "app") | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - port: http
+      {{- if $np.ingress.from }}
+      from:
+        - podSelector:
+            matchLabels:
+              {{- include "usertasks.selectorLabels" . | nindent 14 }}
+        {{- toYaml $np.ingress.from | nindent 8 }}
+      {{- end }}
+{{- if include "usertasks.bundled" . }}
+---
+# The bundled dependencies: only the release's own pods.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "usertasks.fullname" . }}-dependencies
+  labels:
+    {{- include "usertasks.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "usertasks.selectorLabels" . | nindent 6 }}
+      usertasks.com/bundled: "true"
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "usertasks.selectorLabels" . | nindent 14 }}
+{{- end }}
+{{- if eq $np.egress.mode "allowlist" }}
+---
+# Egress allowlist (on-premises / air-gapped): DNS, the release's own pods,
+# and networkPolicy.egress.allow. Nothing else — no internet.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "usertasks.fullname" . }}-egress
+  labels:
+    {{- include "usertasks.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "usertasks.selectorLabels" . | nindent 6 }}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "usertasks.selectorLabels" . | nindent 14 }}
+    {{- range $np.egress.allow }}
+    - to:
+        - ipBlock:
+            cidr: {{ .cidr }}
+            {{- with .except }}
+            except:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+      {{- with .ports }}
+      ports:
+        {{- range . }}
+        - port: {{ . }}
+          protocol: TCP
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- with $np.egress.kubeApiCidr }}
+    - to:
+        - ipBlock:
+            cidr: {{ . }}
+      ports:
+        - { port: 443, protocol: TCP }
+        - { port: 6443, protocol: TCP }
+    {{- end }}
+{{- end }}
+{{- end }}

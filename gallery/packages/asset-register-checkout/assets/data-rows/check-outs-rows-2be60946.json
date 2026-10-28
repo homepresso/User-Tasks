@@ -1,0 +1,41 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "2be60946-5eb8-5297-84a5-de344921e96b",
+  "asset": {
+    "id": "2be60946-5eb8-5297-84a5-de344921e96b",
+    "name": "Check-outs rows",
+    "rows": [
+      {
+        "id": "7c9bb65c-cda2-5995-b4c3-7c438f4d9754",
+        "data": {
+          "checkout_ref": "CHK-20261012-7Q2M",
+          "asset_tag": "AST-2001",
+          "asset_name": "Portable projector",
+          "borrower_email": "lena.fischer@example.com",
+          "purpose": "Client visit",
+          "checked_out_on": "2026-10-12",
+          "due_back": "2026-10-14",
+          "condition_out": "Good",
+          "returned_on": "2026-10-14",
+          "condition_in": "Good",
+          "status": "returned"
+        }
+      },
+      {
+        "id": "a31ec2c7-0c5a-5a07-b58d-37de774f2fec",
+        "data": {
+          "checkout_ref": "CHK-20261021-K8PD",
+          "asset_tag": "AST-4002",
+          "asset_name": "Thermal imaging camera",
+          "borrower_email": "sam.taylor@example.com",
+          "purpose": "Project work",
+          "checked_out_on": "2026-10-21",
+          "due_back": "2026-11-04",
+          "condition_out": "Good",
+          "status": "on loan"
+        }
+      }
+    ]
+  }
+}

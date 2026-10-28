@@ -1,0 +1,323 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "46c88b95-e7b2-5bfc-9b9b-97a4023234a7",
+  "asset": {
+    "id": "46c88b95-e7b2-5bfc-9b9b-97a4023234a7",
+    "name": "Event registration",
+    "description": "Register for one of our upcoming events. Pick the event; the date and venue fill in.",
+    "tags": [
+      "events",
+      "registration"
+    ],
+    "fields": [
+      {
+        "key": "h_event",
+        "label": "Which event?",
+        "type": "heading"
+      },
+      {
+        "key": "event",
+        "label": "Event",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "0ad60e26-f882-550f-836a-00d5e3270e7d",
+          "search_columns": [
+            "title",
+            "event_code",
+            "venue"
+          ],
+          "display_columns": [
+            "title",
+            "event_date",
+            "venue"
+          ],
+          "value_column": "event_code",
+          "fill": [
+            {
+              "from": "event_date",
+              "to": "event_date"
+            },
+            {
+              "from": "venue",
+              "to": "event_venue"
+            },
+            {
+              "from": "start_time",
+              "to": "event_time"
+            }
+          ],
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Open"
+            }
+          ],
+          "sort": {
+            "column": "event_date",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "event_date",
+        "label": "Date",
+        "type": "date",
+        "read_only": true
+      },
+      {
+        "key": "event_time",
+        "label": "Starts",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "event_venue",
+        "label": "Venue",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "div1",
+        "label": "Divider",
+        "type": "divider"
+      },
+      {
+        "key": "h_you",
+        "label": "About you",
+        "type": "heading"
+      },
+      {
+        "key": "name",
+        "label": "Full name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "email",
+        "label": "Email",
+        "type": "email",
+        "required": true
+      },
+      {
+        "key": "company",
+        "label": "Company",
+        "type": "text"
+      },
+      {
+        "key": "job_title",
+        "label": "Job title",
+        "type": "text"
+      },
+      {
+        "key": "dietary",
+        "label": "Dietary requirements",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "None",
+          "Vegetarian",
+          "Vegan",
+          "Gluten free",
+          "Dairy free",
+          "Halal",
+          "Kosher",
+          "Nut allergy",
+          "Other (tell us below)"
+        ],
+        "default": "None"
+      },
+      {
+        "key": "special_request",
+        "label": "Accessibility needs or special requests",
+        "type": "textarea",
+        "help_text": "Wheelchair access, hearing loop, a quiet room, a severe allergy... The organiser will reply to you."
+      },
+      {
+        "key": "consent",
+        "label": "I agree to my details being used to manage this event",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "updates",
+        "label": "Send me news about future events",
+        "type": "boolean"
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "h_event",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "event",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "event_date",
+              "span": 1
+            },
+            {
+              "field_key": "event_time",
+              "span": 1
+            },
+            {
+              "field_key": "event_venue",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "div1",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "h_you",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "name",
+              "span": 2
+            },
+            {
+              "field_key": "company",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "email",
+              "span": 2
+            },
+            {
+              "field_key": "job_title",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "dietary",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "special_request",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "consent",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "updates",
+              "span": 3
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#DB2777",
+            "background": "#FFFFFF",
+            "text": "#3B0A24",
+            "page": "#FDF2F8",
+            "page_to": "#FFF7FB"
+          }
+        },
+        "radius": 16,
+        "density": "comfortable",
+        "button_placement": "full",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Register",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "You are registered, {{name}}",
+            "screen_button": "submit_another",
+            "text": "Your reference is REG-{{submission_id}}. We have emailed your confirmation (or your waitlist place, if the event is full) to {{email}}.",
+            "screen_button_label": "Register someone else"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Register for an event",
+      "align": "center",
+      "subtitle": "Places are confirmed straight away while the event has room; after that you join the waitlist."
+    }
+  }
+}

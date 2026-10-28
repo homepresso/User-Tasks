@@ -1,0 +1,192 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "dbab58e1-3195-4c82-8878-f7871be2680d",
+  "asset": {
+    "id": "dbab58e1-3195-4c82-8878-f7871be2680d",
+    "integration_id": "656edbe2-1e8d-4e12-a798-961c3d9aa114",
+    "name": "Create vendor",
+    "description": "Create the vendor master record in the ERP with its verified bank account and risk tier.",
+    "tags": [
+      "vendors"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"legal_name\":\"{{legal_name}}\",\"registration_number\":\"{{registration_number}}\",\"country\":\"{{country}}\",\"website\":\"{{website}}\",\"iban\":\"{{iban}}\",\"contact_email\":\"{{contact_email}}\",\"spend_category\":\"{{spend_category}}\",\"risk_tier\":\"{{risk_tier}}\",\"kyc_check_id\":\"{{kyc_check_id}}\",\"next_review_date\":\"{{next_review_date}}\"}",
+      "path_template": "/vendors",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "vendor_id",
+              "type": "string",
+              "example": "V-3127"
+            },
+            {
+              "name": "vendor_number",
+              "type": "string",
+              "example": "300127"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "active"
+            },
+            {
+              "name": "portal_url",
+              "type": "string",
+              "example": "https://suppliers.example.com/register?vendor=V-3127"
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "example": "2026-10-26T11:20:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "vendor_id": "V-3127",
+          "vendor_number": "300127",
+          "status": "active",
+          "portal_url": "https://suppliers.example.com/register?vendor=V-3127",
+          "created_at": "2026-10-26T11:20:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "04258db4-7191-4b94-beaf-9d911259f13b",
+        "name": "legal_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "9c4b8a8a-af2e-4879-bb81-8cd3e4b01d88",
+        "name": "registration_number",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "61cf045f-ec83-4940-8549-d91b13862b37",
+        "name": "country",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "0c8d9d27-977f-4172-b062-c0f9c2003044",
+        "name": "website",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "72126d46-45a9-4337-9efb-dd46d840bfa4",
+        "name": "iban",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c84d4079-1b3c-48c3-9ea2-cd43838ffce5",
+        "name": "contact_email",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "28ed1a20-5bab-4e93-9275-40b6a3bf4936",
+        "name": "spend_category",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "61cdada3-625b-49eb-a068-b014dbcfe7ed",
+        "name": "risk_tier",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "53947053-febe-475d-9de9-511ccfb52a26",
+        "name": "kyc_check_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "a7b165ae-2d9f-4038-b63b-3ab28618fb7d",
+        "name": "next_review_date",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "5b845f5a-3519-4895-a417-f0c97f332e52",
+        "name": "vendor_id",
+        "path": "vendor_id",
+        "type": "string"
+      },
+      {
+        "id": "d7d18fb1-42b8-4cab-a56e-3425747f97c2",
+        "name": "vendor_number",
+        "path": "vendor_number",
+        "type": "string"
+      },
+      {
+        "id": "7ad7660d-7278-46d2-a631-b84e8a0c4102",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "8c888bbb-ab49-4e75-9662-c63ffb7c8386",
+        "name": "portal_url",
+        "path": "portal_url",
+        "type": "string"
+      }
+    ]
+  }
+}

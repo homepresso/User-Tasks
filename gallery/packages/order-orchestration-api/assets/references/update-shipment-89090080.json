@@ -1,0 +1,102 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "89090080-9748-48b0-a939-cf61623e6066",
+  "asset": {
+    "id": "89090080-9748-48b0-a939-cf61623e6066",
+    "integration_id": "85563cbf-b21d-49aa-b238-96b3c3e86d4c",
+    "name": "Update shipment",
+    "description": "Release a held shipment for picking, or cancel it.",
+    "tags": [
+      "fulfilment"
+    ],
+    "request_config": {
+      "method": "PATCH",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"hold\":{{hold}},\"status\":\"{{status}}\",\"note\":\"{{note}}\"}",
+      "path_template": "/shipments/{{shipment_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "shipment_id",
+              "type": "string",
+              "example": "SHP-310588"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "ready_to_pick"
+            },
+            {
+              "name": "hold",
+              "type": "boolean",
+              "example": false
+            }
+          ]
+        },
+        "sample": {
+          "shipment_id": "SHP-310588",
+          "status": "ready_to_pick",
+          "hold": false
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "83a69029-6c89-4ffb-b49c-e196a44a41df",
+        "name": "shipment_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "60b887b1-c081-4c1f-9a11-27aaf043a0cd",
+        "name": "hold",
+        "type": "boolean",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "8e90e9f3-a01d-43ba-8311-23e2ebea80f2",
+        "name": "status",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "ab56d220-c6b5-4627-94bd-f5bf255d46e9",
+        "name": "note",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "5b74d175-2fe3-44f9-bd23-42acdcba7468",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      }
+    ]
+  }
+}

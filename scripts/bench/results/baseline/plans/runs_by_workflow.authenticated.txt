@@ -1,0 +1,25 @@
+-- runs list by workflow, newest 50 (select *) as authenticated
+SELECT * FROM public.workflow_runs WHERE workflow_id = '0be00000-0000-4000-8000-000000000301' ORDER BY started_at DESC LIMIT 50
+
+Limit  (cost=7530.06..7530.18 rows=50 width=655) (actual time=5.167..5.173 rows=50 loops=1)
+  Buffers: shared hit=5844
+  ->  Sort  (cost=7530.06..7536.47 rows=2565 width=655) (actual time=5.166..5.169 rows=50 loops=1)
+        Sort Key: workflow_runs.started_at DESC
+        Sort Method: top-N heapsort  Memory: 66kB
+        Buffers: shared hit=5844
+        ->  Bitmap Heap Scan on workflow_runs  (cost=71.17..7444.85 rows=2565 width=655) (actual time=1.256..4.468 rows=5000 loops=1)
+              Recheck Cond: (workflow_id = '0be00000-0000-4000-8000-000000000301'::uuid)
+              Filter: (ANY (tenant_id = (hashed SubPlan 1).col1))
+              Heap Blocks: exact=5833
+              Buffers: shared hit=5844
+              ->  Bitmap Index Scan on idx_workflow_runs_workflow  (cost=0.00..62.77 rows=5130 width=0) (actual time=0.382..0.382 rows=5833 loops=1)
+                    Index Cond: (workflow_id = '0be00000-0000-4000-8000-000000000301'::uuid)
+                    Buffers: shared hit=6
+              SubPlan 1
+                ->  ProjectSet  (cost=0.00..5.27 rows=1000 width=16) (actual time=0.331..0.336 rows=2 loops=1)
+                      Buffers: shared hit=5
+                      ->  Result  (cost=0.00..0.01 rows=1 width=0) (actual time=0.000..0.000 rows=1 loops=1)
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.054 ms
+Execution Time: 5.192 ms

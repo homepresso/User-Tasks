@@ -1,0 +1,109 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "f7da9866-dbcb-5292-8c52-9a3428e20f05",
+  "asset": {
+    "id": "f7da9866-dbcb-5292-8c52-9a3428e20f05",
+    "name": "Courses rows",
+    "rows": [
+      {
+        "id": "9e99bb6a-4a6f-58ad-9dc2-8cb54f0437cd",
+        "data": {
+          "code": "HS-101",
+          "title": "Workplace first aid",
+          "category": "Health & safety",
+          "delivery": "Classroom",
+          "duration_hours": 8,
+          "validity_months": 24,
+          "evidence": "Certificate from the provider",
+          "mandatory": true,
+          "active": true
+        }
+      },
+      {
+        "id": "aff62b17-f72a-56fd-8cb4-892073971d78",
+        "data": {
+          "code": "HS-110",
+          "title": "Forklift operation (counterbalance)",
+          "category": "Health & safety",
+          "delivery": "On the job",
+          "duration_hours": 16,
+          "validity_months": 36,
+          "evidence": "Practical assessment checklist signed by the trainer",
+          "mandatory": false,
+          "active": true
+        }
+      },
+      {
+        "id": "cd2eeae4-185a-5406-93b6-5baa337f0a2a",
+        "data": {
+          "code": "HS-120",
+          "title": "Working at height",
+          "category": "Health & safety",
+          "delivery": "Blended",
+          "duration_hours": 6,
+          "validity_months": 24,
+          "evidence": "Online module certificate and harness check",
+          "mandatory": false,
+          "active": true
+        }
+      },
+      {
+        "id": "023c5890-d03a-5c5d-98f6-fd2b6d08e097",
+        "data": {
+          "code": "CP-201",
+          "title": "Privacy and data protection essentials",
+          "category": "Compliance",
+          "delivery": "Online",
+          "duration_hours": 1.5,
+          "validity_months": 12,
+          "evidence": "Quiz score of at least 80%",
+          "mandatory": true,
+          "active": true
+        }
+      },
+      {
+        "id": "6e74d04d-41e6-5a14-9eb2-b4b1762a6526",
+        "data": {
+          "code": "CP-210",
+          "title": "Anti-bribery and gifts policy",
+          "category": "Compliance",
+          "delivery": "Online",
+          "duration_hours": 1,
+          "validity_months": 12,
+          "evidence": "Quiz score of at least 80%",
+          "mandatory": true,
+          "active": true
+        }
+      },
+      {
+        "id": "a6df05bf-1f40-5798-ae9f-959b5cc212f1",
+        "data": {
+          "code": "SY-301",
+          "title": "Warehouse management system: picking and packing",
+          "category": "Systems",
+          "delivery": "On the job",
+          "duration_hours": 4,
+          "validity_months": 0,
+          "evidence": "Supervised shift completed without errors",
+          "mandatory": false,
+          "active": true
+        }
+      },
+      {
+        "id": "792e9cb7-5f88-5358-a589-dbcc12d76f47",
+        "data": {
+          "code": "LD-401",
+          "title": "New people leader programme",
+          "category": "Leadership",
+          "delivery": "Blended",
+          "duration_hours": 20,
+          "validity_months": 0,
+          "evidence": "Reflection and a coaching session with the trainer",
+          "mandatory": false,
+          "active": true
+        }
+      }
+    ]
+  }
+}

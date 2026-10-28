@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "webhook_received",
+      "label": "Webhook",
+      "position": { "x": 400, "y": 20 },
+      "config": {}
+    },
+    {
+      "id": "n1",
+      "type": "format_date",
+      "label": "Format Today",
+      "position": { "x": 200, "y": 160 },
+      "config": { "input": "", "format": "YYYY-MM-DD", "output_var": "today" }
+    },
+    {
+      "id": "n2",
+      "type": "date_math",
+      "label": "Add 7 Days",
+      "position": { "x": 400, "y": 160 },
+      "config": { "input": "{{today}}", "operation": "add", "amount": "7", "unit": "days", "output_var": "next_week" }
+    },
+    {
+      "id": "n3",
+      "type": "date_math",
+      "label": "Subtract 30 Days",
+      "position": { "x": 600, "y": 160 },
+      "config": { "input": "{{today}}", "operation": "subtract", "amount": "30", "unit": "days", "output_var": "last_month" }
+    },
+    {
+      "id": "n4",
+      "type": "format_date",
+      "label": "Format Next Week",
+      "position": { "x": 400, "y": 320 },
+      "config": { "input": "{{next_week}}", "format": "dddd, MMMM D, YYYY", "output_var": "next_week_formatted" }
+    },
+    {
+      "id": "n5",
+      "type": "text_template",
+      "label": "Build Summary",
+      "position": { "x": 400, "y": 480 },
+      "config": { "template": "Today: {{today}} | Next week: {{next_week_formatted}} | Last month: {{last_month}}", "output_var": "date_summary" }
+    },
+    {
+      "id": "n6",
+      "type": "log",
+      "label": "Log Dates",
+      "position": { "x": 400, "y": 620 },
+      "config": { "message": "{{date_summary}}" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "t1", "target": "n1" },
+    { "id": "e2", "source": "t1", "target": "n3" },
+    { "id": "e3", "source": "n1", "target": "n2" },
+    { "id": "e4", "source": "n2", "target": "n4" },
+    { "id": "e5", "source": "n4", "target": "n5" },
+    { "id": "e6", "source": "n3", "target": "n5" },
+    { "id": "e7", "source": "n5", "target": "n6" }
+  ],
+  "user_variables": [],
+  "swimlanes": []
+}

@@ -1,0 +1,88 @@
+{
+  "title": "Microsoft 365 / Entra account provisioning",
+  "category": "it-security",
+  "summary": "A themed IT form requests a new starter account; the manager approves, then Graph creates the Entra user, assigns the licence and adds the department group.",
+  "description": "Microsoft 365 / Entra account provisioning replaces the new starter ticket and the copy-paste in the Entra admin centre. IT fills in a branded form: name, job title, employee id, personal email, start date, office, the approving manager and the department, picked from the Departments table, which fills in the Microsoft 365 licence SKU, the Entra group, the usage location and the mail domain.\n\nThe workflow builds the user principal name, checks with Microsoft Graph that it is free (adding a number when it is not) and gives the manager an approval task with Approve and create / Reject buttons.\n\nOn approval, Graph creates the user (POST /users), assigns the department's licence (POST /users/{id}/assignLicense), adds the user to the department group (POST /groups/{id}/members/$ref) and issues a Temporary Access Pass for day one. The starter gets a welcome email at their personal address with their sign-in name, and the manager gets the pass to hand over.",
+  "trigger": "form",
+  "entry_workflow": "a7034190-c472-59cb-a115-3f72d9942c25",
+  "entry_form": "e9c5d37a-8eec-55a8-b1ff-2e2755fd080e",
+  "start": "Starts from a form page: IT opens the New starter account request form (/f/<id>); submitting it starts the workflow.",
+  "difficulty": "intermediate",
+  "setup_minutes": 30,
+  "tags": [
+    "microsoft 365",
+    "entra id",
+    "microsoft graph",
+    "onboarding",
+    "provisioning",
+    "lookup"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "email"
+  ],
+  "setup": [
+    "Microsoft Graph integration: base URL https://graph.microsoft.com/v1.0 and a bearer token for an app registration with User.ReadWrite.All, GroupMember.ReadWrite.All, LicenseAssignment.ReadWrite.All and UserAuthenticationMethod.ReadWrite.All application permissions (admin consent). Use the client-credentials flow (token endpoint login.microsoftonline.com/<tenant>/oauth2/v2.0/token).",
+    "In the \"Add to department group\" step, change the directory object URL from graph.microsoft.example.com to https://graph.microsoft.com/v1.0/directoryObjects/{{user_id}}.",
+    "Replace the Departments rows with your departments, licence SKU ids (GET /subscribedSkus), group object ids and mail domains.",
+    "Enable the Temporary Access Pass authentication method policy in Entra ID (the step continues on error if it is off).",
+    "Email: configure EMAIL_PROVIDER so the welcome and manager emails are delivered."
+  ],
+  "steps": [
+    {
+      "title": "IT requests the account",
+      "body": "The themed form collects the starter's details; the Departments lookup fills the licence SKU, group, usage location and domain."
+    },
+    {
+      "title": "Build and check the UPN",
+      "body": "first.last@domain is built and checked with GET /users?$filter=userPrincipalName eq ...; a number is added if it is taken."
+    },
+    {
+      "title": "Manager approves",
+      "body": "The approving manager (a Person field on the form) gets Approve and create / Reject buttons."
+    },
+    {
+      "title": "Create in Entra ID",
+      "body": "POST /users, POST /users/{id}/assignLicense, POST /groups/{id}/members/$ref and a Temporary Access Pass."
+    },
+    {
+      "title": "Welcome",
+      "body": "The starter gets their UPN at their personal email; the manager gets the pass for day one."
+    }
+  ],
+  "sample_input": {
+    "given_name": "Ana",
+    "surname": "Lopez",
+    "job_title": "Financial Analyst",
+    "employee_id": "E10492",
+    "personal_email": "ana.lopez.home@example.net",
+    "start_date": "2026-11-09",
+    "office_location": "Auckland",
+    "department": "FIN",
+    "licence_name": "Microsoft 365 E3",
+    "group_name": "SG-Finance",
+    "licence_sku_id": "05e9a617-0261-4cee-bb44-138d3ef5d965",
+    "group_id": "b320e1c4-7a4f-4d0e-9c1e-2f5a7d1e9a01",
+    "usage_location": "NZ",
+    "mail_domain": "contoso.example.com",
+    "manager": "$owner",
+    "manager_email": "finance.manager@example.com",
+    "notes": "Needs access to the month-end shared mailbox (separate request)."
+  },
+  "expect": "waiting",
+  "icon": "user-plus",
+  "systems": [
+    "Microsoft 365",
+    "Microsoft Entra ID"
+  ],
+  "id": "0a98f00a-20c9-5d49-88c3-bc7405fc04b3",
+  "slug": "entra-account-provisioning"
+}

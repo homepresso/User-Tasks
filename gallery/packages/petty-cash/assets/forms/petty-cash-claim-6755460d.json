@@ -1,0 +1,358 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "6755460d-7e72-57f6-be5b-f4eb5afd67b8",
+  "asset": {
+    "id": "6755460d-7e72-57f6-be5b-f4eb5afd67b8",
+    "name": "Petty cash claim",
+    "description": "Claim back small purchases (up to NZD 250) paid from your own pocket. Attach a link to the receipt.",
+    "tags": [
+      "finance",
+      "petty cash"
+    ],
+    "fields": [
+      {
+        "key": "h_you",
+        "label": "Who is claiming",
+        "type": "heading"
+      },
+      {
+        "key": "claimant_name",
+        "label": "Your name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "claimant_email",
+        "label": "Work email",
+        "type": "email",
+        "required": true
+      },
+      {
+        "key": "div1",
+        "label": "Divider",
+        "type": "divider"
+      },
+      {
+        "key": "h_cost",
+        "label": "Charge it to",
+        "type": "heading"
+      },
+      {
+        "key": "cost_centre",
+        "label": "Cost centre",
+        "type": "lookup",
+        "required": true,
+        "help_text": "Search by name or code",
+        "lookup": {
+          "source": "table",
+          "table_id": "c05c6b36-1d8e-5009-8968-9eb90f252379",
+          "search_columns": [
+            "name",
+            "code"
+          ],
+          "display_columns": [
+            "name",
+            "code",
+            "budget_holder"
+          ],
+          "value_column": "code",
+          "fill": [
+            {
+              "from": "budget_holder",
+              "to": "budget_holder_name"
+            },
+            {
+              "from": "gl_code",
+              "to": "gl_code"
+            }
+          ],
+          "filters": [
+            {
+              "column": "active",
+              "operator": "eq",
+              "value": "true"
+            }
+          ],
+          "sort": {
+            "column": "code",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "budget_holder_name",
+        "label": "Budget holder",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "gl_code",
+        "label": "GL account",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "approver",
+        "label": "Approver",
+        "type": "user",
+        "required": true,
+        "help_text": "Pick the budget holder shown above; they approve the claim."
+      },
+      {
+        "key": "div2",
+        "label": "Divider",
+        "type": "divider"
+      },
+      {
+        "key": "h_what",
+        "label": "The purchase",
+        "type": "heading"
+      },
+      {
+        "key": "amount",
+        "label": "Amount",
+        "type": "currency",
+        "required": true,
+        "currency": "NZD",
+        "min": 0.5,
+        "max": 250,
+        "help_text": "Up to NZD 250. Larger amounts go through expense claims."
+      },
+      {
+        "key": "spent_on",
+        "label": "Date of purchase",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "category",
+        "label": "Category",
+        "type": "choice",
+        "required": true,
+        "options": [
+          "Office supplies",
+          "Kitchen & hospitality",
+          "Postage & courier",
+          "Taxi & parking",
+          "Small equipment",
+          "Staff welfare",
+          "Other"
+        ]
+      },
+      {
+        "key": "description",
+        "label": "What did you buy and why?",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "key": "receipt_url",
+        "label": "Receipt",
+        "type": "url",
+        "help_text": "Link to a photo or scan of the receipt. Needed for anything over NZD 20."
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_you",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "claimant_name",
+              "span": 1
+            },
+            {
+              "field_key": "claimant_email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "div1",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_cost",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "cost_centre",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "budget_holder_name",
+              "span": 1
+            },
+            {
+              "field_key": "gl_code",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "approver",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "div2",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_what",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "amount",
+              "span": 1
+            },
+            {
+              "field_key": "spent_on",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "category",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "description",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "receipt_url",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#15803D",
+            "background": "#FFFFFF",
+            "text": "#0F2A1A",
+            "page": "#ECFDF3",
+            "page_to": "#F7FEF9"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit claim",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "start_workflow",
+            "workflow_id": "e4361734-9d71-5aba-ab8a-6e3fefe6af77",
+            "workflow_name": "Petty cash claim",
+            "inputs": {
+              "claimant_name": "{{claimant_name}}",
+              "claimant_email": "{{claimant_email}}",
+              "cost_centre": "{{cost_centre}}",
+              "approver": "{{approver}}",
+              "amount": "{{amount}}",
+              "category": "{{category}}",
+              "spent_on": "{{spent_on}}",
+              "description": "{{description}}",
+              "receipt_url": "{{receipt_url}}"
+            }
+          },
+          {
+            "type": "success_screen",
+            "title": "Claim submitted",
+            "screen_button": "submit_another",
+            "text": "Thanks {{claimant_name}}. Your claim of NZD {{amount}} is on its way to {{budget_holder_name}}. Reference: {{run_reference}}.",
+            "screen_button_label": "Submit another claim"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Petty cash claim",
+      "align": "left",
+      "subtitle": "Small purchases paid from your own pocket, back to you within a few days."
+    }
+  }
+}

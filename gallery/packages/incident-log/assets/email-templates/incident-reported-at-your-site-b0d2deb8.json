@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "b0d2deb8-6737-563e-b289-3aca4afa074a",
+  "asset": {
+    "id": "b0d2deb8-6737-563e-b289-3aca4afa074a",
+    "name": "Incident reported at your site",
+    "description": "Sent to the site manager for every incident.",
+    "subject": "[{{severity}}] Incident at {{site_name}}: {{form.incident_type}} ({{incident_ref}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <div style=\"height:4px;background:#C2410C;border-radius:2px;margin-bottom:16px\"></div>\n  <h2 style=\"margin:0 0 12px\">{{severity}} incident at {{site_name}}</h2>\n  <p style=\"margin:0 0 12px\">Hi {{site_manager}},</p>\n  <p style=\"margin:0 0 12px\"><strong>{{form.reporter_name}}</strong> reported a <strong>{{form.incident_type}}</strong> ({{form.injury_level}} injury) at {{form.location_detail}} on {{form.occurred_at}}.</p>\n  <p style=\"margin:0 0 12px\"><em>{{form.description}}</em></p>\n  <p style=\"margin:0 0 12px\">Immediate action: {{form.immediate_action}}</p>\n  <p style=\"margin:0 0 12px\">Severity <strong>{{severity}}</strong> · respond within <strong>{{sla_hours}} hours</strong> · formal investigation: {{=IF(investigation_required, \"yes\", \"no\")}}{{=IF(notifiable, \" · <strong>check whether the regulator must be notified</strong>\", \"\")}}</p>\n  <p style=\"margin:0 0 12px\">Reference {{incident_ref}}</p>\n  <p style=\"color:#6E6759;font-size:13px;margin-top:20px\">Sent by the workplace incident log</p>\n</div>",
+    "text_body": "{{severity}} incident at {{site_name}}\n\nHi {{site_manager}},\n{{form.reporter_name}} reported a {{form.incident_type}} ({{form.injury_level}} injury) at {{form.location_detail}}.\n{{form.description}}\nRespond within {{sla_hours}} hours. Reference {{incident_ref}}",
+    "is_default": false
+  }
+}

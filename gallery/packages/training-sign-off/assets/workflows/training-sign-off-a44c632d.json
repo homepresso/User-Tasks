@@ -1,0 +1,596 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "a44c632d-af11-51a9-a399-fad9199f768d",
+  "asset": {
+    "id": "a44c632d-af11-51a9-a399-fad9199f768d",
+    "name": "Training sign-off",
+    "description": "A trainee submits completion evidence; their trainer signs it off or asks for more work; the Training records table keeps the result and the expiry date.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Completion submitted",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "form_id": "bb559362-3758-5bee-b3c5-6ea6669b638e",
+          "form_name": "Training completion"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Record reference",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "name": "record_ref",
+          "expression": "TR-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "course",
+        "type": "update_data_table",
+        "label": "Read the course",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "table_id": "f7da9866-dbcb-5292-8c52-9a3428e20f05",
+          "table_name": "Courses",
+          "operation": "get",
+          "match_column": "code",
+          "match_value": "{{form.course}}",
+          "output_row_var": "course_row"
+        }
+      },
+      {
+        "id": "ctitle",
+        "type": "set_variable",
+        "label": "Course title",
+        "position": {
+          "x": 400,
+          "y": 480
+        },
+        "config": {
+          "name": "course_title",
+          "expression": "{{=COALESCE(course_row.title, form.course_item.title)}}"
+        }
+      },
+      {
+        "id": "expiry",
+        "type": "set_variable",
+        "label": "Expiry date",
+        "position": {
+          "x": 400,
+          "y": 620
+        },
+        "config": {
+          "name": "expires_on",
+          "expression": "{{=IF(TO_NUMBER(course_row.validity_months) > 0, FORMAT_DATE(ADD_DAYS(form.completed_on, ROUND(TO_NUMBER(course_row.validity_months) * 30.44, 0)), \"YYYY-MM-DD\"), \"\")}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 760
+        },
+        "config": {
+          "title": "Training: {{form.trainee_name}} · {{form.course}} {{course_title}}"
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Add the training record",
+        "position": {
+          "x": 400,
+          "y": 900
+        },
+        "config": {
+          "table_id": "71aa58ec-9493-517f-8d13-f8acfbfd849e",
+          "table_name": "Training records",
+          "operation": "insert",
+          "column_values": {
+            "record_ref": "{{record_ref}}",
+            "trainee_name": "{{form.trainee_name}}",
+            "trainee_email": "{{form.trainee_email}}",
+            "course_code": "{{form.course}}",
+            "course_title": "{{course_title}}",
+            "completed_on": "{{form.completed_on}}",
+            "evidence_link": "{{form.evidence_link}}",
+            "score": "{{form.score}}",
+            "hours": "{{form.hours}}",
+            "status": "awaiting sign-off"
+          }
+        }
+      },
+      {
+        "id": "evidence",
+        "type": "set_variable",
+        "label": "Current evidence",
+        "position": {
+          "x": 400,
+          "y": 1040
+        },
+        "config": {
+          "name": "evidence_link",
+          "expression": "{{form.evidence_link}}"
+        }
+      },
+      {
+        "id": "signoff",
+        "type": "user_task",
+        "label": "Trainer sign-off",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "task_title": "Sign off {{form.trainee_name}}: {{course_title}} ({{form.course}})",
+          "task_description": "<p><strong>{{form.trainee_name}}</strong> completed <strong>{{course_title}}</strong> on {{form.completed_on}} ({{form.hours}} h{{=IF(IS_EMPTY(form.score), \"\", CONCAT(\", score \", form.score, \"%\"))}}).</p><p>Evidence expected: {{course_row.evidence}}<br>Evidence provided: <a href=\"{{evidence_link}}\">{{evidence_link}}</a></p><p>Their reflection: <em>{{form.reflection}}</em></p><p>Check the evidence, then press <strong>Sign off</strong>, or <strong>Needs more work</strong> to send it back with what is missing.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Sign off",
+            "Needs more work"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.trainer}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "evidence_checked",
+              "label": "I have checked the evidence",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "assessment",
+              "label": "Assessment",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "Competent",
+                "Competent with follow-up",
+                "Not yet competent"
+              ],
+              "display": "radio"
+            },
+            {
+              "key": "trainer_comments",
+              "label": "Comments for the trainee",
+              "type": "textarea",
+              "required": true,
+              "help_text": "With Needs more work, say exactly what is missing."
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "evidence_checked",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "assessment",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "trainer_comments",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "sign",
+              "label": "Sign off",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Sign off"
+            },
+            {
+              "id": "more",
+              "label": "Needs more work",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Needs more work"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Training sign-off",
+            "align": "left",
+            "subtitle": "{{form.trainee_name}} · {{form.course}} {{course_title}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#15803D",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 10,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "ok",
+        "type": "update_data_table",
+        "label": "Record the sign-off",
+        "position": {
+          "x": 200,
+          "y": 1340
+        },
+        "config": {
+          "table_id": "71aa58ec-9493-517f-8d13-f8acfbfd849e",
+          "table_name": "Training records",
+          "operation": "update",
+          "match_column": "record_ref",
+          "match_value": "{{record_ref}}",
+          "column_values": {
+            "status": "signed off",
+            "assessment": "{{task_data.assessment}}",
+            "trainer_comments": "{{task_data.trainer_comments}}",
+            "evidence_link": "{{evidence_link}}",
+            "signed_off_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "expires_on": "{{expires_on}}"
+          }
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email the trainee",
+        "position": {
+          "x": 200,
+          "y": 1480
+        },
+        "config": {
+          "to": "{{form.trainee_email}}",
+          "email_template_id": "e4f74cb8-ba0a-5892-bf70-6ea444a010b3"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "end_ok",
+        "type": "end_workflow",
+        "label": "Signed off",
+        "position": {
+          "x": 200,
+          "y": 1620
+        },
+        "config": {
+          "reason": "{{form.trainee_name}} signed off for {{form.course}} (expires {{expires_on}})"
+        }
+      },
+      {
+        "id": "more",
+        "type": "update_data_table",
+        "label": "Mark needs more work",
+        "position": {
+          "x": 600,
+          "y": 1340
+        },
+        "config": {
+          "table_id": "71aa58ec-9493-517f-8d13-f8acfbfd849e",
+          "table_name": "Training records",
+          "operation": "update",
+          "match_column": "record_ref",
+          "match_value": "{{record_ref}}",
+          "column_values": {
+            "status": "needs more work",
+            "assessment": "{{task_data.assessment}}",
+            "trainer_comments": "{{task_data.trainer_comments}}"
+          }
+        }
+      },
+      {
+        "id": "feedback",
+        "type": "set_variable",
+        "label": "Trainer feedback",
+        "position": {
+          "x": 600,
+          "y": 1480
+        },
+        "config": {
+          "name": "trainer_feedback",
+          "expression": "{{task_data.trainer_comments}}"
+        }
+      },
+      {
+        "id": "redo",
+        "type": "user_task",
+        "label": "Add more evidence",
+        "position": {
+          "x": 600,
+          "y": 1620
+        },
+        "config": {
+          "task_title": "More evidence needed: {{course_title}}",
+          "task_description": "<p>Your trainer reviewed <strong>{{course_title}}</strong> and needs more before signing it off:</p><blockquote>{{trainer_feedback}}</blockquote><p>Update the evidence link (or add notes) and press <strong>Resubmit</strong>. If you will retake the course instead, press <strong>Withdraw</strong>.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Resubmit",
+            "Withdraw"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{submitted_by}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 10,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "evidence_link",
+              "label": "Evidence link",
+              "type": "url",
+              "required": true,
+              "default": "{{evidence_link}}"
+            },
+            {
+              "key": "response",
+              "label": "What you added or changed",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "evidence_link",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "response",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "resubmit",
+              "label": "Resubmit",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Resubmit"
+            },
+            {
+              "id": "withdraw",
+              "label": "Withdraw",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Withdraw"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "More evidence needed",
+            "align": "left",
+            "subtitle": "{{form.course}} {{course_title}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#15803D",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 10,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "new_ev",
+        "type": "set_variable",
+        "label": "New evidence",
+        "position": {
+          "x": 600,
+          "y": 1780
+        },
+        "config": {
+          "name": "evidence_link",
+          "expression": "{{task_data.evidence_link}}"
+        }
+      },
+      {
+        "id": "again",
+        "type": "goto_activity",
+        "label": "Back to the trainer",
+        "position": {
+          "x": 600,
+          "y": 1920
+        },
+        "config": {
+          "target_node_id": "signoff",
+          "target_node_label": "Trainer sign-off"
+        }
+      },
+      {
+        "id": "withdrawn",
+        "type": "update_data_table",
+        "label": "Mark withdrawn",
+        "position": {
+          "x": 860,
+          "y": 1780
+        },
+        "config": {
+          "table_id": "71aa58ec-9493-517f-8d13-f8acfbfd849e",
+          "table_name": "Training records",
+          "operation": "update",
+          "match_column": "record_ref",
+          "match_value": "{{record_ref}}",
+          "column_values": {
+            "status": "withdrawn"
+          }
+        }
+      },
+      {
+        "id": "end_w",
+        "type": "end_workflow",
+        "label": "Withdrawn",
+        "position": {
+          "x": 860,
+          "y": 1920
+        },
+        "config": {
+          "reason": "{{form.trainee_name}} withdrew {{form.course}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-course",
+        "source": "ref",
+        "target": "course"
+      },
+      {
+        "id": "e-course-ctitle",
+        "source": "course",
+        "target": "ctitle"
+      },
+      {
+        "id": "e-ctitle-expiry",
+        "source": "ctitle",
+        "target": "expiry"
+      },
+      {
+        "id": "e-expiry-title",
+        "source": "expiry",
+        "target": "title"
+      },
+      {
+        "id": "e-title-row",
+        "source": "title",
+        "target": "row"
+      },
+      {
+        "id": "e-row-evidence",
+        "source": "row",
+        "target": "evidence"
+      },
+      {
+        "id": "e-evidence-signoff",
+        "source": "evidence",
+        "target": "signoff"
+      },
+      {
+        "id": "e-signoff-ok-sign-off",
+        "source": "signoff",
+        "target": "ok",
+        "label": "Sign off"
+      },
+      {
+        "id": "e-ok-mail",
+        "source": "ok",
+        "target": "mail"
+      },
+      {
+        "id": "e-mail-end_ok",
+        "source": "mail",
+        "target": "end_ok"
+      },
+      {
+        "id": "e-signoff-more-needs-more-work",
+        "source": "signoff",
+        "target": "more",
+        "label": "Needs more work"
+      },
+      {
+        "id": "e-more-feedback",
+        "source": "more",
+        "target": "feedback"
+      },
+      {
+        "id": "e-feedback-redo",
+        "source": "feedback",
+        "target": "redo"
+      },
+      {
+        "id": "e-redo-new_ev-resubmit",
+        "source": "redo",
+        "target": "new_ev",
+        "label": "Resubmit"
+      },
+      {
+        "id": "e-new_ev-again",
+        "source": "new_ev",
+        "target": "again"
+      },
+      {
+        "id": "e-redo-withdrawn-withdraw",
+        "source": "redo",
+        "target": "withdrawn",
+        "label": "Withdraw"
+      },
+      {
+        "id": "e-withdrawn-end_w",
+        "source": "withdrawn",
+        "target": "end_w"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "7a2a5067-dac3-4d9e-909c-bb959b6618d2",
+  "asset": {
+    "id": "7a2a5067-dac3-4d9e-909c-bb959b6618d2",
+    "integration_id": "ec3ac8b0-b261-4769-a60d-013a05992920",
+    "name": "Record termination",
+    "description": "Record the termination in the HR system with the last day, reason, rehire flag and final-pay details.",
+    "tags": [
+      "terminations"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"last_working_day\":\"{{last_working_day}}\",\"reason\":\"{{reason}}\",\"rehire_eligible\":{{rehire_eligible}},\"leave_payout_days\":{{leave_payout_days}},\"final_pay_date\":\"{{final_pay_date}}\",\"notes\":\"{{notes}}\"}",
+      "path_template": "/employees/{{employee_id}}/terminations",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "termination_id",
+              "type": "string",
+              "example": "TRM-3307"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "recorded"
+            },
+            {
+              "name": "employee_id",
+              "type": "string",
+              "example": "E-1042"
+            },
+            {
+              "name": "effective_date",
+              "type": "string",
+              "example": "2026-11-27"
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "example": "2026-10-26T10:30:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "termination_id": "TRM-3307",
+          "status": "recorded",
+          "employee_id": "E-1042",
+          "effective_date": "2026-11-27",
+          "created_at": "2026-10-26T10:30:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "11505ddd-5845-4a2c-a694-97b4da8a36b3",
+        "name": "employee_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c0569a33-7e13-47e0-ac73-eb8e183e92ee",
+        "name": "last_working_day",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "4daeea71-dfd9-4d00-8271-0fd3abc4ffa3",
+        "name": "reason",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "f983a8ba-f4f6-4ccd-9e4d-4cf4486f1376",
+        "name": "rehire_eligible",
+        "type": "boolean",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "afe17fa6-4d91-425a-8467-0e6111306f07",
+        "name": "leave_payout_days",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c6139c91-2a85-4245-a5ca-840250f23e15",
+        "name": "final_pay_date",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "bd2f7303-3b95-404a-98f8-dc3e162f40da",
+        "name": "notes",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "b1036cdc-5231-403f-94b4-862a25e8f8b0",
+        "name": "termination_id",
+        "path": "termination_id",
+        "type": "string"
+      },
+      {
+        "id": "1ebbee13-0368-439e-b832-1e23f6c963f0",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "21048ec2-591b-43a1-8f49-bea4002da751",
+        "name": "effective_date",
+        "path": "effective_date",
+        "type": "string"
+      }
+    ]
+  }
+}

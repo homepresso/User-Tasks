@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "webhook_received",
+      "label": "Webhook",
+      "position": { "x": 400, "y": 20 },
+      "config": {}
+    },
+    {
+      "id": "n1",
+      "type": "json_build_array",
+      "label": "Build Items Array",
+      "position": { "x": 400, "y": 160 },
+      "config": { "items": ["apple", "banana", "cherry", "date", "elderberry"], "output_var": "fruits" }
+    },
+    {
+      "id": "n2",
+      "type": "collection_count",
+      "label": "Count Items",
+      "position": { "x": 200, "y": 300 },
+      "config": { "collection": "{{fruits}}", "output_var": "fruit_count" }
+    },
+    {
+      "id": "n3",
+      "type": "loop",
+      "label": "Loop Each Fruit",
+      "position": { "x": 400, "y": 300 },
+      "config": { "items": "{{fruits}}", "item_var": "fruit", "index_var": "i" }
+    },
+    {
+      "id": "n4",
+      "type": "modify_string",
+      "label": "Uppercase Fruit",
+      "position": { "x": 400, "y": 460 },
+      "config": { "operation": "upper", "input": "{{fruit}}", "output_var": "upper_fruit" }
+    },
+    {
+      "id": "n5",
+      "type": "log",
+      "label": "Log Each",
+      "position": { "x": 400, "y": 600 },
+      "config": { "message": "Item {{i}}: {{upper_fruit}}" }
+    },
+    {
+      "id": "n6",
+      "type": "collection_filter",
+      "label": "Filter Long Names",
+      "position": { "x": 400, "y": 740 },
+      "config": { "collection": "{{fruits}}", "field": "", "operator": "length_greater_than", "value": "5", "output_var": "long_fruits" }
+    },
+    {
+      "id": "n7",
+      "type": "collection_sort",
+      "label": "Sort Alphabetically",
+      "position": { "x": 400, "y": 880 },
+      "config": { "collection": "{{fruits}}", "field": "", "direction": "asc", "output_var": "sorted_fruits" }
+    },
+    {
+      "id": "n8",
+      "type": "log",
+      "label": "Log Summary",
+      "position": { "x": 400, "y": 1020 },
+      "config": { "message": "Total: {{fruit_count}}, Sorted: {{sorted_fruits}}" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "t1", "target": "n1" },
+    { "id": "e2", "source": "n1", "target": "n2" },
+    { "id": "e3", "source": "n1", "target": "n3" },
+    { "id": "e4", "source": "n3", "target": "n4", "label": "Each Item" },
+    { "id": "e5", "source": "n4", "target": "n5" },
+    { "id": "e6", "source": "n3", "target": "n6", "label": "Done" },
+    { "id": "e7", "source": "n6", "target": "n7" },
+    { "id": "e8", "source": "n7", "target": "n8" },
+    { "id": "e9", "source": "n2", "target": "n8" }
+  ],
+  "user_variables": [],
+  "swimlanes": []
+}

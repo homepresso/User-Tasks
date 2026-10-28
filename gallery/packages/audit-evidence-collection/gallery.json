@@ -1,0 +1,72 @@
+{
+  "id": "d881492a-5b01-48e4-ba35-0741008007c3",
+  "slug": "audit-evidence-collection",
+  "title": "Audit evidence collection",
+  "category": "operations-compliance",
+  "summary": "Monthly SOC 2 / ISO 27001 evidence run: automated controls are pulled from your systems, owners of manual controls are asked for a link, all logged for the auditor.",
+  "description": "Audit evidence collection keeps your evidence folder current without a scramble before the audit. Each month it reads the Controls data table (framework, reference, evidence type, owner, frequency) and works through the controls that are due: monthly controls every month, quarterly ones in January, April, July and October.\n\nAutomated controls are fetched from the Evidence API with the control id and period (access reviews, backups, vulnerability scans, change tickets) and logged as collected with the export link, record and exception counts and a checksum; failed calls are logged as failed. Manual controls get a \"requested\" row and a Provide audit evidence run, in which the control owner submits a link or marks the control not applicable, which the compliance lead must accept. Reminders and escalation keep requests moving. At the end the compliance lead gets a summary with the counts.\n\nAdapt the Controls rows to your control set, point the Evidence API reference at your evidence service (or one reference per system), and change the schedule and quarter months to your audit calendar.",
+  "trigger": "schedule",
+  "entry_workflow": "0a813a4e-4690-4298-b122-738cbbc7f5d3",
+  "start": "Runs on the 2nd of every month at 06:00 UTC. Run it by hand with an \"as of\" date to collect for another month.",
+  "difficulty": "intermediate",
+  "setup_minutes": 20,
+  "tags": [
+    "audit",
+    "evidence",
+    "SOC 2",
+    "ISO 27001",
+    "controls"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "Evidence API integration: set the base URL of the service that exports control evidence and an API token. Get control evidence expects GET /evidence/{feed}?control_id=…&period=YYYY-MM returning evidence_url, record_count, exceptions and checksum; adjust it in Integrations, or add one reference per system.",
+    "Assignees: pick the default control owner (used when a control has no owner user id) and the compliance lead who confirms \"not applicable\" and receives escalations.",
+    "Replace the sample rows in Controls with your control set. For automated controls set the evidence feed name your API expects; fill owner user id to route a manual control to its owner.",
+    "Set compliance_lead_email on the workflow, and change the schedule or the quarter months in the \"Due this period?\" condition if needed.",
+    "Email: configure EMAIL_PROVIDER on the instance so the summary is delivered (the step continues on error)."
+  ],
+  "steps": [
+    {
+      "title": "Monthly run",
+      "body": "On the 2nd the workflow works out the period (YYYY-MM) and lists the active controls."
+    },
+    {
+      "title": "Pick the due controls",
+      "body": "Monthly controls run every month; quarterly controls run in the first month of each quarter. The rest are counted as not due."
+    },
+    {
+      "title": "Collect automated evidence",
+      "body": "Get control evidence returns the export link, record count, exceptions and checksum; the row is logged as collected, or as failed if the call fails."
+    },
+    {
+      "title": "Ask owners for manual evidence",
+      "body": "A \"requested\" row is logged and the Provide audit evidence run asks the control owner for a link, with reminders and escalation."
+    },
+    {
+      "title": "Agree not applicable",
+      "body": "If the owner marks a control not applicable, the compliance lead accepts it or sends it back for evidence."
+    },
+    {
+      "title": "Summarise",
+      "body": "The compliance lead gets the counts of collected, requested and failed evidence for the period."
+    }
+  ],
+  "sample_input": {
+    "as_of": "2026-10-02",
+    "compliance_lead_email": "compliance@example.com"
+  },
+  "expect": "completed",
+  "icon": "clipboard-check"
+}

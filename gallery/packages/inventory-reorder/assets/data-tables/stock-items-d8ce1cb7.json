@@ -1,0 +1,117 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "d8ce1cb7-40f8-5e57-8c88-2c8795071bbb",
+  "asset": {
+    "id": "d8ce1cb7-40f8-5e57-8c88-2c8795071bbb",
+    "name": "Stock items",
+    "description": "Stock you keep on hand: current quantity, the reorder point that triggers a purchase, how many to order and who supplies it. The daily check reads this table.",
+    "columns": [
+      {
+        "id": "4eba7e19-3fbc-524e-b45e-8da1fd02accb",
+        "required": true,
+        "key": "sku",
+        "name": "SKU",
+        "type": "text"
+      },
+      {
+        "id": "2d4851e5-84f5-50bc-a049-bb7334fdf44b",
+        "required": true,
+        "key": "name",
+        "name": "Item",
+        "type": "text"
+      },
+      {
+        "id": "dd18d117-a979-5373-9a0d-f3a42cd67791",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "text"
+      },
+      {
+        "id": "a316f0d7-fdca-5e5a-8f21-bfd345935d50",
+        "required": false,
+        "key": "location",
+        "name": "Location",
+        "type": "text"
+      },
+      {
+        "id": "664897ee-2b45-5ff2-8a2b-0590bec4ea0d",
+        "required": false,
+        "key": "unit",
+        "name": "Unit",
+        "type": "text"
+      },
+      {
+        "id": "c6cd348a-f5a9-51a6-879a-93bacfc7f1f6",
+        "required": true,
+        "key": "on_hand",
+        "name": "On hand",
+        "type": "number"
+      },
+      {
+        "id": "67d1b559-75d8-5586-8174-d7835091d19d",
+        "required": true,
+        "key": "reorder_point",
+        "name": "Reorder point",
+        "type": "number"
+      },
+      {
+        "id": "40ae84c8-990f-5c15-b343-7a7c23d627ef",
+        "required": true,
+        "key": "reorder_qty",
+        "name": "Reorder quantity",
+        "type": "number"
+      },
+      {
+        "id": "15e3dfb4-b3fd-58e7-936a-08d13aef5976",
+        "required": false,
+        "key": "unit_cost",
+        "name": "Unit cost",
+        "type": "number"
+      },
+      {
+        "id": "a90b7428-fea8-5a7b-b7eb-f9efbda29a2c",
+        "required": false,
+        "key": "supplier",
+        "name": "Supplier",
+        "type": "text"
+      },
+      {
+        "id": "ea0b2fdc-2cc5-544b-aa18-87a2d3cec21b",
+        "required": false,
+        "key": "supplier_email",
+        "name": "Supplier email",
+        "type": "text"
+      },
+      {
+        "id": "6763e8a1-f8cf-518f-a419-7e0586e66267",
+        "required": false,
+        "key": "lead_time_days",
+        "name": "Lead time (days)",
+        "type": "number"
+      },
+      {
+        "id": "ce652120-5862-5c55-a568-6b38cabe879a",
+        "required": false,
+        "key": "on_order",
+        "name": "On order",
+        "type": "boolean"
+      },
+      {
+        "id": "67e55601-5a1d-5ab8-8306-4347a8dbdb8a",
+        "required": false,
+        "key": "last_ordered",
+        "name": "Last ordered",
+        "type": "date"
+      },
+      {
+        "id": "b95a039e-257d-5e26-a02f-2b95bbbe4823",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

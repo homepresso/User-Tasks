@@ -1,0 +1,75 @@
+{
+  "title": "Workday worker change → access update",
+  "category": "hr-people",
+  "summary": "A Workday job change, org move or termination maps old and new jobs to access bundles, logs the request, and the manager approves or rejects it.",
+  "description": "Workday worker change → access update keeps access in step with the job. When a Job Change, organization move or Termination completes in Workday, the event is posted to the workflow with the worker id and event id.\n\nThe workflow reads the worker and their staffing history from the Workday Staffing REST API, so it knows the job profile and supervisory organization before and after the change. The Access bundle mapping decision table turns each into a bundle code (terminations map to no access), and the Access bundles table says which applications and groups each bundle grants.\n\nWhen the bundle changes, an access change request is logged and the manager gets a task form with the bundles to remove and add, a bundle lookup to correct it, a remove-by date and Approve / Reject buttons. The decision is written to the Access change requests table and posted as a comment on the Workday business process event. Provisioning in your identity system can then pick up the approved rows.",
+  "trigger": "api",
+  "entry_workflow": "5733065a-39c5-50e5-85e4-e766d4b12e29",
+  "start": "Starts when Workday posts a worker change (worker id, event type, event id) to the workflow start API or inbound webhook from a business process notification or integration.",
+  "difficulty": "intermediate",
+  "setup_minutes": 20,
+  "tags": [
+    "access",
+    "joiner mover leaver",
+    "workday",
+    "decision table",
+    "approvals"
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "webhook"
+  ],
+  "setup": [
+    "Workday integration: base URL https://<services-host>/ccx and an OAuth 2.0 bearer token for an Integration System User with Staffing and Business Process domain access. Replace \"acme\" in the reference paths with your tenant.",
+    "Assignees: pick the default approving manager (runs can pass manager_user_id).",
+    "Point Workday at the start API: a notification or integration subscribed to Job Change, Change Organization Assignments and Termination posts {\"worker_id\", \"event_type\", \"event_id\"}.",
+    "Edit the Access bundles rows and the Access bundle mapping rules to match your roles; connect your identity system to the approved rows of Access change requests."
+  ],
+  "steps": [
+    {
+      "title": "Worker change",
+      "body": "Workday posts the worker id, event type (job_change, org_move, termination) and the event id."
+    },
+    {
+      "title": "Before and after",
+      "body": "Get worker and Get worker job history give the current and previous job profile and organization."
+    },
+    {
+      "title": "Map to bundles",
+      "body": "The Access bundle mapping decision table picks the old and new bundle; Access bundles lists what each grants."
+    },
+    {
+      "title": "Log the request",
+      "body": "If the bundle changes, an access change request row is created; if not, the run ends."
+    },
+    {
+      "title": "Manager decision",
+      "body": "The manager reviews the removals and additions on a task form and approves or rejects."
+    },
+    {
+      "title": "Back to Workday",
+      "body": "The decision updates the request row and is posted as a comment on the Workday event."
+    }
+  ],
+  "sample_input": {
+    "worker_id": "8d2f6e1a4b7c4e0f9a3d5c7b1e2f4a6c",
+    "event_type": "job_change",
+    "event_id": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6"
+  },
+  "expect": "waiting",
+  "icon": "user-cog",
+  "systems": [
+    "Workday"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "id": "8df55bef-37c7-5cb5-9749-60a92deb8893",
+  "slug": "workday-worker-change-access"
+}

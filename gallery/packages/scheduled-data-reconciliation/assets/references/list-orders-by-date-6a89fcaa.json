@@ -1,0 +1,129 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "6a89fcaa-a2f1-4d4b-914c-c39e24d331f0",
+  "asset": {
+    "id": "6a89fcaa-a2f1-4d4b-914c-c39e24d331f0",
+    "integration_id": "d080dd70-a229-46fe-a31d-f35030b32479",
+    "name": "List orders by date",
+    "description": "All orders placed on one date.",
+    "tags": [
+      "orders"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/orders",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "data",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "type": "string",
+                    "example": "SO-71001",
+                    "name": "id"
+                  },
+                  {
+                    "type": "string",
+                    "example": "Harbour Logistics Ltd",
+                    "name": "customer"
+                  },
+                  {
+                    "type": "number",
+                    "example": 1250,
+                    "name": "total"
+                  },
+                  {
+                    "type": "string",
+                    "example": "NZD",
+                    "name": "currency"
+                  },
+                  {
+                    "type": "string",
+                    "example": "shipped",
+                    "name": "status"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "count",
+              "type": "integer",
+              "example": 4
+            },
+            {
+              "name": "date",
+              "type": "string",
+              "example": "2026-10-25"
+            }
+          ]
+        },
+        "sample": {
+          "data": [
+            {
+              "id": "SO-71001",
+              "customer": "Harbour Logistics Ltd",
+              "total": 1250,
+              "currency": "NZD",
+              "status": "shipped"
+            },
+            {
+              "id": "SO-71004",
+              "customer": "Tidewater Dental",
+              "total": 615.2,
+              "currency": "NZD",
+              "status": "shipped"
+            },
+            {
+              "id": "SO-71002",
+              "customer": "Kowhai Cafe Group",
+              "total": 389.5,
+              "currency": "NZD",
+              "status": "shipped"
+            }
+          ],
+          "count": 4,
+          "date": "2026-10-25"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "7a5e00c0-a479-460a-b58d-3f5b46403437",
+        "name": "date",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "Order date, YYYY-MM-DD",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "c73fea05-c1c2-407c-b2b7-f12e60e1cee2",
+        "name": "orders",
+        "path": "data",
+        "type": "array"
+      },
+      {
+        "id": "b25da271-1779-4549-87f3-63d666d5128d",
+        "name": "count",
+        "path": "count",
+        "type": "number"
+      }
+    ]
+  }
+}

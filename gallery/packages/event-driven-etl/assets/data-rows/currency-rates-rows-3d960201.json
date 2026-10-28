@@ -1,0 +1,65 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "3d960201-f081-4fc9-8479-71412634dd07",
+  "asset": {
+    "id": "3d960201-f081-4fc9-8479-71412634dd07",
+    "name": "Currency rates rows",
+    "rows": [
+      {
+        "id": "1a343e1d-ab2a-4fa6-bf5c-3e2dc7b46968",
+        "data": {
+          "currency": "NZD",
+          "rate_to_base": 1,
+          "base_currency": "NZD",
+          "effective_date": "2026-10-24"
+        }
+      },
+      {
+        "id": "e9d1795d-6798-4638-803c-e3ed17125b48",
+        "data": {
+          "currency": "AUD",
+          "rate_to_base": 1.09,
+          "base_currency": "NZD",
+          "effective_date": "2026-10-24"
+        }
+      },
+      {
+        "id": "8da2d912-55ca-415e-8b56-bfc5fb66c649",
+        "data": {
+          "currency": "USD",
+          "rate_to_base": 1.67,
+          "base_currency": "NZD",
+          "effective_date": "2026-10-24"
+        }
+      },
+      {
+        "id": "df804b66-18a3-412a-b309-2c72d95a5104",
+        "data": {
+          "currency": "EUR",
+          "rate_to_base": 1.82,
+          "base_currency": "NZD",
+          "effective_date": "2026-10-24"
+        }
+      },
+      {
+        "id": "6133d419-324f-4d23-bfd3-40634c3ca92c",
+        "data": {
+          "currency": "GBP",
+          "rate_to_base": 2.12,
+          "base_currency": "NZD",
+          "effective_date": "2026-10-24"
+        }
+      },
+      {
+        "id": "33a7a9ed-865b-41fe-b5ec-39120a127007",
+        "data": {
+          "currency": "JPY",
+          "rate_to_base": 0.011,
+          "base_currency": "NZD",
+          "effective_date": "2026-10-24"
+        }
+      }
+    ]
+  }
+}

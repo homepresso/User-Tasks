@@ -1,0 +1,240 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "69029aaf-f770-44f9-ab2f-db6a7bfb5965",
+  "asset": {
+    "id": "69029aaf-f770-44f9-ab2f-db6a7bfb5965",
+    "name": "Incident priority",
+    "description": "Priority from impact (the service tier) and urgency (the monitoring severity). P1 and P2 page the on-call engineer; P3 and P4 go straight to the team queue. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "a9b83b0f-0be7-4d82-a6a9-12559f91dffd",
+        "key": "tier",
+        "label": "Service tier",
+        "type": "number"
+      },
+      {
+        "id": "47586a20-113d-403d-8692-b4019514d0e6",
+        "key": "severity",
+        "label": "Severity hint",
+        "type": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "5c8abd8b-4ea4-42ce-91b0-eab7248a2b72",
+        "key": "priority",
+        "label": "Priority",
+        "type": "text"
+      },
+      {
+        "id": "e2f5faca-f260-45ef-bae8-4fe9ecfc1a4b",
+        "key": "response_minutes",
+        "label": "Response target (minutes)",
+        "type": "number"
+      },
+      {
+        "id": "7031fdef-0fae-481a-ab6c-798bce192cf1",
+        "key": "resolve_hours",
+        "label": "Resolution target (hours)",
+        "type": "number"
+      },
+      {
+        "id": "b43ba794-0fa4-48fa-beac-9e55e6f2d976",
+        "key": "page_oncall",
+        "label": "Page on-call",
+        "type": "boolean"
+      }
+    ],
+    "rules": [
+      {
+        "id": "5059d305-929f-4199-ad7e-6d0b2993e6d6",
+        "label": "Tier 1, critical",
+        "enabled": true,
+        "outputs": {
+          "priority": "P1",
+          "response_minutes": 15,
+          "resolve_hours": 4,
+          "page_oncall": true
+        },
+        "conditions": [
+          {
+            "id": "38a39a97-9169-48b5-a2c6-04f6a14f135b",
+            "inputKey": "tier",
+            "operator": "less_than_or_equal",
+            "value": "1"
+          },
+          {
+            "id": "9cbee833-ae2b-4dd5-87b0-b95a07196141",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "critical"
+          }
+        ]
+      },
+      {
+        "id": "14d45fde-bba0-4cce-ab52-29b6996d172f",
+        "label": "Tier 1, major",
+        "enabled": true,
+        "outputs": {
+          "priority": "P1",
+          "response_minutes": 15,
+          "resolve_hours": 4,
+          "page_oncall": true
+        },
+        "conditions": [
+          {
+            "id": "edf34404-6f33-46d9-827b-3e66f91be983",
+            "inputKey": "tier",
+            "operator": "less_than_or_equal",
+            "value": "1"
+          },
+          {
+            "id": "dbc64170-b693-45be-8d5a-82f975fd4210",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "major"
+          }
+        ]
+      },
+      {
+        "id": "ca913a39-1a13-4424-812e-e7b60e1df7bf",
+        "label": "Tier 1, minor",
+        "enabled": true,
+        "outputs": {
+          "priority": "P2",
+          "response_minutes": 30,
+          "resolve_hours": 8,
+          "page_oncall": true
+        },
+        "conditions": [
+          {
+            "id": "d64607ca-bafa-4ca0-b0f6-fb045253f604",
+            "inputKey": "tier",
+            "operator": "less_than_or_equal",
+            "value": "1"
+          },
+          {
+            "id": "4ce085d9-2e44-4f44-9dae-16ddf3eb49cc",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "minor"
+          }
+        ]
+      },
+      {
+        "id": "c76bfb68-811a-4faa-9308-f5ee9048a373",
+        "label": "Tier 2, critical",
+        "enabled": true,
+        "outputs": {
+          "priority": "P2",
+          "response_minutes": 30,
+          "resolve_hours": 8,
+          "page_oncall": true
+        },
+        "conditions": [
+          {
+            "id": "e0194013-d8b8-4a35-9b2c-bc4ff409d05d",
+            "inputKey": "tier",
+            "operator": "equals",
+            "value": "2"
+          },
+          {
+            "id": "44397729-d575-4bac-9d91-e8dce429d0e8",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "critical"
+          }
+        ]
+      },
+      {
+        "id": "ce1162a3-0cd9-4402-88cc-cde882422778",
+        "label": "Tier 2, major",
+        "enabled": true,
+        "outputs": {
+          "priority": "P2",
+          "response_minutes": 30,
+          "resolve_hours": 8,
+          "page_oncall": true
+        },
+        "conditions": [
+          {
+            "id": "5fd49977-7b2b-4abf-a7ef-89558447098a",
+            "inputKey": "tier",
+            "operator": "equals",
+            "value": "2"
+          },
+          {
+            "id": "1993b59f-ecc4-4dd6-be60-a726256e4576",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "major"
+          }
+        ]
+      },
+      {
+        "id": "e5eddb15-69e3-4957-b787-a68091540c63",
+        "label": "Tier 1-2, low urgency",
+        "enabled": true,
+        "outputs": {
+          "priority": "P3",
+          "response_minutes": 240,
+          "resolve_hours": 24,
+          "page_oncall": false
+        },
+        "conditions": [
+          {
+            "id": "901034d8-4500-483f-beee-ba9ff7bf4ff2",
+            "inputKey": "tier",
+            "operator": "less_than_or_equal",
+            "value": "2"
+          }
+        ]
+      },
+      {
+        "id": "9bc6d6bf-f58f-470a-9199-9eebdbb7a07c",
+        "label": "Tier 3+, critical or major",
+        "enabled": true,
+        "outputs": {
+          "priority": "P3",
+          "response_minutes": 240,
+          "resolve_hours": 24,
+          "page_oncall": false
+        },
+        "conditions": [
+          {
+            "id": "f9bbff8f-34b7-4afe-81be-faa5d80e38fd",
+            "inputKey": "tier",
+            "operator": "greater_than_or_equal",
+            "value": "3"
+          },
+          {
+            "id": "52eca087-80d7-462a-921d-9fae99872433",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "critical"
+          }
+        ]
+      },
+      {
+        "id": "80b048be-4849-4526-9153-d21aa10a7fbc",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "priority": "P4",
+          "response_minutes": 480,
+          "resolve_hours": 72,
+          "page_oncall": false
+        },
+        "conditions": [
+          {
+            "id": "cfde9f00-bef0-4c7a-ae0f-49ca59bc40cd",
+            "inputKey": "severity",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

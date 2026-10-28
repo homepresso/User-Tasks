@@ -1,0 +1,140 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "4de2524f-d83f-459a-8767-2a277df1634f",
+  "asset": {
+    "id": "4de2524f-d83f-459a-8767-2a277df1634f",
+    "integration_id": "681d12fc-446c-4a7e-bb3c-e946dcab12a4",
+    "name": "Get asset",
+    "description": "Configuration item for the host in the alert: business criticality, owner, environment and its EDR agent id.",
+    "tags": [
+      "assets"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/assets/{{hostname}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "hostname",
+              "type": "string",
+              "example": "fin-ws-0417"
+            },
+            {
+              "name": "asset_id",
+              "type": "string",
+              "example": "CI-88213"
+            },
+            {
+              "name": "type",
+              "type": "string",
+              "example": "workstation"
+            },
+            {
+              "name": "os",
+              "type": "string",
+              "example": "Windows 11"
+            },
+            {
+              "name": "environment",
+              "type": "string",
+              "example": "production"
+            },
+            {
+              "name": "criticality",
+              "type": "string",
+              "example": "high"
+            },
+            {
+              "name": "edr_host_id",
+              "type": "string",
+              "example": "edr-4f9a21c7"
+            },
+            {
+              "name": "owner",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "name",
+                  "type": "string",
+                  "example": "Finance IT"
+                },
+                {
+                  "name": "email",
+                  "type": "string",
+                  "example": "finance.it@example.com"
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "hostname": "fin-ws-0417",
+          "asset_id": "CI-88213",
+          "type": "workstation",
+          "os": "Windows 11",
+          "environment": "production",
+          "criticality": "high",
+          "edr_host_id": "edr-4f9a21c7",
+          "owner": {
+            "name": "Finance IT",
+            "email": "finance.it@example.com"
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "db894c2b-810b-4a56-8d2c-2d789dff066e",
+        "name": "hostname",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "1e7ab632-4662-4c69-a56e-c95ab7192560",
+        "name": "criticality",
+        "path": "criticality",
+        "type": "string"
+      },
+      {
+        "id": "8af7e822-1810-4f95-82f2-884e923502e5",
+        "name": "owner",
+        "path": "owner.name",
+        "type": "string"
+      },
+      {
+        "id": "cdb47439-0dfb-4633-9222-caf17b23b7b6",
+        "name": "owner_email",
+        "path": "owner.email",
+        "type": "string"
+      },
+      {
+        "id": "61f114d7-acca-4f3a-a916-6438db011743",
+        "name": "environment",
+        "path": "environment",
+        "type": "string"
+      },
+      {
+        "id": "a4252c9d-a4b3-4ba9-a33f-ba66538f7caf",
+        "name": "edr_host_id",
+        "path": "edr_host_id",
+        "type": "string"
+      }
+    ]
+  }
+}

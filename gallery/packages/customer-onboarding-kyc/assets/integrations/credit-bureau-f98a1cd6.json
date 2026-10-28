@@ -1,0 +1,22 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "f98a1cd6-220b-43f3-ab3b-586ffbe7c054",
+  "asset": {
+    "id": "f98a1cd6-220b-43f3-ab3b-586ffbe7c054",
+    "name": "Credit bureau",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://credit.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "credit"
+    ]
+  }
+}

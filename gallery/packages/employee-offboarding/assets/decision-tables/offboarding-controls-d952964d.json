@@ -1,0 +1,178 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "d952964d-0ecc-4849-b14a-14fd0c620cdc",
+  "asset": {
+    "id": "d952964d-0ecc-4849-b14a-14fd0c620cdc",
+    "name": "Offboarding controls",
+    "description": "Controls for a leaver by reason and privileged access: when access is revoked, whether an exit interview is offered and whether garden leave applies. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "cdd2df92-15d8-427b-98e6-a5495901c9be",
+        "key": "reason",
+        "label": "Reason",
+        "type": "text"
+      },
+      {
+        "id": "4bdfc923-5dfe-4f43-b04c-4cb44e4cb226",
+        "key": "privileged_access",
+        "label": "Privileged access",
+        "type": "boolean"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "7bf8efb9-61f0-4b8b-a9d6-e5f1ad36a9f2",
+        "key": "revocation_timing",
+        "label": "Access revocation",
+        "type": "text"
+      },
+      {
+        "id": "a090b22e-7eb1-4dac-8cbf-d6b6ca4b6e06",
+        "key": "exit_interview",
+        "label": "Exit interview",
+        "type": "boolean"
+      },
+      {
+        "id": "e8ec3e0c-99e9-42c1-ac4c-b9a805da237e",
+        "key": "garden_leave",
+        "label": "Garden leave",
+        "type": "boolean"
+      },
+      {
+        "id": "f8977e2d-d56d-401f-a08a-be57ce04ad51",
+        "key": "it_due_days",
+        "label": "IT task due (days)",
+        "type": "number"
+      }
+    ],
+    "rules": [
+      {
+        "id": "693d1f28-4553-400e-997a-ba5fabb2d08e",
+        "label": "Dismissal",
+        "enabled": true,
+        "outputs": {
+          "revocation_timing": "immediate",
+          "exit_interview": false,
+          "garden_leave": false,
+          "it_due_days": 0
+        },
+        "conditions": [
+          {
+            "id": "fff4114a-7d95-45c3-8ef6-15005141d0c7",
+            "inputKey": "reason",
+            "operator": "equals",
+            "value": "dismissal"
+          }
+        ]
+      },
+      {
+        "id": "e866bdf3-d9e9-4f22-8a24-9fe1ca79252d",
+        "label": "Redundancy with privileged access",
+        "enabled": true,
+        "outputs": {
+          "revocation_timing": "immediate",
+          "exit_interview": true,
+          "garden_leave": true,
+          "it_due_days": 1
+        },
+        "conditions": [
+          {
+            "id": "bc258b07-7f25-4232-88b6-ecbe1a0e35ca",
+            "inputKey": "reason",
+            "operator": "equals",
+            "value": "redundancy"
+          },
+          {
+            "id": "3e55ef6a-ece1-42d3-b07a-72ff199c234d",
+            "inputKey": "privileged_access",
+            "operator": "equals",
+            "value": "true"
+          }
+        ]
+      },
+      {
+        "id": "29ba797f-4306-42f4-8a35-a78c09adfa73",
+        "label": "Resignation with privileged access",
+        "enabled": true,
+        "outputs": {
+          "revocation_timing": "immediate",
+          "exit_interview": true,
+          "garden_leave": true,
+          "it_due_days": 1
+        },
+        "conditions": [
+          {
+            "id": "0b44f77c-f5a3-4bc5-a276-358dbd296fbb",
+            "inputKey": "reason",
+            "operator": "equals",
+            "value": "resignation"
+          },
+          {
+            "id": "ebcb4d8c-e5c4-4176-9c17-589fae12e97c",
+            "inputKey": "privileged_access",
+            "operator": "equals",
+            "value": "true"
+          }
+        ]
+      },
+      {
+        "id": "55b2fc92-c810-495b-bc07-b5dde4da0206",
+        "label": "Redundancy",
+        "enabled": true,
+        "outputs": {
+          "revocation_timing": "last day",
+          "exit_interview": true,
+          "garden_leave": false,
+          "it_due_days": 5
+        },
+        "conditions": [
+          {
+            "id": "2dcfa7d2-2ea1-4102-865e-b76d327d043f",
+            "inputKey": "reason",
+            "operator": "equals",
+            "value": "redundancy"
+          }
+        ]
+      },
+      {
+        "id": "4366f177-bca3-446d-8dd4-b815fcb161ad",
+        "label": "End of contract",
+        "enabled": true,
+        "outputs": {
+          "revocation_timing": "last day",
+          "exit_interview": false,
+          "garden_leave": false,
+          "it_due_days": 5
+        },
+        "conditions": [
+          {
+            "id": "0e9a93ca-893d-404c-8d4e-840ead9870fd",
+            "inputKey": "reason",
+            "operator": "equals",
+            "value": "end of contract"
+          }
+        ]
+      },
+      {
+        "id": "25a0254b-f236-450e-94e8-227454be0762",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "revocation_timing": "last day",
+          "exit_interview": true,
+          "garden_leave": false,
+          "it_due_days": 5
+        },
+        "conditions": [
+          {
+            "id": "d92afaf9-8d4e-4172-aa87-e97c2fb1279c",
+            "inputKey": "reason",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

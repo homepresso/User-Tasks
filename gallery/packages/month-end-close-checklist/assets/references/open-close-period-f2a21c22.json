@@ -1,0 +1,143 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "f2a21c22-a783-4225-9923-bd80fa964258",
+  "asset": {
+    "id": "f2a21c22-a783-4225-9923-bd80fa964258",
+    "integration_id": "ea9e0528-3763-48ce-b297-1336d550603c",
+    "name": "Open close period",
+    "description": "Start the month-end close for an entity and period in the ERP (soft-closes sub-ledgers, opens the adjustment window) and return the close id and dates.",
+    "tags": [
+      "close"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"entity\":\"{{entity}}\",\"period\":\"{{period}}\",\"action\":\"start_close\"}",
+      "path_template": "/close-periods",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "close_id",
+              "type": "string",
+              "example": "CL-NZ01-2026-09"
+            },
+            {
+              "name": "entity",
+              "type": "string",
+              "example": "NZ01"
+            },
+            {
+              "name": "period",
+              "type": "string",
+              "example": "2026-09"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "closing"
+            },
+            {
+              "name": "period_start",
+              "type": "string",
+              "example": "2026-09-01"
+            },
+            {
+              "name": "period_end",
+              "type": "string",
+              "example": "2026-09-30"
+            },
+            {
+              "name": "close_deadline",
+              "type": "string",
+              "example": "2026-10-08"
+            },
+            {
+              "name": "subledgers_soft_closed",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "example": "AP"
+              }
+            }
+          ]
+        },
+        "sample": {
+          "close_id": "CL-NZ01-2026-09",
+          "entity": "NZ01",
+          "period": "2026-09",
+          "status": "closing",
+          "period_start": "2026-09-01",
+          "period_end": "2026-09-30",
+          "close_deadline": "2026-10-08",
+          "subledgers_soft_closed": [
+            "AP",
+            "AR",
+            "FA"
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "d20d2229-4117-4565-8801-45393be8caba",
+        "name": "entity",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Legal entity / company code, e.g. NZ01",
+        "default_value": ""
+      },
+      {
+        "id": "7574a0ec-8f35-414f-8fe7-4a9021599c7e",
+        "name": "period",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Period being closed, YYYY-MM",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "51b58b95-e333-434e-9049-ffe574f78fcd",
+        "name": "close_id",
+        "path": "close_id",
+        "type": "string"
+      },
+      {
+        "id": "33544a7e-7c4b-408e-9384-4de3d2a27667",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "1249c62d-59d2-4e2c-84cd-c970514d2e76",
+        "name": "period_start",
+        "path": "period_start",
+        "type": "string"
+      },
+      {
+        "id": "31a777e3-63aa-4b8b-8da9-2e04e6e6654d",
+        "name": "period_end",
+        "path": "period_end",
+        "type": "string"
+      },
+      {
+        "id": "bbd7f556-1244-4067-be49-013f23b2ebf2",
+        "name": "close_deadline",
+        "path": "close_deadline",
+        "type": "string"
+      }
+    ]
+  }
+}

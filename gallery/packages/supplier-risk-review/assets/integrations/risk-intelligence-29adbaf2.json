@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "29adbaf2-780d-4db8-9ba3-afcc5a42009d",
+  "asset": {
+    "id": "29adbaf2-780d-4db8-9ba3-afcc5a42009d",
+    "name": "Risk intelligence",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://risk-intel.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "suppliers",
+      "risk"
+    ]
+  }
+}

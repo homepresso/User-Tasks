@@ -1,0 +1,22 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "28d5a219-3dcd-4948-aa8a-250741f8a8dc",
+  "asset": {
+    "id": "28d5a219-3dcd-4948-aa8a-250741f8a8dc",
+    "name": "Support desk",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://support.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "support"
+    ]
+  }
+}

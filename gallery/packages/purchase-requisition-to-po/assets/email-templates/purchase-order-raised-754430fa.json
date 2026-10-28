@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "754430fa-79e7-4873-ad07-0c882206a7ce",
+  "asset": {
+    "id": "754430fa-79e7-4873-ad07-0c882206a7ce",
+    "name": "Purchase order raised",
+    "description": "Sent to the requester when the purchase order is issued.",
+    "subject": "PO {{po_number}} raised for {{item_description}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your purchase order is raised</h2>\n  <p>Hi,</p>\n  <p>Requisition {{requisition_ref}} for <strong>{{item_description}}</strong> was approved and purchase order <strong>{{po_number}}</strong> was sent to {{po_supplier}} for {{currency}} {{=FORMAT_NUMBER(po_amount, 2)}}.</p>\n  <p>Expected delivery: {{expected_delivery}}. Cost centre {{cost_centre}}.</p>\n  <p><a href=\"{{po_pdf_url}}\">View the purchase order</a></p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the purchasing workflow at your company</p>\n</div>",
+    "text_body": "Your purchase order is raised\n  Hi,\n  Requisition {{requisition_ref}} for {{item_description}} was approved and purchase order {{po_number}} was sent to {{po_supplier}} for {{currency}} {{=FORMAT_NUMBER(po_amount, 2)}}.\n  Expected delivery: {{expected_delivery}}. Cost centre {{cost_centre}}.\n  View the purchase order\n  Sent by the purchasing workflow at your company",
+    "is_default": false
+  }
+}

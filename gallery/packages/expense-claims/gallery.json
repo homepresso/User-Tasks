@@ -1,0 +1,84 @@
+{
+  "id": "5dc02cfb-c3b0-4a0c-9106-6f0aefd04ad6",
+  "slug": "expense-claims",
+  "title": "Expense claims",
+  "category": "finance",
+  "summary": "Employees submit a claim from a form; category limits and an approval policy route it, and approved claims are queued for reimbursement.",
+  "description": "Expense claims is a complete claim-to-reimbursement process. An employee fills in the start form (what the claim is for, the category, amount, date, receipt link and business purpose) from the Run dialog in UserTasks or from your own portal posting to the API.\n\nThe workflow looks the employee up in your finance system, reads the category rules from the Expense categories table (GL code, per-claim limit, receipt rule) and evaluates the Expense approval policy decision table. Small claims are approved automatically; everything else goes to an approver as a User Task with Approve, Reject and Send back buttons and the approved amount, GL code and cost centre pre-filled; the approver can recode the category from the same table.\n\nThe approver can approve, reject or send the claim back. Sent-back claims go to the claimant to fix and resubmit, then return to the same approval step. Approved claims are queued for reimbursement through the finance API and the claimant gets an email with the payment run date. A five-day SLA tracks the whole run.",
+  "trigger": "form",
+  "entry_workflow": "ea38212b-5384-4408-bbcf-1849b1873fc7",
+  "start": "Starts from a form: the claimant fills in the workflow inputs (Run dialog in the app, or your portal posting them to the start API or the inbound webhook).",
+  "difficulty": "starter",
+  "setup_minutes": 10,
+  "tags": [
+    "expenses",
+    "approvals",
+    "reimbursement",
+    "decision table",
+    "finance",
+    "forms",
+    "lookup"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: a themed start form with a grid and header, Approve / Reject / Send back buttons with a grid and header on the approval step (with a category lookup that refills the GL code and limit), and Resubmit / Withdraw buttons on the send-back step."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "Finance system integration: set the base URL of your HR / finance API and an API token. The two references expect GET /employees/{id} and POST /expense-reimbursements; adjust their paths and the response model to your API in Integrations.",
+    "Assignees: pick the default approver (used when a run does not pass approver_id) and the default claimant contact for sent-back claims (runs can pass claimant_user_id).",
+    "Edit the Expense categories rows to your chart of accounts and limits, and the Expense approval policy rules to your delegation of authority.",
+    "Email: configure EMAIL_PROVIDER on the instance so the approved / rejected emails are delivered (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Claim submitted",
+      "body": "The start form collects the employee number, claim title, category, amount, currency, date, receipt link and business purpose."
+    },
+    {
+      "title": "Look up the employee",
+      "body": "Get employee returns the name, email and cost centre from the finance system."
+    },
+    {
+      "title": "Apply category rules",
+      "body": "The Expense categories row for the category gives the GL code and per-claim limit; a claim over the limit is flagged."
+    },
+    {
+      "title": "Decide who approves",
+      "body": "The Expense approval policy decision table auto-approves small claims and routes the rest to a line manager or finance manager."
+    },
+    {
+      "title": "Approve, reject or send back",
+      "body": "The approver uses the Approve, Reject or Send back buttons after confirming the amount, category (a lookup that refills the GL code) and cost centre. Sent-back claims go to the claimant and return to the same approval."
+    },
+    {
+      "title": "Queue the reimbursement",
+      "body": "Approved claims are posted to the finance system and the claimant is emailed the payment run date."
+    }
+  ],
+  "sample_input": {
+    "employee_id": "E-1001",
+    "claim_title": "Client visit Wellington",
+    "category": "travel",
+    "amount": 640,
+    "currency": "NZD",
+    "expense_date": "2026-10-20",
+    "receipt_url": "https://files.example.com/receipts/r-20931.pdf",
+    "business_purpose": "Quarterly review with Contoso"
+  },
+  "expect": "waiting",
+  "icon": "receipt"
+}

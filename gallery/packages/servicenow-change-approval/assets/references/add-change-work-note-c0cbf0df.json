@@ -1,0 +1,90 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "c0cbf0df-0a6d-507e-87dc-efe28127de16",
+  "asset": {
+    "id": "c0cbf0df-0a6d-507e-87dc-efe28127de16",
+    "integration_id": "2d4f8199-d586-5b02-bc32-526657bd3ee1",
+    "name": "Add change work note",
+    "description": "Add a work note to the change request (PATCH /table/change_request/{sys_id}), e.g. the CAB's questions when more information is needed.",
+    "tags": [
+      "change"
+    ],
+    "request_config": {
+      "method": "PATCH",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"work_notes\":\"{{work_notes}}\"}",
+      "path_template": "/table/change_request/{{sys_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "result",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "sys_id",
+                  "type": "string",
+                  "example": "c286d61347c12200e0ef563dbb9a71df"
+                },
+                {
+                  "name": "number",
+                  "type": "string",
+                  "example": "CHG0030457"
+                },
+                {
+                  "name": "sys_updated_on",
+                  "type": "string",
+                  "example": "2026-10-28 10:15:44"
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "result": {
+            "sys_id": "c286d61347c12200e0ef563dbb9a71df",
+            "number": "CHG0030457",
+            "sys_updated_on": "2026-10-28 10:15:44"
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "7ad89195-ef9e-54d1-a325-d706b1ece6fa",
+        "name": "sys_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Change request sys_id",
+        "default_value": ""
+      },
+      {
+        "id": "ae751d4b-0270-539d-8bad-539de99be5aa",
+        "name": "work_notes",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Work note text",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "8c6598a7-3ebf-5810-8fd5-db7ecc39904f",
+        "name": "updated_on",
+        "path": "result.sys_updated_on",
+        "type": "string"
+      }
+    ]
+  }
+}

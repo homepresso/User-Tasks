@@ -1,0 +1,80 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "6290f73c-5d23-58a9-8514-031baf129d80",
+  "asset": {
+    "id": "6290f73c-5d23-58a9-8514-031baf129d80",
+    "name": "Vehicles",
+    "description": "The pool fleet: registration, seats, EV or not, range and where the keys are. Set status to Service to stop bookings.",
+    "columns": [
+      {
+        "id": "ade243d0-2c87-5a81-9be7-1e35d9190c7b",
+        "required": true,
+        "key": "rego",
+        "name": "Registration",
+        "type": "text"
+      },
+      {
+        "id": "13ca724d-39ee-5458-905a-9a16b1627851",
+        "required": true,
+        "key": "vehicle",
+        "name": "Vehicle",
+        "type": "text"
+      },
+      {
+        "id": "baa82e06-1bdc-5508-b042-0890a0927624",
+        "required": false,
+        "key": "seats",
+        "name": "Seats",
+        "type": "number"
+      },
+      {
+        "id": "b9421268-91c9-568a-a71a-56c70f7ecb63",
+        "required": false,
+        "key": "ev",
+        "name": "Electric",
+        "type": "boolean"
+      },
+      {
+        "id": "55a989e1-948d-579e-a022-e60b73617377",
+        "required": false,
+        "key": "range_km",
+        "name": "Range (km)",
+        "type": "number"
+      },
+      {
+        "id": "f26795c9-9e60-51f6-8820-05401c944076",
+        "required": false,
+        "key": "location",
+        "name": "Pick-up location",
+        "type": "text"
+      },
+      {
+        "id": "6e8aec82-5854-5a85-bcc0-27422f8f02b7",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Available",
+          "Service",
+          "Retired"
+        ]
+      },
+      {
+        "id": "00a4af52-ecaa-5049-9997-c4798461ccf4",
+        "required": false,
+        "key": "fuel_card",
+        "name": "Fuel / charge card",
+        "type": "text"
+      },
+      {
+        "id": "70534a46-f90f-5224-824e-2d70a62ff7b3",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      }
+    ]
+  }
+}

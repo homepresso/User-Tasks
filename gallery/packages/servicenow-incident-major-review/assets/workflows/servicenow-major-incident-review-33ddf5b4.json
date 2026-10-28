@@ -1,0 +1,579 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "33ddf5b4-ee05-5819-8122-9c27111fb0a6",
+  "asset": {
+    "id": "33ddf5b4-ee05-5819-8122-9c27111fb0a6",
+    "name": "ServiceNow major incident review",
+    "description": "A ServiceNow business rule or flow posts an incident sys_id; the incident is read from the Table API, checked against the major incident criteria and, for candidates, the incident manager declares it major or not. The decision is written back as a work note and stakeholders are emailed.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Incident raised in ServiceNow",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "get",
+        "type": "call_reference",
+        "label": "Get incident",
+        "position": {
+          "x": 400,
+          "y": 220
+        },
+        "config": {
+          "reference_id": "771a13b2-b005-52a9-9f08-85cffc533b70",
+          "reference_name": "Get incident",
+          "reference_method": "GET",
+          "input_mappings": {
+            "sys_id": "{{sys_id}}"
+          },
+          "output_mappings": {
+            "number": {
+              "enabled": true,
+              "variableName": "number"
+            },
+            "short_description": {
+              "enabled": true,
+              "variableName": "short_description"
+            },
+            "description": {
+              "enabled": true,
+              "variableName": "description"
+            },
+            "priority": {
+              "enabled": true,
+              "variableName": "priority"
+            },
+            "priority_label": {
+              "enabled": true,
+              "variableName": "priority_label"
+            },
+            "impact": {
+              "enabled": true,
+              "variableName": "impact"
+            },
+            "urgency": {
+              "enabled": true,
+              "variableName": "urgency"
+            },
+            "state": {
+              "enabled": true,
+              "variableName": "state"
+            },
+            "assignment_group": {
+              "enabled": true,
+              "variableName": "assignment_group"
+            },
+            "assigned_to": {
+              "enabled": true,
+              "variableName": "assigned_to"
+            },
+            "cmdb_ci": {
+              "enabled": true,
+              "variableName": "cmdb_ci"
+            },
+            "opened_at": {
+              "enabled": true,
+              "variableName": "opened_at"
+            }
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 380
+        },
+        "config": {
+          "title": "{{number}} · {{short_description}}"
+        }
+      },
+      {
+        "id": "service",
+        "type": "update_data_table",
+        "label": "Find business service",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "table_id": "0ccccbf3-d377-5cdd-bb11-7570fe2db385",
+          "table_name": "Business services",
+          "operation": "get",
+          "match_column": "ci_name",
+          "match_value": "{{cmdb_ci}}",
+          "output_row_var": "service_row"
+        }
+      },
+      {
+        "id": "tier",
+        "type": "set_variable",
+        "label": "Service tier",
+        "position": {
+          "x": 400,
+          "y": 700
+        },
+        "config": {
+          "name": "service_tier",
+          "expression": "{{=COALESCE(service_row.tier, 3)}}"
+        }
+      },
+      {
+        "id": "criteria",
+        "type": "decision_table",
+        "label": "Major incident criteria",
+        "position": {
+          "x": 400,
+          "y": 860
+        },
+        "config": {
+          "decision_table_id": "38f43369-4508-5d6d-8bf4-1d5a388bf8d3",
+          "decision_table_name": "Major incident criteria",
+          "input_mappings": {
+            "priority": "{{priority}}",
+            "impact": "{{impact}}",
+            "urgency": "{{urgency}}",
+            "tier": "{{service_tier}}"
+          }
+        }
+      },
+      {
+        "id": "candidate",
+        "type": "condition",
+        "label": "Major incident candidate?",
+        "position": {
+          "x": 400,
+          "y": 1020
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Candidate",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{major_candidate}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Review SLA",
+        "position": {
+          "x": 240,
+          "y": 1180
+        },
+        "config": {
+          "sla_label": "Major incident decision",
+          "mode": "relative",
+          "amount": 30,
+          "unit": "minutes",
+          "warning_amount": 15,
+          "warning_unit": "minutes"
+        }
+      },
+      {
+        "id": "review",
+        "type": "user_task",
+        "label": "Major incident review",
+        "position": {
+          "x": 240,
+          "y": 1340
+        },
+        "config": {
+          "task_title": "Major incident review: {{number}} ({{priority_label}}) {{short_description}}",
+          "task_description": "<p><strong>{{short_description}}</strong></p><p>{{description}}</p><p>Service <strong>{{cmdb_ci}}</strong> (tier {{service_tier}}), assignment group {{assignment_group}}, assigned to {{assigned_to}}. Priority {{priority_label}}, impact {{impact}}, urgency {{urgency}}, opened {{opened_at}}.</p><p>Criteria rule “{{rule_label}}” proposes <strong>{{severity}}</strong>, updates every {{comms_cadence_minutes}} minutes{{=IF(bridge_required, \", bridge call\", \"\")}}.</p>",
+          "task_priority": "critical",
+          "outcomes": [
+            "Declare major",
+            "Not major"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "57f133f5-d540-5816-be1b-31f889e2fb57",
+          "due_date_mode": "relative",
+          "due_offset_amount": 30,
+          "due_offset_unit": "minutes",
+          "reminders": [
+            {
+              "offset_minutes": 15
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 45,
+          "fields": [
+            {
+              "key": "severity",
+              "label": "Severity",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "SEV1",
+                "SEV2"
+              ],
+              "default": "{{severity}}",
+              "display": "radio"
+            },
+            {
+              "key": "comms_cadence",
+              "label": "Update every (minutes)",
+              "type": "number",
+              "required": true,
+              "default": "{{comms_cadence_minutes}}",
+              "min": 15,
+              "max": 480
+            },
+            {
+              "key": "incident_manager",
+              "label": "Incident manager",
+              "type": "text",
+              "required": true,
+              "placeholder": "Name of the person running the incident"
+            },
+            {
+              "key": "bridge_url",
+              "label": "Bridge / war room link",
+              "type": "url",
+              "placeholder": "https://meet.example.com/..."
+            },
+            {
+              "key": "stakeholder_email",
+              "label": "Notify",
+              "type": "email",
+              "required": true,
+              "default": "{{=COALESCE(service_row.stakeholder_email, \"major-incidents@example.com\")}}",
+              "help_text": "Stakeholder distribution list for this service"
+            },
+            {
+              "key": "customer_facing",
+              "label": "Customer facing (update the status page)",
+              "type": "boolean",
+              "default": "{{=COALESCE(service_row.customer_facing, false)}}"
+            },
+            {
+              "key": "business_impact",
+              "label": "Business impact",
+              "type": "textarea",
+              "required": true,
+              "placeholder": "Who is affected and how"
+            },
+            {
+              "key": "decision_note",
+              "label": "Decision note (work note)",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "severity",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "comms_cadence",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "incident_manager",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "bridge_url",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "stakeholder_email",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "customer_facing",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "business_impact",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "decision_note",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Major incident review",
+            "align": "left",
+            "subtitle": "{{number}} · {{cmdb_ci}} · {{priority_label}}"
+          },
+          "form_buttons": [
+            {
+              "id": "declare",
+              "label": "Declare major incident",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Declare major"
+            },
+            {
+              "id": "not_major",
+              "label": "Not a major incident",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Not major"
+            }
+          ]
+        }
+      },
+      {
+        "id": "accept",
+        "type": "call_reference",
+        "label": "Mark major in ServiceNow",
+        "position": {
+          "x": 80,
+          "y": 1520
+        },
+        "config": {
+          "reference_id": "bbfc00ef-f2cf-5bbc-a417-fd9693fff7fe",
+          "reference_name": "Update incident",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "sys_id": "{{sys_id}}",
+            "major_incident_state": "accepted",
+            "work_notes": "Major incident declared ({{task_data.severity}}) by {{task_data.incident_manager}} via UserTasks. Updates every {{task_data.comms_cadence}} minutes. {{task_data.decision_note}}"
+          },
+          "output_mappings": {
+            "updated_on": {
+              "enabled": true,
+              "variableName": "updated_on"
+            }
+          }
+        }
+      },
+      {
+        "id": "notify",
+        "type": "send_email",
+        "label": "Email stakeholders",
+        "position": {
+          "x": 80,
+          "y": 1680
+        },
+        "config": {
+          "to": "{{task_data.stakeholder_email}}",
+          "email_template_id": "7893a2c5-0b08-52a3-b13f-4bf8f52a3ee1"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "declared",
+        "type": "end_workflow",
+        "label": "Major incident declared",
+        "position": {
+          "x": 80,
+          "y": 1840
+        },
+        "config": {
+          "reason": "{{number}} declared {{task_data.severity}}"
+        }
+      },
+      {
+        "id": "reject",
+        "type": "call_reference",
+        "label": "Record not major",
+        "position": {
+          "x": 400,
+          "y": 1520
+        },
+        "config": {
+          "reference_id": "bbfc00ef-f2cf-5bbc-a417-fd9693fff7fe",
+          "reference_name": "Update incident",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "sys_id": "{{sys_id}}",
+            "major_incident_state": "rejected",
+            "work_notes": "Major incident review: not a major incident. {{task_data.decision_note}}"
+          },
+          "output_mappings": {
+            "updated_on": {
+              "enabled": true,
+              "variableName": "updated_on"
+            }
+          }
+        }
+      },
+      {
+        "id": "not_major",
+        "type": "end_workflow",
+        "label": "Not a major incident",
+        "position": {
+          "x": 400,
+          "y": 1680
+        },
+        "config": {
+          "reason": "{{number}} reviewed: not major"
+        }
+      },
+      {
+        "id": "below",
+        "type": "end_workflow",
+        "label": "Below major criteria",
+        "position": {
+          "x": 720,
+          "y": 1180
+        },
+        "config": {
+          "reason": "{{number}} ({{priority_label}}) does not meet the major incident criteria"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-get",
+        "source": "trigger",
+        "target": "get"
+      },
+      {
+        "id": "e-get-title",
+        "source": "get",
+        "target": "title"
+      },
+      {
+        "id": "e-title-service",
+        "source": "title",
+        "target": "service"
+      },
+      {
+        "id": "e-service-tier",
+        "source": "service",
+        "target": "tier"
+      },
+      {
+        "id": "e-tier-criteria",
+        "source": "tier",
+        "target": "criteria"
+      },
+      {
+        "id": "e-criteria-candidate",
+        "source": "criteria",
+        "target": "candidate"
+      },
+      {
+        "id": "e-candidate-sla-candidate",
+        "source": "candidate",
+        "target": "sla",
+        "label": "Candidate"
+      },
+      {
+        "id": "e-candidate-below-else",
+        "source": "candidate",
+        "target": "below",
+        "label": "Else"
+      },
+      {
+        "id": "e-sla-review",
+        "source": "sla",
+        "target": "review"
+      },
+      {
+        "id": "e-review-accept-declare-major",
+        "source": "review",
+        "target": "accept",
+        "label": "Declare major"
+      },
+      {
+        "id": "e-review-reject-not-major",
+        "source": "review",
+        "target": "reject",
+        "label": "Not major"
+      },
+      {
+        "id": "e-accept-notify",
+        "source": "accept",
+        "target": "notify"
+      },
+      {
+        "id": "e-notify-declared",
+        "source": "notify",
+        "target": "declared"
+      },
+      {
+        "id": "e-reject-not_major",
+        "source": "reject",
+        "target": "not_major"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-sys_id",
+        "name": "sys_id",
+        "type": "string",
+        "description": "The incident sys_id from ServiceNow (current.sys_id in the business rule)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Incident sys_id"
+      },
+      {
+        "id": "v-number",
+        "name": "number",
+        "type": "string",
+        "description": "Optional: the incident number, for logs before the incident is read (current.number)",
+        "defaultValue": "",
+        "required": false,
+        "label": "Incident number"
+      },
+      {
+        "id": "v-event",
+        "name": "event",
+        "type": "string",
+        "description": "Why ServiceNow sent it: inserted or priority_changed",
+        "defaultValue": "inserted",
+        "required": false,
+        "label": "Event"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

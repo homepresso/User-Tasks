@@ -1,0 +1,234 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "19f45bb9-626a-47f6-a9e7-c17fad0e8758",
+  "asset": {
+    "id": "19f45bb9-626a-47f6-a9e7-c17fad0e8758",
+    "integration_id": "2e3e3375-d85a-4ad6-834d-226b0ca29841",
+    "name": "Create purchase order",
+    "description": "Raise an approved purchase order in the ERP and return its number, status and PDF link.",
+    "tags": [
+      "purchasing"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"requisition_ref\":\"{{requisition_ref}}\",\"supplier_id\":\"{{supplier_id}}\",\"supplier_name\":\"{{supplier_name}}\",\"description\":\"{{description}}\",\"quantity\":{{quantity}},\"amount\":{{amount}},\"currency\":\"{{currency}}\",\"cost_centre\":\"{{cost_centre}}\",\"category\":\"{{category}}\",\"needed_by\":\"{{needed_by}}\",\"payment_terms\":\"{{payment_terms}}\",\"contract_ref\":\"{{contract_ref}}\",\"quote_reference\":\"{{quote_reference}}\"}",
+      "path_template": "/purchase-orders",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "po_number",
+              "type": "string",
+              "example": "PO-4500871"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "issued"
+            },
+            {
+              "name": "amount",
+              "type": "integer",
+              "example": 14500
+            },
+            {
+              "name": "currency",
+              "type": "string",
+              "example": "NZD"
+            },
+            {
+              "name": "document_url",
+              "type": "string",
+              "example": "https://erp.example.com/documents/po/PO-4500871.pdf"
+            },
+            {
+              "name": "expected_delivery",
+              "type": "string",
+              "example": "2026-11-13"
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "example": "2026-10-26T10:04:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "po_number": "PO-4500871",
+          "status": "issued",
+          "amount": 14500,
+          "currency": "NZD",
+          "document_url": "https://erp.example.com/documents/po/PO-4500871.pdf",
+          "expected_delivery": "2026-11-13",
+          "created_at": "2026-10-26T10:04:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "57aec7e3-416a-4537-9a07-3dc993e76cf5",
+        "name": "requisition_ref",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "b1f31728-ac07-4b6c-ab0b-9db82514cb26",
+        "name": "supplier_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "e5378a62-b6dc-4734-8827-35cd9458a778",
+        "name": "supplier_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "4a50efc3-bb9d-475c-9b5b-84c74b2a0bac",
+        "name": "description",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "6cc9fd2b-92a4-4274-acb2-8fe9c4a9ce92",
+        "name": "quantity",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "a084cd62-6e6e-45e7-a340-ad9d80283d53",
+        "name": "amount",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "ea1218a3-8f3e-4c5d-a7d1-7301a70c61e0",
+        "name": "currency",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "81a37fe5-7483-46a6-a530-5e5831d1dc82",
+        "name": "cost_centre",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "4a37e8e4-a276-4fcd-90dc-ad5d5ecc5ea4",
+        "name": "category",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "e072ec35-00bc-4f5a-b3c7-a0f4c9e24af7",
+        "name": "needed_by",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "94400a82-de66-4282-869d-8c893a388f13",
+        "name": "payment_terms",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "fa1090a4-8419-46ff-ab9e-f171216d758b",
+        "name": "contract_ref",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "d3d68429-88a5-4d16-be25-a915a8d2e288",
+        "name": "quote_reference",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "f56c6a1b-4e82-4468-b2a2-e1a8efbd315e",
+        "name": "po_number",
+        "path": "po_number",
+        "type": "string"
+      },
+      {
+        "id": "5c2d2b60-2ebd-4bd5-946c-5e7d500d9d78",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "a88c74e9-432b-473e-a9d5-27ededf6c0f2",
+        "name": "po_pdf_url",
+        "path": "document_url",
+        "type": "string"
+      },
+      {
+        "id": "4ed79c9b-90eb-468c-b812-c1ea931893c0",
+        "name": "expected_delivery",
+        "path": "expected_delivery",
+        "type": "string"
+      }
+    ]
+  }
+}

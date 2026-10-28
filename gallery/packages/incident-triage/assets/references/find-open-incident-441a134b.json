@@ -1,0 +1,80 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "441a134b-6910-42db-aed3-bea804d14e4e",
+  "asset": {
+    "id": "441a134b-6910-42db-aed3-bea804d14e4e",
+    "integration_id": "ac959fb4-04de-423e-b0d9-4c56dfb3b6a3",
+    "name": "Find open incident",
+    "description": "Open incidents with the same dedupe key, so repeated alerts update one incident instead of opening new ones.",
+    "tags": [
+      "incidents"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {
+        "dedupe_key": "{{dedupe_key}}",
+        "state": "open"
+      },
+      "body_template": "",
+      "path_template": "/incidents",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "count",
+              "type": "integer",
+              "example": 0
+            },
+            {
+              "name": "incidents",
+              "type": "array"
+            }
+          ]
+        },
+        "sample": {
+          "count": 0,
+          "incidents": []
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "bf821f12-ee9d-4d90-9051-a7b08031c533",
+        "name": "dedupe_key",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "Alert dedupe key from the monitoring tool",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "f3dd6039-4642-4e19-ae77-c4aa073f152a",
+        "name": "count",
+        "path": "count",
+        "type": "number"
+      },
+      {
+        "id": "b03d7e29-9424-43f1-b48c-fbd698ab5027",
+        "name": "first_id",
+        "path": "incidents.0.id",
+        "type": "string"
+      },
+      {
+        "id": "606edeb8-a589-4113-a8e6-f5a907441cbc",
+        "name": "first_number",
+        "path": "incidents.0.number",
+        "type": "string"
+      }
+    ]
+  }
+}

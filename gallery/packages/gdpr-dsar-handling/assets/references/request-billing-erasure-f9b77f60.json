@@ -1,0 +1,109 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "f9b77f60-d947-48d0-900a-8f9c44b94406",
+  "asset": {
+    "id": "f9b77f60-d947-48d0-900a-8f9c44b94406",
+    "integration_id": "0ebe81e1-25f1-43cd-ac67-e372d3745746",
+    "name": "Request billing erasure",
+    "description": "Removes personal data from the billing account; invoices are kept for the statutory retention period with the name pseudonymised.",
+    "tags": [
+      "dsar"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"customer_id\":\"{{customer_id}}\",\"email\":\"{{email}}\",\"reference\":\"{{reference}}\"}",
+      "path_template": "/erasure-requests",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "ER-BIL-3310"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "accepted"
+            },
+            {
+              "name": "retained",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "example": "invoices (tax law, 7 years, pseudonymised)"
+              }
+            }
+          ]
+        },
+        "sample": {
+          "id": "ER-BIL-3310",
+          "status": "accepted",
+          "retained": [
+            "invoices (tax law, 7 years, pseudonymised)"
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "3f88c7ad-56c4-4a18-a13f-616b7cbe7e57",
+        "name": "customer_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "a3f12f06-8c06-4f8a-9867-e93218886e97",
+        "name": "email",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "6af7a132-bed0-438a-bbff-360ecb65c695",
+        "name": "reference",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "744c8256-fe6c-4f8f-b93e-de33ec631bb1",
+        "name": "erasure_id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "6c9fe7a1-1702-4970-afc4-3acae3ae7e89",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "b16b616c-0f11-4649-8ce2-6728690446b8",
+        "name": "retained",
+        "path": "retained",
+        "type": "array"
+      }
+    ]
+  }
+}

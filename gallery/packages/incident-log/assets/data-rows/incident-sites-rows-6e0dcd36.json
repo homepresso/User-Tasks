@@ -1,0 +1,71 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "6e0dcd36-3cbf-5554-84c6-106e05a4fb99",
+  "asset": {
+    "id": "6e0dcd36-3cbf-5554-84c6-106e05a4fb99",
+    "name": "Incident sites rows",
+    "rows": [
+      {
+        "id": "06beda19-ee9a-58f1-a0e9-82943afd3c01",
+        "data": {
+          "site_code": "WLG-HQ",
+          "name": "Wellington head office",
+          "address": "12 Harbour Quay, Wellington",
+          "region": "Central",
+          "site_manager": "Maria Gomez",
+          "site_manager_email": "maria.gomez@example.com",
+          "active": true
+        }
+      },
+      {
+        "id": "f699bca8-d22a-58d0-8038-6caf417621ee",
+        "data": {
+          "site_code": "AKL-DC",
+          "name": "Auckland distribution centre",
+          "address": "48 Freight Drive, Auckland",
+          "region": "North",
+          "site_manager": "Sam Patel",
+          "site_manager_email": "sam.patel@example.com",
+          "active": true
+        }
+      },
+      {
+        "id": "8b1f8af8-14f5-5a2c-a481-8185c0ab76d1",
+        "data": {
+          "site_code": "CHC-WS",
+          "name": "Christchurch workshop",
+          "address": "7 Foundry Lane, Christchurch",
+          "region": "South",
+          "site_manager": "Lena Fischer",
+          "site_manager_email": "lena.fischer@example.com",
+          "active": true
+        }
+      },
+      {
+        "id": "f5ec8e06-a3ba-5dcb-943d-f063c0e6d221",
+        "data": {
+          "site_code": "HAM-RT",
+          "name": "Hamilton retail store",
+          "address": "201 Victoria Street, Hamilton",
+          "region": "North",
+          "site_manager": "Tom Reid",
+          "site_manager_email": "tom.reid@example.com",
+          "active": true
+        }
+      },
+      {
+        "id": "803a6452-0f73-5c7b-bf82-4459315d0989",
+        "data": {
+          "site_code": "FLD",
+          "name": "Field / client site",
+          "address": "Off-site work",
+          "region": "All",
+          "site_manager": "Health & Safety team",
+          "site_manager_email": "safety@example.com",
+          "active": true
+        }
+      }
+    ]
+  }
+}

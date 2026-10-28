@@ -1,0 +1,7 @@
+{
+  "crons": [
+    { "path": "/api/cron/cleanup-logs", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/process-retention-policies", "schedule": "0 4 * * *" },
+    { "path": "/api/deletions/process", "schedule": "0 5 * * *" }
+  ]
+}

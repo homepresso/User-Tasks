@@ -1,0 +1,49 @@
+UserTasks {{ .Chart.AppVersion }} is installed as release {{ .Release.Name }} in {{ .Release.Namespace }}.
+
+{{- $mode := include "usertasks.migrateMode" . }}
+{{- if .Values.migrate.enabled }}
+Migrations: {{ if eq $mode "hook" }}the {{ include "usertasks.fullname" . }}-migrate hook ran before this release{{ else }}Job {{ include "usertasks.fullname" . }}-migrate-{{ .Release.Revision }} (app pods wait for it){{ end }}.
+  kubectl -n {{ .Release.Namespace }} logs job/{{ include "usertasks.fullname" . }}-migrate{{ if ne $mode "hook" }}-{{ .Release.Revision }}{{ end }}
+{{- else }}
+Migrations are off (migrate.enabled=false): apply them yourself (usertasks-admin db migrate).
+{{- end }}
+
+Open it:
+{{- if .Values.ingress.enabled }}
+  {{ .Values.appUrl }} (Ingress{{ if .Values.ingress.tls.enabled }}, TLS{{ end }})
+{{- else if .Values.gateway.enabled }}
+  {{ .Values.appUrl }} (Gateway API HTTPRoute)
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "usertasks.fullname" . }} 3000:{{ .Values.service.port }}
+  then {{ .Values.appUrl }} (appUrl must be the address people use)
+{{- end }}
+
+{{- if not .Values.bootstrap.enabled }}
+
+Create the first workspace and its owner:
+  kubectl -n {{ .Release.Namespace }} exec -it deploy/{{ include "usertasks.fullname" . }} -- \
+    sh -c 'BOOTSTRAP_PASSWORD=… node admin.cjs bootstrap --email you@example.com --org "Your org"'
+{{- end }}
+
+Check every provider:
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "usertasks.fullname" . }} -- node admin.cjs doctor
+
+{{- if include "usertasks.bundled" . }}
+
+Bundled dependencies are on ({{ if .Values.postgresql.enabled }}PostgreSQL {{ end }}{{ if .Values.minio.enabled }}MinIO {{ end }}{{ if .Values.valkey.enabled }}Valkey {{ end }}{{ if .Values.mailpit.enabled }}Mailpit{{ end }}):
+single replicas for evaluation. Use managed or HA services in production.
+{{- if .Values.mailpit.enabled }}
+  Mail: kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "usertasks.fullname" . }}-mailpit 8025:8025
+{{- end }}
+{{- end }}
+
+{{- if and .Values.secrets.create (not .Values.secrets.existingSecret) (not .Values.secrets.externalSecret.enabled) }}
+
+ENCRYPTION_KEY and CRON_SECRET live in Secret {{ include "usertasks.secretName" . }} (generated, kept
+across upgrades). Back them up: without ENCRYPTION_KEY stored secrets can't be read.
+{{- end }}
+{{- if and (eq (toString .Values.providers.cache.provider) "memory") (or .Values.app.autoscaling.enabled (gt (int .Values.app.replicas) 1)) }}
+
+WARNING: providers.cache.provider is memory with more than one replica: rate limits
+multiply by the replica count. Use postgres or redis.
+{{- end }}

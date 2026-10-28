@@ -1,0 +1,85 @@
+{
+  "title": "Risk register",
+  "category": "operations-compliance",
+  "summary": "Anyone raises a risk on a form; a 5×5 matrix rates it, the owner accepts, mitigates or escalates within an SLA, and a weekly job re-reviews due risks.",
+  "description": "Risk register gives you a living register instead of a spreadsheet nobody opens. The Risks table holds each risk with its category, department, likelihood, impact, score, rating, owner, controls, response, mitigation plan, residual score and next review date. Six sample risks are included so the register is not empty on day one.\n\nAnyone can raise a risk on the Raise a risk form page: a title, category, description, likelihood and impact (1-5 with plain-language labels), existing controls and the risk owner as a Person. The Risk submission workflow scores it (likelihood × impact), rates it with the Risk rating decision table (Low, Medium, High, Extreme), sets an SLA for the owner's review by rating and adds it to the register.\n\nThe owner reviews it in a task form with Accept, Mitigate and Escalate buttons: a mitigation plan, target date and residual rating are recorded, an escalation emails the risk committee, and the task escalates to the owner's manager if it sits for three days. A second workflow, Weekly risk review, runs every Monday: every open risk whose review date has passed goes back to its owner through a sub-workflow (still valid, rating changed, close risk). No integrations needed.",
+  "trigger": "form",
+  "entry_workflow": "3e93bd7f-2d51-5d0d-818b-8e103abc30b3",
+  "entry_form": "c56d25bf-a419-54d7-a23f-34ff929f0c1c",
+  "start": "Starts from a form page: share the Raise a risk form (/f/<id>); each submission starts the review. The Weekly risk review runs every Monday at 08:00.",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "risk management",
+    "compliance",
+    "governance",
+    "decision table",
+    "sla",
+    "no integrations"
+  ],
+  "version": "1.0.1",
+  "changelog": [
+    {
+      "version": "1.0.1",
+      "date": "2026-10-28",
+      "notes": "Steps for the coordinator who set the package up are assigned to the workflow owner (workflow_owner_id), now that workflow_started_by names the person who started the run."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Share the Raise a risk form link (/f/<id>) with staff.",
+    "Replace the sample rows in Risks with your register, or keep them as examples. To route periodic reviews to owners, put the owner's user id in Owner (user id); rows without one go to the person who installed the package.",
+    "Set the risk committee address in the \"Risk committee email\" steps of Risk submission and Weekly risk review (risk-committee@example.com).",
+    "Tune the Risk rating decision table (thresholds, SLA days, review frequency) and the weekly schedule's day, time and time zone.",
+    "Optional: set EMAIL_PROVIDER so escalation and digest emails are delivered."
+  ],
+  "steps": [
+    {
+      "title": "Raise a risk",
+      "body": "Anyone fills in the form: title, category, description, likelihood, impact, controls and the risk owner."
+    },
+    {
+      "title": "Score and rate",
+      "body": "Likelihood × impact gives the score; the Risk rating decision table turns it into Low, Medium, High or Extreme with an SLA and review frequency."
+    },
+    {
+      "title": "Register and SLA",
+      "body": "The risk is added to the Risks table and the run gets an SLA for the owner review based on the rating."
+    },
+    {
+      "title": "Owner decides",
+      "body": "The owner presses Accept, Mitigate (with a plan, date and residual rating) or Escalate; unanswered reviews escalate to their manager."
+    },
+    {
+      "title": "Escalation",
+      "body": "Escalated risks are flagged in the register and emailed to the risk committee."
+    },
+    {
+      "title": "Weekly review",
+      "body": "Every Monday, open risks past their review date go back to their owners, and the committee gets the list."
+    }
+  ],
+  "sample_input": {
+    "title": "Warehouse racking not inspected since the move",
+    "category": "Health & safety",
+    "department": "Warehouse",
+    "description": "The pallet racking was re-assembled after the move in August and has not had its annual inspection; a collapse could injure staff.",
+    "likelihood": "3",
+    "impact": "5",
+    "controls": "Visual checks by the shift lead; load signs on each bay",
+    "owner": "$owner",
+    "raised_by_email": "alex.morgan@example.com"
+  },
+  "expect": "waiting",
+  "icon": "shield-alert",
+  "id": "93f22b90-d2e5-5491-b31a-35d8c02441a3",
+  "slug": "risk-register"
+}

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "671e21d5-334f-5b0d-bfce-4637240920c4",
+  "asset": {
+    "id": "671e21d5-334f-5b0d-bfce-4637240920c4",
+    "name": "Loan not approved",
+    "description": "Sent to the borrower when the loan is rejected or the device is no longer free.",
+    "subject": "Your equipment loan request {{loan_ref}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <div style=\"height:4px;background:#4F46E5;border-radius:2px;margin-bottom:16px\"></div>\n  <h2 style=\"margin:0 0 12px\">Your loan request was not approved</h2>\n  <p style=\"margin:0 0 12px\">Hi {{borrower_name}},</p>\n  <p style=\"margin:0 0 12px\">Your request for <strong>{{device}}</strong> ({{asset_tag}}) from {{start_date}} to {{due_date}} could not go ahead.</p>\n  <p style=\"margin:0 0 12px\">Reason: {{decline_reason}}</p>\n  <p style=\"margin:0 0 12px\">You are welcome to request another device from the loan pool.</p>\n  <p style=\"color:#6E6759;font-size:13px;margin-top:20px\">Sent by the IT equipment loans workflow</p>\n</div>",
+    "text_body": "Your loan request was not approved\n\nHi {{borrower_name}},\nYour request for {{device}} ({{asset_tag}}) could not go ahead.\nReason: {{decline_reason}}",
+    "is_default": false
+  }
+}

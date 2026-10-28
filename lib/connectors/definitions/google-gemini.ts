@@ -1,0 +1,140 @@
+import type { ConnectorDefinition } from '../registry'
+
+export const googleGeminiConnector: ConnectorDefinition = {
+  key: 'google_gemini',
+  name: 'Google Gemini',
+  description: 'AI-powered text generation, analysis, vision, and embeddings with Google Gemini',
+  category: 'ai',
+  icon: 'Sparkles',
+  color: '#4285F4',
+  docsUrl: 'https://ai.google.dev/api',
+  fields: [
+    {
+      key: 'default_model',
+      label: 'Default Model',
+      type: 'select',
+      options: [
+        { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+        { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+        { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+        { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
+        { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+      ],
+      defaultValue: 'gemini-2.5-flash',
+    },
+  ],
+  credentialFields: [
+    {
+      key: 'api_key',
+      label: 'API Key',
+      type: 'password',
+      required: true,
+      placeholder: 'AIzaSy...',
+      helpText: 'API key from Google AI Studio (aistudio.google.com)',
+    },
+  ],
+  referenceTemplates: [
+    {
+      key: 'generate_content',
+      name: 'Generate Content',
+      description: 'Generate text from a prompt using Gemini',
+      method: 'POST',
+      pathTemplate: '/v1beta/models/{{model}}:generateContent?key={{api_key}}',
+      headers: { 'Content-Type': 'application/json' },
+      bodyTemplate: JSON.stringify({
+        contents: [{ parts: [{ text: '{{prompt}}' }] }],
+        systemInstruction: { parts: [{ text: '{{system_prompt}}' }] },
+        generationConfig: { temperature: '{{temperature}}', maxOutputTokens: '{{max_tokens}}' },
+      }),
+      inputs: [
+        { name: 'prompt', type: 'string', required: true, description: 'User prompt / message' },
+        { name: 'system_prompt', type: 'string', required: false, description: 'System instruction' },
+        { name: 'model', type: 'string', required: false, description: 'Model override', defaultValue: 'gemini-2.5-flash' },
+        { name: 'temperature', type: 'number', required: false, description: 'Temperature (0-2)', defaultValue: '0.7' },
+        { name: 'max_tokens', type: 'number', required: false, description: 'Max output tokens', defaultValue: '1024' },
+        { name: 'api_key', type: 'string', required: false, description: 'API key override (auto-filled from connector)' },
+      ],
+      outputs: [{ name: 'text', type: 'string' }, { name: 'usageMetadata', type: 'object' }],
+    },
+    {
+      key: 'generate_content_with_image',
+      name: 'Generate Content (with Image)',
+      description: 'Generate text from a prompt with an inline image (vision)',
+      method: 'POST',
+      pathTemplate: '/v1beta/models/{{model}}:generateContent?key={{api_key}}',
+      headers: { 'Content-Type': 'application/json' },
+      bodyTemplate: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: '{{prompt}}' },
+            { inlineData: { mimeType: '{{mime_type}}', data: '{{image_base64}}' } },
+          ],
+        }],
+        generationConfig: { maxOutputTokens: '{{max_tokens}}' },
+      }),
+      inputs: [
+        { name: 'prompt', type: 'string', required: true, description: 'Prompt describing what to do with the image' },
+        { name: 'image_base64', type: 'string', required: true, description: 'Base64-encoded image data' },
+        { name: 'mime_type', type: 'string', required: false, description: 'Image MIME type', defaultValue: 'image/png' },
+        { name: 'model', type: 'string', required: false, description: 'Model', defaultValue: 'gemini-2.5-flash' },
+        { name: 'max_tokens', type: 'number', required: false, description: 'Max output tokens', defaultValue: '1024' },
+        { name: 'api_key', type: 'string', required: false, description: 'API key override' },
+      ],
+      outputs: [{ name: 'text', type: 'string' }, { name: 'usageMetadata', type: 'object' }],
+    },
+    {
+      key: 'embed_content',
+      name: 'Embed Content',
+      description: 'Generate vector embeddings for text',
+      method: 'POST',
+      pathTemplate: '/v1beta/models/{{model}}:embedContent?key={{api_key}}',
+      headers: { 'Content-Type': 'application/json' },
+      bodyTemplate: JSON.stringify({
+        content: { parts: [{ text: '{{text}}' }] },
+        taskType: '{{task_type}}',
+      }),
+      inputs: [
+        { name: 'text', type: 'string', required: true, description: 'Text to embed' },
+        { name: 'task_type', type: 'string', required: false, description: 'RETRIEVAL_QUERY, RETRIEVAL_DOCUMENT, SEMANTIC_SIMILARITY, CLASSIFICATION, CLUSTERING', defaultValue: 'RETRIEVAL_DOCUMENT' },
+        { name: 'model', type: 'string', required: false, description: 'Embedding model', defaultValue: 'text-embedding-004' },
+        { name: 'api_key', type: 'string', required: false, description: 'API key override' },
+      ],
+      outputs: [{ name: 'embedding', type: 'object' }],
+    },
+    {
+      key: 'count_tokens',
+      name: 'Count Tokens',
+      description: 'Count the number of tokens in a prompt',
+      method: 'POST',
+      pathTemplate: '/v1beta/models/{{model}}:countTokens?key={{api_key}}',
+      headers: { 'Content-Type': 'application/json' },
+      bodyTemplate: JSON.stringify({ contents: [{ parts: [{ text: '{{text}}' }] }] }),
+      inputs: [
+        { name: 'text', type: 'string', required: true, description: 'Text to count tokens for' },
+        { name: 'model', type: 'string', required: false, description: 'Model', defaultValue: 'gemini-2.5-flash' },
+        { name: 'api_key', type: 'string', required: false, description: 'API key override' },
+      ],
+      outputs: [{ name: 'totalTokens', type: 'number' }],
+    },
+    {
+      key: 'list_models',
+      name: 'List Models',
+      description: 'List available Gemini models',
+      method: 'GET',
+      pathTemplate: '/v1beta/models?key={{api_key}}',
+      inputs: [
+        { name: 'api_key', type: 'string', required: false, description: 'API key override' },
+      ],
+      outputs: [{ name: 'models', type: 'array' }],
+    },
+  ],
+  buildIntegrationConfig: (_config, credentials) => ({
+    base_url: 'https://generativelanguage.googleapis.com',
+    auth_type: 'api_key',
+    auth_config: {
+      key_name: 'key',
+      key_value: credentials.api_key,
+      add_to: 'query',
+    },
+  }),
+}

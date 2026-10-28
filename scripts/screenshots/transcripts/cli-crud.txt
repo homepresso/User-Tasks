@@ -1,0 +1,53 @@
+$ usertasks email-templates create --set name="Payment scheduled" --set subject="Payment for {{invoice_number}} scheduled" --set html_body="<p>{{vendor_name}} will be paid on {{scheduled_for}}.</p>" -o yaml
+email_template:
+  id: 3c2a07b5-3ede-4e83-a279-b8ba945bbed3
+  name: Payment scheduled
+  description: null
+  subject: Payment for {{invoice_number}} scheduled
+  html_body: <p>{{vendor_name}} will be paid on {{scheduled_for}}.</p>
+  text_body: "{{vendor_name}} will be paid on {{scheduled_for}}."
+  is_default: false
+  created_at: 2026-10-25T00:16:07.427075+00:00
+  updated_at: 2026-10-25T00:16:07.427075+00:00
+$ cat role.yaml
+name: Payments clerk
+description: Prepares vendor payments; cannot approve them
+permissions:
+  - tasks.view_own
+  - workflows.view
+  - data.view
+  - data.manage_rows
+$ usertasks roles create -f role.yaml -o yaml
+role:
+  id: 5aa961f4-bb1a-4a17-8959-84a1a6ff033f
+  name: Payments clerk
+  slug: payments_clerk
+  description: Prepares vendor payments; cannot approve them
+  permissions:
+    - tasks.view_own
+    - workflows.view
+    - data.view
+    - data.manage_rows
+  is_system: false
+  base_role: null
+  created_at: 2026-10-25T00:16:07.790533+00:00
+  updated_at: 2026-10-25T00:16:07.790533+00:00
+$ usertasks roles update 5aa961f4-bb1a-4a17-8959-84a1a6ff033f --set permissions:='["tasks.view_own","tasks.complete","workflows.view","data.view","data.manage_rows"]' -o yaml
+role:
+  id: 5aa961f4-bb1a-4a17-8959-84a1a6ff033f
+  name: Payments clerk
+  slug: payments_clerk
+  description: Prepares vendor payments; cannot approve them
+  permissions:
+    - tasks.view_own
+    - tasks.complete
+    - workflows.view
+    - data.view
+    - data.manage_rows
+  is_system: false
+  base_role: null
+  created_at: 2026-10-25T00:16:07.790533+00:00
+  updated_at: 2026-10-25T00:16:08.126+00:00
+$ usertasks roles delete 5aa961f4-bb1a-4a17-8959-84a1a6ff033f --yes
+deleted  true
+id       5aa961f4-bb1a-4a17-8959-84a1a6ff033f

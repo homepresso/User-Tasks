@@ -1,0 +1,27 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "8cbd54c5-5b79-5fcc-85da-8cfe036cad77",
+  "asset": {
+    "id": "8cbd54c5-5b79-5fcc-85da-8cfe036cad77",
+    "name": "NetSuite",
+    "description": "Oracle NetSuite SuiteTalk REST record API (/services/rest/record/v1). Use an OAuth 2.0 bearer token (client credentials / M2M) for an integration role with Bills (edit) and approval permissions.",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://1234567.suitetalk.api.netsuite.example.com/services/rest/record/v1",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {
+        "Accept": "application/json"
+      }
+    },
+    "is_active": true,
+    "tags": [
+      "erp",
+      "netsuite",
+      "accounts payable"
+    ]
+  }
+}

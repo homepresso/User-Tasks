@@ -1,0 +1,492 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "771a13b2-b005-52a9-9f08-85cffc533b70",
+  "asset": {
+    "id": "771a13b2-b005-52a9-9f08-85cffc533b70",
+    "integration_id": "fe89cfc7-3587-5eea-961a-4ff4fbd258b1",
+    "name": "Get incident",
+    "description": "Read one incident from the Table API with display values (GET /table/incident/{sys_id}?sysparm_display_value=all): number, description, priority, impact, urgency, assignment group and CI.",
+    "tags": [
+      "incident"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/table/incident/{{sys_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "result",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "sys_id",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "9d385017c611228701d22104cc95c371"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "9d385017c611228701d22104cc95c371"
+                    }
+                  ]
+                },
+                {
+                  "name": "number",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "INC0010342"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "INC0010342"
+                    }
+                  ]
+                },
+                {
+                  "name": "short_description",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Checkout API returning HTTP 503 for all EU customers"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "Checkout API returning HTTP 503 for all EU customers"
+                    }
+                  ]
+                },
+                {
+                  "name": "description",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Synthetic monitoring and customer reports show checkout failing since 09:12 UTC. Error rate on the payments gateway is above 90%."
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "Synthetic monitoring and customer reports show checkout failing since 09:12 UTC. Error rate on the payments gateway is above 90%."
+                    }
+                  ]
+                },
+                {
+                  "name": "priority",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "1 - Critical"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "1"
+                    }
+                  ]
+                },
+                {
+                  "name": "impact",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "1 - High"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "1"
+                    }
+                  ]
+                },
+                {
+                  "name": "urgency",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "1 - High"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "1"
+                    }
+                  ]
+                },
+                {
+                  "name": "state",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "In Progress"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "2"
+                    }
+                  ]
+                },
+                {
+                  "name": "category",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Software"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "software"
+                    }
+                  ]
+                },
+                {
+                  "name": "assignment_group",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Payments Platform"
+                    },
+                    {
+                      "name": "link",
+                      "type": "string",
+                      "example": "https://acme.service-now.example.com/api/now/table/sys_user_group/287ebd7da9fe198100f92cc8d1d2154e"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "287ebd7da9fe198100f92cc8d1d2154e"
+                    }
+                  ]
+                },
+                {
+                  "name": "assigned_to",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Jordan Lee"
+                    },
+                    {
+                      "name": "link",
+                      "type": "string",
+                      "example": "https://acme.service-now.example.com/api/now/table/sys_user/46d44a23a9fe19810012d100cca80666"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "46d44a23a9fe19810012d100cca80666"
+                    }
+                  ]
+                },
+                {
+                  "name": "caller_id",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Service Desk"
+                    },
+                    {
+                      "name": "link",
+                      "type": "string",
+                      "example": "https://acme.service-now.example.com/api/now/table/sys_user/5137153cc611227c000bbd1bd8cd2005"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "5137153cc611227c000bbd1bd8cd2005"
+                    }
+                  ]
+                },
+                {
+                  "name": "cmdb_ci",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "Online Checkout"
+                    },
+                    {
+                      "name": "link",
+                      "type": "string",
+                      "example": "https://acme.service-now.example.com/api/now/table/cmdb_ci_service/b0ccabf1c0a80009001f14fd151d8df0"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "b0ccabf1c0a80009001f14fd151d8df0"
+                    }
+                  ]
+                },
+                {
+                  "name": "opened_at",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "2026-10-28 09:14:02"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "2026-10-28 09:14:02"
+                    }
+                  ]
+                },
+                {
+                  "name": "sys_updated_on",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": "2026-10-28 09:21:40"
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": "2026-10-28 09:21:40"
+                    }
+                  ]
+                },
+                {
+                  "name": "major_incident_state",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "display_value",
+                      "type": "string",
+                      "example": ""
+                    },
+                    {
+                      "name": "value",
+                      "type": "string",
+                      "example": ""
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "result": {
+            "sys_id": {
+              "display_value": "9d385017c611228701d22104cc95c371",
+              "value": "9d385017c611228701d22104cc95c371"
+            },
+            "number": {
+              "display_value": "INC0010342",
+              "value": "INC0010342"
+            },
+            "short_description": {
+              "display_value": "Checkout API returning HTTP 503 for all EU customers",
+              "value": "Checkout API returning HTTP 503 for all EU customers"
+            },
+            "description": {
+              "display_value": "Synthetic monitoring and customer reports show checkout failing since 09:12 UTC. Error rate on the payments gateway is above 90%.",
+              "value": "Synthetic monitoring and customer reports show checkout failing since 09:12 UTC. Error rate on the payments gateway is above 90%."
+            },
+            "priority": {
+              "display_value": "1 - Critical",
+              "value": "1"
+            },
+            "impact": {
+              "display_value": "1 - High",
+              "value": "1"
+            },
+            "urgency": {
+              "display_value": "1 - High",
+              "value": "1"
+            },
+            "state": {
+              "display_value": "In Progress",
+              "value": "2"
+            },
+            "category": {
+              "display_value": "Software",
+              "value": "software"
+            },
+            "assignment_group": {
+              "display_value": "Payments Platform",
+              "link": "https://acme.service-now.example.com/api/now/table/sys_user_group/287ebd7da9fe198100f92cc8d1d2154e",
+              "value": "287ebd7da9fe198100f92cc8d1d2154e"
+            },
+            "assigned_to": {
+              "display_value": "Jordan Lee",
+              "link": "https://acme.service-now.example.com/api/now/table/sys_user/46d44a23a9fe19810012d100cca80666",
+              "value": "46d44a23a9fe19810012d100cca80666"
+            },
+            "caller_id": {
+              "display_value": "Service Desk",
+              "link": "https://acme.service-now.example.com/api/now/table/sys_user/5137153cc611227c000bbd1bd8cd2005",
+              "value": "5137153cc611227c000bbd1bd8cd2005"
+            },
+            "cmdb_ci": {
+              "display_value": "Online Checkout",
+              "link": "https://acme.service-now.example.com/api/now/table/cmdb_ci_service/b0ccabf1c0a80009001f14fd151d8df0",
+              "value": "b0ccabf1c0a80009001f14fd151d8df0"
+            },
+            "opened_at": {
+              "display_value": "2026-10-28 09:14:02",
+              "value": "2026-10-28 09:14:02"
+            },
+            "sys_updated_on": {
+              "display_value": "2026-10-28 09:21:40",
+              "value": "2026-10-28 09:21:40"
+            },
+            "major_incident_state": {
+              "display_value": "",
+              "value": ""
+            }
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "2ffafed7-6a15-556f-8907-2d45eae34df8",
+        "name": "sys_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Incident sys_id (32 hex characters)",
+        "default_value": ""
+      },
+      {
+        "id": "a4fdf64f-3dd5-58ee-9de1-50253409697e",
+        "name": "sysparm_display_value",
+        "type": "string",
+        "source": "static",
+        "location": "query",
+        "required": false,
+        "description": "Return value and display value for every field",
+        "default_value": "all"
+      },
+      {
+        "id": "963974ef-02f6-5d20-996e-e4f6b99e71ec",
+        "name": "sysparm_exclude_reference_link",
+        "type": "string",
+        "source": "static",
+        "location": "query",
+        "required": false,
+        "description": "Keep reference links",
+        "default_value": "false"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "f7f98a4e-3190-56cd-bedb-ece27170374c",
+        "name": "number",
+        "path": "result.number.value",
+        "type": "string"
+      },
+      {
+        "id": "b28b8294-e597-5428-a592-b630a1fb0d66",
+        "name": "short_description",
+        "path": "result.short_description.value",
+        "type": "string"
+      },
+      {
+        "id": "bb5e8af3-81d0-5f90-b7f3-3fb9605a701a",
+        "name": "description",
+        "path": "result.description.value",
+        "type": "string"
+      },
+      {
+        "id": "5112d978-970f-534c-83fe-64fc4fa13751",
+        "name": "priority",
+        "path": "result.priority.value",
+        "type": "string"
+      },
+      {
+        "id": "412ac3f6-b257-501a-9299-9f20fb0169be",
+        "name": "priority_label",
+        "path": "result.priority.display_value",
+        "type": "string"
+      },
+      {
+        "id": "99ef90d1-2704-5003-89a4-387d04941005",
+        "name": "impact",
+        "path": "result.impact.value",
+        "type": "string"
+      },
+      {
+        "id": "8f75a60b-953e-507c-89b5-909d73ee33b7",
+        "name": "urgency",
+        "path": "result.urgency.value",
+        "type": "string"
+      },
+      {
+        "id": "3a99acaa-1d2e-5937-9e09-21d4bc518bfe",
+        "name": "state",
+        "path": "result.state.display_value",
+        "type": "string"
+      },
+      {
+        "id": "015d8e36-042c-5ede-830a-07ca05b1f331",
+        "name": "assignment_group",
+        "path": "result.assignment_group.display_value",
+        "type": "string"
+      },
+      {
+        "id": "4c5e591c-7b96-55be-a00b-6481d1e01d92",
+        "name": "assigned_to",
+        "path": "result.assigned_to.display_value",
+        "type": "string"
+      },
+      {
+        "id": "335bbe5e-d845-584c-8b96-90f7da3e7b78",
+        "name": "cmdb_ci",
+        "path": "result.cmdb_ci.display_value",
+        "type": "string"
+      },
+      {
+        "id": "5b432911-5692-5791-944d-eb3435eecf5c",
+        "name": "opened_at",
+        "path": "result.opened_at.value",
+        "type": "string"
+      }
+    ]
+  }
+}

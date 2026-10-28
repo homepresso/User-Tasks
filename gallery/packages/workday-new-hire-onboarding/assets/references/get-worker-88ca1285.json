@@ -1,0 +1,341 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "88ca1285-794a-518b-8eae-0c21a8dfe815",
+  "asset": {
+    "id": "88ca1285-794a-518b-8eae-0c21a8dfe815",
+    "integration_id": "eaebe1dc-00ae-59c8-bebc-b8b8cd1eca36",
+    "name": "Get worker",
+    "description": "Workday Staffing REST: the hired worker with title, job profile and family, supervisory organization, manager, hire date and location.",
+    "tags": [
+      "workday",
+      "staffing"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/api/staffing/v6/acme/workers/{{worker_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "3aa5550b7fe348b98d7b5741afc65534"
+            },
+            {
+              "name": "descriptor",
+              "type": "string",
+              "example": "Priya Raman"
+            },
+            {
+              "name": "href",
+              "type": "string",
+              "example": "https://wd-impl.workday.example.com/ccx/api/staffing/v6/acme/workers/3aa5550b7fe348b98d7b5741afc65534"
+            },
+            {
+              "name": "workerId",
+              "type": "string",
+              "example": "21508"
+            },
+            {
+              "name": "workerType",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "a2b6b8f9b4c64f3b9a1d0c4e1f1e2a01"
+                },
+                {
+                  "name": "descriptor",
+                  "type": "string",
+                  "example": "Employee"
+                }
+              ]
+            },
+            {
+              "name": "primaryWorkEmail",
+              "type": "string",
+              "example": "priya.raman@example.com"
+            },
+            {
+              "name": "primaryWorkPhone",
+              "type": "string",
+              "example": "+64 9 555 0142"
+            },
+            {
+              "name": "businessTitle",
+              "type": "string",
+              "example": "Senior Data Engineer"
+            },
+            {
+              "name": "hireDate",
+              "type": "string",
+              "example": "2026-11-16"
+            },
+            {
+              "name": "isManager",
+              "type": "boolean",
+              "example": false
+            },
+            {
+              "name": "primaryJob",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "7c1f0d3a9e2b4c5d8f6a1b2c3d4e5f60"
+                },
+                {
+                  "name": "descriptor",
+                  "type": "string",
+                  "example": "Senior Data Engineer - Priya Raman"
+                },
+                {
+                  "name": "jobProfile",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "id",
+                      "type": "string",
+                      "example": "5d4c3b2a19f84e7d6c5b4a3928170615"
+                    },
+                    {
+                      "name": "descriptor",
+                      "type": "string",
+                      "example": "Data Engineer III"
+                    },
+                    {
+                      "name": "jobFamily",
+                      "type": "object",
+                      "fields": [
+                        {
+                          "name": "id",
+                          "type": "string",
+                          "example": "0f1e2d3c4b5a69788796a5b4c3d2e1f0"
+                        },
+                        {
+                          "name": "descriptor",
+                          "type": "string",
+                          "example": "Engineering"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name": "timeType",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "id",
+                      "type": "string",
+                      "example": "b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6"
+                    },
+                    {
+                      "name": "descriptor",
+                      "type": "string",
+                      "example": "Full time"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "supervisoryOrganization",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b"
+                },
+                {
+                  "name": "descriptor",
+                  "type": "string",
+                  "example": "Data Platform (Sam Patel)"
+                }
+              ]
+            },
+            {
+              "name": "manager",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d"
+                },
+                {
+                  "name": "descriptor",
+                  "type": "string",
+                  "example": "Sam Patel"
+                },
+                {
+                  "name": "primaryWorkEmail",
+                  "type": "string",
+                  "example": "sam.patel@example.com"
+                }
+              ]
+            },
+            {
+              "name": "location",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "4f5e6d7c8b9a0f1e2d3c4b5a69788796"
+                },
+                {
+                  "name": "descriptor",
+                  "type": "string",
+                  "example": "Auckland Office"
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "id": "3aa5550b7fe348b98d7b5741afc65534",
+          "descriptor": "Priya Raman",
+          "href": "https://wd-impl.workday.example.com/ccx/api/staffing/v6/acme/workers/3aa5550b7fe348b98d7b5741afc65534",
+          "workerId": "21508",
+          "workerType": {
+            "id": "a2b6b8f9b4c64f3b9a1d0c4e1f1e2a01",
+            "descriptor": "Employee"
+          },
+          "primaryWorkEmail": "priya.raman@example.com",
+          "primaryWorkPhone": "+64 9 555 0142",
+          "businessTitle": "Senior Data Engineer",
+          "hireDate": "2026-11-16",
+          "isManager": false,
+          "primaryJob": {
+            "id": "7c1f0d3a9e2b4c5d8f6a1b2c3d4e5f60",
+            "descriptor": "Senior Data Engineer - Priya Raman",
+            "jobProfile": {
+              "id": "5d4c3b2a19f84e7d6c5b4a3928170615",
+              "descriptor": "Data Engineer III",
+              "jobFamily": {
+                "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+                "descriptor": "Engineering"
+              }
+            },
+            "timeType": {
+              "id": "b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6",
+              "descriptor": "Full time"
+            }
+          },
+          "supervisoryOrganization": {
+            "id": "9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b",
+            "descriptor": "Data Platform (Sam Patel)"
+          },
+          "manager": {
+            "id": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d",
+            "descriptor": "Sam Patel",
+            "primaryWorkEmail": "sam.patel@example.com"
+          },
+          "location": {
+            "id": "4f5e6d7c8b9a0f1e2d3c4b5a69788796",
+            "descriptor": "Auckland Office"
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "466eac94-a826-5959-b9dc-28f7d6e48fde",
+        "name": "worker_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "c8767f05-b5c6-540b-9997-2d743d5a73d3",
+        "name": "worker_name",
+        "path": "descriptor",
+        "type": "string"
+      },
+      {
+        "id": "efe6bec3-2b18-5b1c-a0c6-b4baf0964c15",
+        "name": "employee_id",
+        "path": "workerId",
+        "type": "string"
+      },
+      {
+        "id": "f06fc013-980c-5378-8796-d8033e146aee",
+        "name": "work_email",
+        "path": "primaryWorkEmail",
+        "type": "string"
+      },
+      {
+        "id": "1de65f35-2563-51dd-b66d-e758685e6baf",
+        "name": "business_title",
+        "path": "businessTitle",
+        "type": "string"
+      },
+      {
+        "id": "bd822148-e4a9-5732-9c6a-c4a0a0ccd2c5",
+        "name": "hire_date",
+        "path": "hireDate",
+        "type": "string"
+      },
+      {
+        "id": "2bd76c39-9318-54a5-9578-f47efa40d243",
+        "name": "job_profile",
+        "path": "primaryJob.jobProfile.descriptor",
+        "type": "string"
+      },
+      {
+        "id": "cc64d433-6428-56d6-9ed6-d7cac92c51a0",
+        "name": "job_family",
+        "path": "primaryJob.jobProfile.jobFamily.descriptor",
+        "type": "string"
+      },
+      {
+        "id": "957a26c4-d1d7-53bd-8e32-0f74efe855e3",
+        "name": "worker_type",
+        "path": "workerType.descriptor",
+        "type": "string"
+      },
+      {
+        "id": "a8f069e9-38b3-51a7-b6fd-879b2529c548",
+        "name": "supervisory_org",
+        "path": "supervisoryOrganization.descriptor",
+        "type": "string"
+      },
+      {
+        "id": "c413b0f0-b9db-5b80-b5d3-2c15cfd42ebe",
+        "name": "manager_name",
+        "path": "manager.descriptor",
+        "type": "string"
+      },
+      {
+        "id": "05d03ae4-d70a-5710-a95e-bc9c26ee97dd",
+        "name": "manager_email",
+        "path": "manager.primaryWorkEmail",
+        "type": "string"
+      },
+      {
+        "id": "5a8a45a3-3729-59d1-a3f9-10596fbbbb8b",
+        "name": "location",
+        "path": "location.descriptor",
+        "type": "string"
+      }
+    ]
+  }
+}

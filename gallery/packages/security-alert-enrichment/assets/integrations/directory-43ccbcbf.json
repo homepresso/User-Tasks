@@ -1,0 +1,22 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "43ccbcbf-e7d7-48f7-ab54-38b049d1b84e",
+  "asset": {
+    "id": "43ccbcbf-e7d7-48f7-ab54-38b049d1b84e",
+    "name": "Directory",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://directory.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "identity"
+    ]
+  }
+}

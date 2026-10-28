@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "074c0adf-8bc7-5ae9-a4b3-7db6324b7880",
+  "asset": {
+    "id": "074c0adf-8bc7-5ae9-a4b3-7db6324b7880",
+    "name": "Supplier bank details updated",
+    "description": "Sent to the requester when the new bank details are live in SAP.",
+    "subject": "Bank details updated for {{supplier_name}} ({{supplier}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Bank details updated: {{supplier_name}}</h2>\n  <p>The change {{change_ref}} you requested is now in SAP S/4HANA.</p>\n  <p>New IBAN ending <strong>{{iban_last4}}</strong> ({{new_bank_country}}) is valid from <strong>{{effective_date}}</strong>; the old bank detail ends the day before.</p>\n  <p>Finance review, a call-back to the supplier and treasury approval were completed.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the SAP vendor master change workflow</p>\n</div>",
+    "text_body": "Bank details updated for {{supplier_name}} ({{supplier}})\nChange {{change_ref}}: IBAN ending {{iban_last4}} valid from {{effective_date}}.",
+    "is_default": false
+  }
+}

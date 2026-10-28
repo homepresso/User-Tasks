@@ -1,0 +1,1104 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "633cff3d-656f-4eb7-85a8-ca74f2b6e1d2",
+  "asset": {
+    "id": "633cff3d-656f-4eb7-85a8-ca74f2b6e1d2",
+    "name": "Vendor onboarding",
+    "description": "Procurement submits a new vendor; the KYC service screens it, the risk tier rules decide the approvals, compliance reviews medium and high risk vendors, finance verifies the bank account by call-back, and the vendor is created in the ERP.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Vendor requested",
+        "position": {
+          "x": 1220,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "legal_name",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "registration_number",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "country",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "website",
+                      "span": 2
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "iban",
+                      "span": 3
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "contact_email",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "contact_phone",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "spend_category",
+                      "span": 2
+                    },
+                    {
+                      "field_key": "expected_annual_spend",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "requester_email",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "compliance_reviewer_id",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "finance_verifier_id",
+                      "span": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#15803D",
+                    "background": "#FFFFFF",
+                    "text": "#1B1916",
+                    "page": "#ECF6EF"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "header": {
+                  "enabled": true,
+                  "title": "Onboard a vendor",
+                  "subtitle": "Bank details are always verified by a call-back before the vendor is created."
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 1220,
+          "y": 220
+        },
+        "config": {
+          "title": "Vendor: {{legal_name}} ({{country}})"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Ten-day SLA",
+        "position": {
+          "x": 1220,
+          "y": 380
+        },
+        "config": {
+          "sla_label": "Vendor onboarding",
+          "mode": "relative",
+          "amount": 10,
+          "unit": "days",
+          "warning_amount": 7,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "country_lookup",
+        "type": "update_data_table",
+        "label": "Country risk",
+        "position": {
+          "x": 1220,
+          "y": 540
+        },
+        "config": {
+          "table_id": "9b8b8387-f6a0-4c00-93e3-784279f82251",
+          "table_name": "Country risk",
+          "operation": "get",
+          "match_column": "country",
+          "match_value": "{{country}}",
+          "output_row_var": "country_row"
+        }
+      },
+      {
+        "id": "country_risk",
+        "type": "set_variable",
+        "label": "Country rating",
+        "position": {
+          "x": 1220,
+          "y": 700
+        },
+        "config": {
+          "name": "country_risk",
+          "expression": "{{=COALESCE(country_row.risk_rating, \"high\")}}"
+        }
+      },
+      {
+        "id": "screen",
+        "type": "call_reference",
+        "label": "Company checks",
+        "position": {
+          "x": 1220,
+          "y": 860
+        },
+        "config": {
+          "reference_id": "7cbb7801-83b3-463f-b245-a9e04f6c9b21",
+          "reference_name": "Company checks",
+          "reference_method": "POST",
+          "input_mappings": {
+            "legal_name": "{{legal_name}}",
+            "registration_number": "{{registration_number}}",
+            "country": "{{country}}",
+            "website": "{{website}}"
+          },
+          "output_mappings": {
+            "check_id": {
+              "enabled": true,
+              "variableName": "kyc_check_id"
+            },
+            "risk_score": {
+              "enabled": true,
+              "variableName": "risk_score"
+            },
+            "sanctions_hit": {
+              "enabled": true,
+              "variableName": "sanctions_hit"
+            },
+            "registry_status": {
+              "enabled": true,
+              "variableName": "registry_status"
+            },
+            "registered_name": {
+              "enabled": true,
+              "variableName": "registered_name"
+            },
+            "adverse_media_count": {
+              "enabled": true,
+              "variableName": "adverse_media_count"
+            },
+            "flags": {
+              "enabled": true,
+              "variableName": "kyc_flags"
+            },
+            "report_url": {
+              "enabled": true,
+              "variableName": "kyc_report_url"
+            }
+          }
+        }
+      },
+      {
+        "id": "tier",
+        "type": "decision_table",
+        "label": "Vendor risk tier",
+        "position": {
+          "x": 1220,
+          "y": 1020
+        },
+        "config": {
+          "decision_table_id": "288ef61b-7a59-43c8-962d-83596053190c",
+          "decision_table_name": "Vendor risk tier",
+          "input_mappings": {
+            "country_risk": "{{country_risk}}",
+            "sanctions_hit": "{{sanctions_hit}}",
+            "risk_score": "{{risk_score}}",
+            "annual_spend": "{{expected_annual_spend}}",
+            "registry_status": "{{registry_status}}"
+          }
+        }
+      },
+      {
+        "id": "review_date",
+        "type": "date_math",
+        "label": "Next re-screen date",
+        "position": {
+          "x": 1220,
+          "y": 1180
+        },
+        "config": {
+          "date": "{{=TODAY()}}",
+          "operation": "add",
+          "amount": "{{review_months}}",
+          "unit": "months",
+          "output_var": "next_review_at"
+        }
+      },
+      {
+        "id": "review_fmt",
+        "type": "set_variable",
+        "label": "Format review date",
+        "position": {
+          "x": 1220,
+          "y": 1340
+        },
+        "config": {
+          "name": "next_review_date",
+          "expression": "{{=FORMAT_DATE(next_review_at, \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "route",
+        "type": "switch_case",
+        "label": "Route by tier",
+        "position": {
+          "x": 1220,
+          "y": 1500
+        },
+        "config": {
+          "field": "{{risk_tier}}",
+          "cases": [
+            {
+              "value": "blocked"
+            },
+            {
+              "value": "high"
+            },
+            {
+              "value": "medium"
+            }
+          ],
+          "has_default": true
+        }
+      },
+      {
+        "id": "blocked_reason",
+        "type": "set_variable",
+        "label": "Blocked reason",
+        "position": {
+          "x": 340,
+          "y": 1680
+        },
+        "config": {
+          "name": "decline_reason",
+          "expression": "Screening blocked the vendor: {{rule_label}} (check {{kyc_check_id}})."
+        }
+      },
+      {
+        "id": "blocked_log",
+        "type": "log",
+        "label": "Log block",
+        "position": {
+          "x": 340,
+          "y": 1860
+        },
+        "config": {
+          "message": "Vendor {{legal_name}} blocked: {{rule_label}}, score {{risk_score}}, report {{kyc_report_url}}",
+          "level": "warn"
+        }
+      },
+      {
+        "id": "compliance",
+        "type": "user_task",
+        "label": "Compliance review",
+        "position": {
+          "x": 660,
+          "y": 1680
+        },
+        "config": {
+          "task_title": "Review vendor {{legal_name}} ({{risk_tier}} risk, score {{risk_score}})",
+          "task_description": "<p><strong>{{legal_name}}</strong> ({{registration_number}}, {{country}}, country risk {{country_risk}}) for {{spend_category}}, expected spend {{expected_annual_spend}} a year.</p><p>Screening {{kyc_check_id}}: score <strong>{{risk_score}}</strong>, registry {{registry_status}} as “{{registered_name}}”, adverse media {{adverse_media_count}}, flags {{kyc_flags}}.</p><p>Rule “{{rule_label}}” → <strong>{{risk_tier}}</strong>: {{approvals}}. <a href=\"{{kyc_report_url}}\">Open the screening report</a></p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Approve with conditions",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "49eec2e6-8e88-47d2-a708-a7fdf55aec70",
+          "assignee_variable": "{{compliance_reviewer_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 5760,
+          "fields": [
+            {
+              "key": "country_check",
+              "label": "Country",
+              "type": "lookup",
+              "default": "{{country}}",
+              "help_text": "Rating from the Country risk table",
+              "lookup": {
+                "source": "table",
+                "table_id": "9b8b8387-f6a0-4c00-93e3-784279f82251",
+                "search_columns": [
+                  "country",
+                  "country_name"
+                ],
+                "display_columns": [
+                  "country_name",
+                  "risk_rating"
+                ],
+                "value_column": "country",
+                "fill": [
+                  {
+                    "from": "risk_rating",
+                    "to": "country_rating"
+                  }
+                ]
+              }
+            },
+            {
+              "key": "country_rating",
+              "label": "Country risk",
+              "type": "text",
+              "read_only": true
+            },
+            {
+              "key": "edd_completed",
+              "label": "Enhanced due diligence completed",
+              "type": "boolean"
+            },
+            {
+              "key": "beneficial_owners_checked",
+              "label": "Beneficial owners checked",
+              "type": "boolean"
+            },
+            {
+              "key": "conditions",
+              "label": "Conditions (spend cap, prepayment ban…)",
+              "type": "text"
+            },
+            {
+              "key": "next_review_date",
+              "label": "Next review date",
+              "type": "date",
+              "default": "{{next_review_date}}"
+            },
+            {
+              "key": "review_notes",
+              "label": "Review notes",
+              "type": "text",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "country_check",
+                    "span": 2
+                  },
+                  {
+                    "field_key": "country_rating",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "edd_completed",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "beneficial_owners_checked",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "next_review_date",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "conditions",
+                    "span": 3
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "review_notes",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "approve_with_conditions",
+              "label": "Approve with conditions",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Approve with conditions"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Vendor review: {{legal_name}}",
+            "align": "left",
+            "subtitle": "{{risk_tier}} risk · score {{risk_score}} · {{spend_category}}"
+          }
+        }
+      },
+      {
+        "id": "review_override",
+        "type": "set_variable",
+        "label": "Reviewed re-screen date",
+        "position": {
+          "x": 660,
+          "y": 1860
+        },
+        "config": {
+          "name": "next_review_date",
+          "expression": "{{=COALESCE(task_data.next_review_date, next_review_date)}}"
+        }
+      },
+      {
+        "id": "rejected_reason",
+        "type": "set_variable",
+        "label": "Rejected reason",
+        "position": {
+          "x": 980,
+          "y": 1860
+        },
+        "config": {
+          "name": "decline_reason",
+          "expression": "Compliance declined the vendor: {{task_data.review_notes}}"
+        }
+      },
+      {
+        "id": "bank",
+        "type": "user_task",
+        "label": "Verify bank details",
+        "position": {
+          "x": 660,
+          "y": 2020
+        },
+        "config": {
+          "task_title": "Verify bank details: {{legal_name}}",
+          "task_description": "<p>Call <strong>{{legal_name}}</strong> on a number from an independent source ({{contact_phone}}), not from the bank letter or email, and confirm the account <strong>{{iban}}</strong>.</p><p>Risk tier {{risk_tier}}. Do not approve without a successful call-back.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Verified",
+            "Details do not match"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "fd5fcc9e-c8ef-45c4-963f-a0dc8a2df90c",
+          "assignee_variable": "{{finance_verifier_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "verified_by_callback",
+              "label": "Verified by call-back",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "verified_contact",
+              "label": "Person who confirmed (name and role)",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "iban",
+              "label": "Confirmed account",
+              "type": "text",
+              "required": true,
+              "default": "{{iban}}"
+            },
+            {
+              "key": "notes",
+              "label": "Notes",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "verified_by_callback",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "verified_contact",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "iban",
+                    "span": 3
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "notes",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "verified",
+              "label": "Verified",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Verified"
+            },
+            {
+              "id": "details_do_not_match",
+              "label": "Details do not match",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Details do not match"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Verify bank details: {{legal_name}}",
+            "align": "left",
+            "subtitle": "Call the vendor on an independently sourced number"
+          }
+        }
+      },
+      {
+        "id": "callback_check",
+        "type": "condition",
+        "label": "Call-back done?",
+        "position": {
+          "x": 660,
+          "y": 2200
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Confirmed",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{task_data.verified_by_callback}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "redo",
+        "type": "goto_activity",
+        "label": "Back to bank check",
+        "position": {
+          "x": 980,
+          "y": 2380
+        },
+        "config": {
+          "target_node_id": "bank",
+          "target_node_label": "Verify bank details"
+        }
+      },
+      {
+        "id": "confirmed_iban",
+        "type": "set_variable",
+        "label": "Confirmed account",
+        "position": {
+          "x": 660,
+          "y": 2380
+        },
+        "config": {
+          "name": "iban",
+          "expression": "{{task_data.iban}}"
+        }
+      },
+      {
+        "id": "mismatch_reason",
+        "type": "set_variable",
+        "label": "Mismatch reason",
+        "position": {
+          "x": 980,
+          "y": 2200
+        },
+        "config": {
+          "name": "decline_reason",
+          "expression": "The bank details could not be confirmed by call-back: {{task_data.notes}}"
+        }
+      },
+      {
+        "id": "create",
+        "type": "call_reference",
+        "label": "Create vendor",
+        "position": {
+          "x": 660,
+          "y": 2540
+        },
+        "config": {
+          "reference_id": "dbab58e1-3195-4c82-8878-f7871be2680d",
+          "reference_name": "Create vendor",
+          "reference_method": "POST",
+          "input_mappings": {
+            "legal_name": "{{legal_name}}",
+            "registration_number": "{{registration_number}}",
+            "country": "{{country}}",
+            "website": "{{website}}",
+            "iban": "{{iban}}",
+            "contact_email": "{{contact_email}}",
+            "spend_category": "{{spend_category}}",
+            "risk_tier": "{{risk_tier}}",
+            "kyc_check_id": "{{kyc_check_id}}",
+            "next_review_date": "{{next_review_date}}"
+          },
+          "output_mappings": {
+            "vendor_id": {
+              "enabled": true,
+              "variableName": "vendor_id"
+            },
+            "vendor_number": {
+              "enabled": true,
+              "variableName": "vendor_number"
+            },
+            "portal_url": {
+              "enabled": true,
+              "variableName": "portal_url"
+            }
+          }
+        }
+      },
+      {
+        "id": "welcome",
+        "type": "send_email",
+        "label": "Email vendor: welcome",
+        "position": {
+          "x": 660,
+          "y": 2700
+        },
+        "config": {
+          "to": "{{contact_email}}",
+          "email_template_id": "21b58180-f59a-4455-b74a-a7e5019a948a"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Vendor live",
+        "position": {
+          "x": 660,
+          "y": 2860
+        },
+        "config": {
+          "reason": "{{legal_name}} created as {{vendor_id}} ({{risk_tier}} risk, re-screen {{next_review_date}})"
+        }
+      },
+      {
+        "id": "email_declined",
+        "type": "send_email",
+        "label": "Email requester: declined",
+        "position": {
+          "x": 340,
+          "y": 2380
+        },
+        "config": {
+          "to": "{{requester_email}}",
+          "email_template_id": "cd39f8d3-90cf-4807-9102-d4e43bd8c755"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "closed",
+        "type": "end_workflow",
+        "label": "Not onboarded",
+        "position": {
+          "x": 340,
+          "y": 2540
+        },
+        "config": {
+          "reason": "{{legal_name}} not onboarded: {{decline_reason}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-sla",
+        "source": "title",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-country_lookup",
+        "source": "sla",
+        "target": "country_lookup"
+      },
+      {
+        "id": "e-country_lookup-country_risk",
+        "source": "country_lookup",
+        "target": "country_risk"
+      },
+      {
+        "id": "e-country_risk-screen",
+        "source": "country_risk",
+        "target": "screen"
+      },
+      {
+        "id": "e-screen-tier",
+        "source": "screen",
+        "target": "tier"
+      },
+      {
+        "id": "e-tier-review_date",
+        "source": "tier",
+        "target": "review_date"
+      },
+      {
+        "id": "e-review_date-review_fmt",
+        "source": "review_date",
+        "target": "review_fmt"
+      },
+      {
+        "id": "e-review_fmt-route",
+        "source": "review_fmt",
+        "target": "route"
+      },
+      {
+        "id": "e-route-blocked_reason-blocked",
+        "source": "route",
+        "target": "blocked_reason",
+        "label": "blocked"
+      },
+      {
+        "id": "e-route-compliance-high",
+        "source": "route",
+        "target": "compliance",
+        "label": "high"
+      },
+      {
+        "id": "e-route-compliance-medium",
+        "source": "route",
+        "target": "compliance",
+        "label": "medium"
+      },
+      {
+        "id": "e-route-bank-default",
+        "source": "route",
+        "target": "bank",
+        "label": "Default"
+      },
+      {
+        "id": "e-blocked_reason-blocked_log",
+        "source": "blocked_reason",
+        "target": "blocked_log"
+      },
+      {
+        "id": "e-blocked_log-email_declined",
+        "source": "blocked_log",
+        "target": "email_declined"
+      },
+      {
+        "id": "e-compliance-review_override-approve",
+        "source": "compliance",
+        "target": "review_override",
+        "label": "Approve"
+      },
+      {
+        "id": "e-compliance-review_override-approve-with-conditions",
+        "source": "compliance",
+        "target": "review_override",
+        "label": "Approve with conditions"
+      },
+      {
+        "id": "e-compliance-rejected_reason-reject",
+        "source": "compliance",
+        "target": "rejected_reason",
+        "label": "Reject"
+      },
+      {
+        "id": "e-review_override-bank",
+        "source": "review_override",
+        "target": "bank"
+      },
+      {
+        "id": "e-rejected_reason-email_declined",
+        "source": "rejected_reason",
+        "target": "email_declined"
+      },
+      {
+        "id": "e-bank-callback_check-verified",
+        "source": "bank",
+        "target": "callback_check",
+        "label": "Verified"
+      },
+      {
+        "id": "e-bank-mismatch_reason-details-do-not-match",
+        "source": "bank",
+        "target": "mismatch_reason",
+        "label": "Details do not match"
+      },
+      {
+        "id": "e-callback_check-confirmed_iban-confirmed",
+        "source": "callback_check",
+        "target": "confirmed_iban",
+        "label": "Confirmed"
+      },
+      {
+        "id": "e-callback_check-redo-else",
+        "source": "callback_check",
+        "target": "redo",
+        "label": "Else"
+      },
+      {
+        "id": "e-confirmed_iban-create",
+        "source": "confirmed_iban",
+        "target": "create"
+      },
+      {
+        "id": "e-create-welcome",
+        "source": "create",
+        "target": "welcome"
+      },
+      {
+        "id": "e-welcome-done",
+        "source": "welcome",
+        "target": "done"
+      },
+      {
+        "id": "e-mismatch_reason-email_declined",
+        "source": "mismatch_reason",
+        "target": "email_declined"
+      },
+      {
+        "id": "e-email_declined-closed",
+        "source": "email_declined",
+        "target": "closed"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-legal_name",
+        "name": "legal_name",
+        "type": "string",
+        "description": "Registered legal name of the company",
+        "defaultValue": "",
+        "required": true,
+        "label": "Legal name"
+      },
+      {
+        "id": "v-registration_number",
+        "name": "registration_number",
+        "type": "string",
+        "description": "Company registration number in its home registry",
+        "defaultValue": "",
+        "required": true,
+        "label": "Registration number"
+      },
+      {
+        "id": "v-country",
+        "name": "country",
+        "type": "string",
+        "description": "Country of registration (ISO code)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Country",
+        "options": [
+          "NZ",
+          "AU",
+          "GB",
+          "US",
+          "DE",
+          "SG",
+          "IN",
+          "CN",
+          "AE",
+          "ZA",
+          "BR",
+          "Other"
+        ]
+      },
+      {
+        "id": "v-website",
+        "name": "website",
+        "type": "string",
+        "description": "Company website",
+        "defaultValue": "",
+        "label": "Website",
+        "format": "url"
+      },
+      {
+        "id": "v-iban",
+        "name": "iban",
+        "type": "string",
+        "description": "Bank account (IBAN or local account number) from the vendor's bank letter",
+        "defaultValue": "",
+        "required": true,
+        "label": "Bank account (IBAN)"
+      },
+      {
+        "id": "v-contact_email",
+        "name": "contact_email",
+        "type": "string",
+        "description": "Accounts contact at the vendor: receives the welcome email",
+        "defaultValue": "",
+        "required": true,
+        "label": "Vendor contact email",
+        "format": "email"
+      },
+      {
+        "id": "v-contact_phone",
+        "name": "contact_phone",
+        "type": "string",
+        "description": "Phone number from an independent source (not the bank letter), used for the call-back",
+        "defaultValue": "",
+        "label": "Vendor phone (independent source)"
+      },
+      {
+        "id": "v-spend_category",
+        "name": "spend_category",
+        "type": "string",
+        "description": "What you will buy from this vendor",
+        "defaultValue": "",
+        "required": true,
+        "label": "Spend category",
+        "options": [
+          "Logistics",
+          "IT hardware",
+          "Software",
+          "Professional services",
+          "Facilities",
+          "Marketing",
+          "Raw materials"
+        ]
+      },
+      {
+        "id": "v-expected_annual_spend",
+        "name": "expected_annual_spend",
+        "type": "number",
+        "description": "Expected spend in the first 12 months",
+        "defaultValue": "0",
+        "required": true,
+        "label": "Expected annual spend"
+      },
+      {
+        "id": "v-requester_email",
+        "name": "requester_email",
+        "type": "string",
+        "description": "Who in procurement asked for the vendor: gets the outcome",
+        "defaultValue": "",
+        "label": "Your email",
+        "format": "email"
+      },
+      {
+        "id": "v-compliance_reviewer_id",
+        "name": "compliance_reviewer_id",
+        "type": "string",
+        "description": "Optional: user id of the compliance reviewer (overrides the install-time default)",
+        "defaultValue": "",
+        "label": "Compliance reviewer (user id)"
+      },
+      {
+        "id": "v-finance_verifier_id",
+        "name": "finance_verifier_id",
+        "type": "string",
+        "description": "Optional: user id of the finance verifier (overrides the install-time default)",
+        "defaultValue": "",
+        "label": "Finance verifier (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

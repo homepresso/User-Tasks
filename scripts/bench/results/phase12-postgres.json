@@ -1,0 +1,362 @@
+{
+  "label": "phase12-postgres",
+  "updatedAt": "2026-10-26T15:53:35.678Z",
+  "environment": {
+    "machine": "Apple M1 Pro",
+    "cpus": 10,
+    "memory_gb": 32,
+    "os": "darwin 27.0.0 arm64",
+    "node": "v20.19.5",
+    "git_commit": "ac4cc7d6",
+    "git_branch": "providers",
+    "supabase_cli": "2.122.0",
+    "postgres_server": "17.11",
+    "docker": "28.3.2"
+  },
+  "suites": {
+    "engine": {
+      "data": {
+        "linear50": {
+          "label": "50-node linear",
+          "wall_ms": {
+            "n": 3,
+            "p50": 28.1,
+            "p95": 40,
+            "max": 40,
+            "mean": 29.8
+          },
+          "db_round_trips": 0,
+          "db_time_ms": 0,
+          "rows_written": 0,
+          "external_calls": 0,
+          "queue_kicks": 0,
+          "node_results": 50,
+          "by_op": {},
+          "statuses": [
+            "completed",
+            "completed",
+            "completed"
+          ]
+        },
+        "loop500": {
+          "label": "loop ×500 (set_variable + condition + functions)",
+          "wall_ms": {
+            "n": 3,
+            "p50": 217.3,
+            "p95": 258.6,
+            "max": 258.6,
+            "mean": 226.8
+          },
+          "db_round_trips": 0,
+          "db_time_ms": 0,
+          "rows_written": 0,
+          "external_calls": 0,
+          "queue_kicks": 0,
+          "node_results": 9,
+          "by_op": {},
+          "statuses": [
+            "completed",
+            "completed",
+            "completed"
+          ]
+        },
+        "dataTable500": {
+          "label": "500 data-table inserts (+ active data_table_event workflow)",
+          "wall_ms": {
+            "n": 3,
+            "p50": 1778.6,
+            "p95": 1791.6,
+            "max": 1791.6,
+            "mean": 1775.5
+          },
+          "db_round_trips": 0,
+          "db_time_ms": 0,
+          "rows_written": 0,
+          "external_calls": 0,
+          "queue_kicks": 500,
+          "node_results": 3,
+          "by_op": {},
+          "statuses": [
+            "completed",
+            "completed",
+            "completed"
+          ]
+        },
+        "decision200": {
+          "label": "decision table in loop ×200",
+          "wall_ms": {
+            "n": 3,
+            "p50": 96.7,
+            "p95": 102.6,
+            "max": 102.6,
+            "mean": 98.1
+          },
+          "db_round_trips": 0,
+          "db_time_ms": 0,
+          "rows_written": 0,
+          "external_calls": 0,
+          "queue_kicks": 0,
+          "node_results": 5,
+          "by_op": {},
+          "statuses": [
+            "completed",
+            "completed",
+            "completed"
+          ]
+        },
+        "callRef100": {
+          "label": "call_reference ×100 (local echo)",
+          "wall_ms": {
+            "n": 3,
+            "p50": 81.6,
+            "p95": 94,
+            "max": 94,
+            "mean": 85.1
+          },
+          "db_round_trips": 0,
+          "db_time_ms": 0,
+          "rows_written": 0,
+          "external_calls": 100,
+          "queue_kicks": 0,
+          "node_results": 3,
+          "by_op": {},
+          "statuses": [
+            "completed",
+            "completed",
+            "completed"
+          ]
+        }
+      },
+      "tables": [
+        {
+          "title": "Engine (in-process executeWorkflow, 3 reps after 1 warm-up)",
+          "columns": [
+            "case",
+            "wall p50 ms",
+            "wall max ms",
+            "DB round trips",
+            "DB time ms",
+            "rows written",
+            "external calls",
+            "queue kicks"
+          ],
+          "rows": [
+            [
+              "50-node linear",
+              28.1,
+              40,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              "loop ×500 (set_variable + condition + functions)",
+              217.3,
+              258.6,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              "500 data-table inserts (+ active data_table_event workflow)",
+              1778.6,
+              1791.6,
+              0,
+              0,
+              0,
+              0,
+              500
+            ],
+            [
+              "decision table in loop ×200",
+              96.7,
+              102.6,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              "call_reference ×100 (local echo)",
+              81.6,
+              94,
+              0,
+              0,
+              0,
+              100,
+              0
+            ]
+          ]
+        },
+        {
+          "title": "Most frequent DB operations (last rep)",
+          "columns": [
+            "case",
+            "ops"
+          ],
+          "rows": [
+            [
+              "linear50",
+              ""
+            ],
+            [
+              "loop500",
+              ""
+            ],
+            [
+              "dataTable500",
+              ""
+            ],
+            [
+              "decision200",
+              ""
+            ],
+            [
+              "callRef100",
+              ""
+            ]
+          ]
+        }
+      ],
+      "notes": [
+        "dataTable500 enqueued 2000 data_table_event jobs over 4 runs (deleted afterwards, not executed).",
+        "Echo server received 400 requests.",
+        "wall = executeWorkflow call; DB round trips include fire-and-forget writes that settle after it returns. DB time sums request durations (parallel requests overlap)."
+      ],
+      "ranAt": "2026-10-26T15:53:31.003Z",
+      "durationMs": 12746
+    },
+    "api": {
+      "data": {
+        "tool_count": 162,
+        "tool_called": "workflows_list",
+        "GET /api/v1/workflows?active=false": {
+          "n": 100,
+          "p50": 5.4,
+          "p95": 8.3,
+          "max": 13.4,
+          "mean": 5.6,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 6194
+        },
+        "GET /api/v1/tasks": {
+          "n": 100,
+          "p50": 7.3,
+          "p95": 9,
+          "max": 10.7,
+          "mean": 7.6,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 35411
+        },
+        "GET /api/v1/me": {
+          "n": 100,
+          "p50": 3.6,
+          "p95": 4.9,
+          "max": 5.2,
+          "mean": 3.7,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 1251
+        },
+        "MCP tools/list": {
+          "n": 100,
+          "p50": 3,
+          "p95": 4,
+          "max": 5,
+          "mean": 3.1,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 133302
+        },
+        "MCP tools/call workflows_list": {
+          "n": 100,
+          "p50": 5.5,
+          "p95": 7.2,
+          "max": 8.7,
+          "mean": 5.6,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 10429
+        }
+      },
+      "tables": [
+        {
+          "title": "API latency (100 sequential requests each after 5 warm-ups, tenant API key, ms)",
+          "columns": [
+            "request",
+            "p50",
+            "p95",
+            "max",
+            "mean",
+            "statuses",
+            "response bytes"
+          ],
+          "rows": [
+            [
+              "GET /api/v1/workflows?active=false",
+              5.4,
+              8.3,
+              13.4,
+              5.6,
+              "200×100",
+              6194
+            ],
+            [
+              "GET /api/v1/tasks",
+              7.3,
+              9,
+              10.7,
+              7.6,
+              "200×100",
+              35411
+            ],
+            [
+              "GET /api/v1/me",
+              3.6,
+              4.9,
+              5.2,
+              3.7,
+              "200×100",
+              1251
+            ],
+            [
+              "MCP tools/list",
+              3,
+              4,
+              5,
+              3.1,
+              "200×100",
+              133302
+            ],
+            [
+              "MCP tools/call workflows_list",
+              5.5,
+              7.2,
+              8.7,
+              5.6,
+              "200×100",
+              10429
+            ]
+          ]
+        }
+      ],
+      "notes": [
+        "MCP server exposes 162 tools; tools/call used workflows_list with no arguments."
+      ],
+      "ranAt": "2026-10-26T15:53:37.080Z",
+      "durationMs": 3605
+    }
+  }
+}

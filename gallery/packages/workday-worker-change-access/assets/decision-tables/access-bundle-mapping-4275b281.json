@@ -1,0 +1,158 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "4275b281-4897-50d5-8288-fea8243790f2",
+  "asset": {
+    "id": "4275b281-4897-50d5-8288-fea8243790f2",
+    "name": "Access bundle mapping",
+    "description": "Which access bundle a job profile and organization should have. Run once for the new job and once for the previous one. First matching rule wins.",
+    "inputs": [
+      {
+        "key": "event_type",
+        "label": "Event type",
+        "type": "text",
+        "id": "04f91d35-7c95-5c7e-8569-821b214dba13"
+      },
+      {
+        "key": "job_profile",
+        "label": "Job profile",
+        "type": "text",
+        "id": "e47c5ac4-088d-5440-9888-4767d73f64ec"
+      },
+      {
+        "key": "organization",
+        "label": "Supervisory organization",
+        "type": "text",
+        "id": "2332be33-6cbb-56c8-bebb-2af974d9813b"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "bundle_code",
+        "label": "Bundle code",
+        "type": "text",
+        "id": "51aafc11-1574-5b6c-92b5-39ea1a0b1b24"
+      },
+      {
+        "key": "review_level",
+        "label": "Review level",
+        "type": "text",
+        "id": "d6b19314-f062-565c-b7b6-2ada092d9980"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Termination",
+        "conditions": [
+          {
+            "inputKey": "event_type",
+            "operator": "equals",
+            "value": "termination",
+            "id": "8b11cd95-e682-58ea-857c-5bfd2758c065"
+          }
+        ],
+        "outputs": {
+          "bundle_code": "NONE",
+          "review_level": "manager"
+        },
+        "id": "f1ea3f4c-0e30-5568-a564-7d9b676439b5",
+        "enabled": true
+      },
+      {
+        "label": "Finance managers",
+        "conditions": [
+          {
+            "inputKey": "job_profile",
+            "operator": "contains",
+            "value": "Finance Manager",
+            "id": "37470d0c-0549-50b9-ae9a-7b20dc38f81e"
+          }
+        ],
+        "outputs": {
+          "bundle_code": "FIN-MGR",
+          "review_level": "manager + finance systems"
+        },
+        "id": "3575b1ab-ce64-5193-8183-a5ce2a686e76",
+        "enabled": true
+      },
+      {
+        "label": "Accounts payable",
+        "conditions": [
+          {
+            "inputKey": "organization",
+            "operator": "starts_with",
+            "value": "Accounts Payable",
+            "id": "a5b24df6-c7dd-5aa6-af3d-a4f0f154d7b7"
+          }
+        ],
+        "outputs": {
+          "bundle_code": "FIN-AP",
+          "review_level": "manager + finance systems"
+        },
+        "id": "b94dfcff-1e02-5fb3-ac75-e8f98fb82db0",
+        "enabled": true
+      },
+      {
+        "label": "Other finance",
+        "conditions": [
+          {
+            "inputKey": "organization",
+            "operator": "contains",
+            "value": "Financ",
+            "id": "8fd618c9-1475-593d-9426-e57dc5137344"
+          }
+        ],
+        "outputs": {
+          "bundle_code": "FIN-BASE",
+          "review_level": "manager"
+        },
+        "id": "bd70c841-1f3a-509f-a2e5-1742a11e6bae",
+        "enabled": true
+      },
+      {
+        "label": "Engineering",
+        "conditions": [
+          {
+            "inputKey": "job_profile",
+            "operator": "contains",
+            "value": "Engineer",
+            "id": "d7bda6d4-0b0e-55d4-a32a-8db73d9189a9"
+          }
+        ],
+        "outputs": {
+          "bundle_code": "ENG-DEV",
+          "review_level": "manager"
+        },
+        "id": "f78bff3b-efd9-56fc-bb36-93e16929030b",
+        "enabled": true
+      },
+      {
+        "label": "HR partners",
+        "conditions": [
+          {
+            "inputKey": "job_profile",
+            "operator": "contains",
+            "value": "HR Partner",
+            "id": "95640da1-fe75-5292-acc8-fd991bfa6684"
+          }
+        ],
+        "outputs": {
+          "bundle_code": "PEOPLE-HRP",
+          "review_level": "manager + people systems"
+        },
+        "id": "32a27477-d309-56ef-a490-fc56f5d56334",
+        "enabled": true
+      },
+      {
+        "label": "Everyone else",
+        "conditions": [],
+        "outputs": {
+          "bundle_code": "BASE",
+          "review_level": "manager"
+        },
+        "id": "586511a2-65b4-5f32-81f6-bdc15c061513",
+        "enabled": true
+      }
+    ]
+  }
+}

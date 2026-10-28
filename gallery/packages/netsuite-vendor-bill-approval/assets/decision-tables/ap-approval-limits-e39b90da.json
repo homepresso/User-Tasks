@@ -1,0 +1,177 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "e39b90da-02e4-59d1-9742-595b6d5b7a08",
+  "asset": {
+    "id": "e39b90da-02e4-59d1-9742-595b6d5b7a08",
+    "name": "AP approval limits",
+    "description": "Approval limits by subsidiary and bill total: the approver level, whether a second (controller / CFO) approval is needed and how long approvers have. First matching rule wins.",
+    "inputs": [
+      {
+        "key": "subsidiary",
+        "label": "Subsidiary",
+        "type": "text",
+        "id": "b2acde53-b196-5c5c-b813-024c500ede05"
+      },
+      {
+        "key": "amount",
+        "label": "Bill total",
+        "type": "number",
+        "id": "ef5f3757-e3ed-59e7-82a2-106b10963d24"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "approver_level",
+        "label": "Approver level",
+        "type": "text",
+        "id": "33db09ff-5225-5100-8ade-ccc124cd9414"
+      },
+      {
+        "key": "second_approval",
+        "label": "Second approval",
+        "type": "boolean",
+        "id": "96472ff3-af70-5a3a-abbb-cb7f296218a2"
+      },
+      {
+        "key": "second_approver",
+        "label": "Second approver",
+        "type": "text",
+        "id": "48dba1d7-f600-575e-bac3-2c77251165f9"
+      },
+      {
+        "key": "approval_days",
+        "label": "Approve within (days)",
+        "type": "number",
+        "id": "942a220e-a4f4-587b-b966-066b072c9473"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Any subsidiary: 100k and over",
+        "conditions": [
+          {
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "100000",
+            "id": "8a353fd3-e4b2-5903-8c98-c74a50742cf1"
+          }
+        ],
+        "outputs": {
+          "approver_level": "AP manager",
+          "second_approval": true,
+          "second_approver": "CFO",
+          "approval_days": 3
+        },
+        "id": "af1f426f-0d0b-5336-b044-b2dc41fc55e5",
+        "enabled": true
+      },
+      {
+        "label": "NZ: 25k and over",
+        "conditions": [
+          {
+            "inputKey": "subsidiary",
+            "operator": "contains",
+            "value": "(NZ)",
+            "id": "b1b07442-ccf0-529a-b795-d2304693a369"
+          },
+          {
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "25000",
+            "id": "28122a8d-9d9e-5161-b49f-21769979cbe4"
+          }
+        ],
+        "outputs": {
+          "approver_level": "AP manager",
+          "second_approval": true,
+          "second_approver": "Financial controller",
+          "approval_days": 3
+        },
+        "id": "3acc5e29-a621-5887-a376-1685b41c27fa",
+        "enabled": true
+      },
+      {
+        "label": "AU: 30k and over",
+        "conditions": [
+          {
+            "inputKey": "subsidiary",
+            "operator": "contains",
+            "value": "(AU)",
+            "id": "77cae457-943b-57e0-b98a-d4efca50d647"
+          },
+          {
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "30000",
+            "id": "aaeaf8c6-3a50-5438-88ef-8a18271f7243"
+          }
+        ],
+        "outputs": {
+          "approver_level": "AP manager",
+          "second_approval": true,
+          "second_approver": "Financial controller",
+          "approval_days": 3
+        },
+        "id": "479ea8db-9a72-58be-afcb-b66627db0186",
+        "enabled": true
+      },
+      {
+        "label": "US: 20k and over",
+        "conditions": [
+          {
+            "inputKey": "subsidiary",
+            "operator": "contains",
+            "value": "(US)",
+            "id": "74862dcb-da0e-53d1-9fc1-aee836d68dad"
+          },
+          {
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "20000",
+            "id": "54656b6a-a275-5b54-ba37-0cca779fee62"
+          }
+        ],
+        "outputs": {
+          "approver_level": "AP manager",
+          "second_approval": true,
+          "second_approver": "Financial controller",
+          "approval_days": 3
+        },
+        "id": "1b96d1f9-60a8-597e-a1ec-dd594e3076aa",
+        "enabled": true
+      },
+      {
+        "label": "10k and over",
+        "conditions": [
+          {
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "10000",
+            "id": "7970d454-dede-5ed9-8039-5a1b525dc00a"
+          }
+        ],
+        "outputs": {
+          "approver_level": "AP manager",
+          "second_approval": false,
+          "second_approver": "",
+          "approval_days": 2
+        },
+        "id": "f67694ea-5e09-5451-bafd-7b4a75a68490",
+        "enabled": true
+      },
+      {
+        "label": "Under 10k",
+        "conditions": [],
+        "outputs": {
+          "approver_level": "AP approver",
+          "second_approval": false,
+          "second_approver": "",
+          "approval_days": 2
+        },
+        "id": "c11150e2-debd-56ee-8330-1af994b6e725",
+        "enabled": true
+      }
+    ]
+  }
+}

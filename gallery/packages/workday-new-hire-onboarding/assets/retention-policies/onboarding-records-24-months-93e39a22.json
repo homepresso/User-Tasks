@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "93e39a22-f45b-55a1-a35a-3b5d410de858",
+  "asset": {
+    "id": "93e39a22-f45b-55a1-a35a-3b5d410de858",
+    "name": "Onboarding records: 24 months",
+    "description": "Keep onboarding log rows for 24 months, then purge them. Apply it to the New hire log table after install.",
+    "policy_mode": "purge_on",
+    "duration_value": 24,
+    "duration_unit": "months",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

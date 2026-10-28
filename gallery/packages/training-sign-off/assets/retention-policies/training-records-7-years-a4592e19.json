@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "asset_type": "retention_policies",
+  "id": "a4592e19-2cbe-558c-9107-2b93c2557ecd",
+  "asset": {
+    "id": "a4592e19-2cbe-558c-9107-2b93c2557ecd",
+    "name": "Training records: 7 years",
+    "description": "Keep completion evidence for audits, then purge rows seven years after they were created. Apply it to the Training records table after install.",
+    "policy_mode": "purge_on",
+    "duration_value": 7,
+    "duration_unit": "years",
+    "exact_date": null,
+    "applies_to": [
+      "data_rows"
+    ]
+  }
+}

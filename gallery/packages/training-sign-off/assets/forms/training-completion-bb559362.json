@@ -1,0 +1,282 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "bb559362-3758-5bee-b3c5-6ea6669b638e",
+  "asset": {
+    "id": "bb559362-3758-5bee-b3c5-6ea6669b638e",
+    "name": "Training completion",
+    "description": "A trainee records a completed course with evidence and picks the trainer who signs it off.",
+    "tags": [
+      "training",
+      "learning"
+    ],
+    "fields": [
+      {
+        "key": "trainee_name",
+        "label": "Your name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "trainee_email",
+        "label": "Your email",
+        "type": "email",
+        "required": true,
+        "help_text": "The sign-off confirmation comes here."
+      },
+      {
+        "key": "course",
+        "label": "Course",
+        "type": "lookup",
+        "required": true,
+        "help_text": "Search by code or title.",
+        "lookup": {
+          "source": "table",
+          "table_id": "f7da9866-dbcb-5292-8c52-9a3428e20f05",
+          "search_columns": [
+            "code",
+            "title",
+            "category"
+          ],
+          "display_columns": [
+            "title",
+            "code",
+            "delivery"
+          ],
+          "value_column": "code",
+          "fill": [
+            {
+              "from": "title",
+              "to": "course_title"
+            },
+            {
+              "from": "evidence",
+              "to": "evidence_expected"
+            },
+            {
+              "from": "validity_months",
+              "to": "validity_months"
+            }
+          ],
+          "filters": [
+            {
+              "column": "active",
+              "operator": "eq",
+              "value": "true"
+            }
+          ],
+          "sort": {
+            "column": "code",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "course_title",
+        "label": "Course title",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "validity_months",
+        "label": "Valid for (months)",
+        "type": "number",
+        "read_only": true,
+        "help_text": "0 means it does not expire."
+      },
+      {
+        "key": "evidence_expected",
+        "label": "Evidence the trainer expects",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "completed_on",
+        "label": "Completed on",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "hours",
+        "label": "Hours spent",
+        "type": "number",
+        "min": 0,
+        "max": 200
+      },
+      {
+        "key": "score",
+        "label": "Score (%)",
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "help_text": "If the course has a quiz or assessment."
+      },
+      {
+        "key": "evidence_link",
+        "label": "Evidence link",
+        "type": "url",
+        "required": true,
+        "placeholder": "https://",
+        "help_text": "Link to the certificate, signed checklist or LMS record."
+      },
+      {
+        "key": "reflection",
+        "label": "What did you learn, and how will you use it?",
+        "type": "textarea",
+        "required": true,
+        "min_length": 20
+      },
+      {
+        "key": "trainer",
+        "label": "Trainer / assessor",
+        "type": "user",
+        "required": true,
+        "help_text": "The person who signs off your training."
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "trainee_name",
+              "span": 1
+            },
+            {
+              "field_key": "trainee_email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "course",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "course_title",
+              "span": 1
+            },
+            {
+              "field_key": "validity_months",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "evidence_expected",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "completed_on",
+              "span": 1
+            },
+            {
+              "field_key": "hours",
+              "span": 1
+            },
+            {
+              "field_key": "score",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "evidence_link",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "reflection",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "trainer",
+              "span": 3
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#15803D",
+            "background": "#FFFFFF",
+            "text": "#14261A",
+            "page": "#EAF5EE",
+            "page_to": "#F7FBF8"
+          }
+        },
+        "radius": 10,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Source Sans 3"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Send for sign-off",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Sent to your trainer",
+            "screen_button": "submit_another",
+            "text": "Thanks {{trainee_name}}. {{trainer}} will review your evidence for {{course_item.title}}; you will get an email once it is signed off.",
+            "screen_button_label": "Record another course"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Training completion",
+      "align": "left",
+      "subtitle": "Record a course you finished. Your trainer reviews the evidence and signs it off."
+    }
+  }
+}

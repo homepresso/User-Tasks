@@ -1,0 +1,75 @@
+{
+  "title": "SAP purchase requisition → PO approval",
+  "category": "finance",
+  "summary": "An SAP S/4HANA purchase requisition is read over OData, routed by an approval matrix to approvers who pick the cost centre, then turned into a PO.",
+  "description": "SAP purchase requisition → PO approval moves requisition approval out of SAP inboxes and into task forms people actually use. When a requisition is released for approval (a business event, a BTP Event Mesh message or a small ABAP job posting the number), the workflow reads it from the API_PURCHASEREQ_PROCESS_SRV OData service: the header and every item with material, material group, quantity, price, plant, purchasing organization and fixed supplier.\n\nIt totals the items and evaluates the PR approval matrix decision table on amount, material group and plant, which sets the approver level, whether finance must approve too and the SLA. The approver gets a task form with the items, a Cost centres lookup that fills the owner, remaining budget and G/L account, and Approve / Reject buttons; two-step rules add a finance approval.\n\nOnce approved, a purchase order is created with a deep insert into API_PURCHASEORDER_PROCESS_SRV A_PurchaseOrder, one PO item per requisition item with the approved cost centre, and the PO number is logged against the requisition.",
+  "trigger": "api",
+  "entry_workflow": "53fafb4e-dee4-5d36-ac4f-3215171eeff8",
+  "start": "Starts when SAP posts a released purchase requisition number to the workflow start API or inbound webhook (business event, Event Mesh or a scheduled ABAP report).",
+  "difficulty": "advanced",
+  "setup_minutes": 40,
+  "tags": [
+    "purchasing",
+    "sap",
+    "odata",
+    "approvals",
+    "decision table",
+    "lookup"
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "webhook"
+  ],
+  "setup": [
+    "SAP S/4HANA integration: base URL https://<host>/sap/opu/odata/sap, Basic authentication with the communication user of a communication arrangement for SAP_COM_0102 (purchase requisitions) and SAP_COM_0053 (purchase orders); set sap-client in the integration headers.",
+    "CSRF: SAP OData POSTs need an x-csrf-token. Route calls through SAP API Management / BTP destination that fetches the token, or call through a gateway that handles it; the Create purchase order reference has an optional x-csrf-token header input if you fetch it yourself (GET with header x-csrf-token: Fetch).",
+    "Assignees: pick the default requisition approver and the finance approver (runs can pass approver_user_id and finance_user_id).",
+    "Replace the Cost centres rows with your controlling cost centres (or import them) and edit the PR approval matrix to your release strategy.",
+    "Have SAP post {\"purchase_requisition\": \"<number>\"} to the start API when a requisition is released for approval."
+  ],
+  "steps": [
+    {
+      "title": "Requisition released",
+      "body": "SAP posts the purchase requisition number."
+    },
+    {
+      "title": "Read it over OData",
+      "body": "A_PurchaseRequisitionHeader and its to_PurchaseReqnItem items are read; the items are totalled."
+    },
+    {
+      "title": "Approval matrix",
+      "body": "The decision table sets the approver level, whether finance approves too and the SLA from amount, material group and plant."
+    },
+    {
+      "title": "Approver",
+      "body": "A task form with the items, a cost centre lookup (owner, budget, G/L) and Approve / Reject buttons."
+    },
+    {
+      "title": "Finance (two-step)",
+      "body": "For larger or IT-hardware requisitions, finance confirms the budget and approves."
+    },
+    {
+      "title": "Create the PO",
+      "body": "A_PurchaseOrder is created with one item per requisition item and the approved cost centre; the PO number is logged."
+    }
+  ],
+  "sample_input": {
+    "purchase_requisition": "10000123"
+  },
+  "expect": "waiting",
+  "icon": "shopping-cart",
+  "systems": [
+    "SAP S/4HANA"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "id": "eeb90054-489e-5246-ac57-f928138c7434",
+  "slug": "sap-purchase-requisition-approval"
+}

@@ -1,0 +1,146 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "2d82e350-cb2b-4bb8-94ea-28674fea13ad",
+  "asset": {
+    "id": "2d82e350-cb2b-4bb8-94ea-28674fea13ad",
+    "integration_id": "335b3ed0-a793-498e-aaef-1fdfad41a539",
+    "name": "Get user",
+    "description": "Directory record for the person who will receive the access: name, email, department and line manager.",
+    "tags": [
+      "users"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/users/{{employee_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "E-2040"
+            },
+            {
+              "name": "username",
+              "type": "string",
+              "example": "jordan.lee"
+            },
+            {
+              "name": "display_name",
+              "type": "string",
+              "example": "Jordan Lee"
+            },
+            {
+              "name": "email",
+              "type": "string",
+              "example": "jordan.lee@example.com"
+            },
+            {
+              "name": "department",
+              "type": "string",
+              "example": "Finance"
+            },
+            {
+              "name": "job_title",
+              "type": "string",
+              "example": "Accounts payable officer"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "active"
+            },
+            {
+              "name": "manager",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "E-0310"
+                },
+                {
+                  "name": "display_name",
+                  "type": "string",
+                  "example": "Morgan Ellis"
+                },
+                {
+                  "name": "email",
+                  "type": "string",
+                  "example": "morgan.ellis@example.com"
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "id": "E-2040",
+          "username": "jordan.lee",
+          "display_name": "Jordan Lee",
+          "email": "jordan.lee@example.com",
+          "department": "Finance",
+          "job_title": "Accounts payable officer",
+          "status": "active",
+          "manager": {
+            "id": "E-0310",
+            "display_name": "Morgan Ellis",
+            "email": "morgan.ellis@example.com"
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "5692512a-eb60-45db-be1a-e10f9a4c72c5",
+        "name": "employee_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Employee id, e.g. E-2040",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "32fc6dbf-7531-4b69-8b36-15ce298ed953",
+        "name": "display_name",
+        "path": "display_name",
+        "type": "string"
+      },
+      {
+        "id": "a40db5c0-3e16-4178-873d-143798edf525",
+        "name": "email",
+        "path": "email",
+        "type": "string"
+      },
+      {
+        "id": "e9d32d82-0c84-433a-95be-2b6902572487",
+        "name": "department",
+        "path": "department",
+        "type": "string"
+      },
+      {
+        "id": "22755a20-b31e-4260-a2db-0e546b4abf83",
+        "name": "manager_name",
+        "path": "manager.display_name",
+        "type": "string"
+      },
+      {
+        "id": "ee23abcb-3a7d-43c7-a031-64e9e66f6777",
+        "name": "manager_email",
+        "path": "manager.email",
+        "type": "string"
+      }
+    ]
+  }
+}

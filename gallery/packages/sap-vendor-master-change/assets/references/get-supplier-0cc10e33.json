@@ -1,0 +1,173 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "0cc10e33-7f18-5c34-944f-1fb9d6e31506",
+  "asset": {
+    "id": "0cc10e33-7f18-5c34-944f-1fb9d6e31506",
+    "integration_id": "6f1f1c79-952c-5684-8f42-968ee0adef0e",
+    "name": "Get supplier",
+    "description": "API_BUSINESS_PARTNER A_Supplier: name, account group, VAT registration, country and posting / payment blocks.",
+    "tags": [
+      "sap",
+      "supplier"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/API_BUSINESS_PARTNER/A_Supplier('{{supplier}}')",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "d",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "__metadata",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "type",
+                      "type": "string",
+                      "example": "API_BUSINESS_PARTNER.A_SupplierType"
+                    }
+                  ]
+                },
+                {
+                  "name": "Supplier",
+                  "type": "string",
+                  "example": "17300001"
+                },
+                {
+                  "name": "SupplierName",
+                  "type": "string",
+                  "example": "Northwind Industrial Supply GmbH"
+                },
+                {
+                  "name": "SupplierAccountGroup",
+                  "type": "string",
+                  "example": "SUPL"
+                },
+                {
+                  "name": "BusinessPartner",
+                  "type": "string",
+                  "example": "17300001"
+                },
+                {
+                  "name": "CreationDate",
+                  "type": "string",
+                  "example": "/Date(1609459200000)/"
+                },
+                {
+                  "name": "PostingIsBlocked",
+                  "type": "boolean",
+                  "example": false
+                },
+                {
+                  "name": "PurchasingIsBlocked",
+                  "type": "boolean",
+                  "example": false
+                },
+                {
+                  "name": "PaymentIsBlockedForSupplier",
+                  "type": "boolean",
+                  "example": false
+                },
+                {
+                  "name": "VATRegistration",
+                  "type": "string",
+                  "example": "DE123456789"
+                },
+                {
+                  "name": "Country",
+                  "type": "string",
+                  "example": "DE"
+                },
+                {
+                  "name": "CityName",
+                  "type": "string",
+                  "example": "Hamburg"
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "d": {
+            "__metadata": {
+              "type": "API_BUSINESS_PARTNER.A_SupplierType"
+            },
+            "Supplier": "17300001",
+            "SupplierName": "Northwind Industrial Supply GmbH",
+            "SupplierAccountGroup": "SUPL",
+            "BusinessPartner": "17300001",
+            "CreationDate": "/Date(1609459200000)/",
+            "PostingIsBlocked": false,
+            "PurchasingIsBlocked": false,
+            "PaymentIsBlockedForSupplier": false,
+            "VATRegistration": "DE123456789",
+            "Country": "DE",
+            "CityName": "Hamburg"
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "c81e0d90-7541-5264-a4d7-6045bb214d7e",
+        "name": "supplier",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "bcd00549-0479-5829-835e-c142697264d3",
+        "name": "supplier_name",
+        "path": "d.SupplierName",
+        "type": "string"
+      },
+      {
+        "id": "cc9697b8-eef8-554c-8379-afb1e4ecfa8f",
+        "name": "account_group",
+        "path": "d.SupplierAccountGroup",
+        "type": "string"
+      },
+      {
+        "id": "dc41dc6c-7a67-5827-bd55-7aa45d55fc4c",
+        "name": "vat_registration",
+        "path": "d.VATRegistration",
+        "type": "string"
+      },
+      {
+        "id": "e3c85ada-2499-5c7c-b084-549b7e212c4c",
+        "name": "supplier_country",
+        "path": "d.Country",
+        "type": "string"
+      },
+      {
+        "id": "38026cb6-a837-5b0e-bb27-d50d9c83aa95",
+        "name": "payment_blocked",
+        "path": "d.PaymentIsBlockedForSupplier",
+        "type": "boolean"
+      },
+      {
+        "id": "75c012ea-54b2-58d4-be3e-a915759e0f88",
+        "name": "posting_blocked",
+        "path": "d.PostingIsBlocked",
+        "type": "boolean"
+      }
+    ]
+  }
+}

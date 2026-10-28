@@ -1,0 +1,75 @@
+{
+  "title": "Petty cash claims",
+  "category": "finance",
+  "summary": "A themed petty cash claim form with a cost-centre lookup and receipt link, float and limit rules, budget-holder approval and a ledger.",
+  "description": "Petty cash claims takes the cash tin and the paper slips online. People fill in the Petty cash claim form: they find the cost centre in the Petty cash cost centres table (the budget holder and GL account fill in), pick the budget holder as approver, enter the amount, date and category and paste a link to the receipt. Its Submit claim button starts the Petty cash claim workflow with the form values as inputs and shows a success screen with the run reference.\n\nThe workflow reads the cost centre, adds up what was paid from its float this month in the Petty cash ledger and applies the Petty cash limits decision table: claims over NZD 250 or without a receipt over NZD 20 are declined with the reason, up to NZD 50 with a receipt is paid straight away, and the rest (or anything taking the cost centre over its float) goes to the budget holder.\n\nThe budget holder gets an Approve / Reject task with the receipt, the float used and the GL account, with a reminder and escalation. Every claim is in the ledger with its decision rule and payment date, and the claimant is emailed. Everything is built in.",
+  "trigger": "form",
+  "entry_workflow": "e4361734-9d71-5aba-ab8a-6e3fefe6af77",
+  "entry_form": "6755460d-7e72-57f6-be5b-f4eb5afd67b8",
+  "start": "Starts from a form page: share the Petty cash claim form (/f/<id>); each submitted claim starts the Petty cash claim workflow.",
+  "difficulty": "starter",
+  "setup_minutes": 10,
+  "tags": [
+    "petty cash",
+    "expenses",
+    "decision table",
+    "forms",
+    "lookup",
+    "no integrations"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Nothing to configure: install it and share the Petty cash claim form from Forms.",
+    "Replace the sample rows in Petty cash cost centres with yours (code, budget holder, monthly float, GL account).",
+    "Adjust the Petty cash limits decision table if your limits differ from NZD 20 (receipt), 50 (no approval) and 250 (maximum).",
+    "Optional: set EMAIL_PROVIDER so claimants receive the approval and decline emails."
+  ],
+  "steps": [
+    {
+      "title": "Claim",
+      "body": "The form looks up the cost centre (budget holder and GL fill in), takes the amount, receipt link and approver."
+    },
+    {
+      "title": "Submit",
+      "body": "The Submit claim button starts the workflow (a Start workflow action mapping the fields to its inputs) and shows a success screen with the reference."
+    },
+    {
+      "title": "Check the rules",
+      "body": "The month's float used is added up from the ledger and the Petty cash limits decision table picks the route."
+    },
+    {
+      "title": "Approve",
+      "body": "Mid-sized claims, or claims over the float, go to the budget holder with Approve / Reject buttons."
+    },
+    {
+      "title": "Ledger and email",
+      "body": "Each claim is recorded as Paid or Rejected in the ledger and the claimant is emailed."
+    }
+  ],
+  "sample_input": {
+    "claimant_name": "Ivy Chen",
+    "claimant_email": "ivy.chen@example.com",
+    "cost_centre": "CC-410",
+    "approver": "$owner",
+    "amount": 120,
+    "category": "Staff welfare",
+    "spent_on": "2026-10-26",
+    "description": "Cake and fruit for the team wellbeing morning tea",
+    "receipt_url": "https://files.example.com/receipts/morning-tea.jpg"
+  },
+  "expect": "waiting",
+  "icon": "wallet",
+  "id": "fe3b22cb-ac0b-58be-9be1-73b35fffa587",
+  "slug": "petty-cash"
+}

@@ -1,0 +1,61 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "6e0dcd36-3cbf-5554-84c6-106e05a4fb99",
+  "asset": {
+    "id": "6e0dcd36-3cbf-5554-84c6-106e05a4fb99",
+    "name": "Incident sites",
+    "description": "Your workplaces. The incident form looks the site up here and fills in the site manager, who is emailed about every incident.",
+    "columns": [
+      {
+        "id": "1ccb4efe-adad-5c07-9849-d66f32b24d1a",
+        "required": true,
+        "key": "site_code",
+        "name": "Site code",
+        "type": "text"
+      },
+      {
+        "id": "daf680a4-c5dc-5e6e-a565-3c2c450c8b87",
+        "required": true,
+        "key": "name",
+        "name": "Site",
+        "type": "text"
+      },
+      {
+        "id": "2a7c9e16-4336-5882-861c-7d97d51389d3",
+        "required": false,
+        "key": "address",
+        "name": "Address",
+        "type": "text"
+      },
+      {
+        "id": "199cbf3b-b51f-523b-8b8d-5d62dd941f11",
+        "required": false,
+        "key": "region",
+        "name": "Region",
+        "type": "text"
+      },
+      {
+        "id": "a4749c6e-d182-5e87-8509-b10c93c6a81f",
+        "required": false,
+        "key": "site_manager",
+        "name": "Site manager",
+        "type": "text"
+      },
+      {
+        "id": "6ff34655-16cd-5428-9b0c-9185cde1a9b7",
+        "required": false,
+        "key": "site_manager_email",
+        "name": "Site manager email",
+        "type": "email"
+      },
+      {
+        "id": "cf98d4de-e183-53f9-9345-d4f31969566f",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

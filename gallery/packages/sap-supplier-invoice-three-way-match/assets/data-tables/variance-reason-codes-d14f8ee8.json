@@ -1,0 +1,40 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "d14f8ee8-b8f1-5481-8ba8-0e55adf6617d",
+  "asset": {
+    "id": "d14f8ee8-b8f1-5481-8ba8-0e55adf6617d",
+    "name": "Variance reason codes",
+    "description": "Why a variance was accepted, rejected or held. The exception form looks the code up and fills the description and the SAP payment block.",
+    "columns": [
+      {
+        "id": "567f0b65-c943-5c31-9add-1006c9a6a5e4",
+        "required": true,
+        "key": "code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "68a70e97-d2f5-5115-88f5-f90e282da7f1",
+        "required": false,
+        "key": "description",
+        "name": "Description",
+        "type": "text"
+      },
+      {
+        "id": "5f652824-8500-5b3a-9435-aac872d5088f",
+        "required": false,
+        "key": "payment_block",
+        "name": "SAP payment block",
+        "type": "text"
+      },
+      {
+        "id": "e95539a6-ee7c-52b0-be39-39cfb58fcb46",
+        "required": false,
+        "key": "typical_action",
+        "name": "Typical action",
+        "type": "text"
+      }
+    ]
+  }
+}

@@ -1,0 +1,186 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "bd378cfe-3cbe-4ea0-af2c-18850db07370",
+  "asset": {
+    "id": "bd378cfe-3cbe-4ea0-af2c-18850db07370",
+    "integration_id": "b0bdb63c-e2c4-4ee0-a478-5ced7208e44e",
+    "name": "Create customer account",
+    "description": "Create the customer account with its risk tier, credit limit and payment terms, and the primary contact.",
+    "tags": [
+      "accounts"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"name\":\"{{company_name}}\",\"registration_number\":\"{{registration_number}}\",\"country\":\"{{country}}\",\"product\":\"{{product}}\",\"risk_tier\":\"{{risk_tier}}\",\"credit_limit\":{{credit_limit}},\"payment_terms\":\"{{payment_terms}}\",\"primary_contact\":{\"name\":\"{{contact_name}}\",\"email\":\"{{contact_email}}\"},\"kyc_check_id\":\"{{kyc_check_id}}\"}",
+      "path_template": "/accounts",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "acc_3Kf92LmQ"
+            },
+            {
+              "name": "account_number",
+              "type": "string",
+              "example": "CUST-104882"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "active"
+            },
+            {
+              "name": "credit_limit",
+              "type": "integer",
+              "example": 25000
+            },
+            {
+              "name": "portal_url",
+              "type": "string",
+              "example": "https://portal.example.com/accounts/CUST-104882"
+            }
+          ]
+        },
+        "sample": {
+          "id": "acc_3Kf92LmQ",
+          "account_number": "CUST-104882",
+          "status": "active",
+          "credit_limit": 25000,
+          "portal_url": "https://portal.example.com/accounts/CUST-104882"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "92ecea59-5ed4-4c5c-8b86-18e7614217a2",
+        "name": "company_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "73b38310-7dcb-4a64-bed0-70cd389163c8",
+        "name": "registration_number",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "5148ae76-6733-4491-829d-4ac79072d519",
+        "name": "country",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "0f703ac9-53f1-4749-8daf-66a568dedd1f",
+        "name": "product",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "dc85d7d5-b8dd-4633-a91d-6f0fca24e880",
+        "name": "risk_tier",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "2f7f45cd-f8e6-45e3-b2cd-72fd07d1c682",
+        "name": "credit_limit",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "ae3c652d-29cd-4739-896b-6e8b4bba7d17",
+        "name": "payment_terms",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "593dc3ba-cf49-411d-92aa-b6ab492fb371",
+        "name": "contact_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "f3b65a66-c87d-416f-8f50-09840945d01f",
+        "name": "contact_email",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "20abf879-578a-4da2-8d8b-190d2a102945",
+        "name": "kyc_check_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "f26aa722-f0a4-4b68-a6ad-a5792f4e6994",
+        "name": "account_id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "2f5cfffd-ec7b-42b6-a0c7-3d80c5d71c25",
+        "name": "account_number",
+        "path": "account_number",
+        "type": "string"
+      },
+      {
+        "id": "4db5e661-508b-4a29-9e9c-653abdb8f179",
+        "name": "portal_url",
+        "path": "portal_url",
+        "type": "string"
+      }
+    ]
+  }
+}

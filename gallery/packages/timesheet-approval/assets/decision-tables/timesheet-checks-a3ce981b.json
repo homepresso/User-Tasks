@@ -1,0 +1,101 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "a3ce981b-29a4-5293-8821-416896599556",
+  "asset": {
+    "id": "a3ce981b-29a4-5293-8821-416896599556",
+    "name": "Timesheet checks",
+    "description": "Whether a timesheet needs a second (overtime) check after the approver. First matching rule wins; weeks over 40 hours need a second check.",
+    "inputs": [
+      {
+        "key": "total_hours",
+        "label": "Total hours",
+        "type": "number",
+        "id": "04c7bc66-029b-5d64-bdb8-52e7baf2f8c5"
+      },
+      {
+        "key": "billable",
+        "label": "Billable project",
+        "type": "boolean",
+        "id": "894b8aa6-c6c3-587c-bfe0-a2ac9284df15"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "second_check",
+        "label": "Needs a second check",
+        "type": "boolean",
+        "id": "352c5f9b-4297-54ab-b5df-3175bc44d109"
+      },
+      {
+        "key": "check_reason",
+        "label": "Why",
+        "type": "text",
+        "id": "38a7acba-e544-567a-ab72-02b33f7d5374"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Over 55 hours",
+        "conditions": [
+          {
+            "inputKey": "total_hours",
+            "operator": "greater_than",
+            "value": "55",
+            "id": "d4196ad8-32eb-5a46-b432-c2116bf564de"
+          }
+        ],
+        "outputs": {
+          "second_check": true,
+          "check_reason": "More than 55 hours in a week: check fatigue and working-time limits as well as the overtime pay"
+        },
+        "id": "30aa8881-be94-5629-a98e-913d817031e8",
+        "enabled": true
+      },
+      {
+        "label": "Overtime (over 40 hours)",
+        "conditions": [
+          {
+            "inputKey": "total_hours",
+            "operator": "greater_than",
+            "value": "40",
+            "id": "fcbbc0d6-ef10-5651-be01-cc05e525b67b"
+          }
+        ],
+        "outputs": {
+          "second_check": true,
+          "check_reason": "Overtime over 40 hours needs a second check before it is paid"
+        },
+        "id": "48054ad0-df0a-5d15-8fad-131e3fe9f6b0",
+        "enabled": true
+      },
+      {
+        "label": "Very short week",
+        "conditions": [
+          {
+            "inputKey": "total_hours",
+            "operator": "less_than",
+            "value": "8",
+            "id": "5f2de7e1-32d7-5bae-8199-0f52c2a8a322"
+          }
+        ],
+        "outputs": {
+          "second_check": false,
+          "check_reason": "Less than 8 hours: check leave has been booked for the rest of the week"
+        },
+        "id": "0b9cd0c9-530a-542d-9d18-d86165a4ce79",
+        "enabled": true
+      },
+      {
+        "label": "Standard week",
+        "conditions": [],
+        "outputs": {
+          "second_check": false,
+          "check_reason": "Standard week"
+        },
+        "id": "10950c7d-c223-5edd-868a-942c021f12e4",
+        "enabled": true
+      }
+    ]
+  }
+}

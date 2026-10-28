@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "1ffb9c51-e70d-5338-aadc-0e7dca539279",
+  "asset": {
+    "id": "1ffb9c51-e70d-5338-aadc-0e7dca539279",
+    "name": "Asset check-out receipt",
+    "description": "Sent to the borrower when an asset is checked out to them.",
+    "subject": "You have checked out {{asset_name}} ({{form.asset}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1C1917\">\n  <h2 style=\"margin:0 0 12px;color:#B45309\">Check-out confirmed</h2>\n  <p>You have checked out <strong>{{asset_name}}</strong> (asset tag {{form.asset}}).</p>\n  <table style=\"border-collapse:collapse;font-size:14px\">\n    <tr><td style=\"padding:4px 12px 4px 0;color:#78716C\">Reference</td><td>{{checkout_ref}}</td></tr>\n    <tr><td style=\"padding:4px 12px 4px 0;color:#78716C\">Due back</td><td><strong>{{=FORMAT_DATE(form.due_back, \"DD/MM/YYYY\")}}</strong></td></tr>\n    <tr><td style=\"padding:4px 12px 4px 0;color:#78716C\">Return it to</td><td>{{asset_location}}</td></tr>\n    <tr><td style=\"padding:4px 12px 4px 0;color:#78716C\">Condition out</td><td>{{asset_condition}}</td></tr>\n  </table>\n  <p>You will get a reminder the day before it is due. When you hand it back, open the return task and press <strong>Returned</strong> (or <strong>Damaged</strong> if something is wrong).</p>\n  <p style=\"color:#78716C;font-size:13px\">Sent by the asset check-out workflow</p>\n</div>",
+    "text_body": "Check-out confirmed\nYou have checked out {{asset_name}} ({{form.asset}}).\nReference {{checkout_ref}} · due back {{form.due_back}} · return to {{asset_location}}.\nWhen you hand it back, complete the return task.",
+    "is_default": false
+  }
+}

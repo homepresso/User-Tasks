@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "974353ce-f522-56c5-9156-00fd2b761c6b",
+  "asset": {
+    "id": "974353ce-f522-56c5-9156-00fd2b761c6b",
+    "name": "Complaint acknowledgement",
+    "description": "Sent to the customer as soon as the complaint is logged.",
+    "subject": "We have received your complaint ({{complaint_ref}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1E1530\">\n  <h2 style=\"margin:0 0 12px;color:#7C3AED\">We are on it</h2>\n  <p>Dear {{contact_name}},</p>\n  <p>Thank you for telling us about this. We are sorry it happened. Your complaint about <strong>{{form.category}}</strong> (\"{{form.summary}}\") has been logged and a named person is now looking after it.</p>\n  <p>We will contact you within <strong>{{ack_hours}} hours</strong> and aim to resolve it by <strong>{{=FORMAT_DATE(resolve_by, \"DD/MM/YYYY HH:mm\")}} UTC</strong>.</p>\n  <p>Your account manager, {{account_manager}}, has been kept informed.</p>\n  <p>Kind regards,<br>Customer care</p>\n  <p style=\"color:#6B7280;font-size:13px\">Reference {{complaint_ref}} · please quote it if you get in touch</p>\n</div>",
+    "text_body": "Dear {{contact_name}}, we have received your complaint about {{form.category}} (\"{{form.summary}}\"). We will contact you within {{ack_hours}} hours and aim to resolve it by {{resolve_by}}. Reference {{complaint_ref}}.",
+    "is_default": false
+  }
+}

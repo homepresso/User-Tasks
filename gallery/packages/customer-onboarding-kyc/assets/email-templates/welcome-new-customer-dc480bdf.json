@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "dc480bdf-2da6-458a-a1d3-2fded0ea81a9",
+  "asset": {
+    "id": "dc480bdf-2da6-458a-a1d3-2fded0ea81a9",
+    "name": "Welcome new customer",
+    "description": "Sent to the customer's primary contact when the account is opened.",
+    "subject": "Welcome aboard, {{company_name}} (account {{account_number}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Welcome aboard</h2>\n  <p>Hi {{contact_name}},</p>\n  <p>Your <strong>{{product}}</strong> account for <strong>{{company_name}}</strong> is open. Your account number is <strong>{{account_number}}</strong>.</p>\n  <p>You can sign in to the customer portal here: <a href=\"{{portal_url}}\">{{portal_url}}</a></p>\n  <p>Your onboarding manager will be in touch in the next two working days to plan the kickoff. Your account manager is copied on this email.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your customer onboarding workflow</p>\n</div>",
+    "text_body": "Welcome aboard\n  Hi {{contact_name}},\n  Your {{product}} account for {{company_name}} is open. Your account number is {{account_number}}.\n  You can sign in to the customer portal here: {{portal_url}}\n  Your onboarding manager will be in touch in the next two working days to plan the kickoff. Your account manager is copied on this email.\n  Sent by your customer onboarding workflow",
+    "is_default": false
+  }
+}

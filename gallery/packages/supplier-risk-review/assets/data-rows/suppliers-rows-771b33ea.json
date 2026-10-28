@@ -1,0 +1,137 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "771b33ea-8b3d-496a-87f5-bcfa9cd5364a",
+  "asset": {
+    "id": "771b33ea-8b3d-496a-87f5-bcfa9cd5364a",
+    "name": "Suppliers rows",
+    "rows": [
+      {
+        "id": "eca60741-3f17-4fc4-8f60-f240a5070a00",
+        "data": {
+          "supplier_id": "SUP-101",
+          "name": "Northwind Logistics",
+          "category": "Freight",
+          "criticality": "high",
+          "annual_spend": 640000,
+          "country": "NZ",
+          "owner_email": "ops.lead@example.com",
+          "review_requested": false,
+          "risk_tier": "Low",
+          "financial_score": 82,
+          "cyber_score": 77,
+          "esg_flags": "",
+          "sanctions_hit": false,
+          "last_assessed": "2026-04-12",
+          "next_review_date": "2027-04-07",
+          "review_status": "Assessed"
+        }
+      },
+      {
+        "id": "32abd7f7-49b2-41f7-af01-18c109b007c0",
+        "data": {
+          "supplier_id": "SUP-102",
+          "name": "Contoso Cloud",
+          "category": "IT services",
+          "criticality": "critical",
+          "annual_spend": 910000,
+          "country": "AU",
+          "owner_email": "it.manager@example.com",
+          "review_requested": false,
+          "risk_tier": "Medium",
+          "financial_score": 74,
+          "cyber_score": 64,
+          "esg_flags": "",
+          "sanctions_hit": false,
+          "last_assessed": "2026-07-01",
+          "next_review_date": "2026-12-28",
+          "review_status": "Assessed"
+        }
+      },
+      {
+        "id": "ac61a0a4-78fb-490c-8f63-21ec30cea208",
+        "data": {
+          "supplier_id": "SUP-103",
+          "name": "Brightway Facilities",
+          "category": "Facilities",
+          "criticality": "low",
+          "annual_spend": 42000,
+          "country": "NZ",
+          "owner_email": "facilities@example.com",
+          "review_requested": false,
+          "risk_tier": "Low",
+          "financial_score": 70,
+          "cyber_score": 72,
+          "esg_flags": "",
+          "sanctions_hit": false,
+          "last_assessed": "2026-02-20",
+          "next_review_date": "2027-02-15",
+          "review_status": "Assessed"
+        }
+      },
+      {
+        "id": "91132be7-154f-4c29-bc09-10c5fb31cbf3",
+        "data": {
+          "supplier_id": "SUP-104",
+          "name": "Tailspin Components",
+          "category": "Manufacturing",
+          "criticality": "high",
+          "annual_spend": 480000,
+          "country": "SG",
+          "owner_email": "supply.chain@example.com",
+          "review_requested": true,
+          "risk_tier": "Medium",
+          "financial_score": 55,
+          "cyber_score": 60,
+          "esg_flags": "Labour audit overdue",
+          "sanctions_hit": false,
+          "last_assessed": "2026-03-03",
+          "next_review_date": "2026-09-01",
+          "review_status": "Review overdue"
+        }
+      },
+      {
+        "id": "762e58d9-194f-4635-a5a0-e62ca5164275",
+        "data": {
+          "supplier_id": "SUP-105",
+          "name": "Fabrikam Packaging",
+          "category": "Packaging",
+          "criticality": "medium",
+          "annual_spend": 125000,
+          "country": "NZ",
+          "owner_email": "supply.chain@example.com",
+          "review_requested": false,
+          "risk_tier": "Low",
+          "financial_score": 79,
+          "cyber_score": 71,
+          "esg_flags": "",
+          "sanctions_hit": false,
+          "last_assessed": "2026-05-18",
+          "next_review_date": "2027-05-13",
+          "review_status": "Assessed"
+        }
+      },
+      {
+        "id": "d30fe4cb-627e-43be-af48-d9c1af3bc936",
+        "data": {
+          "supplier_id": "SUP-106",
+          "name": "Litware Analytics",
+          "category": "Software",
+          "criticality": "medium",
+          "annual_spend": 88000,
+          "country": "GB",
+          "owner_email": "data.lead@example.com",
+          "review_requested": false,
+          "risk_tier": "Medium",
+          "financial_score": 58,
+          "cyber_score": 81,
+          "esg_flags": "",
+          "sanctions_hit": false,
+          "last_assessed": "2026-06-30",
+          "next_review_date": "2026-12-27",
+          "review_status": "Assessed"
+        }
+      }
+    ]
+  }
+}

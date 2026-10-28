@@ -1,0 +1,135 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "206dbd62-ea72-5170-93d2-ddace201ad87",
+  "asset": {
+    "id": "206dbd62-ea72-5170-93d2-ddace201ad87",
+    "name": "Invoice tolerance",
+    "description": "Three-way match tolerances (like SAP tolerance keys PP / DQ / BW). First matching rule wins; anything not caught is within tolerance.",
+    "inputs": [
+      {
+        "key": "qty_over_received",
+        "label": "Invoiced minus received qty",
+        "type": "number",
+        "id": "289f3706-4cb5-5285-a925-93d288976f2c"
+      },
+      {
+        "key": "price_variance_pct",
+        "label": "Price variance %",
+        "type": "number",
+        "id": "906bc22c-986a-5da5-b216-c1ca7ca51922"
+      },
+      {
+        "key": "amount_variance",
+        "label": "Amount variance",
+        "type": "number",
+        "id": "2095361f-f8ee-5064-9cdf-bbb1d2fe8cbe"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "within_tolerance",
+        "label": "Within tolerance",
+        "type": "boolean",
+        "id": "5aff01bb-67d2-5543-880c-04887d6a7537"
+      },
+      {
+        "key": "exception_reason",
+        "label": "Exception",
+        "type": "text",
+        "id": "ab00bd28-5100-5163-b7af-5f8c209318c3"
+      },
+      {
+        "key": "suggested_code",
+        "label": "Suggested reason code",
+        "type": "text",
+        "id": "05e79012-12f2-5cf2-8c62-bd5edece08c9"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Quantity over goods receipt",
+        "conditions": [
+          {
+            "inputKey": "qty_over_received",
+            "operator": "greater_than",
+            "value": "0",
+            "id": "acc429a8-9bcf-5044-97f6-299d713e0789"
+          }
+        ],
+        "outputs": {
+          "within_tolerance": false,
+          "exception_reason": "Invoiced quantity exceeds goods received",
+          "suggested_code": "QTY-GR-LATE"
+        },
+        "id": "d0421536-d5cb-5dba-9696-18b22d48925b",
+        "enabled": true
+      },
+      {
+        "label": "Price more than 2% over PO",
+        "conditions": [
+          {
+            "inputKey": "price_variance_pct",
+            "operator": "greater_than",
+            "value": "2",
+            "id": "43b4d2c6-562d-5558-99f9-8100a965b42a"
+          }
+        ],
+        "outputs": {
+          "within_tolerance": false,
+          "exception_reason": "Unit price more than 2% above the PO",
+          "suggested_code": "PRC-AGREED"
+        },
+        "id": "c7864ff9-03aa-56ad-9a0f-f205327d0560",
+        "enabled": true
+      },
+      {
+        "label": "Price more than 5% under PO",
+        "conditions": [
+          {
+            "inputKey": "price_variance_pct",
+            "operator": "less_than",
+            "value": "-5",
+            "id": "a5e176ad-5528-5f76-b849-19aeb19c1677"
+          }
+        ],
+        "outputs": {
+          "within_tolerance": false,
+          "exception_reason": "Unit price more than 5% below the PO (check for a missing credit)",
+          "suggested_code": "PRC-WRONG"
+        },
+        "id": "cdf18d31-62fc-5117-8775-7082720fbfa4",
+        "enabled": true
+      },
+      {
+        "label": "Amount variance over 100",
+        "conditions": [
+          {
+            "inputKey": "amount_variance",
+            "operator": "greater_than",
+            "value": "100",
+            "id": "0c5e15cc-86f4-5a73-831d-b9b114594ea5"
+          }
+        ],
+        "outputs": {
+          "within_tolerance": false,
+          "exception_reason": "Total variance above EUR 100",
+          "suggested_code": "PRC-AGREED"
+        },
+        "id": "aaa8fcd5-02fd-50c0-a8e9-910d6ae79be7",
+        "enabled": true
+      },
+      {
+        "label": "Within tolerance",
+        "conditions": [],
+        "outputs": {
+          "within_tolerance": true,
+          "exception_reason": "",
+          "suggested_code": ""
+        },
+        "id": "35234cdd-2fdf-5986-bf70-006b5edacc98",
+        "enabled": true
+      }
+    ]
+  }
+}

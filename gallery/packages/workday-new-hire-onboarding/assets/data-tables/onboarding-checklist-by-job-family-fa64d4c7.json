@@ -1,0 +1,61 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "fa64d4c7-8234-5907-9fa0-76b22d425822",
+  "asset": {
+    "id": "fa64d4c7-8234-5907-9fa0-76b22d425822",
+    "name": "Onboarding checklist by job family",
+    "description": "What each job family needs on day one: equipment, systems, buddy team, training track and how many days IT needs. The hiring-manager form looks the job family up here.",
+    "columns": [
+      {
+        "id": "50a00c87-7171-5bf2-bd4d-dd7431ca0901",
+        "required": true,
+        "key": "job_family",
+        "name": "Job family",
+        "type": "text"
+      },
+      {
+        "id": "ff723a07-d574-5b60-bcd1-ec6166aa3b5f",
+        "required": false,
+        "key": "equipment",
+        "name": "Standard equipment",
+        "type": "text"
+      },
+      {
+        "id": "1efc3fd9-811c-5e29-a47d-172a5a4950b1",
+        "required": false,
+        "key": "systems",
+        "name": "Systems and access",
+        "type": "text"
+      },
+      {
+        "id": "1ddae6cc-9819-5f97-98dd-5352fb04e2ec",
+        "required": false,
+        "key": "buddy_team",
+        "name": "Buddy team",
+        "type": "text"
+      },
+      {
+        "id": "7b4a9e00-ef52-5aab-91a3-3882b216f550",
+        "required": false,
+        "key": "training_track",
+        "name": "Training track",
+        "type": "text"
+      },
+      {
+        "id": "dda5d523-0864-59b0-8735-dcba13a5b8a5",
+        "required": false,
+        "key": "first_week_focus",
+        "name": "First-week focus",
+        "type": "text"
+      },
+      {
+        "id": "1cbae002-fc61-56e7-b0cd-2f74457e4a18",
+        "required": false,
+        "key": "it_lead_days",
+        "name": "IT lead time (days)",
+        "type": "number"
+      }
+    ]
+  }
+}

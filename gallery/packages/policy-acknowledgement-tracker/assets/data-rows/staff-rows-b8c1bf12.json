@@ -1,0 +1,77 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "b8c1bf12-b13e-565d-a29a-b9bea1f2a4e4",
+  "asset": {
+    "id": "b8c1bf12-b13e-565d-a29a-b9bea1f2a4e4",
+    "name": "Staff rows",
+    "rows": [
+      {
+        "id": "0583cdc6-ebae-5694-84cd-e31055a71a39",
+        "data": {
+          "email": "ana.lopez@example.com",
+          "name": "Ana Lopez",
+          "department": "Finance",
+          "manager_name": "Maria Gomez",
+          "location": "Wellington",
+          "active": true
+        }
+      },
+      {
+        "id": "c4059b68-32b0-5b76-92d8-0969f88f920c",
+        "data": {
+          "email": "ben.carter@example.com",
+          "name": "Ben Carter",
+          "department": "Engineering",
+          "manager_name": "Sam Patel",
+          "location": "Auckland",
+          "active": true
+        }
+      },
+      {
+        "id": "e734d1a2-cd06-5e5e-a165-e2a8fbfcbbdf",
+        "data": {
+          "email": "chloe.martin@example.com",
+          "name": "Chloe Martin",
+          "department": "People & Culture",
+          "manager_name": "Maria Gomez",
+          "location": "Wellington",
+          "active": true
+        }
+      },
+      {
+        "id": "166bc730-e914-5ecf-b001-5dcaff789f5e",
+        "data": {
+          "email": "daniel.okafor@example.com",
+          "name": "Daniel Okafor",
+          "department": "Sales",
+          "manager_name": "Lena Fischer",
+          "location": "Sydney",
+          "active": true
+        }
+      },
+      {
+        "id": "ef0ae209-5ccb-54fd-b16f-39a721d411f2",
+        "data": {
+          "email": "emma.novak@example.com",
+          "name": "Emma Novak",
+          "department": "Legal",
+          "manager_name": "Maria Gomez",
+          "location": "Wellington",
+          "active": true
+        }
+      },
+      {
+        "id": "a824501b-c799-5847-bd91-56e103d59b22",
+        "data": {
+          "email": "old.account@example.com",
+          "name": "Former Employee",
+          "department": "Sales",
+          "manager_name": "Lena Fischer",
+          "location": "Sydney",
+          "active": false
+        }
+      }
+    ]
+  }
+}

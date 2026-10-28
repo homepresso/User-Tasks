@@ -1,0 +1,281 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "b0322bc1-1b4f-4c10-bda7-2e3570c0dbad",
+  "asset": {
+    "id": "b0322bc1-1b4f-4c10-bda7-2e3570c0dbad",
+    "name": "Provide audit evidence",
+    "description": "Asks a control owner for the evidence of a manual control for one period; \"not applicable\" needs the compliance lead's agreement. Updates the Evidence log row.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Evidence requested",
+        "position": {
+          "x": 660,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 660,
+          "y": 220
+        },
+        "config": {
+          "title": "Evidence {{control.control_id}} · {{period}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Ten-day SLA",
+        "position": {
+          "x": 660,
+          "y": 380
+        },
+        "config": {
+          "sla_label": "Audit evidence",
+          "mode": "relative",
+          "amount": 10,
+          "unit": "days",
+          "warning_amount": 7,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "ask",
+        "type": "user_task",
+        "label": "Provide evidence",
+        "position": {
+          "x": 660,
+          "y": 540
+        },
+        "config": {
+          "task_title": "Evidence for {{control.control_id}} {{control.title}} ({{period}})",
+          "task_description": "<p>Please provide the evidence for <strong>{{control.control_id}} {{control.title}}</strong> ({{control.framework}} {{control.framework_ref}}) for <strong>{{period}}</strong>.</p><p>System: {{control.system}}. Paste a link to the evidence (export, screenshot folder or report) and add any notes the auditor needs.</p><p>Choose <em>Not applicable</em> if the control did not operate this period, and say why.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Submit",
+            "Not applicable"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "0537a96e-052b-4eda-9bf4-061bf12f0108",
+          "assignee_variable": "{{control.owner_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 10,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 4320
+            },
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "individual",
+          "escalation_user_id": "2573bc47-eaa9-4faa-a91c-eee65c109e33",
+          "escalate_after_minutes": 20160,
+          "fields": [
+            {
+              "key": "evidence_link",
+              "label": "Evidence link",
+              "type": "text"
+            },
+            {
+              "key": "notes",
+              "label": "Notes for the auditor",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      {
+        "id": "submitted",
+        "type": "update_data_table",
+        "label": "Record submitted evidence",
+        "position": {
+          "x": 340,
+          "y": 720
+        },
+        "config": {
+          "table_id": "552c946b-ab3b-4fd7-b0d2-a334bc4f14fb",
+          "table_name": "Evidence log",
+          "operation": "update",
+          "row_id": "{{evidence_row_id}}",
+          "column_values": {
+            "status": "submitted",
+            "evidence_url": "{{task_data.evidence_link}}",
+            "notes": "{{task_data.notes}}",
+            "collected_at": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "confirm_na",
+        "type": "user_task",
+        "label": "Confirm not applicable",
+        "position": {
+          "x": 660,
+          "y": 720
+        },
+        "config": {
+          "task_title": "Agree {{control.control_id}} is not applicable for {{period}}?",
+          "task_description": "<p>The owner of <strong>{{control.control_id}} {{control.title}}</strong> marked it not applicable for {{period}}.</p><p>Reason: {{task_data.notes}}</p><p>Accept to record it as not applicable, or send it back to the owner for evidence.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Accept",
+            "Send back"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "2573bc47-eaa9-4faa-a91c-eee65c109e33",
+          "assignee_variable": "{{compliance_lead_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "review_note",
+              "label": "Note",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      {
+        "id": "na",
+        "type": "update_data_table",
+        "label": "Record not applicable",
+        "position": {
+          "x": 660,
+          "y": 900
+        },
+        "config": {
+          "table_id": "552c946b-ab3b-4fd7-b0d2-a334bc4f14fb",
+          "table_name": "Evidence log",
+          "operation": "update",
+          "row_id": "{{evidence_row_id}}",
+          "column_values": {
+            "status": "not applicable",
+            "notes": "{{task_data.review_note}}",
+            "collected_at": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "back",
+        "type": "goto_activity",
+        "label": "Back to owner",
+        "position": {
+          "x": 980,
+          "y": 900
+        },
+        "config": {
+          "target_node_id": "ask",
+          "target_node_label": "Provide evidence"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Evidence recorded",
+        "position": {
+          "x": 340,
+          "y": 1060
+        },
+        "config": {
+          "reason": "{{control.control_id}} {{period}}: {{outcome}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-sla",
+        "source": "title",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-ask",
+        "source": "sla",
+        "target": "ask"
+      },
+      {
+        "id": "e-ask-submitted-submit",
+        "source": "ask",
+        "target": "submitted",
+        "label": "Submit"
+      },
+      {
+        "id": "e-ask-confirm_na-not-applicable",
+        "source": "ask",
+        "target": "confirm_na",
+        "label": "Not applicable"
+      },
+      {
+        "id": "e-confirm_na-na-accept",
+        "source": "confirm_na",
+        "target": "na",
+        "label": "Accept"
+      },
+      {
+        "id": "e-confirm_na-back-send-back",
+        "source": "confirm_na",
+        "target": "back",
+        "label": "Send back"
+      },
+      {
+        "id": "e-submitted-done",
+        "source": "submitted",
+        "target": "done"
+      },
+      {
+        "id": "e-na-done",
+        "source": "na",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-control",
+        "name": "control",
+        "type": "object",
+        "description": "The Controls row",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-period",
+        "name": "period",
+        "type": "string",
+        "description": "Evidence period, YYYY-MM",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-evidence_row_id",
+        "name": "evidence_row_id",
+        "type": "string",
+        "description": "Row id of the Evidence log entry to update",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-compliance_lead_id",
+        "name": "compliance_lead_id",
+        "type": "string",
+        "description": "Optional: user id of the compliance lead (otherwise the one chosen on install)",
+        "defaultValue": ""
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

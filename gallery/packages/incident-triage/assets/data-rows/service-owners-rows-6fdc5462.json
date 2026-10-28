@@ -1,0 +1,83 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "6fdc5462-9590-4dd0-84c1-42dd7086a783",
+  "asset": {
+    "id": "6fdc5462-9590-4dd0-84c1-42dd7086a783",
+    "name": "Service owners rows",
+    "rows": [
+      {
+        "id": "3c6641f7-3081-4b3d-83f1-ea0a5726a49c",
+        "data": {
+          "service": "payments-api",
+          "tier": 1,
+          "oncall_contact": "Payments on-call rota",
+          "assignment_group": "Payments Platform",
+          "runbook_url": "https://wiki.example.com/runbooks/payments-api",
+          "business_owner": "Head of payments",
+          "business_owner_email": "payments.owner@example.com"
+        }
+      },
+      {
+        "id": "d704adb3-ee58-4e15-b20a-1874b33e1b2e",
+        "data": {
+          "service": "customer-portal",
+          "tier": 1,
+          "oncall_contact": "Web on-call rota",
+          "assignment_group": "Digital Channels",
+          "runbook_url": "https://wiki.example.com/runbooks/customer-portal",
+          "business_owner": "Head of digital",
+          "business_owner_email": "digital.owner@example.com"
+        }
+      },
+      {
+        "id": "4c2bf487-3d30-4a82-9a48-de69b72fb741",
+        "data": {
+          "service": "order-service",
+          "tier": 2,
+          "oncall_contact": "Commerce on-call rota",
+          "assignment_group": "Commerce Engineering",
+          "runbook_url": "https://wiki.example.com/runbooks/order-service",
+          "business_owner": "Operations director",
+          "business_owner_email": "ops.owner@example.com"
+        }
+      },
+      {
+        "id": "6e4d2884-0e4d-4581-b389-c63a89e7d383",
+        "data": {
+          "service": "email-gateway",
+          "tier": 2,
+          "oncall_contact": "Messaging on-call rota",
+          "assignment_group": "Infrastructure",
+          "runbook_url": "https://wiki.example.com/runbooks/email-gateway",
+          "business_owner": "IT service manager",
+          "business_owner_email": "itsm.owner@example.com"
+        }
+      },
+      {
+        "id": "c9cb8627-9e1c-4d9e-a51a-20e2f9dae36f",
+        "data": {
+          "service": "reporting-warehouse",
+          "tier": 3,
+          "oncall_contact": "Data team (business hours)",
+          "assignment_group": "Data Engineering",
+          "runbook_url": "https://wiki.example.com/runbooks/warehouse",
+          "business_owner": "Head of data",
+          "business_owner_email": "data.owner@example.com"
+        }
+      },
+      {
+        "id": "ade7cf2b-23de-4712-b7e7-ad6c2419fe3e",
+        "data": {
+          "service": "intranet",
+          "tier": 4,
+          "oncall_contact": "Service desk",
+          "assignment_group": "Service Desk",
+          "runbook_url": "https://wiki.example.com/runbooks/intranet",
+          "business_owner": "Internal comms lead",
+          "business_owner_email": "comms.owner@example.com"
+        }
+      }
+    ]
+  }
+}

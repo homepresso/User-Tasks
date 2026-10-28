@@ -1,0 +1,85 @@
+{
+  "id": "745e1c8d-8e81-401e-aae2-48ab105777b7",
+  "slug": "vendor-onboarding-kyc",
+  "title": "Vendor onboarding with KYC",
+  "category": "finance",
+  "summary": "Screen new vendors for sanctions, registry and adverse media, tier the risk, review and verify bank details, then create the vendor in the ERP.",
+  "description": "Vendor onboarding with KYC is a controlled path for adding a supplier. Procurement fills in the start form with the vendor's legal name, registration number, country, website, bank account, contact email, spend category and expected annual spend.\n\nThe workflow reads the country rating from the Country risk table and sends the company to your KYC screening service for sanctions, registry and adverse-media checks. The Vendor risk tier decision table turns the results and the expected spend into a tier (low, medium, high or blocked), the approvals needed and when to re-screen. Blocked vendors stop with an email to the requester. Medium and high risk vendors go to a compliance review, which can approve, approve with conditions or reject.\n\nEvery approved vendor then goes to finance to verify the bank account by calling a number from an independent source; the step repeats until the call-back is recorded. The vendor is created in the ERP with its tier and re-screen date, and the vendor contact gets a welcome email. Adapt the country ratings, the tier rules and the two API calls to your providers.",
+  "trigger": "form",
+  "entry_workflow": "633cff3d-656f-4eb7-85a8-ca74f2b6e1d2",
+  "start": "Starts from a form: procurement fills in the vendor details (Run dialog in the app, or your supplier request page posting to the start API).",
+  "difficulty": "intermediate",
+  "setup_minutes": 20,
+  "tags": [
+    "vendors",
+    "kyc",
+    "sanctions screening",
+    "bank verification",
+    "risk"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: a themed start form with a grid and header, Approve / Approve with conditions / Reject buttons on the compliance review (with a Country risk lookup) and Verified / Details do not match on the bank check, each with a grid and header."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "KYC screening service: set the base URL and API token of your screening provider. Company checks posts to /kyc/company-checks; map its request and response model to your provider in Integrations.",
+    "ERP integration: set the base URL and API token of your ERP. Create vendor posts to /vendors.",
+    "Assignees: pick the default compliance reviewer and the finance verifier for the bank call-back (runs can pass compliance_reviewer_id and finance_verifier_id).",
+    "Edit the Country risk rows and the Vendor risk tier rules to your sanctions, anti-corruption and third-party risk policy.",
+    "Email: configure EMAIL_PROVIDER so the welcome and declined emails are delivered (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Vendor requested",
+      "body": "Procurement enters the legal name, registration number, country, website, bank account, contact, spend category and expected spend."
+    },
+    {
+      "title": "Screen the company",
+      "body": "The country rating comes from the Country risk table; the KYC service checks sanctions, the registry and adverse media and returns a score."
+    },
+    {
+      "title": "Set the risk tier",
+      "body": "The Vendor risk tier decision table returns low, medium, high or blocked, the approvals needed and the re-screen interval."
+    },
+    {
+      "title": "Compliance review",
+      "body": "Medium and high risk vendors are reviewed: approve, approve with conditions or reject. Blocked vendors stop here."
+    },
+    {
+      "title": "Verify the bank account",
+      "body": "Finance confirms the account by call-back on an independently sourced number; the step repeats until it is confirmed."
+    },
+    {
+      "title": "Create the vendor",
+      "body": "The vendor is created in the ERP with its tier and re-screen date and the vendor contact gets a welcome email."
+    }
+  ],
+  "sample_input": {
+    "legal_name": "Harbourline Logistics Limited",
+    "registration_number": "5123987",
+    "country": "NZ",
+    "website": "https://harbourline.example.com",
+    "iban": "NZ12-3456-7890123-00",
+    "contact_email": "accounts@harbourline.example.com",
+    "contact_phone": "+64 9 555 0142",
+    "spend_category": "Logistics",
+    "expected_annual_spend": 120000,
+    "requester_email": "casey.ng@example.com"
+  },
+  "expect": "waiting",
+  "icon": "building-2"
+}

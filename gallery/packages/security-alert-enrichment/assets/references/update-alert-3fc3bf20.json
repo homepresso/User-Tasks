@@ -1,0 +1,112 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "3fc3bf20-7ce3-48ea-aedc-406b94605abc",
+  "asset": {
+    "id": "3fc3bf20-7ce3-48ea-aedc-406b94605abc",
+    "integration_id": "d038e606-aae9-47cd-b245-a3a95cf2a62c",
+    "name": "Update alert",
+    "description": "Set the alert status and add the enrichment summary as a comment.",
+    "tags": [
+      "alerts"
+    ],
+    "request_config": {
+      "method": "PATCH",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"status\":\"{{alert_status}}\",\"disposition\":\"{{disposition}}\",\"comment\":\"{{comment}}\",\"case_id\":\"{{case_id}}\"}",
+      "path_template": "/alerts/{{alert_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "ALR-559102"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "in_progress"
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "example": "2026-10-26T04:18:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "id": "ALR-559102",
+          "status": "in_progress",
+          "updated_at": "2026-10-26T04:18:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "a11d3036-ea62-4187-aaeb-4d60c84fef04",
+        "name": "alert_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "2fbaa01d-05f3-4981-80f4-31cd27028ad1",
+        "name": "alert_status",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "651e8722-fdcf-4483-acc6-d5389ebb4f8c",
+        "name": "disposition",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c9bf5510-a5a2-4ac8-8a31-fe9af596fc3b",
+        "name": "comment",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "4ed04f1f-afcc-492b-9d02-61b2cc55ca2d",
+        "name": "case_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "c5ce3abe-e188-4fb8-bc65-955200f26db1",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      }
+    ]
+  }
+}

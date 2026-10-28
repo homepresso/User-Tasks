@@ -1,0 +1,146 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "6928962e-d18a-41fb-bba0-ad3b5006b50a",
+  "asset": {
+    "id": "6928962e-d18a-41fb-bba0-ad3b5006b50a",
+    "integration_id": "43ccbcbf-e7d7-48f7-ab54-38b049d1b84e",
+    "name": "Get user",
+    "description": "Directory account for the username in the alert: department, privileged role membership and MFA status.",
+    "tags": [
+      "users"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/users/{{username}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "username",
+              "type": "string",
+              "example": "d.whitfield"
+            },
+            {
+              "name": "display_name",
+              "type": "string",
+              "example": "Dana Whitfield"
+            },
+            {
+              "name": "department",
+              "type": "string",
+              "example": "Finance"
+            },
+            {
+              "name": "title",
+              "type": "string",
+              "example": "Payroll specialist"
+            },
+            {
+              "name": "privileged",
+              "type": "boolean",
+              "example": false
+            },
+            {
+              "name": "mfa_enrolled",
+              "type": "boolean",
+              "example": true
+            },
+            {
+              "name": "groups",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "example": "all-staff"
+              }
+            },
+            {
+              "name": "manager",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "name",
+                  "type": "string",
+                  "example": "Morgan Ellis"
+                },
+                {
+                  "name": "email",
+                  "type": "string",
+                  "example": "morgan.ellis@example.com"
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "username": "d.whitfield",
+          "display_name": "Dana Whitfield",
+          "department": "Finance",
+          "title": "Payroll specialist",
+          "privileged": false,
+          "mfa_enrolled": true,
+          "groups": [
+            "all-staff",
+            "fin-payroll"
+          ],
+          "manager": {
+            "name": "Morgan Ellis",
+            "email": "morgan.ellis@example.com"
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "7442feaf-471a-45e9-ad8f-9d61db4430a6",
+        "name": "username",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "a8bf237c-a5fd-4b74-b350-95ca1f2a94c4",
+        "name": "display_name",
+        "path": "display_name",
+        "type": "string"
+      },
+      {
+        "id": "238dff35-a68d-4409-80b9-f51cf5d1bd25",
+        "name": "department",
+        "path": "department",
+        "type": "string"
+      },
+      {
+        "id": "351bca3b-4016-4a81-b340-6ebf284fb235",
+        "name": "privileged",
+        "path": "privileged",
+        "type": "boolean"
+      },
+      {
+        "id": "a7243274-9b83-4c56-93a8-2f46d94d2ccd",
+        "name": "mfa_enrolled",
+        "path": "mfa_enrolled",
+        "type": "boolean"
+      },
+      {
+        "id": "17a82253-8979-4704-86ae-f8b25e3a4f87",
+        "name": "manager_email",
+        "path": "manager.email",
+        "type": "string"
+      }
+    ]
+  }
+}

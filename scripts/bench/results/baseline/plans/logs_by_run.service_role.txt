@@ -1,0 +1,12 @@
+-- workflow_logs for one run as service_role
+SELECT * FROM public.workflow_logs WHERE run_id = '4b00d5a0-67af-4676-8078-9c084c579c15' ORDER BY created_at
+
+Sort  (cost=9.43..9.45 rows=10 width=140) (actual time=0.010..0.010 rows=10 loops=1)
+  Sort Key: created_at
+  Sort Method: quicksort  Memory: 26kB
+  Buffers: shared hit=13
+  ->  Index Scan using idx_workflow_logs_run on workflow_logs  (cost=0.42..9.26 rows=10 width=140) (actual time=0.003..0.007 rows=10 loops=1)
+        Index Cond: (run_id = '4b00d5a0-67af-4676-8078-9c084c579c15'::uuid)
+        Buffers: shared hit=13
+Planning Time: 0.023 ms
+Execution Time: 0.016 ms

@@ -1,0 +1,20 @@
+$ usertasks logs tail --category workflow
+2026-10-25T00:16:22.716884+00:00 INFO  workflow.run.started Invoice approval started
+2026-10-25T00:16:22.718055+00:00 INFO  workflow.run.started Invoice approval started
+2026-10-25T00:16:22.719457+00:00 INFO  workflow.run.started Invoice approval started
+2026-10-25T00:16:22.735+00:00 INFO  workflow.run.completed Invoice INV-24033 · NZD 95.4 completed
+2026-10-25T00:16:22.736333+00:00 INFO  workflow.step.log Workflow started: Invoice approval
+2026-10-25T00:16:22.736333+00:00 INFO  workflow.step.log Invoice received: Executed: Invoice received
+2026-10-25T00:16:22.736333+00:00 INFO  workflow.step.log Set title: Executed: Set title
+2026-10-25T00:16:22.736333+00:00 INFO  workflow.step.log Get vendor: Executed: Get vendor
+2026-10-25T00:16:22.736333+00:00 INFO  workflow.step.log Approval policy: Executed: Approval policy
+2026-10-25T00:16:22.736333+00:00 INFO  workflow.step.log Auto-approve?: Executed: Auto-approve?
+2026-10-25T00:16:22.736333+00:00 INFO  workflow.step.log Log auto-approval: Executed: Log auto-approval
+2026-10-25T00:16:22.736333+00:00 INFO  workflow.step.log Create payment: Executed: Create payment
+2026-10-25T00:16:22.736333+00:00 INFO  workflow.step.log Done: Executed: Done
+2026-10-25T00:16:22.736333+00:00 INFO  workflow.step.log Workflow ended: Invoice INV-24033 processed
+2026-10-25T00:16:22.738+00:00 INFO  workflow.run.completed Invoice INV-24031 · NZD 380 completed
+2026-10-25T00:16:22.739841+00:00 INFO  workflow.step.log Workflow started: Invoice approval
+2026-10-25T00:16:22.739841+00:00 INFO  workflow.step.log Invoice received: Executed: Invoice received
+2026-10-25T00:16:22.739841+00:00 INFO  workflow.step.log Set title: Executed: Set title
+^C

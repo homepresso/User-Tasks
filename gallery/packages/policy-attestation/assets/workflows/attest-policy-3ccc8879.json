@@ -1,0 +1,600 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "3ccc8879-1afd-430a-8efa-7e1c28d18187",
+  "asset": {
+    "id": "3ccc8879-1afd-430a-8efa-7e1c28d18187",
+    "name": "Attest policy",
+    "description": "One employee's attestation in a campaign: the employee confirms the policies that apply to them; questions go to the compliance officer; each attested policy is recorded.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Attestation requested",
+        "position": {
+          "x": 580,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 580,
+          "y": 220
+        },
+        "config": {
+          "title": "Attestation {{campaign_id}} · {{employee.name}}"
+        }
+      },
+      {
+        "id": "names",
+        "type": "set_variable",
+        "label": "Policy names",
+        "position": {
+          "x": 580,
+          "y": 380
+        },
+        "config": {
+          "name": "policy_names",
+          "expression": "{{=JOIN(\", \", PLUCK(applicable_policies, \"policy\"))}}"
+        }
+      },
+      {
+        "id": "links",
+        "type": "set_variable",
+        "label": "Policy links",
+        "position": {
+          "x": 580,
+          "y": 540
+        },
+        "config": {
+          "name": "policy_links",
+          "expression": "{{=JOIN(\" · \", PLUCK(applicable_policies, \"document_url\"))}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Fourteen-day SLA",
+        "position": {
+          "x": 580,
+          "y": 700
+        },
+        "config": {
+          "sla_label": "Policy attestation",
+          "mode": "relative",
+          "amount": 14,
+          "unit": "days",
+          "warning_amount": 10,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "attest",
+        "type": "user_task",
+        "label": "Attest to policies",
+        "position": {
+          "x": 580,
+          "y": 860
+        },
+        "config": {
+          "task_title": "Read and attest: {{policy_names}}",
+          "task_description": "<p>Hi {{employee.name}}, as part of campaign <strong>{{campaign_id}}</strong> please read these policies and confirm you understand them:</p><p><strong>{{policy_names}}</strong></p><p>Documents: {{policy_links}}</p><p>Tick the box and choose <em>Attest</em>, or choose <em>I have a question</em> and the compliance officer will answer before you attest.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Attest",
+            "I have a question"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "cbfd3a1e-f369-4c43-b8dc-45eb2cae6a6a",
+          "assignee_variable": "{{=COALESCE(employee_user_id, employee.workspace_user_id)}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 14,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 10080
+            },
+            {
+              "offset_minutes": 4320
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "individual",
+          "escalation_user_id": "68b7c01f-6619-4a4b-bf08-4ef3a7e261c1",
+          "escalate_after_minutes": 14400,
+          "fields": [
+            {
+              "key": "acknowledged",
+              "label": "I have read and understood these policies",
+              "type": "boolean",
+              "required": true,
+              "default": "false"
+            },
+            {
+              "key": "comments",
+              "label": "Comments or questions",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "acknowledged",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "comments",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "attest",
+              "label": "Attest",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Attest"
+            },
+            {
+              "id": "i_have_a_question",
+              "label": "I have a question",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "I have a question"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Policy attestation",
+            "align": "left",
+            "subtitle": "{{policy_names}} · campaign {{campaign_id}}"
+          }
+        }
+      },
+      {
+        "id": "ticked",
+        "type": "condition",
+        "label": "Box ticked?",
+        "position": {
+          "x": 340,
+          "y": 1040
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Acknowledged",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{task_data.acknowledged}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "question",
+        "type": "user_task",
+        "label": "Answer policy question",
+        "position": {
+          "x": 660,
+          "y": 1220
+        },
+        "config": {
+          "task_title": "Policy question from {{employee.name}} ({{campaign_id}})",
+          "task_description": "<p><strong>{{employee.name}}</strong> ({{employee.department}}) has not attested yet to <strong>{{policy_names}}</strong>.</p><p>Their comment: {{task_data.comments}}</p><p>Answer the question (the employee gets the attestation back), or mark them exempt for this campaign.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Answered",
+            "Exempt"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "68b7c01f-6619-4a4b-bf08-4ef3a7e261c1",
+          "assignee_variable": "{{compliance_officer_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "policy_ref",
+              "label": "Policy",
+              "type": "lookup",
+              "help_text": "The policy the question is about",
+              "lookup": {
+                "source": "table",
+                "table_id": "a8d984b8-0cc7-4a96-bdbb-695ae6d6b40c",
+                "search_columns": [
+                  "policy",
+                  "policy_id"
+                ],
+                "display_columns": [
+                  "policy",
+                  "version"
+                ],
+                "value_column": "policy_id",
+                "fill": [
+                  {
+                    "from": "owner",
+                    "to": "policy_owner"
+                  },
+                  {
+                    "from": "document_url",
+                    "to": "policy_document"
+                  }
+                ],
+                "filters": [
+                  {
+                    "column": "active",
+                    "operator": "eq",
+                    "value": "true"
+                  }
+                ],
+                "sort": {
+                  "column": "policy",
+                  "direction": "asc"
+                }
+              }
+            },
+            {
+              "key": "policy_owner",
+              "label": "Policy owner",
+              "type": "text",
+              "read_only": true
+            },
+            {
+              "key": "policy_document",
+              "label": "Policy document",
+              "type": "url",
+              "read_only": true
+            },
+            {
+              "key": "answer",
+              "label": "Answer for the employee",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "exemption_reason",
+              "label": "Exemption reason (if exempt)",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "policy_ref",
+                    "span": 2
+                  },
+                  {
+                    "field_key": "policy_owner",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "policy_document",
+                    "span": 3
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "answer",
+                    "span": 3
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "exemption_reason",
+                    "span": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "answered",
+              "label": "Answered",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Answered"
+            },
+            {
+              "id": "exempt",
+              "label": "Exempt",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Exempt"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Policy question from {{employee.name}}",
+            "align": "left",
+            "subtitle": "Campaign {{campaign_id}}"
+          }
+        }
+      },
+      {
+        "id": "log_answer",
+        "type": "log",
+        "label": "Log answer",
+        "position": {
+          "x": 660,
+          "y": 1400
+        },
+        "config": {
+          "message": "Compliance answered {{employee.name}}: {{task_data.answer}}",
+          "level": "info"
+        }
+      },
+      {
+        "id": "back",
+        "type": "goto_activity",
+        "label": "Back to attestation",
+        "position": {
+          "x": 660,
+          "y": 1560
+        },
+        "config": {
+          "target_node_id": "attest",
+          "target_node_label": "Attest to policies"
+        }
+      },
+      {
+        "id": "st_attested",
+        "type": "set_variable",
+        "label": "Status attested",
+        "position": {
+          "x": 340,
+          "y": 1220
+        },
+        "config": {
+          "name": "attestation_status",
+          "expression": "attested"
+        }
+      },
+      {
+        "id": "st_exempt",
+        "type": "set_variable",
+        "label": "Status exempt",
+        "position": {
+          "x": 980,
+          "y": 1400
+        },
+        "config": {
+          "name": "attestation_status",
+          "expression": "exempt"
+        }
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each policy",
+        "position": {
+          "x": 340,
+          "y": 1560
+        },
+        "config": {
+          "items": "{{applicable_policies}}",
+          "item_var": "policy"
+        }
+      },
+      {
+        "id": "record",
+        "type": "update_data_table",
+        "label": "Record attestation",
+        "position": {
+          "x": 660,
+          "y": 1740
+        },
+        "config": {
+          "table_id": "c1f48f31-2ca4-4b4a-802d-b6d7e8232425",
+          "table_name": "Attestations",
+          "operation": "insert",
+          "column_values": {
+            "campaign_id": "{{campaign_id}}",
+            "policy_id": "{{policy.policy_id}}",
+            "policy": "{{policy.policy}}",
+            "version": "{{policy.version}}",
+            "employee_id": "{{employee.id}}",
+            "employee_name": "{{employee.name}}",
+            "employee_email": "{{employee.email}}",
+            "department": "{{employee.department}}",
+            "status": "{{attestation_status}}",
+            "attested_at": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "comments": "{{=COALESCE(task_data.comments, task_data.exemption_reason)}}"
+          }
+        }
+      },
+      {
+        "id": "notify",
+        "type": "send_email",
+        "label": "Email employee: receipt",
+        "position": {
+          "x": 340,
+          "y": 1900
+        },
+        "config": {
+          "to": "{{employee.email}}",
+          "email_template_id": "ccd619b4-3d29-4066-8d3e-d909fa6b2278"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Recorded",
+        "position": {
+          "x": 340,
+          "y": 2060
+        },
+        "config": {
+          "reason": "{{employee.name}}: {{attestation_status}} ({{campaign_id}})"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-names",
+        "source": "title",
+        "target": "names"
+      },
+      {
+        "id": "e-names-links",
+        "source": "names",
+        "target": "links"
+      },
+      {
+        "id": "e-links-sla",
+        "source": "links",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-attest",
+        "source": "sla",
+        "target": "attest"
+      },
+      {
+        "id": "e-attest-ticked-attest",
+        "source": "attest",
+        "target": "ticked",
+        "label": "Attest"
+      },
+      {
+        "id": "e-attest-question-i-have-a-question",
+        "source": "attest",
+        "target": "question",
+        "label": "I have a question"
+      },
+      {
+        "id": "e-ticked-st_attested-acknowledged",
+        "source": "ticked",
+        "target": "st_attested",
+        "label": "Acknowledged"
+      },
+      {
+        "id": "e-ticked-question-else",
+        "source": "ticked",
+        "target": "question",
+        "label": "Else"
+      },
+      {
+        "id": "e-question-log_answer-answered",
+        "source": "question",
+        "target": "log_answer",
+        "label": "Answered"
+      },
+      {
+        "id": "e-log_answer-back",
+        "source": "log_answer",
+        "target": "back"
+      },
+      {
+        "id": "e-question-st_exempt-exempt",
+        "source": "question",
+        "target": "st_exempt",
+        "label": "Exempt"
+      },
+      {
+        "id": "e-st_attested-each",
+        "source": "st_attested",
+        "target": "each"
+      },
+      {
+        "id": "e-st_exempt-each",
+        "source": "st_exempt",
+        "target": "each"
+      },
+      {
+        "id": "e-each-record-each-item",
+        "source": "each",
+        "target": "record",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-each-notify-done",
+        "source": "each",
+        "target": "notify",
+        "label": "Done"
+      },
+      {
+        "id": "e-notify-done",
+        "source": "notify",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-employee",
+        "name": "employee",
+        "type": "object",
+        "description": "The employee record from the HR system (id, name, email, department)",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-applicable_policies",
+        "name": "applicable_policies",
+        "type": "object",
+        "description": "The Policies rows that apply to this employee",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-campaign_id",
+        "name": "campaign_id",
+        "type": "string",
+        "description": "Campaign reference, e.g. ATT-2026-11",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-employee_user_id",
+        "name": "employee_user_id",
+        "type": "string",
+        "description": "Optional: the employee's user id in this workspace (otherwise the default recipient chosen on install)",
+        "defaultValue": ""
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

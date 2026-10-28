@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "b5058bd7-6ae8-4cf8-9f26-9ab782334597",
+  "asset": {
+    "id": "b5058bd7-6ae8-4cf8-9f26-9ab782334597",
+    "name": "Quote approved",
+    "description": "Sent to the sales rep when the quote discount is approved.",
+    "subject": "Approved: {{customer}} quote {{quote_id}} at {{approved_discount_pct}}% discount",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your quote is approved</h2>\n  <p>Hi,</p>\n  <p>Quote <strong>{{quote_id}}</strong> for <strong>{{customer}}</strong> ({{product}}, {{term_months}} months, {{payment_terms}}) is approved at <strong>{{approved_discount_pct}}%</strong> discount.</p>\n  <p>Approval path: {{approval_path}}. Valid until {{valid_until}}.</p>\n  <p>Conditions: {{=COALESCE(task_data.conditions, \"none\")}}</p>\n  <p><a href=\"{{quote_url}}\">Open the quote</a> and send it to the customer.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the quote approval workflow</p>\n</div>",
+    "text_body": "Your quote is approved\n  Hi,\n  Quote {{quote_id}} for {{customer}} ({{product}}, {{term_months}} months, {{payment_terms}}) is approved at {{approved_discount_pct}}% discount.\n  Approval path: {{approval_path}}. Valid until {{valid_until}}.\n  Conditions: {{=COALESCE(task_data.conditions, \"none\")}}\n  Open the quote and send it to the customer.\n  Sent by the quote approval workflow",
+    "is_default": false
+  }
+}

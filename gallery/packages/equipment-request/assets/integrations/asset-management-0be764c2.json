@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "0be764c2-0c95-4a03-8dda-677b1b6e1aba",
+  "asset": {
+    "id": "0be764c2-0c95-4a03-8dda-677b1b6e1aba",
+    "name": "Asset management",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://assets.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "it",
+      "assets"
+    ]
+  }
+}

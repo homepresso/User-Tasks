@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "1a3a6aa4-5dc6-4e98-9fc3-8594317feb51",
+  "asset": {
+    "id": "1a3a6aa4-5dc6-4e98-9fc3-8594317feb51",
+    "name": "Equipment request not approved",
+    "description": "Sent to the requester when an approver rejects the request or IT cannot fulfil it.",
+    "subject": "Not approved: {{form.item}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your equipment request was not completed</h2>\n  <p>Hi {{form.requester_name}},</p>\n  <p>Your request for <strong>{{form.quantity}} × {{form.item}}</strong> ({{request_reference}}) was not completed.</p>\n  <p>Comment: {{task_data.comment}}</p>\n  <p>Talk to your manager or the IT service desk about alternatives.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your equipment request workflow</p>\n</div>",
+    "text_body": "Your equipment request was not completed\n  Hi {{form.requester_name}},\n  Your request for {{form.quantity}} × {{form.item}} ({{request_reference}}) was not completed.\n  Comment: {{task_data.comment}}\n  Talk to your manager or the IT service desk about alternatives.\n  Sent by your equipment request workflow",
+    "is_default": false
+  }
+}

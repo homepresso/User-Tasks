@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "webhook_received",
+      "label": "Webhook",
+      "position": { "x": 400, "y": 20 },
+      "config": {}
+    },
+    {
+      "id": "n1",
+      "type": "loop_n_times",
+      "label": "Loop 5 Times",
+      "position": { "x": 400, "y": 160 },
+      "config": { "count": "5", "index_var": "iteration" }
+    },
+    {
+      "id": "n2",
+      "type": "math",
+      "label": "Square It",
+      "position": { "x": 400, "y": 320 },
+      "config": { "expression": "{{iteration}} * {{iteration}}", "output_var": "squared" }
+    },
+    {
+      "id": "n3",
+      "type": "log",
+      "label": "Log Square",
+      "position": { "x": 400, "y": 460 },
+      "config": { "message": "{{iteration}} squared = {{squared}}" }
+    },
+    {
+      "id": "n4",
+      "type": "parallel",
+      "label": "Parallel Tasks",
+      "position": { "x": 400, "y": 640 },
+      "config": { "branches": ["Branch A", "Branch B", "Branch C"], "mode": "parallel" }
+    },
+    {
+      "id": "n5",
+      "type": "log",
+      "label": "Task A",
+      "position": { "x": 140, "y": 820 },
+      "config": { "message": "Parallel branch A running" }
+    },
+    {
+      "id": "n6",
+      "type": "delay",
+      "label": "Wait 1s",
+      "position": { "x": 400, "y": 820 },
+      "config": { "seconds": "1" }
+    },
+    {
+      "id": "n7",
+      "type": "log",
+      "label": "Task C",
+      "position": { "x": 660, "y": 820 },
+      "config": { "message": "Parallel branch C running" }
+    },
+    {
+      "id": "n8",
+      "type": "log",
+      "label": "All Done",
+      "position": { "x": 400, "y": 1000 },
+      "config": { "message": "All parallel branches complete. Loop ran 5 times." }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "t1", "target": "n1" },
+    { "id": "e2", "source": "n1", "target": "n2", "label": "Each Item" },
+    { "id": "e3", "source": "n2", "target": "n3" },
+    { "id": "e4", "source": "n1", "target": "n4", "label": "Done" },
+    { "id": "e5", "source": "n4", "target": "n5", "label": "Branch A" },
+    { "id": "e6", "source": "n4", "target": "n6", "label": "Branch B" },
+    { "id": "e7", "source": "n4", "target": "n7", "label": "Branch C" },
+    { "id": "e8", "source": "n5", "target": "n8" },
+    { "id": "e9", "source": "n6", "target": "n8" },
+    { "id": "e10", "source": "n7", "target": "n8" }
+  ],
+  "user_variables": [],
+  "swimlanes": []
+}

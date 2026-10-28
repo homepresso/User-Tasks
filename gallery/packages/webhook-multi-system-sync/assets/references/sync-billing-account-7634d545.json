@@ -1,0 +1,94 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "7634d545-bf6f-4ad8-80e8-453fdd32cdc6",
+  "asset": {
+    "id": "7634d545-bf6f-4ad8-80e8-453fdd32cdc6",
+    "integration_id": "0b32518b-6f40-4f57-9d31-62f69a94ecb3",
+    "name": "Sync billing account",
+    "description": "Push the account name, billing address, tax id and status to the billing platform.",
+    "tags": [
+      "accounts"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{{payload}}",
+      "path_template": "/accounts/{{account_id}}/sync",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "billing_account_id",
+              "type": "string",
+              "example": "BA-88213"
+            },
+            {
+              "name": "result",
+              "type": "string",
+              "example": "synced"
+            },
+            {
+              "name": "invoices_affected",
+              "type": "integer",
+              "example": 0
+            },
+            {
+              "name": "synced_at",
+              "type": "string",
+              "example": "2026-10-26T07:14:10Z"
+            }
+          ]
+        },
+        "sample": {
+          "billing_account_id": "BA-88213",
+          "result": "synced",
+          "invoices_affected": 0,
+          "synced_at": "2026-10-26T07:14:10Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "a5cd224a-a98a-415a-bda7-a2efdb29a4b0",
+        "name": "account_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "7462f283-1709-4556-8709-e1650d6309fe",
+        "name": "payload",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "JSON account record",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "5fa751b8-0114-4737-b3dd-17ebad33de9b",
+        "name": "billing_account_id",
+        "path": "billing_account_id",
+        "type": "string"
+      },
+      {
+        "id": "f6974423-18b4-4316-adbc-959575c760e1",
+        "name": "result",
+        "path": "result",
+        "type": "string"
+      }
+    ]
+  }
+}

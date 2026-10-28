@@ -1,0 +1,172 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "af01278b-d3bf-4498-a2fd-4ac335a19b14",
+  "asset": {
+    "id": "af01278b-d3bf-4498-a2fd-4ac335a19b14",
+    "name": "Match tolerance",
+    "description": "Three-way match outcome from the price and quantity variance and the vendor risk rating. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "611b954f-6c8f-4789-99fa-9a50c0c625f3",
+        "key": "variance_pct",
+        "label": "Variance %",
+        "type": "number"
+      },
+      {
+        "id": "e5512490-c770-499c-8e08-70ff20dd87be",
+        "key": "abs_variance",
+        "label": "Absolute variance",
+        "type": "number"
+      },
+      {
+        "id": "b5aaa2df-8876-49fe-88eb-60f4b349fa67",
+        "key": "qty_variance",
+        "label": "Quantity variance (invoiced − received)",
+        "type": "number"
+      },
+      {
+        "id": "1a50dbb9-1c5f-4da8-8cf9-368242289151",
+        "key": "vendor_risk",
+        "label": "Vendor risk",
+        "type": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "82668cb6-cd2d-449e-a480-7c9121fc9fbc",
+        "key": "match_result",
+        "label": "Result",
+        "type": "text"
+      },
+      {
+        "id": "3f500d72-87c6-468c-988d-f926a94c00c0",
+        "key": "approver",
+        "label": "Approver",
+        "type": "text"
+      },
+      {
+        "id": "3274e1c6-389b-4a0e-8f28-34213008a910",
+        "key": "hold_reason",
+        "label": "Hold reason",
+        "type": "text"
+      }
+    ],
+    "rules": [
+      {
+        "id": "f35fa97f-3c68-4ef9-b18e-01c4fd142836",
+        "label": "Billed for more than received",
+        "enabled": true,
+        "outputs": {
+          "match_result": "exception",
+          "approver": "AP supervisor",
+          "hold_reason": "Invoiced quantity exceeds goods received"
+        },
+        "conditions": [
+          {
+            "id": "cb4fd7dc-cb7c-4b4d-bbcb-9e3efc892de7",
+            "inputKey": "qty_variance",
+            "operator": "greater_than",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "id": "5235f03d-07b1-4cc4-918e-b271c53a610d",
+        "label": "Exact match",
+        "enabled": true,
+        "outputs": {
+          "match_result": "matched",
+          "approver": "None",
+          "hold_reason": ""
+        },
+        "conditions": [
+          {
+            "id": "92f0a4ef-4419-47e8-aca8-59c52def7c53",
+            "inputKey": "abs_variance",
+            "operator": "less_than_or_equal",
+            "value": "0.01"
+          }
+        ]
+      },
+      {
+        "id": "42d2eea0-8746-4720-88c8-7a83a89a4c5d",
+        "label": "High-risk vendor with a variance",
+        "enabled": true,
+        "outputs": {
+          "match_result": "exception",
+          "approver": "AP supervisor",
+          "hold_reason": "Variance on a high-risk vendor"
+        },
+        "conditions": [
+          {
+            "id": "b989078e-8b00-4197-b04a-1a9c63471e93",
+            "inputKey": "vendor_risk",
+            "operator": "equals",
+            "value": "high"
+          }
+        ]
+      },
+      {
+        "id": "5bde4a90-608a-45ad-be48-09c57dcc0953",
+        "label": "Large variance",
+        "enabled": true,
+        "outputs": {
+          "match_result": "exception",
+          "approver": "Finance controller",
+          "hold_reason": "Price variance over 5,000"
+        },
+        "conditions": [
+          {
+            "id": "56ce084d-d5a1-4a8a-82ec-5822630c034f",
+            "inputKey": "abs_variance",
+            "operator": "greater_than",
+            "value": "5000"
+          }
+        ]
+      },
+      {
+        "id": "a7c5777c-2479-408d-b055-1e7ab34a73bb",
+        "label": "Within tolerance",
+        "enabled": true,
+        "outputs": {
+          "match_result": "within tolerance",
+          "approver": "None",
+          "hold_reason": ""
+        },
+        "conditions": [
+          {
+            "id": "3fc904c0-1a0a-493d-937f-9969544651e8",
+            "inputKey": "variance_pct",
+            "operator": "less_than_or_equal",
+            "value": "2"
+          },
+          {
+            "id": "4dd595a7-8ae9-49f3-a85e-17f2f176134e",
+            "inputKey": "abs_variance",
+            "operator": "less_than_or_equal",
+            "value": "500"
+          }
+        ]
+      },
+      {
+        "id": "3790412f-a744-4c8b-8c42-5a1e20a7764f",
+        "label": "Outside tolerance",
+        "enabled": true,
+        "outputs": {
+          "match_result": "exception",
+          "approver": "AP supervisor",
+          "hold_reason": "Price variance outside tolerance"
+        },
+        "conditions": [
+          {
+            "id": "e0376a7b-3538-44e6-bc45-3af92f3e2080",
+            "inputKey": "variance_pct",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

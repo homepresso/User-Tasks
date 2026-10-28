@@ -1,0 +1,152 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "ad59207f-84c8-4f1e-a733-8c885ec9a3a7",
+  "asset": {
+    "id": "ad59207f-84c8-4f1e-a733-8c885ec9a3a7",
+    "integration_id": "1f800028-d7ac-4299-8afa-dbeea2d4cdca",
+    "name": "Update user",
+    "description": "Move a user: new department, title, manager, groups and licence. Groups not in the list are removed.",
+    "tags": [
+      "users"
+    ],
+    "request_config": {
+      "method": "PATCH",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"department\":\"{{department}}\",\"job_title\":\"{{job_title}}\",\"manager_employee_id\":\"{{manager_id}}\",\"groups\":\"{{groups}}\",\"licence\":\"{{licence}}\"}",
+      "path_template": "/users/{{user_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "u-5c1e8a"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "active"
+            },
+            {
+              "name": "department",
+              "type": "string",
+              "example": "Finance"
+            },
+            {
+              "name": "groups",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "example": "all-staff"
+              }
+            },
+            {
+              "name": "groups_removed",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "example": "fin-ap"
+              }
+            }
+          ]
+        },
+        "sample": {
+          "id": "u-5c1e8a",
+          "status": "active",
+          "department": "Finance",
+          "groups": [
+            "all-staff",
+            "fin-planning",
+            "app-erp-users"
+          ],
+          "groups_removed": [
+            "fin-ap"
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "780582b9-c1ba-4863-b356-a16d7e8e131e",
+        "name": "user_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "542a6e16-d312-4160-8e39-0790aeaf8456",
+        "name": "department",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c4e6873a-787c-4feb-bbe9-f0800441c25f",
+        "name": "job_title",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "89eda5eb-8d37-4043-bc07-1a1f64e1c3bb",
+        "name": "manager_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "cebaa8de-4e02-480f-a32f-183fe54cf7ab",
+        "name": "groups",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "cb0cbe23-c71f-4773-93ea-164d7bc31957",
+        "name": "licence",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "cd50955b-7097-4c0c-9c74-ff06779caa74",
+        "name": "id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "67b2077a-323c-4ebe-a228-c8fb646909a0",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      }
+    ]
+  }
+}

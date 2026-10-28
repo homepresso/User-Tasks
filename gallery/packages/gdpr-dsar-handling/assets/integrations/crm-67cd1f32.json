@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "67cd1f32-620a-4b1d-b812-388e8016357d",
+  "asset": {
+    "id": "67cd1f32-620a-4b1d-b812-388e8016357d",
+    "name": "CRM",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://crm.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "privacy",
+      "crm"
+    ]
+  }
+}

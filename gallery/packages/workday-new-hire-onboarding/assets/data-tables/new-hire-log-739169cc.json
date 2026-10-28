@@ -1,0 +1,68 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "739169cc-e1e9-5bd8-805f-fcd3f0b5bd7e",
+  "asset": {
+    "id": "739169cc-e1e9-5bd8-805f-fcd3f0b5bd7e",
+    "name": "New hire log",
+    "description": "One row per Workday hire event: who, when they start, and how far onboarding has got.",
+    "columns": [
+      {
+        "id": "51bf2ae0-1c38-5ec9-892b-d53af6e56fe0",
+        "required": true,
+        "key": "worker_id",
+        "name": "Workday worker id",
+        "type": "text"
+      },
+      {
+        "id": "da647a89-c18d-531a-938c-98bde29bc551",
+        "required": false,
+        "key": "employee_id",
+        "name": "Employee id",
+        "type": "text"
+      },
+      {
+        "id": "fe4f472f-c65a-5cc7-af5b-ff3c71d6111c",
+        "required": false,
+        "key": "worker_name",
+        "name": "Worker",
+        "type": "text"
+      },
+      {
+        "id": "e814f32d-0f94-542b-aee8-17d79fc09344",
+        "required": false,
+        "key": "job_family",
+        "name": "Job family",
+        "type": "text"
+      },
+      {
+        "id": "50a164bc-bbe4-5bcf-b25b-bd794ea54adc",
+        "required": false,
+        "key": "manager_name",
+        "name": "Hiring manager",
+        "type": "text"
+      },
+      {
+        "id": "51bdf9b0-f1c6-5bf8-98f6-381c297b523b",
+        "required": false,
+        "key": "hire_date",
+        "name": "Hire date",
+        "type": "date"
+      },
+      {
+        "id": "bf490360-f732-5e22-9030-a368dbd2b8ea",
+        "required": false,
+        "key": "equipment",
+        "name": "Equipment",
+        "type": "text"
+      },
+      {
+        "id": "946dac9d-f837-51a0-aaff-905687c449df",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      }
+    ]
+  }
+}

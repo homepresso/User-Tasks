@@ -1,0 +1,153 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "9c17318a-d422-5337-b745-2956f2cbbc0f",
+  "asset": {
+    "id": "9c17318a-d422-5337-b745-2956f2cbbc0f",
+    "name": "Cover check",
+    "description": "Which synced time off requests need the manager to confirm cover. First matching rule wins.",
+    "inputs": [
+      {
+        "key": "status",
+        "label": "Workday status",
+        "type": "text",
+        "id": "51239eca-bbf1-5ef6-b3c0-fa489b5f8125"
+      },
+      {
+        "key": "time_off_type",
+        "label": "Time off type",
+        "type": "text",
+        "id": "faa98394-85d6-5fd3-b8a2-d0a13488e47e"
+      },
+      {
+        "key": "days",
+        "label": "Days",
+        "type": "number",
+        "id": "d42cd637-1c91-5f89-9a86-de7feb9bdce8"
+      },
+      {
+        "key": "critical_role",
+        "label": "Critical role (1/0)",
+        "type": "text",
+        "id": "5f8747c0-93ab-5dd3-ad77-8b2df8cb44c4"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "needs_cover",
+        "label": "Needs cover check",
+        "type": "boolean",
+        "id": "7b07b8ef-317b-53c0-8239-95cfb65a0cfb"
+      },
+      {
+        "key": "cover_reason",
+        "label": "Reason",
+        "type": "text",
+        "id": "451acdbf-2386-543a-a1ad-378193ca0764"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Cancelled or denied",
+        "conditions": [
+          {
+            "inputKey": "status",
+            "operator": "contains",
+            "value": "Cancel",
+            "id": "c9093dbb-7127-5aa7-a524-06c7dfd21030"
+          }
+        ],
+        "outputs": {
+          "needs_cover": false,
+          "cover_reason": "Request cancelled"
+        },
+        "id": "983a0a69-8e2a-540b-8303-dc03fa839106",
+        "enabled": true
+      },
+      {
+        "label": "Denied",
+        "conditions": [
+          {
+            "inputKey": "status",
+            "operator": "equals",
+            "value": "Denied",
+            "id": "14a30cfd-1f0e-5ec5-961c-51a9c0579679"
+          }
+        ],
+        "outputs": {
+          "needs_cover": false,
+          "cover_reason": "Request denied"
+        },
+        "id": "9fe130e0-5f28-54f0-887f-e1e79659ec52",
+        "enabled": true
+      },
+      {
+        "label": "Critical role",
+        "conditions": [
+          {
+            "inputKey": "critical_role",
+            "operator": "equals",
+            "value": "1",
+            "id": "0f0cbecf-8e89-5d09-a9d3-213a939490b8"
+          },
+          {
+            "inputKey": "days",
+            "operator": "greater_than_or_equal",
+            "value": "1",
+            "id": "20cf5b12-e2ce-5e3d-a618-395099ee4b05"
+          }
+        ],
+        "outputs": {
+          "needs_cover": true,
+          "cover_reason": "Critical role: cover must be named"
+        },
+        "id": "00a3bfb2-3529-5145-b463-507fbd829c35",
+        "enabled": true
+      },
+      {
+        "label": "Long absence",
+        "conditions": [
+          {
+            "inputKey": "days",
+            "operator": "greater_than_or_equal",
+            "value": "5",
+            "id": "4a8781b9-b1b0-5299-8fd2-82d4ad6f5316"
+          }
+        ],
+        "outputs": {
+          "needs_cover": true,
+          "cover_reason": "Five or more days away"
+        },
+        "id": "96de91aa-22f2-5f54-961a-dfdd6f8c5df6",
+        "enabled": true
+      },
+      {
+        "label": "Parental or long-term leave",
+        "conditions": [
+          {
+            "inputKey": "time_off_type",
+            "operator": "contains",
+            "value": "Parental",
+            "id": "cb0d0fae-a00f-5707-8e55-5c036ae67e94"
+          }
+        ],
+        "outputs": {
+          "needs_cover": true,
+          "cover_reason": "Long-term leave"
+        },
+        "id": "48025324-c046-5f79-aa49-c9bff74d07e7",
+        "enabled": true
+      },
+      {
+        "label": "Everything else",
+        "conditions": [],
+        "outputs": {
+          "needs_cover": false,
+          "cover_reason": "Short absence, no cover check"
+        },
+        "id": "e09e9268-7d4a-5a46-b8d5-1ccb0e905da8",
+        "enabled": true
+      }
+    ]
+  }
+}

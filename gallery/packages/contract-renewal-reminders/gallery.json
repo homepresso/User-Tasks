@@ -1,0 +1,74 @@
+{
+  "id": "5bdee3d0-b3c3-4eea-bc32-6bf793eb9340",
+  "slug": "contract-renewal-reminders",
+  "title": "Contract renewal reminders",
+  "category": "operations-compliance",
+  "summary": "A daily check of your contract register: owners are reminded 60, 30 and 7 days before each notice deadline and asked to renew, renegotiate or terminate.",
+  "description": "Contract renewal reminders keeps notice deadlines from slipping past. Every morning it reads the active rows of the Contracts data table and works out, for each one, the date by which notice must be given (end date minus the notice period) and how many days are left.\n\nAt 60, 30 and 7 days the contract owner gets a reminder email that says whether the contract renews automatically or expires. From 30 days out the check marks the contract \"Decision requested\" and starts the Contract renewal decision sub-workflow, which gives the owner a User Task to renew, renegotiate or terminate, with the new end date and value pre-filled. The decision is written back to the contract row and confirmed by email. Contracts whose deadline has passed without a decision are logged as warnings.\n\nAdapt the Contracts table to your register (or keep it as the register), the reminder windows in the Reminder window switch, and the time of the daily run. Owners can be routed per contract with the optional owner user id column.",
+  "trigger": "schedule",
+  "entry_workflow": "d040e8a3-ce2c-4d9b-9021-3a5e2403520d",
+  "start": "Runs every day at 07:00 UTC. You can also run it by hand with an \"as of\" date to see which reminders would go out on that day.",
+  "difficulty": "intermediate",
+  "setup_minutes": 15,
+  "tags": [
+    "contracts",
+    "renewals",
+    "reminders",
+    "schedule",
+    "sub-workflow"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: the renewal decision has Renew / Renegotiate / Terminate buttons, a grid and a header."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "Assignees: pick the default contract owner for renewal decisions. Fill the optional \"Owner user id\" column on a contract to send its decision to someone else.",
+    "Replace the sample rows in the Contracts table with your contracts (end date, notice period in days, owner email, auto-renew, annual value). Keep status \"active\" for contracts the check should watch.",
+    "Change the run time or time zone on the \"Every day at 07:00\" trigger, and the 60 / 30 / 7 day windows in the Reminder window switch if your policy differs.",
+    "Email: configure EMAIL_PROVIDER on the instance so reminders and confirmations are delivered (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Daily check",
+      "body": "The schedule fires at 07:00 and lists every active contract, earliest end date first."
+    },
+    {
+      "title": "Work out the notice deadline",
+      "body": "For each contract the deadline is the end date minus the notice period; the check counts the days left from today (or the \"as of\" date)."
+    },
+    {
+      "title": "Remind the owner",
+      "body": "At exactly 60, 30 and 7 days the owner gets a reminder email with the end date, value and what happens if nobody acts."
+    },
+    {
+      "title": "Ask for a decision",
+      "body": "From 30 days out the contract is marked \"Decision requested\" and the Contract renewal decision sub-workflow starts, once per contract."
+    },
+    {
+      "title": "Renew, renegotiate or terminate",
+      "body": "The owner records the decision with the new end date, value and notes; the contract row is updated and the owner gets a confirmation."
+    },
+    {
+      "title": "Flag missed deadlines",
+      "body": "Contracts past their notice deadline without a decision are logged as warnings in the run."
+    }
+  ],
+  "sample_input": {
+    "as_of": "2026-11-02"
+  },
+  "expect": "completed",
+  "icon": "file-clock"
+}

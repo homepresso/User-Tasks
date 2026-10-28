@@ -1,0 +1,118 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "dafdd4b5-a82f-5f39-82f9-c9d2031eccd3",
+  "asset": {
+    "id": "dafdd4b5-a82f-5f39-82f9-c9d2031eccd3",
+    "name": "Loans",
+    "description": "Every loan request and its outcome: who has which device, until when, and how it came back.",
+    "columns": [
+      {
+        "id": "63cf79ee-63a3-50e7-8111-a4f3077a22b6",
+        "required": true,
+        "key": "loan_ref",
+        "name": "Loan reference",
+        "type": "text"
+      },
+      {
+        "id": "b91404da-afde-5498-a53d-340a33ef5343",
+        "required": true,
+        "key": "asset_tag",
+        "name": "Asset tag",
+        "type": "text"
+      },
+      {
+        "id": "6f36e371-3083-5bf3-888f-4ac3bd6a5f9e",
+        "required": false,
+        "key": "device",
+        "name": "Device",
+        "type": "text"
+      },
+      {
+        "id": "66d31b08-0de4-5e16-863d-a00a38fef869",
+        "required": false,
+        "key": "serial",
+        "name": "Serial number",
+        "type": "text"
+      },
+      {
+        "id": "dd0e250f-f952-52d0-b4b9-8b203e420e61",
+        "required": true,
+        "key": "borrower_name",
+        "name": "Borrower",
+        "type": "text"
+      },
+      {
+        "id": "ea8975b1-9c5c-5a81-ac6d-8dd8f405af6d",
+        "required": false,
+        "key": "borrower_email",
+        "name": "Borrower email",
+        "type": "email"
+      },
+      {
+        "id": "f1ccb053-652a-5fb4-8a4d-2e989db97792",
+        "required": false,
+        "key": "team",
+        "name": "Team",
+        "type": "text"
+      },
+      {
+        "id": "38399781-0422-5f9d-ab81-442435223dba",
+        "required": false,
+        "key": "purpose",
+        "name": "Purpose",
+        "type": "text"
+      },
+      {
+        "id": "c74169db-9347-5d78-9419-87bcddd47d61",
+        "required": false,
+        "key": "start_date",
+        "name": "From",
+        "type": "date"
+      },
+      {
+        "id": "2c9e4780-bbb0-5f29-a9fd-fd44acee15fc",
+        "required": false,
+        "key": "due_date",
+        "name": "Due back",
+        "type": "date"
+      },
+      {
+        "id": "dec304bd-d972-5921-b12f-f65daeadf66f",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Requested",
+          "On loan",
+          "Returned",
+          "Overdue",
+          "Rejected",
+          "Unavailable"
+        ]
+      },
+      {
+        "id": "b7bfe672-815d-5522-9eea-8190d99187f3",
+        "required": false,
+        "key": "approver_comment",
+        "name": "Approver comment",
+        "type": "text"
+      },
+      {
+        "id": "ca703216-e1f2-58b5-a25c-f5b19ec7ebbd",
+        "required": false,
+        "key": "returned_on",
+        "name": "Returned on",
+        "type": "date"
+      },
+      {
+        "id": "0957f0c1-2f24-5e72-89b7-c7a995400730",
+        "required": false,
+        "key": "return_condition",
+        "name": "Condition on return",
+        "type": "text"
+      }
+    ]
+  }
+}

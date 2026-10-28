@@ -1,0 +1,14 @@
+$ usertasks workflows instances be0ec86c-51ca-4082-8ee3-730b195444e3 -o table
+RUN       TITLE                            VERSION  CURRENT NODE                      STATE    WAITING SINCE     ASSIGNEE
+940e2bfd  Onboard Northwind Packaging Ltd  v4       Review vendor documents (review)  waiting  2026-10-25 00:04  Ada Lovelace
+fb6e8781  Onboard Blue Yonder Airlines     v4       Review vendor documents (review)  waiting  2026-10-25 00:04  Ada Lovelace
+
+2 live instances, 2 on older versions — v4: 2.
+$ V2=$(usertasks workflows versions be0ec86c-51ca-4082-8ee3-730b195444e3 -o json | jq -r '.versions[0].id')
+# Plan only: every live instance → the newest version, continuing at the same node
+$ usertasks workflows migrate-instances be0ec86c-51ca-4082-8ee3-730b195444e3 --to $V2 --all --dry-run -o table
+RUN       FROM  CURRENT NODE                      TARGET NODE (v5)                             ACTION         NOTES
+940e2bfd  v4    Review vendor documents (review)  Review vendor documents (review) [new task]  close +1 task  1 open task will be cancelled
+fb6e8781  v4    Review vendor documents (review)  Review vendor documents (review) [new task]  close +1 task  1 open task will be cancelled
+
+Plan: 2 of 2 instances ready to migrate to v5, 2 with warnings.

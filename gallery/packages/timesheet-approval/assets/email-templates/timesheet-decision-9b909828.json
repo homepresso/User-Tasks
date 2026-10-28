@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "9b909828-eff2-58a3-be17-9e38ce24c74b",
+  "asset": {
+    "id": "9b909828-eff2-58a3-be17-9e38ce24c74b",
+    "name": "Timesheet decision",
+    "description": "Sent to the employee when their timesheet is approved or rejected.",
+    "subject": "Timesheet for week ending {{form.week_ending}}: {{decision}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#0C1E2C\">\n  <h2 style=\"margin:0 0 12px;color:#0369A1\">Timesheet {{decision}}</h2>\n  <p>Hi {{form.employee_name}},</p>\n  <p>Your timesheet for the week ending <strong>{{=FORMAT_DATE(form.week_ending, \"DD/MM/YYYY\")}}</strong> on <strong>{{form.project}}</strong> ({{client}}) was <strong>{{decision}}</strong>.</p>\n  <table style=\"border-collapse:collapse;font-size:14px\">\n    <tr><td style=\"padding:4px 12px 4px 0;color:#64748B\">Mon–Fri</td><td>{{form.mon}} · {{form.tue}} · {{form.wed}} · {{form.thu}} · {{form.fri}}</td></tr>\n    <tr><td style=\"padding:4px 12px 4px 0;color:#64748B\">Total</td><td><strong>{{total_hours}} h</strong> ({{overtime_hours}} h overtime)</td></tr>\n  </table>\n  <p><strong>Comment:</strong> {{approver_comment}}</p>\n  <p>{{=IF(decision = \"rejected\", \"Please correct it and submit the timesheet again.\", \"\")}}</p>\n  <p style=\"color:#64748B;font-size:13px\">Reference {{timesheet_ref}} · sent by the timesheet approval workflow</p>\n</div>",
+    "text_body": "Your timesheet for the week ending {{form.week_ending}} ({{form.project}}, {{total_hours}} h) was {{decision}}. Comment: {{approver_comment}}. Reference {{timesheet_ref}}.",
+    "is_default": false
+  }
+}

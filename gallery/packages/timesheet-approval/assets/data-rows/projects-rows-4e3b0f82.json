@@ -1,0 +1,107 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "4e3b0f82-14a6-5d39-84f2-3bc7220a2e4e",
+  "asset": {
+    "id": "4e3b0f82-14a6-5d39-84f2-3bc7220a2e4e",
+    "name": "Projects rows",
+    "rows": [
+      {
+        "id": "27dc63c1-2415-5b50-8b29-af2aab331ec4",
+        "data": {
+          "code": "PRJ-1042",
+          "name": "Website rebuild",
+          "client": "Northwind Traders",
+          "billable": true,
+          "rate": 145,
+          "budget_hours": 600,
+          "hours_logged": 412,
+          "project_manager": "Ana Lopez",
+          "active": true
+        }
+      },
+      {
+        "id": "e5fd1e87-cefd-5cb5-acb9-4b5cad9509c5",
+        "data": {
+          "code": "PRJ-1057",
+          "name": "ERP data migration",
+          "client": "Contoso Pharmaceuticals",
+          "billable": true,
+          "rate": 165,
+          "budget_hours": 900,
+          "hours_logged": 288,
+          "project_manager": "Ben Carter",
+          "active": true
+        }
+      },
+      {
+        "id": "db7b6862-c030-5331-b25b-9318d03f6c0f",
+        "data": {
+          "code": "PRJ-1063",
+          "name": "Mobile app support retainer",
+          "client": "Fabrikam Fitness",
+          "billable": true,
+          "rate": 120,
+          "budget_hours": 160,
+          "hours_logged": 151,
+          "project_manager": "Ana Lopez",
+          "active": true
+        }
+      },
+      {
+        "id": "c8594b70-f39e-5c35-b148-387ef83fb5f3",
+        "data": {
+          "code": "PRJ-1071",
+          "name": "Security review",
+          "client": "Tailspin Travel",
+          "billable": true,
+          "rate": 180,
+          "budget_hours": 80,
+          "hours_logged": 0,
+          "project_manager": "Emma Novak",
+          "active": true
+        }
+      },
+      {
+        "id": "4228ba5f-a64b-58f2-8f9a-f3214463ce9c",
+        "data": {
+          "code": "INT-0001",
+          "name": "Internal: training and development",
+          "client": "Internal",
+          "billable": false,
+          "budget_hours": 0,
+          "hours_logged": 96,
+          "project_manager": "Chloe Martin",
+          "active": true
+        }
+      },
+      {
+        "id": "3ad78b81-0705-5018-a433-a4e0055403ab",
+        "data": {
+          "code": "INT-0002",
+          "name": "Internal: pre-sales",
+          "client": "Internal",
+          "billable": false,
+          "budget_hours": 0,
+          "hours_logged": 130,
+          "project_manager": "Daniel Okafor",
+          "active": true
+        }
+      },
+      {
+        "id": "87317b9d-307c-53a7-a204-105aa1beeb8f",
+        "data": {
+          "code": "PRJ-0990",
+          "name": "Legacy CRM decommission (closed)",
+          "client": "Northwind Traders",
+          "billable": true,
+          "rate": 140,
+          "budget_hours": 200,
+          "hours_logged": 198,
+          "project_manager": "Ben Carter",
+          "active": false
+        }
+      }
+    ]
+  }
+}

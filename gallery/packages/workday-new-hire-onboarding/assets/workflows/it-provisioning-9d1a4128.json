@@ -1,0 +1,335 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "9d1a4128-aa23-54ea-bab9-08bed9e9d4bd",
+  "asset": {
+    "id": "9d1a4128-aa23-54ea-bab9-08bed9e9d4bd",
+    "name": "IT provisioning",
+    "description": "Sub-workflow: IT prepares the laptop and accounts for a new hire before their first day.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Provisioning requested",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 220
+        },
+        "config": {
+          "title": "IT provisioning: {{worker_name}} · ready by {{ready_by}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Ready-by SLA",
+        "position": {
+          "x": 400,
+          "y": 380
+        },
+        "config": {
+          "sla_label": "IT ready",
+          "mode": "exact",
+          "due_at": "{{ready_by}}",
+          "warning_amount": 2,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "it_task",
+        "type": "user_task",
+        "label": "Provision equipment and accounts",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "task_title": "Provision {{worker_name}} ({{business_title}}) by {{ready_by}}",
+          "task_description": "<p><strong>{{worker_name}}</strong> starts on {{hire_date}} at {{location}}.</p><p>Equipment: <strong>{{equipment}}</strong></p><p>Systems: {{systems}}</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Provisioned",
+            "Blocked"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "2b2870a1-e6aa-530a-bfb7-a314d485aed9",
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "asset_tag",
+              "label": "Laptop asset tag",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "accounts_created",
+              "label": "Accounts created",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "mfa_enrolled",
+              "label": "MFA enrolment sent",
+              "type": "boolean"
+            },
+            {
+              "key": "notes",
+              "label": "Notes",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "asset_tag",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "accounts_created",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "mfa_enrolled",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "IT provisioning",
+            "align": "left",
+            "subtitle": "{{worker_name}} · starts {{hire_date}}"
+          },
+          "form_buttons": [
+            {
+              "id": "done",
+              "label": "Provisioned",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Provisioned"
+            },
+            {
+              "id": "blocked",
+              "label": "Blocked",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Blocked"
+            }
+          ]
+        }
+      },
+      {
+        "id": "done_row",
+        "type": "update_data_table",
+        "label": "Mark provisioned",
+        "position": {
+          "x": 240,
+          "y": 720
+        },
+        "config": {
+          "table_id": "739169cc-e1e9-5bd8-805f-fcd3f0b5bd7e",
+          "table_name": "New hire log",
+          "operation": "update",
+          "match_column": "worker_id",
+          "match_value": "{{worker_id}}",
+          "column_values": {
+            "status": "IT provisioned"
+          }
+        }
+      },
+      {
+        "id": "blocked_log",
+        "type": "log",
+        "label": "Provisioning blocked",
+        "position": {
+          "x": 560,
+          "y": 720
+        },
+        "config": {
+          "message": "IT provisioning for {{worker_name}} blocked: {{task_data.notes}}",
+          "level": "warn"
+        }
+      },
+      {
+        "id": "end_ok",
+        "type": "end_workflow",
+        "label": "Provisioned",
+        "position": {
+          "x": 240,
+          "y": 880
+        },
+        "config": {
+          "reason": "{{worker_name}} provisioned ({{task_data.asset_tag}})"
+        }
+      },
+      {
+        "id": "end_blocked",
+        "type": "end_workflow",
+        "label": "Blocked",
+        "position": {
+          "x": 560,
+          "y": 880
+        },
+        "config": {
+          "reason": "IT provisioning blocked for {{worker_name}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-sla",
+        "source": "title",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-it_task",
+        "source": "sla",
+        "target": "it_task"
+      },
+      {
+        "id": "e-it_task-done_row-provisioned",
+        "source": "it_task",
+        "target": "done_row",
+        "label": "Provisioned"
+      },
+      {
+        "id": "e-it_task-blocked_log-blocked",
+        "source": "it_task",
+        "target": "blocked_log",
+        "label": "Blocked"
+      },
+      {
+        "id": "e-done_row-end_ok",
+        "source": "done_row",
+        "target": "end_ok"
+      },
+      {
+        "id": "e-blocked_log-end_blocked",
+        "source": "blocked_log",
+        "target": "end_blocked"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-worker_id",
+        "name": "worker_id",
+        "type": "string",
+        "description": "Workday worker id (WID)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Worker id"
+      },
+      {
+        "id": "v-worker_name",
+        "name": "worker_name",
+        "type": "string",
+        "description": "Worker name",
+        "defaultValue": "",
+        "required": true,
+        "label": "Worker"
+      },
+      {
+        "id": "v-business_title",
+        "name": "business_title",
+        "type": "string",
+        "description": "Business title",
+        "defaultValue": "",
+        "required": false,
+        "label": "Title"
+      },
+      {
+        "id": "v-location",
+        "name": "location",
+        "type": "string",
+        "description": "Work location",
+        "defaultValue": "",
+        "required": false,
+        "label": "Location"
+      },
+      {
+        "id": "v-hire_date",
+        "name": "hire_date",
+        "type": "string",
+        "description": "First day",
+        "defaultValue": "",
+        "required": false,
+        "label": "Hire date",
+        "format": "date"
+      },
+      {
+        "id": "v-equipment",
+        "name": "equipment",
+        "type": "string",
+        "description": "Equipment to prepare",
+        "defaultValue": "",
+        "required": false,
+        "label": "Equipment"
+      },
+      {
+        "id": "v-systems",
+        "name": "systems",
+        "type": "string",
+        "description": "Systems and access to set up",
+        "defaultValue": "",
+        "required": false,
+        "label": "Systems"
+      },
+      {
+        "id": "v-ready_by",
+        "name": "ready_by",
+        "type": "string",
+        "description": "Date IT must be ready",
+        "defaultValue": "",
+        "required": false,
+        "label": "Ready by",
+        "format": "date"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

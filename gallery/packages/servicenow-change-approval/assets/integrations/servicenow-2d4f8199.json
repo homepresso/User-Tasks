@@ -1,0 +1,27 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "2d4f8199-d586-5b02-bc32-526657bd3ee1",
+  "asset": {
+    "id": "2d4f8199-d586-5b02-bc32-526657bd3ee1",
+    "name": "ServiceNow",
+    "description": "ServiceNow Table API (/api/now). Use an OAuth bearer token (or Basic auth) for an integration user that can read change_request and update sysapproval_approver records.",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://acme.service-now.example.com/api/now",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {
+        "Accept": "application/json"
+      }
+    },
+    "is_active": true,
+    "tags": [
+      "itsm",
+      "servicenow",
+      "change"
+    ]
+  }
+}

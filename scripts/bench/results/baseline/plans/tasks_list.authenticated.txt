@@ -1,0 +1,20 @@
+-- tasks list for a user (newest 50) as authenticated
+SELECT * FROM public.tasks WHERE parent_task_id IS NULL AND deleted_at IS NULL AND acceptance_status <> 'pending' ORDER BY created_at DESC LIMIT 50
+
+Limit  (cost=40562.09..40562.22 rows=50 width=685) (actual time=1526.525..1526.532 rows=50 loops=1)
+  Buffers: shared hit=140406
+  ->  Sort  (cost=40562.09..40647.90 rows=34322 width=685) (actual time=1526.524..1526.527 rows=50 loops=1)
+        Sort Key: tasks.created_at DESC
+        Sort Method: top-N heapsort  Memory: 50kB
+        Buffers: shared hit=140406
+        ->  Seq Scan on tasks  (cost=7.77..39421.94 rows=34322 width=685) (actual time=0.368..1505.417 rows=49000 loops=1)
+              Filter: ((parent_task_id IS NULL) AND (deleted_at IS NULL) AND (acceptance_status <> 'pending'::text) AND CASE WHEN (get_current_tenant_id() IS NOT NULL) THEN (tenant_id = get_current_tenant_id()) ELSE (ANY (tenant_id = (hashed SubPlan 1).col1)) END)
+              Rows Removed by Filter: 21010
+              Buffers: shared hit=140406
+              SubPlan 1
+                ->  ProjectSet  (cost=0.00..5.27 rows=1000 width=16) (never executed)
+                      ->  Result  (cost=0.00..0.01 rows=1 width=0) (never executed)
+Planning:
+  Buffers: shared hit=5
+Planning Time: 0.117 ms
+Execution Time: 1526.561 ms

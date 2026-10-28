@@ -1,0 +1,86 @@
+{{- $p := .Values.app.probes }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "usertasks.fullname" . }}
+  labels:
+    {{- include "usertasks.labels" . | nindent 4 }}
+    app.kubernetes.io/component: app
+spec:
+  {{- if not .Values.app.autoscaling.enabled }}
+  replicas: {{ .Values.app.replicas }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "usertasks.componentLabels" (dict "root" . "component" "app") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "usertasks.podLabels" (dict "root" . "component" "app") | nindent 8 }}
+        {{- range $k, $v := .Values.app.podLabels }}
+        {{ $k }}: {{ toString $v | quote }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include "usertasks.configChecksum" . }}
+        {{- range $k, $v := .Values.app.podAnnotations }}
+        {{ $k }}: {{ toString $v | quote }}
+        {{- end }}
+    spec:
+      {{- include "usertasks.podCommon" (dict "root" .) | nindent 6 }}
+      terminationGracePeriodSeconds: {{ .Values.app.terminationGracePeriodSeconds }}
+      {{- with .Values.app.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- if and .Values.migrate.enabled .Values.waitForMigrations }}
+      initContainers:
+        {{- include "usertasks.waitForMigrations" . | trim | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: app
+          {{- include "usertasks.containerCommon" (dict "root" .) | nindent 10 }}
+          command:
+            {{- toYaml .Values.app.command | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          startupProbe:
+            httpGet: { path: {{ $p.path }}, port: http }
+            {{- toYaml $p.startup | nindent 12 }}
+          readinessProbe:
+            httpGet: { path: {{ $p.path }}, port: http }
+            {{- toYaml $p.readiness | nindent 12 }}
+          livenessProbe:
+            httpGet: { path: {{ $p.path }}, port: http }
+            {{- toYaml $p.liveness | nindent 12 }}
+          lifecycle:
+            # Let the Service / ingress stop routing before the server stops.
+            preStop:
+              exec:
+                command: ["sleep", "5"]
+          resources:
+            {{- toYaml .Values.app.resources | nindent 12 }}
+      volumes:
+        {{- include "usertasks.volumes" . | nindent 8 }}
+      {{- with .Values.app.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.app.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.app.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.app.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

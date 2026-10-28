@@ -1,0 +1,326 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "cc6f34fa-a650-4e22-860f-0756a320798f",
+  "asset": {
+    "id": "cc6f34fa-a650-4e22-860f-0756a320798f",
+    "name": "Manual fraud review",
+    "description": "Runs in the background for orders the fraud rules flag for review: a reviewer releases the held shipment or cancels the order (voiding the payment authorisation and the shipment).",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Review requested",
+        "position": {
+          "x": 660,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 660,
+          "y": 220
+        },
+        "config": {
+          "title": "Fraud review: order {{order_id}} (score {{risk_score}})"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Four-hour SLA",
+        "position": {
+          "x": 660,
+          "y": 380
+        },
+        "config": {
+          "sla_label": "Fraud review",
+          "mode": "relative",
+          "amount": 4,
+          "unit": "hours",
+          "warning_amount": 2,
+          "warning_unit": "hours"
+        }
+      },
+      {
+        "id": "task",
+        "type": "user_task",
+        "label": "Review order",
+        "position": {
+          "x": 660,
+          "y": 540
+        },
+        "config": {
+          "task_title": "Fraud review: order {{order_id}} · {{currency}} {{order_total}} · score {{risk_score}}",
+          "task_description": "<p>Order <strong>{{order_id}}</strong> for {{customer_email}}, {{currency}} {{order_total}}. Rule reason: <strong>{{fraud_reason}}</strong> (score {{risk_score}}).</p><p>Payment authorisation {{authorization_id}}; shipment {{shipment_id}} is on hold.</p><p>Check the customer history and contact details, then release or cancel.</p>",
+          "task_priority": "critical",
+          "outcomes": [
+            "Release order",
+            "Cancel order"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "420271d9-a872-4399-84c9-2fb8ff8318b5",
+          "assignee_variable": "{{fraud_reviewer_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 4,
+          "due_offset_unit": "hours",
+          "reminders": [
+            {
+              "offset_minutes": 120
+            }
+          ],
+          "fields": [
+            {
+              "key": "checks",
+              "label": "Checks done",
+              "type": "choice",
+              "options": [
+                "Phone verified",
+                "Email verified",
+                "Order history OK",
+                "No checks possible"
+              ],
+              "required": true
+            },
+            {
+              "key": "note",
+              "label": "Reviewer note",
+              "type": "text",
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "id": "release",
+        "type": "call_reference",
+        "label": "Release shipment",
+        "position": {
+          "x": 340,
+          "y": 720
+        },
+        "config": {
+          "reference_id": "89090080-9748-48b0-a939-cf61623e6066",
+          "reference_name": "Update shipment",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "shipment_id": "{{shipment_id}}",
+            "hold": "false",
+            "status": "ready_to_pick",
+            "note": "Fraud review passed: {{task_data.note}}"
+          }
+        }
+      },
+      {
+        "id": "end_ok",
+        "type": "end_workflow",
+        "label": "Released",
+        "position": {
+          "x": 340,
+          "y": 880
+        },
+        "config": {
+          "reason": "Order {{order_id}} released after review"
+        }
+      },
+      {
+        "id": "void",
+        "type": "call_reference",
+        "label": "Void authorisation",
+        "position": {
+          "x": 660,
+          "y": 720
+        },
+        "config": {
+          "reference_id": "d6287c8a-a04f-409f-b2c8-fa67644b02f1",
+          "reference_name": "Void authorisation",
+          "reference_method": "POST",
+          "input_mappings": {
+            "authorization_id": "{{authorization_id}}",
+            "reason": "Fraud review: {{task_data.note}}"
+          }
+        }
+      },
+      {
+        "id": "cancel",
+        "type": "call_reference",
+        "label": "Cancel shipment",
+        "position": {
+          "x": 660,
+          "y": 880
+        },
+        "config": {
+          "reference_id": "89090080-9748-48b0-a939-cf61623e6066",
+          "reference_name": "Update shipment",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "shipment_id": "{{shipment_id}}",
+            "hold": "true",
+            "status": "cancelled",
+            "note": "Cancelled after fraud review"
+          }
+        }
+      },
+      {
+        "id": "unreserve",
+        "type": "call_reference",
+        "label": "Release stock",
+        "position": {
+          "x": 660,
+          "y": 1040
+        },
+        "config": {
+          "reference_id": "052f65f1-f63c-4cfa-972d-12a8fb5bf0b8",
+          "reference_name": "Release reservation",
+          "reference_method": "POST",
+          "input_mappings": {
+            "reservation_id": "{{reservation_id}}",
+            "reason": "Order cancelled after fraud review"
+          }
+        }
+      },
+      {
+        "id": "end_cancel",
+        "type": "end_workflow",
+        "label": "Cancelled",
+        "position": {
+          "x": 660,
+          "y": 1200
+        },
+        "config": {
+          "reason": "Order {{order_id}} cancelled after review"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-sla",
+        "source": "title",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-task",
+        "source": "sla",
+        "target": "task"
+      },
+      {
+        "id": "e-task-release-release-order",
+        "source": "task",
+        "target": "release",
+        "label": "Release order"
+      },
+      {
+        "id": "e-release-end_ok",
+        "source": "release",
+        "target": "end_ok"
+      },
+      {
+        "id": "e-task-void-cancel-order",
+        "source": "task",
+        "target": "void",
+        "label": "Cancel order"
+      },
+      {
+        "id": "e-void-cancel",
+        "source": "void",
+        "target": "cancel"
+      },
+      {
+        "id": "e-cancel-unreserve",
+        "source": "cancel",
+        "target": "unreserve"
+      },
+      {
+        "id": "e-unreserve-end_cancel",
+        "source": "unreserve",
+        "target": "end_cancel"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-order_id",
+        "name": "order_id",
+        "type": "string",
+        "description": "Storefront order id",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-customer_email",
+        "name": "customer_email",
+        "type": "string",
+        "description": "Customer email",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-order_total",
+        "name": "order_total",
+        "type": "number",
+        "description": "Order total",
+        "defaultValue": "0"
+      },
+      {
+        "id": "v-currency",
+        "name": "currency",
+        "type": "string",
+        "description": "Currency",
+        "defaultValue": "NZD"
+      },
+      {
+        "id": "v-risk_score",
+        "name": "risk_score",
+        "type": "number",
+        "description": "Fraud risk score",
+        "defaultValue": "0"
+      },
+      {
+        "id": "v-fraud_reason",
+        "name": "fraud_reason",
+        "type": "string",
+        "description": "Why the rules flagged the order",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-shipment_id",
+        "name": "shipment_id",
+        "type": "string",
+        "description": "Held shipment id",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-reservation_id",
+        "name": "reservation_id",
+        "type": "string",
+        "description": "Stock reservation id",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-authorization_id",
+        "name": "authorization_id",
+        "type": "string",
+        "description": "Payment authorisation id",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-fraud_reviewer_id",
+        "name": "fraud_reviewer_id",
+        "type": "string",
+        "description": "Optional: user id of the fraud reviewer (overrides the install-time default)",
+        "defaultValue": ""
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

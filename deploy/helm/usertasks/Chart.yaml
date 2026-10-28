@@ -1,0 +1,15 @@
+apiVersion: v2
+name: usertasks
+description: UserTasks on Kubernetes — the web app, the scheduler worker or tick, database migrations, and optional bundled PostgreSQL, MinIO, Valkey and Mailpit for evaluation.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.27.0-0"
+home: https://usertasks.com
+icon: https://usertasks.com/brand/mark.svg
+keywords:
+  - tasks
+  - workflow
+  - bpm
+annotations:
+  artifacthub.io/license: Apache-2.0

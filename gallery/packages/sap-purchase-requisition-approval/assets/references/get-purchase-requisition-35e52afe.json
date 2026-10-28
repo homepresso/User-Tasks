@@ -1,0 +1,113 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "35e52afe-a361-59e4-be28-966a0b8b7844",
+  "asset": {
+    "id": "35e52afe-a361-59e4-be28-966a0b8b7844",
+    "integration_id": "01be02d0-1981-58ed-aeb3-dc41d468640b",
+    "name": "Get purchase requisition",
+    "description": "API_PURCHASEREQ_PROCESS_SRV: the requisition header (type, description).",
+    "tags": [
+      "sap",
+      "purchasing"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/API_PURCHASEREQ_PROCESS_SRV/A_PurchaseRequisitionHeader('{{purchase_requisition}}')",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "d",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "__metadata",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "id",
+                      "type": "string",
+                      "example": "https://s4.sap.example.com/sap/opu/odata/sap/API_PURCHASEREQ_PROCESS_SRV/A_PurchaseRequisitionHeader('10000123')"
+                    },
+                    {
+                      "name": "type",
+                      "type": "string",
+                      "example": "API_PURCHASEREQ_PROCESS_SRV.A_PurchaseRequisitionHeaderType"
+                    }
+                  ]
+                },
+                {
+                  "name": "PurchaseRequisition",
+                  "type": "string",
+                  "example": "10000123"
+                },
+                {
+                  "name": "PurchaseRequisitionType",
+                  "type": "string",
+                  "example": "NB"
+                },
+                {
+                  "name": "PurReqnDescription",
+                  "type": "string",
+                  "example": "Laptops for support team expansion"
+                },
+                {
+                  "name": "SourceDetermination",
+                  "type": "boolean",
+                  "example": false
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "d": {
+            "__metadata": {
+              "id": "https://s4.sap.example.com/sap/opu/odata/sap/API_PURCHASEREQ_PROCESS_SRV/A_PurchaseRequisitionHeader('10000123')",
+              "type": "API_PURCHASEREQ_PROCESS_SRV.A_PurchaseRequisitionHeaderType"
+            },
+            "PurchaseRequisition": "10000123",
+            "PurchaseRequisitionType": "NB",
+            "PurReqnDescription": "Laptops for support team expansion",
+            "SourceDetermination": false
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "7cc23bf8-e126-513a-b05d-3bac8a3e8b4e",
+        "name": "purchase_requisition",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "64010668-b762-56cb-aa4b-f73a1e3bfdc9",
+        "name": "pr_type",
+        "path": "d.PurchaseRequisitionType",
+        "type": "string"
+      },
+      {
+        "id": "b998d746-a895-5fb9-bb7c-16bfa36cb141",
+        "name": "pr_description",
+        "path": "d.PurReqnDescription",
+        "type": "string"
+      }
+    ]
+  }
+}

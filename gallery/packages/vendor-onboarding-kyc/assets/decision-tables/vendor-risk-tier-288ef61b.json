@@ -1,0 +1,226 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "288ef61b-7a59-43c8-962d-83596053190c",
+  "asset": {
+    "id": "288ef61b-7a59-43c8-962d-83596053190c",
+    "name": "Vendor risk tier",
+    "description": "Risk tier and the approvals a new vendor needs, from country risk, screening results and expected spend. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "e6e3375d-4c65-4772-9e6d-509ae1c4236f",
+        "key": "country_risk",
+        "label": "Country risk",
+        "type": "text"
+      },
+      {
+        "id": "9f6c5d00-d2e8-4728-a727-546ef2a27d2a",
+        "key": "sanctions_hit",
+        "label": "Sanctions hit",
+        "type": "boolean"
+      },
+      {
+        "id": "a50e1a0b-b7d6-416b-a911-e21281462e52",
+        "key": "risk_score",
+        "label": "Screening risk score",
+        "type": "number"
+      },
+      {
+        "id": "6059750b-74e1-45c1-ae20-907a863ebbe2",
+        "key": "annual_spend",
+        "label": "Expected annual spend",
+        "type": "number"
+      },
+      {
+        "id": "28c4c55d-29f7-4f72-8e6c-3606301c2bef",
+        "key": "registry_status",
+        "label": "Registry status",
+        "type": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "91b4a0a4-4329-4138-9a1f-f1f32d2b62ac",
+        "key": "risk_tier",
+        "label": "Risk tier",
+        "type": "text"
+      },
+      {
+        "id": "13d077d4-5170-4938-bd70-e176a2defc39",
+        "key": "approvals",
+        "label": "Approvals needed",
+        "type": "text"
+      },
+      {
+        "id": "9fab874a-f26c-4248-8c88-72b169f2d1de",
+        "key": "review_months",
+        "label": "Re-screen after (months)",
+        "type": "number"
+      }
+    ],
+    "rules": [
+      {
+        "id": "a444d9bd-eb39-412e-96fe-c4d48d7d49e9",
+        "label": "Sanctions hit",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "blocked",
+          "approvals": "Do not onboard",
+          "review_months": 0
+        },
+        "conditions": [
+          {
+            "id": "3d51e171-6096-44e4-a199-c7784c121061",
+            "inputKey": "sanctions_hit",
+            "operator": "equals",
+            "value": "true"
+          }
+        ]
+      },
+      {
+        "id": "6914ff8e-228a-44fc-a1e5-5a5c8aebe6bd",
+        "label": "Prohibited country",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "blocked",
+          "approvals": "Do not onboard",
+          "review_months": 0
+        },
+        "conditions": [
+          {
+            "id": "6fbbbcc2-b585-4dee-9c15-d2998fd9aa91",
+            "inputKey": "country_risk",
+            "operator": "equals",
+            "value": "prohibited"
+          }
+        ]
+      },
+      {
+        "id": "33912f98-bd25-4dab-b08a-fd7c8453aafe",
+        "label": "Not active in the registry",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "high",
+          "approvals": "Compliance review, finance bank check",
+          "review_months": 6
+        },
+        "conditions": [
+          {
+            "id": "2de54cc4-4b9b-4721-8643-4efc36b3e135",
+            "inputKey": "registry_status",
+            "operator": "not_equals",
+            "value": "active"
+          }
+        ]
+      },
+      {
+        "id": "bab6a9e1-e58f-44c3-b9b7-5a5c9bb6a8fd",
+        "label": "High-risk country",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "high",
+          "approvals": "Compliance review (EDD), finance bank check",
+          "review_months": 6
+        },
+        "conditions": [
+          {
+            "id": "8932fa4b-8c06-46d3-b333-6f02a9884ef9",
+            "inputKey": "country_risk",
+            "operator": "equals",
+            "value": "high"
+          }
+        ]
+      },
+      {
+        "id": "9705d2b2-530a-4fd0-9044-e4e2879b562e",
+        "label": "High screening score",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "high",
+          "approvals": "Compliance review (EDD), finance bank check",
+          "review_months": 6
+        },
+        "conditions": [
+          {
+            "id": "6a25bef3-b333-4911-9001-d82f1b2cc483",
+            "inputKey": "risk_score",
+            "operator": "greater_than_or_equal",
+            "value": "70"
+          }
+        ]
+      },
+      {
+        "id": "c029a53a-23d8-4c8a-9530-c92c0c05b560",
+        "label": "Medium screening score",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "medium",
+          "approvals": "Compliance review, finance bank check",
+          "review_months": 12
+        },
+        "conditions": [
+          {
+            "id": "66aa1708-d1d9-4a04-af47-66ddd51ef87e",
+            "inputKey": "risk_score",
+            "operator": "greater_than_or_equal",
+            "value": "40"
+          }
+        ]
+      },
+      {
+        "id": "68cf6a73-acfa-4564-aa66-de9296812b68",
+        "label": "Large spend",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "medium",
+          "approvals": "Compliance review, finance bank check",
+          "review_months": 12
+        },
+        "conditions": [
+          {
+            "id": "391501a3-5525-42db-8e2a-d6d93d6c0bd0",
+            "inputKey": "annual_spend",
+            "operator": "greater_than_or_equal",
+            "value": "250000"
+          }
+        ]
+      },
+      {
+        "id": "4862b112-3f24-4eaf-9f3c-23a58c32bd0d",
+        "label": "Medium-risk country",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "medium",
+          "approvals": "Compliance review, finance bank check",
+          "review_months": 12
+        },
+        "conditions": [
+          {
+            "id": "1ac1a0bc-3315-4d59-8d55-636f9e1e456e",
+            "inputKey": "country_risk",
+            "operator": "equals",
+            "value": "medium"
+          }
+        ]
+      },
+      {
+        "id": "0a659ed4-74e1-41e7-b6e0-a6bab3949363",
+        "label": "Low risk",
+        "enabled": true,
+        "outputs": {
+          "risk_tier": "low",
+          "approvals": "Finance bank check",
+          "review_months": 24
+        },
+        "conditions": [
+          {
+            "id": "e0713c5c-5f19-46a4-9d0a-21f5d333f790",
+            "inputKey": "country_risk",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

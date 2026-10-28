@@ -1,0 +1,88 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "4e4a23e9-834c-47eb-9326-704495f8c238",
+  "asset": {
+    "id": "4e4a23e9-834c-47eb-9326-704495f8c238",
+    "name": "Application catalogue rows",
+    "rows": [
+      {
+        "id": "e4b5811b-420e-4b0c-88c3-2513bc419657",
+        "data": {
+          "application": "Finance ERP",
+          "owner_role": "Financial controller",
+          "risk_level": "medium",
+          "privileged": false,
+          "provisioning_group": "app-erp-users",
+          "notes": "Holds payment data; SoD check for AP + vendor master"
+        }
+      },
+      {
+        "id": "2fe9a367-15ca-478d-ab4b-a43eb9c63a39",
+        "data": {
+          "application": "CRM",
+          "owner_role": "Head of sales operations",
+          "risk_level": "low",
+          "privileged": false,
+          "provisioning_group": "app-crm-users",
+          "notes": "Customer contact data"
+        }
+      },
+      {
+        "id": "5ae1ff9d-a9f6-40b8-8176-7a7e2c1b7392",
+        "data": {
+          "application": "HR system",
+          "owner_role": "HR operations manager",
+          "risk_level": "high",
+          "privileged": false,
+          "provisioning_group": "app-hris-users",
+          "notes": "Personal and salary data"
+        }
+      },
+      {
+        "id": "aea8aabc-a70a-41f0-b9cc-2583f73cddbf",
+        "data": {
+          "application": "Data warehouse",
+          "owner_role": "Head of data",
+          "risk_level": "medium",
+          "privileged": false,
+          "provisioning_group": "app-dwh-readers",
+          "notes": "Read-only analytics"
+        }
+      },
+      {
+        "id": "e357716c-40e0-48e9-952b-b3f4ec787802",
+        "data": {
+          "application": "Source control",
+          "owner_role": "Engineering manager",
+          "risk_level": "low",
+          "privileged": false,
+          "provisioning_group": "app-scm-developers",
+          "notes": "Write access to repositories"
+        }
+      },
+      {
+        "id": "1c018c55-8378-463e-8a4d-1e012f7361c3",
+        "data": {
+          "application": "Cloud console (admin)",
+          "owner_role": "Platform lead",
+          "risk_level": "high",
+          "privileged": true,
+          "provisioning_group": "app-cloud-admins",
+          "notes": "Break-glass and production admin"
+        }
+      },
+      {
+        "id": "db522f36-c4ce-46ce-9f99-f516e48e1890",
+        "data": {
+          "application": "Customer database (DBA)",
+          "owner_role": "Platform lead",
+          "risk_level": "high",
+          "privileged": true,
+          "provisioning_group": "app-db-admins",
+          "notes": "Direct database access"
+        }
+      }
+    ]
+  }
+}

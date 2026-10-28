@@ -1,0 +1,84 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "0f3de8b0-22cb-4c8f-882b-80c13443a385",
+  "asset": {
+    "id": "0f3de8b0-22cb-4c8f-882b-80c13443a385",
+    "integration_id": "f48769dc-8c95-4a2f-8a62-2e465311d822",
+    "name": "Ingest order",
+    "description": "Load one normalised order record into the warehouse ingest endpoint.",
+    "tags": [
+      "ingest"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{{record}}",
+      "path_template": "/ingest/orders",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "wh_ord_8812034"
+            },
+            {
+              "name": "result",
+              "type": "string",
+              "example": "inserted"
+            },
+            {
+              "name": "partition",
+              "type": "string",
+              "example": "2026-10-25"
+            },
+            {
+              "name": "received_at",
+              "type": "string",
+              "example": "2026-10-26T06:02:41Z"
+            }
+          ]
+        },
+        "sample": {
+          "id": "wh_ord_8812034",
+          "result": "inserted",
+          "partition": "2026-10-25",
+          "received_at": "2026-10-26T06:02:41Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "221ad7da-ed09-459d-9d3e-48790a241f80",
+        "name": "record",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "JSON warehouse record",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "c0f08c9a-20a3-411a-98f7-0ceef3bc74c0",
+        "name": "warehouse_id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "6169a459-9be5-4a77-9629-4368cf9baf76",
+        "name": "result",
+        "path": "result",
+        "type": "string"
+      }
+    ]
+  }
+}

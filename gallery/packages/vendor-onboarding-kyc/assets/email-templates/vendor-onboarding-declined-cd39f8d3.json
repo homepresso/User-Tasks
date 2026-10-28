@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "cd39f8d3-90cf-4807-9102-d4e43bd8c755",
+  "asset": {
+    "id": "cd39f8d3-90cf-4807-9102-d4e43bd8c755",
+    "name": "Vendor onboarding declined",
+    "description": "Sent to the requester when screening blocks the vendor or a reviewer declines it.",
+    "subject": "Vendor not onboarded: {{legal_name}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">This vendor was not onboarded</h2>\n  <p>Hi,</p>\n  <p>The onboarding request for <strong>{{legal_name}}</strong> ({{country}}) did not go ahead. Risk tier: {{risk_tier}}.</p>\n  <p>{{decline_reason}}</p>\n  <p>Contact compliance if you think this is wrong. Do not place orders with this vendor.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the procurement team at your company</p>\n</div>",
+    "text_body": "This vendor was not onboarded\n  Hi,\n  The onboarding request for {{legal_name}} ({{country}}) did not go ahead. Risk tier: {{risk_tier}}.\n  {{decline_reason}}\n  Contact compliance if you think this is wrong. Do not place orders with this vendor.\n  Sent by the procurement team at your company",
+    "is_default": false
+  }
+}

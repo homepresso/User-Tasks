@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "webhook_received",
+      "label": "Webhook",
+      "position": { "x": 400, "y": 20 },
+      "config": {}
+    },
+    {
+      "id": "n1",
+      "type": "set_variable",
+      "label": "Set Status",
+      "position": { "x": 400, "y": 160 },
+      "config": { "name": "ticket_status", "expression": "escalated" }
+    },
+    {
+      "id": "n2",
+      "type": "switch_case",
+      "label": "Route by Status",
+      "position": { "x": 400, "y": 300 },
+      "config": {
+        "field": "{{ticket_status}}",
+        "cases": [
+          { "value": "new", "label": "New" },
+          { "value": "open", "label": "Open" },
+          { "value": "escalated", "label": "Escalated" },
+          { "value": "closed", "label": "Closed" }
+        ],
+        "has_default": true
+      }
+    },
+    {
+      "id": "n3",
+      "type": "log",
+      "label": "Handle New",
+      "position": { "x": 40, "y": 480 },
+      "config": { "message": "New ticket received" }
+    },
+    {
+      "id": "n4",
+      "type": "log",
+      "label": "Handle Open",
+      "position": { "x": 240, "y": 480 },
+      "config": { "message": "Ticket is open, assigning agent" }
+    },
+    {
+      "id": "n5",
+      "type": "log",
+      "label": "Handle Escalated",
+      "position": { "x": 440, "y": 480 },
+      "config": { "message": "URGENT: Ticket escalated!" }
+    },
+    {
+      "id": "n6",
+      "type": "log",
+      "label": "Handle Closed",
+      "position": { "x": 640, "y": 480 },
+      "config": { "message": "Ticket closed, sending survey" }
+    },
+    {
+      "id": "n7",
+      "type": "log",
+      "label": "Handle Unknown",
+      "position": { "x": 840, "y": 480 },
+      "config": { "message": "Unknown status: {{ticket_status}}" }
+    },
+    {
+      "id": "n8",
+      "type": "log",
+      "label": "Done",
+      "position": { "x": 400, "y": 640 },
+      "config": { "message": "Routing complete for status: {{ticket_status}}" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "t1", "target": "n1" },
+    { "id": "e2", "source": "n1", "target": "n2" },
+    { "id": "e3", "source": "n2", "target": "n3", "label": "New" },
+    { "id": "e4", "source": "n2", "target": "n4", "label": "Open" },
+    { "id": "e5", "source": "n2", "target": "n5", "label": "Escalated" },
+    { "id": "e6", "source": "n2", "target": "n6", "label": "Closed" },
+    { "id": "e7", "source": "n2", "target": "n7", "label": "Default" },
+    { "id": "e8", "source": "n3", "target": "n8" },
+    { "id": "e9", "source": "n4", "target": "n8" },
+    { "id": "e10", "source": "n5", "target": "n8" },
+    { "id": "e11", "source": "n6", "target": "n8" },
+    { "id": "e12", "source": "n7", "target": "n8" }
+  ],
+  "user_variables": [
+    { "id": "v1", "name": "ticket_status", "type": "string", "defaultValue": "new", "description": "Incoming ticket status" }
+  ],
+  "swimlanes": []
+}

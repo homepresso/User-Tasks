@@ -1,0 +1,585 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "c1a9ae1d-6e10-58b3-a80f-ceda50d73c32",
+  "asset": {
+    "id": "c1a9ae1d-6e10-58b3-a80f-ceda50d73c32",
+    "name": "Event registration",
+    "description": "A registration from the form: the event's confirmed places are counted against its capacity, the attendee is confirmed or waitlisted and emailed, and special requests go to the organiser.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Registration received",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "form_id": "46c88b95-e7b2-5bfc-9b9b-97a4023234a7",
+          "form_name": "Event registration"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Registration reference",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "name": "reg_ref",
+          "expression": "REG-{{=LEFT(form_submission_id, 8)}}"
+        }
+      },
+      {
+        "id": "event",
+        "type": "update_data_table",
+        "label": "Read the event",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "table_id": "0ad60e26-f882-550f-836a-00d5e3270e7d",
+          "table_name": "Events",
+          "operation": "get",
+          "match_column": "event_code",
+          "match_value": "{{form.event}}",
+          "output_row_var": "event_row"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 480
+        },
+        "config": {
+          "title": "{{form.name}} → {{event_row.title}} ({{reg_ref}})"
+        }
+      },
+      {
+        "id": "taken",
+        "type": "update_data_table",
+        "label": "Count confirmed places",
+        "position": {
+          "x": 400,
+          "y": 620
+        },
+        "config": {
+          "table_id": "e80a6fda-a5be-5085-8261-e68b582fc7b6",
+          "table_name": "Registrations",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "event_code",
+              "operator": "eq",
+              "value": "{{form.event}}"
+            },
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Confirmed"
+            }
+          ],
+          "limit": 1000,
+          "output_rows_var": "confirmed_rows",
+          "output_count_var": "confirmed_count"
+        }
+      },
+      {
+        "id": "full",
+        "type": "set_variable",
+        "label": "Is it full?",
+        "position": {
+          "x": 400,
+          "y": 760
+        },
+        "config": {
+          "name": "is_full",
+          "expression": "{{=confirmed_count >= event_row.capacity}}"
+        }
+      },
+      {
+        "id": "room",
+        "type": "condition",
+        "label": "Room left?",
+        "position": {
+          "x": 400,
+          "y": 900
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Full",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{is_full}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "waiting",
+        "type": "update_data_table",
+        "label": "Waitlist so far",
+        "position": {
+          "x": 720,
+          "y": 1040
+        },
+        "config": {
+          "table_id": "e80a6fda-a5be-5085-8261-e68b582fc7b6",
+          "table_name": "Registrations",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "event_code",
+              "operator": "eq",
+              "value": "{{form.event}}"
+            },
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Waitlisted"
+            }
+          ],
+          "limit": 1000,
+          "output_rows_var": "waitlist_rows",
+          "output_count_var": "waitlist_count"
+        }
+      },
+      {
+        "id": "pos",
+        "type": "set_variable",
+        "label": "Waitlist position",
+        "position": {
+          "x": 720,
+          "y": 1180
+        },
+        "config": {
+          "name": "waitlist_position",
+          "expression": "{{=waitlist_count + 1}}"
+        }
+      },
+      {
+        "id": "wl_row",
+        "type": "update_data_table",
+        "label": "Add to the waitlist",
+        "position": {
+          "x": 720,
+          "y": 1320
+        },
+        "config": {
+          "table_id": "e80a6fda-a5be-5085-8261-e68b582fc7b6",
+          "table_name": "Registrations",
+          "operation": "insert",
+          "column_values": {
+            "reg_ref": "{{reg_ref}}",
+            "event_code": "{{form.event}}",
+            "event_title": "{{event_row.title}}",
+            "event_date": "{{event_row.event_date}}",
+            "name": "{{form.name}}",
+            "email": "{{form.email}}",
+            "company": "{{form.company}}",
+            "job_title": "{{form.job_title}}",
+            "dietary": "{{form.dietary}}",
+            "special_request": "{{form.special_request}}",
+            "request_status": "{{=IF(IS_EMPTY(form.special_request), \"None\", \"Pending\")}}",
+            "status": "Waitlisted",
+            "registered_on": "{{=TODAY()}}"
+          }
+        }
+      },
+      {
+        "id": "wl_mail",
+        "type": "send_email",
+        "label": "Tell them they are waitlisted",
+        "position": {
+          "x": 720,
+          "y": 1460
+        },
+        "config": {
+          "to": "{{form.email}}",
+          "email_template_id": "1e58caad-c74b-52ce-9b3c-52e8d43a5cdf"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "wl_end",
+        "type": "end_workflow",
+        "label": "Waitlisted",
+        "position": {
+          "x": 720,
+          "y": 1600
+        },
+        "config": {
+          "reason": "{{form.name}} waitlisted (#{{waitlist_position}}) for {{event_row.title}}"
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Confirm the place",
+        "position": {
+          "x": 160,
+          "y": 1040
+        },
+        "config": {
+          "table_id": "e80a6fda-a5be-5085-8261-e68b582fc7b6",
+          "table_name": "Registrations",
+          "operation": "insert",
+          "column_values": {
+            "reg_ref": "{{reg_ref}}",
+            "event_code": "{{form.event}}",
+            "event_title": "{{event_row.title}}",
+            "event_date": "{{event_row.event_date}}",
+            "name": "{{form.name}}",
+            "email": "{{form.email}}",
+            "company": "{{form.company}}",
+            "job_title": "{{form.job_title}}",
+            "dietary": "{{form.dietary}}",
+            "special_request": "{{form.special_request}}",
+            "request_status": "{{=IF(IS_EMPTY(form.special_request), \"None\", \"Pending\")}}",
+            "status": "Confirmed",
+            "registered_on": "{{=TODAY()}}"
+          }
+        }
+      },
+      {
+        "id": "ok_mail",
+        "type": "send_email",
+        "label": "Send the confirmation",
+        "position": {
+          "x": 160,
+          "y": 1180
+        },
+        "config": {
+          "to": "{{form.email}}",
+          "email_template_id": "a80b60ab-b759-5528-91c8-8fbfd11204b4"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "req",
+        "type": "condition",
+        "label": "Special request?",
+        "position": {
+          "x": 160,
+          "y": 1320
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Request",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{form.special_request}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "organiser",
+        "type": "user_task",
+        "label": "Organiser reviews the request",
+        "position": {
+          "x": 0,
+          "y": 1460
+        },
+        "config": {
+          "task_title": "Special request from {{form.name}}: {{event_row.title}}",
+          "task_description": "<p><strong>{{form.name}}</strong> ({{form.job_title}}, {{form.company}}) registered for <strong>{{event_row.title}}</strong> on {{event_row.event_date}} at {{event_row.venue}} and asked:</p><blockquote>{{form.special_request}}</blockquote><p>Dietary: {{form.dietary}}. Confirm if you can arrange it, or decline with an alternative; your reply is emailed to them.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Confirm",
+            "Decline"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_owner_id}}",
+          "fields": [
+            {
+              "key": "reply",
+              "label": "Reply to the attendee",
+              "type": "textarea",
+              "required": true,
+              "help_text": "This text is emailed to the attendee."
+            },
+            {
+              "key": "arranged_with",
+              "label": "Arranged with (venue, caterer…)",
+              "type": "text"
+            },
+            {
+              "key": "cost",
+              "label": "Extra cost",
+              "type": "currency",
+              "currency": "NZD"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "reply",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "arranged_with",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "cost",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "confirm",
+              "label": "Confirm",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Confirm"
+            },
+            {
+              "id": "decline",
+              "label": "Decline",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Decline"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Special request",
+            "align": "left",
+            "subtitle": "{{event_row.title}} · {{form.name}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320,
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#DB2777",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 16,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "req_row",
+        "type": "update_data_table",
+        "label": "Record the answer",
+        "position": {
+          "x": 0,
+          "y": 1620
+        },
+        "config": {
+          "table_id": "e80a6fda-a5be-5085-8261-e68b582fc7b6",
+          "table_name": "Registrations",
+          "operation": "update",
+          "match_column": "reg_ref",
+          "match_value": "{{reg_ref}}",
+          "column_values": {
+            "request_status": "{{=IF(outcome == \"Confirm\", \"Confirmed\", \"Declined\")}}",
+            "request_reply": "{{task_data.reply}}"
+          }
+        }
+      },
+      {
+        "id": "req_mail",
+        "type": "send_email",
+        "label": "Email the answer",
+        "position": {
+          "x": 0,
+          "y": 1760
+        },
+        "config": {
+          "to": "{{form.email}}",
+          "email_template_id": "349fee62-c63e-5ae2-bc2b-3b67989b4f11"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "req_end",
+        "type": "end_workflow",
+        "label": "Request answered",
+        "position": {
+          "x": 0,
+          "y": 1900
+        },
+        "config": {
+          "reason": "{{form.name}} confirmed for {{event_row.title}}; request {{outcome}}"
+        }
+      },
+      {
+        "id": "ok_end",
+        "type": "end_workflow",
+        "label": "Registered",
+        "position": {
+          "x": 360,
+          "y": 1460
+        },
+        "config": {
+          "reason": "{{form.name}} confirmed for {{event_row.title}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-event",
+        "source": "ref",
+        "target": "event"
+      },
+      {
+        "id": "e-event-title",
+        "source": "event",
+        "target": "title"
+      },
+      {
+        "id": "e-title-taken",
+        "source": "title",
+        "target": "taken"
+      },
+      {
+        "id": "e-taken-full",
+        "source": "taken",
+        "target": "full"
+      },
+      {
+        "id": "e-full-room",
+        "source": "full",
+        "target": "room"
+      },
+      {
+        "id": "e-room-waiting-full",
+        "source": "room",
+        "target": "waiting",
+        "label": "Full"
+      },
+      {
+        "id": "e-waiting-pos",
+        "source": "waiting",
+        "target": "pos"
+      },
+      {
+        "id": "e-pos-wl_row",
+        "source": "pos",
+        "target": "wl_row"
+      },
+      {
+        "id": "e-wl_row-wl_mail",
+        "source": "wl_row",
+        "target": "wl_mail"
+      },
+      {
+        "id": "e-wl_mail-wl_end",
+        "source": "wl_mail",
+        "target": "wl_end"
+      },
+      {
+        "id": "e-room-row-else",
+        "source": "room",
+        "target": "row",
+        "label": "Else"
+      },
+      {
+        "id": "e-row-ok_mail",
+        "source": "row",
+        "target": "ok_mail"
+      },
+      {
+        "id": "e-ok_mail-req",
+        "source": "ok_mail",
+        "target": "req"
+      },
+      {
+        "id": "e-req-organiser-request",
+        "source": "req",
+        "target": "organiser",
+        "label": "Request"
+      },
+      {
+        "id": "e-req-ok_end-else",
+        "source": "req",
+        "target": "ok_end",
+        "label": "Else"
+      },
+      {
+        "id": "e-organiser-req_row-confirm",
+        "source": "organiser",
+        "target": "req_row",
+        "label": "Confirm"
+      },
+      {
+        "id": "e-organiser-req_row-decline",
+        "source": "organiser",
+        "target": "req_row",
+        "label": "Decline"
+      },
+      {
+        "id": "e-req_row-req_mail",
+        "source": "req_row",
+        "target": "req_mail"
+      },
+      {
+        "id": "e-req_mail-req_end",
+        "source": "req_mail",
+        "target": "req_end"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

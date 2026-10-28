@@ -1,0 +1,72 @@
+{
+  "title": "Visitor sign-in",
+  "category": "workplace",
+  "summary": "A themed reception form signs visitors in, looks up their host, logs the visit, emails the host and has reception confirm an NDA when needed.",
+  "description": "Visitor sign-in puts a welcoming, branded form on the reception tablet. The visitor enters their name, company and contact details, starts typing who they are visiting and picks the host from the Staff directory table; the host's email and team fill in by themselves.\n\nSigning in shows a success screen to the visitor and starts the Visitor arrival workflow through its Form submitted trigger: it creates a visit reference and a badge number, adds the visit to the Visitor log table and emails the host.\n\nWhen the visitor will see confidential information, reception gets a task to confirm the NDA, with NDA signed and Visitor refused buttons. A 12-month retention policy is included for the visitor records. Everything is built in, so it works as soon as it is installed.",
+  "trigger": "form",
+  "entry_workflow": "b1729d39-b03e-5077-a2da-778ba04a70fd",
+  "entry_form": "523968d3-46a7-5400-bec4-4275f5655a6d",
+  "start": "Starts from a form page: open the Visitor sign-in form (/f/<id>) on the reception tablet; each sign-in starts the workflow.",
+  "difficulty": "starter",
+  "setup_minutes": 5,
+  "tags": [
+    "visitors",
+    "reception",
+    "forms",
+    "lookup",
+    "no integrations"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Nothing to configure: install it and open the Visitor sign-in form from Forms (or share its /f/ link on the reception tablet).",
+    "Replace the sample people in the Staff directory table with your hosts (or import a CSV).",
+    "Optional: apply the \"Visitor log: 12 months\" retention policy to the Visitor log table, and set EMAIL_PROVIDER so host emails are delivered (the console provider logs them)."
+  ],
+  "steps": [
+    {
+      "title": "Visitor signs in",
+      "body": "On the themed form the visitor enters their details and picks their host; the host's email and team fill in from the Staff directory."
+    },
+    {
+      "title": "Welcome screen",
+      "body": "Sign in shows a success screen with the host's name and a Next visitor button."
+    },
+    {
+      "title": "Log and badge",
+      "body": "The Form submitted trigger starts the workflow: a visit reference and badge number, and a row in the Visitor log."
+    },
+    {
+      "title": "Tell the host",
+      "body": "The host gets an email that their visitor is at reception."
+    },
+    {
+      "title": "NDA when needed",
+      "body": "If the visitor will see confidential information, reception confirms the signed NDA with the NDA signed or Visitor refused buttons."
+    }
+  ],
+  "sample_input": {
+    "visitor_name": "Grace Kim",
+    "company": "Northwind Traders",
+    "visitor_email": "grace.kim@example.com",
+    "visitor_phone": "+1 555 0100",
+    "host": "ana.lopez@example.com",
+    "purpose": "Meeting",
+    "nda_required": true,
+    "agree": true
+  },
+  "expect": "waiting",
+  "icon": "door-open",
+  "id": "e0671c2b-28a0-5735-b1a6-e3c3950c2bc5",
+  "slug": "visitor-sign-in"
+}

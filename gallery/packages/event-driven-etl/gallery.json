@@ -1,0 +1,89 @@
+{
+  "id": "c412c470-95c3-4682-b5ba-5782d19cd591",
+  "slug": "event-driven-etl",
+  "title": "Event-driven ETL",
+  "category": "headless-integration",
+  "summary": "Each new row in an Orders staging table is normalised, converted to the base currency, loaded into the warehouse and marked loaded or failed.",
+  "description": "Event-driven ETL loads orders into your data warehouse the moment they are staged. Anything that writes a row into the Orders staging table (a CSV import, a form, another workflow or the API) starts a run for that row.\n\nThe workflow normalises the row: an upper-case currency code, a lower-case email, a trimmed customer name and an ISO order date. It looks up the exchange rate in the Currency rates table, converts the amount into the base currency, builds the warehouse record and posts it to the warehouse ingest API.\n\nThe staging row is then updated with load_status loaded (and the warehouse id) or failed (with the reason: no rate, or the HTTP status). The trigger listens to created events only, so these updates do not start new runs. Adapt the record fields to your warehouse schema and keep the rates current.",
+  "trigger": "event",
+  "entry_workflow": "c0ccf69e-dcc3-4ef0-9e91-ed0780fd1b1a",
+  "start": "Starts when a row is created in the Orders staging data table (insert from an import, a form, another workflow or the API).",
+  "difficulty": "intermediate",
+  "setup_minutes": 10,
+  "tags": [
+    "etl",
+    "data table event",
+    "warehouse",
+    "currency",
+    "headless"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api"
+  ],
+  "setup": [
+    "Data warehouse integration: set the base URL and API token. Ingest order posts the JSON record to /ingest/orders.",
+    "Update the Currency rates rows (or keep them current with another workflow); the base currency is NZD in the samples.",
+    "Adjust the Warehouse record step to your warehouse column names.",
+    "Load data by inserting rows into Orders staging with load_status pending."
+  ],
+  "steps": [
+    {
+      "title": "Row staged",
+      "body": "A new row in Orders staging starts the run with its values."
+    },
+    {
+      "title": "Normalise",
+      "body": "The currency code is upper-cased, the email lower-cased, the name trimmed and the order date formatted as ISO."
+    },
+    {
+      "title": "Convert",
+      "body": "The Currency rates row for the currency gives the rate; the amount is converted into the base currency."
+    },
+    {
+      "title": "Load",
+      "body": "The warehouse record is built and posted to the ingest API."
+    },
+    {
+      "title": "Write back",
+      "body": "The staging row is marked loaded with the warehouse id, or failed with the reason."
+    }
+  ],
+  "sample_input": {
+    "data_event": "created",
+    "data_event_type": "created",
+    "row": {
+      "order_ref": "WEB-30417",
+      "customer_name": "  Ana Silva ",
+      "customer_email": "Ana.Silva@Example.net",
+      "order_date": "2026-10-25T21:14:00Z",
+      "currency": "usd",
+      "amount": 249.9,
+      "channel": "web",
+      "load_status": "pending",
+      "warehouse_id": "",
+      "load_message": ""
+    },
+    "row_id": "aa555563-7577-479d-bd90-5fbc9ec12121",
+    "table_row_id": "aa555563-7577-479d-bd90-5fbc9ec12121",
+    "order_ref": "WEB-30417",
+    "customer_name": "  Ana Silva ",
+    "customer_email": "Ana.Silva@Example.net",
+    "order_date": "2026-10-25T21:14:00Z",
+    "currency": "usd",
+    "amount": 249.9,
+    "channel": "web",
+    "load_status": "pending",
+    "warehouse_id": "",
+    "load_message": ""
+  },
+  "expect": "completed",
+  "icon": "database"
+}

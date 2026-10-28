@@ -1,0 +1,116 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "6f26592a-312d-55d4-b2be-e79ea9ac6d16",
+  "asset": {
+    "id": "6f26592a-312d-55d4-b2be-e79ea9ac6d16",
+    "name": "Acknowledgements",
+    "description": "One row per person per policy version: Pending until it is acknowledged, with the date, method and how many reminders were sent.",
+    "columns": [
+      {
+        "id": "b909f51b-60d1-5dca-abc9-86a208236985",
+        "required": true,
+        "key": "ack_key",
+        "name": "Key",
+        "type": "text"
+      },
+      {
+        "id": "34843148-3f9d-5746-b0da-8837ee87c0e5",
+        "required": true,
+        "key": "policy_code",
+        "name": "Policy code",
+        "type": "text"
+      },
+      {
+        "id": "f52eaa2e-4221-567d-a10d-086dc1573b94",
+        "required": false,
+        "key": "policy_title",
+        "name": "Policy",
+        "type": "text"
+      },
+      {
+        "id": "7ec4b564-d855-5809-8208-e0639edea25f",
+        "required": false,
+        "key": "version",
+        "name": "Version",
+        "type": "text"
+      },
+      {
+        "id": "e9a6bc34-9583-5ff7-9f08-3ba4bfe6dcca",
+        "required": true,
+        "key": "staff_email",
+        "name": "Staff email",
+        "type": "email"
+      },
+      {
+        "id": "65030692-6cc8-5964-a861-7b685eb28dd0",
+        "required": false,
+        "key": "staff_name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "d821fbee-b0a5-53db-8d59-64d943721247",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "text"
+      },
+      {
+        "id": "576a86c0-2c9c-59b2-a425-9580e186a343",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Pending",
+          "Acknowledged",
+          "Exempt",
+          "Refused"
+        ]
+      },
+      {
+        "id": "1350a927-856d-5c99-9f35-ce1d5cfb3d08",
+        "required": false,
+        "key": "issued_on",
+        "name": "Issued",
+        "type": "date"
+      },
+      {
+        "id": "5b98dbeb-d6da-5ec6-a0a6-b7020e7d8a9e",
+        "required": false,
+        "key": "due_date",
+        "name": "Due",
+        "type": "date"
+      },
+      {
+        "id": "4103969d-baa1-5298-aae7-3ccd6e63fb2f",
+        "required": false,
+        "key": "acknowledged_on",
+        "name": "Acknowledged on",
+        "type": "date"
+      },
+      {
+        "id": "eddc8845-1bf6-5176-aef1-aa88f690ad8c",
+        "required": false,
+        "key": "method",
+        "name": "Method",
+        "type": "text"
+      },
+      {
+        "id": "240dd11a-a172-5ecf-b594-34e093fb32af",
+        "required": false,
+        "key": "reminders_sent",
+        "name": "Reminders sent",
+        "type": "number"
+      },
+      {
+        "id": "b73885ee-ef14-577d-bed3-03ea86237348",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      }
+    ]
+  }
+}

@@ -1,0 +1,253 @@
+name: Release gates
+
+# Deployment profiles and the full instance migration, end to end
+# (docs/deployment-profiles.md). Slow (Docker image builds, a Supabase stack),
+# so not on every push: run by hand, on app release tags, or from another
+# workflow (`uses: ./.github/workflows/release-gates.yml`).
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Each reference profile: build the image, start the stack, smoke test it
+  # (HTTP checks inside the deployment's network + usertasks-admin doctor
+  # incl. a scheduler tick; on-prem: no outbound internet), tear it down.
+  profiles:
+    name: Profile ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: standalone, profile: standalone, flags: '' }
+          - { name: standalone + PgBouncer, profile: standalone, flags: '--pgbouncer' }
+          - { name: standalone + local-kms (aws_kms), profile: standalone, flags: '--kms aws_kms' }
+          - { name: on-prem (isolated network, Keycloak, OpenBao), profile: onprem, flags: '--keycloak' }
+          - { name: azure (emulated), profile: azure, flags: '' }
+          - { name: gcp (emulated), profile: gcp, flags: '' }
+          - { name: aws (emulated), profile: aws, flags: '' }
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build the image
+        run: docker build -t usertasks:local .
+
+      - name: Up
+        run: npm run stack -- up --profile ${{ matrix.profile }} --env deploy/compose/.state/ci.env --project usertasks-ci --no-build ${{ matrix.flags }}
+
+      - name: Smoke
+        run: npm run stack -- smoke --profile ${{ matrix.profile }} --env deploy/compose/.state/ci.env --project usertasks-ci ${{ matrix.flags }}
+
+      - name: Logs
+        if: failure()
+        run: npm run stack -- compose --profile ${{ matrix.profile }} --env deploy/compose/.state/ci.env --project usertasks-ci ${{ matrix.flags }} -- logs --tail 200
+
+      - name: Down
+        if: always()
+        run: npm run stack -- down --profile ${{ matrix.profile }} --env deploy/compose/.state/ci.env --project usertasks-ci ${{ matrix.flags }} --volumes
+
+  # The Helm chart: lint, chart-testing lint, every example rendered and
+  # validated against the Kubernetes (and CRD) schemas.
+  helm-lint:
+    name: Helm chart (lint, kubeconform)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.18.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Provider option table is up to date
+        run: npx tsx scripts/helm-options.ts --check
+
+      - name: helm lint (default and every example)
+        run: |
+          helm lint deploy/helm/usertasks
+          for f in deploy/helm/usertasks/examples/*.yaml; do helm lint deploy/helm/usertasks -f "$f"; done
+
+      - name: ct lint
+        run: docker run --rm -v "$PWD":/repo -w /repo quay.io/helmpack/chart-testing:v3.13.0 ct lint --config ct.yaml --all
+
+      - name: helm template + kubeconform
+        run: |
+          mkdir -p rendered
+          helm template t deploy/helm/usertasks > rendered/default.yaml
+          for f in deploy/helm/usertasks/examples/*.yaml; do
+            helm template t deploy/helm/usertasks -f "$f" --set bootstrap.enabled=true,bootstrap.email=a@example.com,bootstrap.org=X > "rendered/$(basename "$f")"
+          done
+          docker run --rm -v "$PWD/rendered":/r ghcr.io/yannh/kubeconform:v0.7.0 -strict -summary -kubernetes-version 1.30.0 \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' /r
+
+  # The chart on kind: eval install with the egress allowlist, in-cluster
+  # smoke test, doctor, no-egress check, upgrade; hook-mode release with the
+  # tick CronJob.
+  helm-kind:
+    name: Helm chart on kind
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: helm-lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.18.4
+
+      - uses: helm/kind-action@v1
+        with:
+          install_only: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build the image
+        run: docker build -t usertasks:local .
+
+      - name: Helm gate (kind)
+        run: npm run helm:gate -- --image usertasks:local
+
+  # The air-gapped bundle, built here and run on an offline host (Docker in
+  # Docker on an internal network): verify, load, compose up, smoke, CLI.
+  air-gapped:
+    name: Air-gapped bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.18.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build the image
+        run: docker build -t usertasks:local .
+
+      - name: Create the bundle (throwaway signing key)
+        run: |
+          openssl genpkey -algorithm ed25519 -out "$RUNNER_TEMP/bundle-key.pem"
+          npm run bundle -- create --image usertasks:local --signing-key "$RUNNER_TEMP/bundle-key.pem" --out "$RUNNER_TEMP/bundle"
+          echo "FINGERPRINT=$(openssl pkey -in "$RUNNER_TEMP/bundle-key.pem" -pubout -outform DER | sha256sum | cut -c1-32 | sed 's/../&:/g; s/:$//')" >> "$GITHUB_ENV"
+
+      - name: Bundle on an offline host
+        run: npm run bundle:e2e -- "$(ls "$RUNNER_TEMP"/bundle/*.tar)" --fingerprint "$FINGERPRINT"
+
+  # A Supabase-backed install with the Northwind demo, moved off Supabase with
+  # usertasks-admin switch (auth, realtime, scheduler, storage, email, secrets,
+  # database), restarted without Supabase, then: surface E2E, migrated-password
+  # sign-in, /files, worker jobs, log export, doctor, RLS snapshot.
+  instance-migration:
+    name: Instance migration (Supabase → standalone)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5440:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 2s --health-timeout 5s --health-retries 30
+      mailpit:
+        image: axllent/mailpit:v1.27
+        ports: ['1025:1025', '8025:8025']
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start the local Supabase stack (the install to migrate)
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit,postgres-meta,realtime
+
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9010:9000 -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin pgsty/minio server /data
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:9010/minio/health/live && break; sleep 1; done
+
+      - name: Build the app and the CLI
+        run: |
+          npm run build
+          npm run cli:build
+        env:
+          DEPLOYMENT_MODE: self_hosted
+          NEXT_PUBLIC_APP_URL: http://localhost:3420
+
+      - name: Instance migration E2E
+        run: |
+          eval "$(supabase status -o env | sed 's/^/export SB_/')"
+          E2E_SUPABASE_URL="$SB_API_URL" \
+          E2E_SUPABASE_ANON_KEY="$SB_ANON_KEY" \
+          E2E_SUPABASE_SERVICE_ROLE_KEY="$SB_SERVICE_ROLE_KEY" \
+          E2E_SUPABASE_JWT_SECRET="$SB_JWT_SECRET" \
+          E2E_SOURCE_DB_URL="$SB_DB_URL" \
+          npx tsx scripts/e2e-instance-migration.ts
+        env:
+          E2E_CONFIRM_DISPOSABLE: '1'
+          E2E_ALLOW_DEFAULT_PORTS: '1'
+          E2E_TARGET_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:5440/postgres
+          E2E_S3_ENDPOINT: http://127.0.0.1:9010
+          E2E_REPORT: ${{ runner.temp }}/instance-migration.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: instance-migration-report
+          path: ${{ runner.temp }}/instance-migration.json
+          if-no-files-found: ignore
+
+      - name: Stop the stack
+        if: always()
+        run: supabase stop --no-backup

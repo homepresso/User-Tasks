@@ -1,0 +1,754 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "e07693e3-2c92-4650-9da3-b95b3d3958ac",
+  "asset": {
+    "id": "e07693e3-2c92-4650-9da3-b95b3d3958ac",
+    "name": "Generate contract documents",
+    "description": "An application posts contract data; the document type sets the title, file name, folder, retention and signature rule; the Word template is filled, an optional Excel schedule is produced, the files are registered in the DMS and the contract is sent for e-signature.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Contract data received",
+        "position": {
+          "x": 500,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 500,
+          "y": 220
+        },
+        "config": {
+          "title": "{{doc_type}} {{contract_reference}} · {{customer_name}}"
+        }
+      },
+      {
+        "id": "lookup",
+        "type": "update_data_table",
+        "label": "Document type",
+        "position": {
+          "x": 500,
+          "y": 380
+        },
+        "config": {
+          "table_id": "f6b9b084-c29b-4896-9c5a-88416c9408d0",
+          "table_name": "Document templates",
+          "operation": "get",
+          "match_column": "doc_type",
+          "match_value": "{{doc_type}}",
+          "output_row_var": "template"
+        }
+      },
+      {
+        "id": "known",
+        "type": "condition",
+        "label": "Known type?",
+        "position": {
+          "x": 500,
+          "y": 540
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Known",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{template.filename_pattern}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "unknown",
+        "type": "log",
+        "label": "Unknown type",
+        "position": {
+          "x": 820,
+          "y": 720
+        },
+        "config": {
+          "message": "No Document templates row for \"{{doc_type}}\" ({{contract_reference}}); nothing generated",
+          "level": "warn"
+        }
+      },
+      {
+        "id": "end_unknown",
+        "type": "end_workflow",
+        "label": "Not generated",
+        "position": {
+          "x": 820,
+          "y": 880
+        },
+        "config": {
+          "reason": "Unknown document type {{doc_type}}"
+        }
+      },
+      {
+        "id": "end_calc",
+        "type": "date_math",
+        "label": "End date",
+        "position": {
+          "x": 500,
+          "y": 720
+        },
+        "config": {
+          "date": "{{start_date}}",
+          "operation": "add",
+          "amount": "{{term_months}}",
+          "unit": "months",
+          "output_var": "end_at"
+        }
+      },
+      {
+        "id": "dates",
+        "type": "set_variable",
+        "label": "Start date text",
+        "position": {
+          "x": 500,
+          "y": 880
+        },
+        "config": {
+          "name": "start_date_text",
+          "expression": "{{=FORMAT_DATE(start_date, \"DD/MM/YYYY\")}}"
+        }
+      },
+      {
+        "id": "end_text",
+        "type": "set_variable",
+        "label": "End date text",
+        "position": {
+          "x": 500,
+          "y": 1040
+        },
+        "config": {
+          "name": "end_date_text",
+          "expression": "{{=FORMAT_DATE(SUBTRACT_DAYS(end_at, 1), \"DD/MM/YYYY\")}}"
+        }
+      },
+      {
+        "id": "monthly",
+        "type": "math",
+        "label": "Monthly fee",
+        "position": {
+          "x": 500,
+          "y": 1200
+        },
+        "config": {
+          "expression": "{{amount}} / {{term_months}}",
+          "output_var": "monthly_raw"
+        }
+      },
+      {
+        "id": "file_name",
+        "type": "set_variable",
+        "label": "File name",
+        "position": {
+          "x": 500,
+          "y": 1360
+        },
+        "config": {
+          "name": "file_name",
+          "expression": "{{=REPLACE(REPLACE(template.filename_pattern, \"{reference}\", contract_reference), \"{customer}\", customer_name)}}"
+        }
+      },
+      {
+        "id": "placeholders",
+        "type": "json_build_object",
+        "label": "Placeholder values",
+        "position": {
+          "x": 500,
+          "y": 1520
+        },
+        "config": {
+          "output_var": "placeholders",
+          "fields": [
+            {
+              "key": "{{TITLE}}",
+              "value": "{{template.doc_title}}"
+            },
+            {
+              "key": "{{CUSTOMER}}",
+              "value": "{{customer_name}}"
+            },
+            {
+              "key": "{{DATE}}",
+              "value": "{{start_date_text}}"
+            },
+            {
+              "key": "{{AMOUNT}}",
+              "value": "{{currency}} {{=FORMAT_NUMBER(amount, 2)}}"
+            },
+            {
+              "key": "{{REFERENCE}}",
+              "value": "{{contract_reference}}"
+            },
+            {
+              "key": "{{BODY}}",
+              "value": "{{template.body_text}} Term: {{term_months}} months, {{start_date_text}} to {{end_date_text}}."
+            }
+          ]
+        }
+      },
+      {
+        "id": "word",
+        "type": "doc_word",
+        "label": "Fill Word template",
+        "position": {
+          "x": 500,
+          "y": 1680
+        },
+        "config": {
+          "template_url": "{{template_url}}",
+          "mode": "find_replace",
+          "replacements": [
+            {
+              "find": "[[SIGNER]]",
+              "replace": "{{signer_name}}"
+            }
+          ],
+          "json_body": "{{placeholders}}",
+          "output_filename": "{{file_name}}",
+          "output_var": "contract_doc"
+        }
+      },
+      {
+        "id": "has_schedule",
+        "type": "condition",
+        "label": "Schedule template?",
+        "position": {
+          "x": 500,
+          "y": 1840
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Schedule",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{schedule_template_url}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "excel",
+        "type": "doc_excel",
+        "label": "Fill fee schedule",
+        "position": {
+          "x": 340,
+          "y": 2020
+        },
+        "config": {
+          "template_url": "{{schedule_template_url}}",
+          "mode": "update_cell_text",
+          "cells": [
+            {
+              "cell": "A2",
+              "text": "Customer"
+            },
+            {
+              "cell": "B2",
+              "text": "{{customer_name}}"
+            },
+            {
+              "cell": "A3",
+              "text": "Contract reference"
+            },
+            {
+              "cell": "B3",
+              "text": "{{contract_reference}}"
+            },
+            {
+              "cell": "A4",
+              "text": "Start date"
+            },
+            {
+              "cell": "B4",
+              "text": "{{start_date_text}}"
+            },
+            {
+              "cell": "A5",
+              "text": "End date"
+            },
+            {
+              "cell": "B5",
+              "text": "{{end_date_text}}"
+            },
+            {
+              "cell": "A6",
+              "text": "Term (months)"
+            },
+            {
+              "cell": "B6",
+              "text": "{{term_months}}"
+            },
+            {
+              "cell": "A7",
+              "text": "Total ({{currency}})"
+            },
+            {
+              "cell": "B7",
+              "text": "{{=FORMAT_NUMBER(amount, 2)}}"
+            },
+            {
+              "cell": "A8",
+              "text": "Monthly equivalent ({{currency}})"
+            },
+            {
+              "cell": "B8",
+              "text": "{{=FORMAT_NUMBER(monthly_raw, 2)}}"
+            },
+            {
+              "cell": "A9",
+              "text": "Document type"
+            },
+            {
+              "cell": "B9",
+              "text": "{{template.doc_title}}"
+            }
+          ],
+          "output_filename": "{{contract_reference}} - Fee schedule.xlsx",
+          "output_var": "schedule_doc"
+        }
+      },
+      {
+        "id": "attach",
+        "type": "json_build_array",
+        "label": "Attachments",
+        "position": {
+          "x": 340,
+          "y": 2180
+        },
+        "config": {
+          "output_var": "attachments",
+          "items": [
+            {
+              "value": "{\"name\":\"{{contract_reference}} - Fee schedule.xlsx\",\"url\":\"{{schedule_doc.url}}\"}"
+            }
+          ]
+        }
+      },
+      {
+        "id": "no_attach",
+        "type": "json_build_array",
+        "label": "No attachments",
+        "position": {
+          "x": 660,
+          "y": 2020
+        },
+        "config": {
+          "output_var": "attachments",
+          "items": []
+        }
+      },
+      {
+        "id": "register",
+        "type": "call_reference",
+        "label": "Register in DMS",
+        "position": {
+          "x": 500,
+          "y": 2340
+        },
+        "config": {
+          "reference_id": "c7ff6fd4-6ef1-4d25-9e2c-997bb1798b03",
+          "reference_name": "Register document",
+          "reference_method": "POST",
+          "input_mappings": {
+            "file_url": "{{contract_doc.url}}",
+            "file_name": "{{file_name}}",
+            "attachments": "{{=TO_JSON(attachments)}}",
+            "folder": "{{template.dms_folder}}/{{customer_name}}",
+            "retention_days": "{{template.retention_days}}",
+            "doc_type": "{{doc_type}}",
+            "reference": "{{contract_reference}}",
+            "customer": "{{customer_name}}"
+          },
+          "output_mappings": {
+            "document_id": {
+              "enabled": true,
+              "variableName": "document_id"
+            },
+            "document_url": {
+              "enabled": true,
+              "variableName": "dms_url"
+            },
+            "retain_until": {
+              "enabled": true,
+              "variableName": "retain_until"
+            }
+          }
+        }
+      },
+      {
+        "id": "needs_sig",
+        "type": "condition",
+        "label": "Signature required?",
+        "position": {
+          "x": 500,
+          "y": 2500
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Sign",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{template.signature_required}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "sign",
+        "type": "call_reference",
+        "label": "Send for signature",
+        "position": {
+          "x": 500,
+          "y": 2680
+        },
+        "config": {
+          "reference_id": "787f72af-7ead-4ff7-9ec7-df75c37fc975",
+          "reference_name": "Create signature request",
+          "reference_method": "POST",
+          "input_mappings": {
+            "document_url": "{{contract_doc.url}}",
+            "document_name": "{{file_name}}",
+            "signer_name": "{{signer_name}}",
+            "signer_email": "{{signer_email}}",
+            "subject": "{{template.doc_title}} {{contract_reference}}",
+            "external_id": "{{document_id}}"
+          },
+          "output_mappings": {
+            "envelope_id": {
+              "enabled": true,
+              "variableName": "envelope_id"
+            },
+            "signing_url": {
+              "enabled": true,
+              "variableName": "signing_url"
+            },
+            "expires_at": {
+              "enabled": true,
+              "variableName": "expires_at"
+            }
+          }
+        }
+      },
+      {
+        "id": "email",
+        "type": "send_email",
+        "label": "Email signer",
+        "position": {
+          "x": 500,
+          "y": 2840
+        },
+        "config": {
+          "to": "{{signer_email}}",
+          "email_template_id": "0e868cb9-c8f0-47af-93a8-a23280605f13"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "log_sent",
+        "type": "log",
+        "label": "Log",
+        "position": {
+          "x": 500,
+          "y": 3000
+        },
+        "config": {
+          "message": "{{file_name}} filed as {{document_id}} (keep until {{retain_until}}) and sent for signature ({{envelope_id}})",
+          "level": "info"
+        }
+      },
+      {
+        "id": "end_sent",
+        "type": "end_workflow",
+        "label": "Sent for signature",
+        "position": {
+          "x": 500,
+          "y": 3160
+        },
+        "config": {
+          "reason": "{{contract_reference}}: {{document_id}} / {{envelope_id}}"
+        }
+      },
+      {
+        "id": "end_filed",
+        "type": "end_workflow",
+        "label": "Filed",
+        "position": {
+          "x": 820,
+          "y": 2680
+        },
+        "config": {
+          "reason": "{{contract_reference}}: filed as {{document_id}} (no signature needed)"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-lookup",
+        "source": "title",
+        "target": "lookup"
+      },
+      {
+        "id": "e-lookup-known",
+        "source": "lookup",
+        "target": "known"
+      },
+      {
+        "id": "e-known-unknown-else",
+        "source": "known",
+        "target": "unknown",
+        "label": "Else"
+      },
+      {
+        "id": "e-unknown-end_unknown",
+        "source": "unknown",
+        "target": "end_unknown"
+      },
+      {
+        "id": "e-known-end_calc-known",
+        "source": "known",
+        "target": "end_calc",
+        "label": "Known"
+      },
+      {
+        "id": "e-end_calc-dates",
+        "source": "end_calc",
+        "target": "dates"
+      },
+      {
+        "id": "e-dates-end_text",
+        "source": "dates",
+        "target": "end_text"
+      },
+      {
+        "id": "e-end_text-monthly",
+        "source": "end_text",
+        "target": "monthly"
+      },
+      {
+        "id": "e-monthly-file_name",
+        "source": "monthly",
+        "target": "file_name"
+      },
+      {
+        "id": "e-file_name-placeholders",
+        "source": "file_name",
+        "target": "placeholders"
+      },
+      {
+        "id": "e-placeholders-word",
+        "source": "placeholders",
+        "target": "word"
+      },
+      {
+        "id": "e-word-has_schedule",
+        "source": "word",
+        "target": "has_schedule"
+      },
+      {
+        "id": "e-has_schedule-excel-schedule",
+        "source": "has_schedule",
+        "target": "excel",
+        "label": "Schedule"
+      },
+      {
+        "id": "e-excel-attach",
+        "source": "excel",
+        "target": "attach"
+      },
+      {
+        "id": "e-has_schedule-no_attach-else",
+        "source": "has_schedule",
+        "target": "no_attach",
+        "label": "Else"
+      },
+      {
+        "id": "e-attach-register",
+        "source": "attach",
+        "target": "register"
+      },
+      {
+        "id": "e-no_attach-register",
+        "source": "no_attach",
+        "target": "register"
+      },
+      {
+        "id": "e-register-needs_sig",
+        "source": "register",
+        "target": "needs_sig"
+      },
+      {
+        "id": "e-needs_sig-sign-sign",
+        "source": "needs_sig",
+        "target": "sign",
+        "label": "Sign"
+      },
+      {
+        "id": "e-needs_sig-end_filed-else",
+        "source": "needs_sig",
+        "target": "end_filed",
+        "label": "Else"
+      },
+      {
+        "id": "e-sign-email",
+        "source": "sign",
+        "target": "email"
+      },
+      {
+        "id": "e-email-log_sent",
+        "source": "email",
+        "target": "log_sent"
+      },
+      {
+        "id": "e-log_sent-end_sent",
+        "source": "log_sent",
+        "target": "end_sent"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-doc_type",
+        "name": "doc_type",
+        "type": "string",
+        "description": "Document type (a row of the Document templates table)",
+        "defaultValue": "service_agreement",
+        "required": true,
+        "label": "Document type",
+        "options": [
+          "service_agreement",
+          "order_form",
+          "renewal_letter",
+          "nda"
+        ]
+      },
+      {
+        "id": "v-customer_name",
+        "name": "customer_name",
+        "type": "string",
+        "description": "Customer legal name as it appears on the contract",
+        "defaultValue": "",
+        "required": true,
+        "label": "Customer"
+      },
+      {
+        "id": "v-contract_reference",
+        "name": "contract_reference",
+        "type": "string",
+        "description": "Contract reference, e.g. CT-2026-118",
+        "defaultValue": "",
+        "required": true,
+        "label": "Contract reference"
+      },
+      {
+        "id": "v-start_date",
+        "name": "start_date",
+        "type": "string",
+        "description": "Contract start date (YYYY-MM-DD)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Start date",
+        "format": "date"
+      },
+      {
+        "id": "v-amount",
+        "name": "amount",
+        "type": "number",
+        "description": "Total contract value for the term, excluding tax",
+        "defaultValue": "0",
+        "required": true,
+        "label": "Amount"
+      },
+      {
+        "id": "v-currency",
+        "name": "currency",
+        "type": "string",
+        "description": "ISO currency code",
+        "defaultValue": "NZD",
+        "label": "Currency"
+      },
+      {
+        "id": "v-term_months",
+        "name": "term_months",
+        "type": "number",
+        "description": "Term in months",
+        "defaultValue": "12",
+        "required": true,
+        "label": "Term (months)"
+      },
+      {
+        "id": "v-signer_name",
+        "name": "signer_name",
+        "type": "string",
+        "description": "Name of the person signing for the customer",
+        "defaultValue": "",
+        "label": "Signer name"
+      },
+      {
+        "id": "v-signer_email",
+        "name": "signer_email",
+        "type": "string",
+        "description": "Email of the signer: receives the signing link",
+        "defaultValue": "",
+        "required": true,
+        "label": "Signer email",
+        "format": "email"
+      },
+      {
+        "id": "v-template_url",
+        "name": "template_url",
+        "type": "string",
+        "description": "URL of the Word template with {{TITLE}} {{CUSTOMER}} {{DATE}} {{AMOUNT}} {{REFERENCE}} {{BODY}} placeholders (required)",
+        "defaultValue": "",
+        "label": "Word template URL",
+        "format": "url"
+      },
+      {
+        "id": "v-schedule_template_url",
+        "name": "schedule_template_url",
+        "type": "string",
+        "description": "Optional: URL of an Excel template for the fee schedule (labels in A2:A9, values in B2:B9)",
+        "defaultValue": "",
+        "label": "Excel schedule template URL",
+        "format": "url"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

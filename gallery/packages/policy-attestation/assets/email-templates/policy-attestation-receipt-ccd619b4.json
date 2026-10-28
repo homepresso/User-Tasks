@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "ccd619b4-3d29-4066-8d3e-d909fa6b2278",
+  "asset": {
+    "id": "ccd619b4-3d29-4066-8d3e-d909fa6b2278",
+    "name": "Policy attestation receipt",
+    "description": "Sent to the employee once their attestation is recorded.",
+    "subject": "Thanks: your policy attestation for {{campaign_id}} is recorded",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your attestation is recorded</h2>\n  <p>Hi {{employee.name}},</p>\n  <p>Thanks for confirming you have read and understood: <strong>{{policy_names}}</strong>.</p>\n  <p style=\"color:#6E6759\">Status: {{attestation_status}} · Campaign {{campaign_id}}</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your policy attestation workflow</p>\n</div>",
+    "text_body": "Your attestation is recorded\n  Hi {{employee.name}},\n  Thanks for confirming you have read and understood: {{policy_names}}.\n  Status: {{attestation_status}} · Campaign {{campaign_id}}\n  Sent by your policy attestation workflow",
+    "is_default": false
+  }
+}

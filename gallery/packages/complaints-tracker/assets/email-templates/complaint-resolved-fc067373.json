@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "fc067373-4200-5a57-942b-576212a57983",
+  "asset": {
+    "id": "fc067373-4200-5a57-942b-576212a57983",
+    "name": "Complaint resolved",
+    "description": "Sent to the customer when the complaint is resolved.",
+    "subject": "Your complaint is resolved ({{complaint_ref}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1E1530\">\n  <h2 style=\"margin:0 0 12px;color:#7C3AED\">Resolved</h2>\n  <p>Dear {{contact_name}},</p>\n  <p>Your complaint \"{{form.summary}}\" is resolved:</p>\n  <p style=\"padding:12px;background:#F5F3FF;border-radius:8px\">{{resolution}}</p>\n  <p>{{=IF(goodwill > 0, CONCAT(\"As an apology we have added a credit of \", FORMAT_NUMBER(goodwill, 2), \" to your account.\"), \"\")}}</p>\n  <p>If you are not happy with the outcome, simply reply to this email.</p>\n  <p>Kind regards,<br>Customer care</p>\n  <p style=\"color:#6B7280;font-size:13px\">Reference {{complaint_ref}} · please quote it if you get in touch</p>\n</div>",
+    "text_body": "Dear {{contact_name}}, your complaint \"{{form.summary}}\" is resolved: {{resolution}}. Reference {{complaint_ref}}.",
+    "is_default": false
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "202cb15c-2ec6-50a7-96ed-54d4b8818f87",
+  "asset": {
+    "id": "202cb15c-2ec6-50a7-96ed-54d4b8818f87",
+    "name": "Cost centres rows",
+    "rows": [
+      {
+        "id": "0318e0dd-4664-58f2-8c97-8496d05ae1cc",
+        "data": {
+          "code": "CC-310",
+          "name": "Operations - Maintenance",
+          "ns_department_id": "7",
+          "ns_class_id": "4",
+          "budget_owner": "Hannah Becker",
+          "budget_owner_email": "hannah.becker@example.com",
+          "active": true
+        }
+      },
+      {
+        "id": "c0c49832-00a6-596f-8598-5ee140ba8316",
+        "data": {
+          "code": "CC-320",
+          "name": "Operations - Logistics",
+          "ns_department_id": "7",
+          "ns_class_id": "5",
+          "budget_owner": "Leo Tanaka",
+          "budget_owner_email": "leo.tanaka@example.com",
+          "active": true
+        }
+      },
+      {
+        "id": "f45c7000-aa17-579c-babe-65e4b97542ab",
+        "data": {
+          "code": "CC-410",
+          "name": "Engineering",
+          "ns_department_id": "9",
+          "ns_class_id": "2",
+          "budget_owner": "Marco Rossi",
+          "budget_owner_email": "marco.rossi@example.com",
+          "active": true
+        }
+      },
+      {
+        "id": "ee319d26-8a5b-55f4-b420-ef8cb1b754a0",
+        "data": {
+          "code": "CC-510",
+          "name": "Sales & Marketing",
+          "ns_department_id": "11",
+          "ns_class_id": "3",
+          "budget_owner": "Priya Shah",
+          "budget_owner_email": "priya.shah@example.com",
+          "active": true
+        }
+      },
+      {
+        "id": "2a089585-768c-56cf-8602-eaeca6113584",
+        "data": {
+          "code": "CC-120",
+          "name": "G&A - Facilities",
+          "ns_department_id": "3",
+          "ns_class_id": "1",
+          "budget_owner": "Sofia Alvarez",
+          "budget_owner_email": "sofia.alvarez@example.com",
+          "active": true
+        }
+      },
+      {
+        "id": "996261ad-6d57-5e58-a4b7-1098b7c4d8a3",
+        "data": {
+          "code": "CC-999",
+          "name": "Legacy (closed)",
+          "ns_department_id": "1",
+          "ns_class_id": "1",
+          "budget_owner": "",
+          "budget_owner_email": "",
+          "active": false
+        }
+      }
+    ]
+  }
+}

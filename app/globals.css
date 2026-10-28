@@ -1,0 +1,630 @@
+@import "tailwindcss";
+
+/* `dark:` follows the selected theme (data-theme-mode set by the theme
+   provider / bootstrap script), not the OS preference. */
+@custom-variant dark (&:where([data-theme-mode="dark"], [data-theme-mode="dark"] *));
+
+@theme inline {
+  /* Families come from the workspace theme (--theme-font-*, defaulting to the
+     next/font variables set on <html> by the root layout). */
+  --font-sans: var(--theme-font-sans);
+  --font-mono: var(--theme-font-mono);
+  /* Tailwind's `rounded` (badges, chips) and `rounded-2xl` (dialogs, large
+     panels) follow the theme's badge / dialog radius. */
+  --radius: var(--theme-badge-radius);
+  --radius-2xl: var(--theme-dialog-radius);
+
+  --color-navy-50: #F0F2F7;
+  --color-navy-100: #D6DAE5;
+  --color-navy-500: #2D4470;
+  --color-navy-700: #1F3057;
+  --color-navy-800: #1B2A4A;
+  --color-navy-900: #111B33;
+
+  --color-teal-50: #E6F5F3;
+  --color-teal-100: #B3E5DC;
+  --color-teal-500: #14B8A6;
+  --color-teal-600: #0D9488;
+  --color-teal-700: #0F766E;
+  --color-teal-800: #085041;
+}
+
+/* Theme CSS custom properties. The dashboard layout server-renders the
+   workspace theme's values (lib/theme/to-css.ts) over these; the defaults are
+   the platform default theme (Gallery) for every page outside it. */
+:root {
+  --theme-primary: #17150F;
+  --theme-primary-hover: #2E2A24;
+  --theme-on-primary: #FFFFFF;
+  /* Brand colours as text (links, pills on their own wash) — derived per theme
+     to reach AA on cards, the surface and the wash; fills keep the brand colour. */
+  --theme-primary-text: #17150F;
+  --theme-accent-text: #7F633B;
+  --theme-primary-light: rgba(23,21,15,0.08);
+  --theme-accent: #B08A54;
+  --theme-accent-light: rgba(176,138,84,0.14);
+  --theme-sidebar: #161411;
+  --theme-sidebar-text: #E9E4D8;
+  --theme-sidebar-active: rgba(176,138,84,0.22);
+  --theme-sidebar-border: rgba(243,239,231,0.10);
+  /* Text highlight on the sidebar (wordmark, active item); derived per theme —
+     the ink-black primary would vanish on the ink sidebar. */
+  --theme-sidebar-accent: #B99767;
+  /* Secondary text on the sidebar (section headings); derived, AA on the sidebar. */
+  --theme-sidebar-muted: #AEAAA0;
+  --theme-topbar: #FFFFFF;
+  --theme-topbar-text: #1B1916;
+  --theme-topbar-muted: #5B5957;
+  --theme-surface: #FAF8F3;
+  --theme-surface-border: #E6E1D5;
+  --theme-card-bg: #FFFFFF;
+  --theme-card-text: #1B1916;
+  --theme-muted-text: #6B6457;
+  --theme-success: #466C51;
+  --theme-warning: #8A5F17;
+  --theme-danger: #B23A2E;
+  --theme-info: #7B613D;
+  /* Text on solid semantic fills (destructive buttons, solid chips, badges). */
+  --theme-on-accent: #0F172A;
+  --theme-on-danger: #FFFFFF;
+  --theme-on-success: #FFFFFF;
+  --theme-on-warning: #FFFFFF;
+  --theme-on-info: #FFFFFF;
+  /* Semantic status palette — task status dots, progress bars, badges. Each
+     has a solid colour + a soft-tinted background (rgba) that blends with any
+     card background. */
+  --status-todo: #5B6770;
+  --status-todo-bg: rgba(91,103,112,0.12);
+  --status-progress: #875D17;
+  --status-progress-bg: rgba(166,114,28,0.14);
+  --status-blocked: #B23A2E;
+  --status-blocked-bg: rgba(178,58,46,0.12);
+  --status-done: #466C51;
+  --status-done-bg: rgba(79,122,91,0.14);
+  --status-info: #7B613D;
+  --status-info-bg: rgba(138,109,69,0.14);
+  --status-warning-bg: rgba(178,138,30,0.14);
+  --status-danger-bg: rgba(176,64,42,0.14);
+  --status-success-bg: rgba(91,119,87,0.16);
+  /* Aliases used for error / warning / success text. */
+  --status-error: #B23A2E;
+  --status-error-bg: rgba(176,64,42,0.14);
+  --status-warning: #8A5F17;
+  --status-success: #466C51;
+  /* Row highlight tone — zebra striping, emphasized rows, table headers. */
+  --theme-row-highlight: rgba(176,138,84,0.10);
+  --theme-row-highlight-strong: rgba(176,138,84,0.18);
+  --theme-focus-ring: #17150F;
+  --theme-input-bg: #FFFFFF;
+  --theme-input-border: #E6E1D5;
+  --theme-overlay: rgba(0,0,0,0.5);
+  /* Chart series */
+  --theme-chart-1: #B08A54;
+  --theme-chart-2: #4F7A5B;
+  --theme-chart-3: #5B7285;
+  --theme-chart-4: #C25E4C;
+  --theme-chart-5: #A6721C;
+  --theme-chart-6: #7D5B7A;
+  --theme-chart-7: #8A9B6E;
+  --theme-chart-8: #9B6B4F;
+  --theme-chart-9: #6E8CA0;
+  --theme-chart-10: #8C857A;
+  /* Chart series as text (legend labels, chips): AA on cards. */
+  --theme-chart-1-text: #84673D;
+  --theme-chart-2-text: #4A7255;
+  --theme-chart-3-text: #576D7F;
+  --theme-chart-4-text: #AD4C3B;
+  --theme-chart-5-text: #8E6218;
+  --theme-chart-6-text: #7D5B7A;
+  --theme-chart-7-text: #64714E;
+  --theme-chart-8-text: #8C6147;
+  --theme-chart-9-text: #556F81;
+  --theme-chart-10-text: #716B62;
+  /* Typography */
+  --theme-font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --theme-font-display: var(--font-display), ui-serif, Georgia, serif;
+  --theme-font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --theme-font-weight-heading: 600;
+  --theme-font-base-size: 16px;
+  --theme-font-size-scale: 100%;
+  --theme-heading-letter-spacing: -0.015em;
+  /* Elevation system */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.02);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
+  /* Shape, layout, density */
+  --theme-border-radius: 12px;
+  --theme-card-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  --theme-button-radius: 8px;
+  --theme-input-radius: 8px;
+  --theme-badge-radius: 4px;
+  --theme-dialog-radius: 16px;
+  --theme-sidebar-width: 256px;
+  --theme-topbar-height: 56px;
+  --theme-density-row-height: 40px;
+  --theme-density-cell-y: 8px;
+  --theme-density-cell-x: 12px;
+  --theme-density-gap: 12px;
+  /* Chrome: sidebar glows / hover / wordmark, background layers */
+  --sidebar-glow-1: rgba(176,138,84,0.12);
+  --sidebar-glow-2: rgba(243,239,231,0.05);
+  --sidebar-hover-bg: rgba(255,255,255,0.08);
+  --sidebar-brand-color: #FFFFFF;
+  --theme-sidebar-image: radial-gradient(circle at 1px 1px, rgba(233,228,216,0.055) 1px, transparent 0), linear-gradient(180deg, #1B1815 0%, #161411 55%, #121110 100%);
+  --theme-sidebar-image-size: 26px 26px, auto;
+  --theme-sidebar-decoration-color: #FFFFFF;
+  --theme-topbar-image: none;
+  --theme-topbar-image-size: auto;
+  --theme-canvas-image: radial-gradient(circle at 1px 1px, rgba(27,25,22,0.045) 1px, transparent 0);
+  --theme-canvas-image-size: 28px 28px;
+}
+
+/* Base size: a percentage of the browser default, so rem-based sizes scale
+   with the theme and a user's own larger default still applies. */
+html {
+  font-size: var(--theme-font-size-scale, 100%);
+}
+
+body {
+  background-color: var(--theme-surface);
+  color: var(--theme-card-text);
+}
+
+/* ─── Accessibility utilities ─── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ─── UI Polish: Animations ─── */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes dialog-enter {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes overlay-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ─── UI Polish: Dialog classes ─── */
+
+.dialog-overlay {
+  animation: overlay-enter 200ms ease-out;
+  backdrop-filter: blur(4px);
+}
+
+.dialog-content {
+  animation: dialog-enter 200ms ease-out;
+  box-shadow: var(--shadow-xl);
+}
+
+/* ─── UI Polish: Global interactive transitions ─── */
+
+button:not([disabled]),
+a,
+select,
+[role="button"] {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Page transition for snappier navigation ─── */
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-transition {
+  animation: page-enter 150ms ease-out;
+}
+
+/* ─── Variable input (contentEditable) ─── */
+/* Placeholder text when the editor is empty. Uses data-empty="true"
+   which the React component sets on every input event. */
+.variable-input-editor[data-empty="true"]::before {
+  content: attr(data-placeholder);
+  color: var(--theme-muted-text);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.variable-input-editor {
+  cursor: text;
+}
+.variable-input-editor:focus {
+  outline: none;
+}
+/* Pills inside the editor get a subtle hover effect */
+.variable-input-editor .variable-pill:hover {
+  filter: brightness(1.05);
+}
+
+/* Plain inputs under a dragged workflow-data row (workflow builder config panel). */
+[data-drop-target="true"] {
+  outline: 2px solid var(--theme-primary) !important;
+  outline-offset: 1px;
+  background-color: var(--theme-primary-light) !important;
+}
+
+/* ─── Rich task descriptions (sanitised HTML, components/tasks/task-description) ─── */
+.task-description { overflow-wrap: anywhere; }
+.task-description > :first-child { margin-top: 0; }
+.task-description > :last-child { margin-bottom: 0; }
+.task-description p, .task-description ul, .task-description ol,
+.task-description blockquote, .task-description pre, .task-description table { margin: 0.5em 0; }
+.task-description h1, .task-description h2, .task-description h3, .task-description h4 {
+  margin: 0.75em 0 0.35em; font-weight: 600; line-height: 1.3; color: var(--theme-card-text);
+}
+.task-description h1 { font-size: 1.25em; }
+.task-description h2 { font-size: 1.15em; }
+.task-description h3 { font-size: 1.05em; }
+.task-description h4 { font-size: 1em; }
+.task-description ul { list-style: disc; padding-left: 1.4em; }
+.task-description ol { list-style: decimal; padding-left: 1.4em; }
+.task-description a { color: var(--theme-primary); text-decoration: underline; }
+.task-description strong, .task-description b { font-weight: 600; }
+.task-description blockquote { border-left: 3px solid var(--theme-surface-border); padding-left: 0.75em; font-style: italic; }
+.task-description code { font-family: var(--theme-font-mono, ui-monospace, monospace); font-size: 0.9em; padding: 0.1em 0.3em; border-radius: 4px; background: var(--theme-row-highlight); }
+.task-description pre { overflow-x: auto; padding: 0.6em 0.8em; border-radius: 6px; background: var(--theme-row-highlight); }
+.task-description pre code { padding: 0; background: none; }
+.task-description hr { margin: 0.75em 0; border-color: var(--theme-surface-border); }
+.task-description table { border-collapse: collapse; display: block; overflow-x: auto; }
+.task-description th, .task-description td { border: 1px solid var(--theme-surface-border); padding: 0.25em 0.5em; text-align: left; }
+.task-description img { max-width: 100%; height: auto; }
+
+/* ─── Premium sidebar decoration (from login screen) ─── */
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.1); }
+}
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+@keyframes orbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Sidebar background: solid colour, gradient or dot texture from the theme
+   (--theme-sidebar-image is `none` for solid sidebars). */
+.premium-sidebar {
+  position: relative;
+  overflow: hidden;
+  background-image: var(--theme-sidebar-image, none);
+  background-size: var(--theme-sidebar-image-size, auto);
+}
+
+/* Floating illustrations + glows: hidden unless the theme turns them on
+   (the server-rendered theme stylesheet adds the `display: block` rule). */
+.premium-sidebar .sidebar-decorations {
+  display: none;
+}
+
+.themed-topbar {
+  background-image: var(--theme-topbar-image, none);
+  background-size: var(--theme-topbar-image-size, auto);
+}
+
+/* Main content area: optional dot texture from the theme. */
+main {
+  background-image: var(--theme-canvas-image, none);
+  background-size: var(--theme-canvas-image-size, auto);
+}
+
+/* Display headings (theme typography.headingFont = display). The attribute is
+   set by the theme provider and restored pre-paint by the bootstrap script. */
+[data-theme-headings="display"] h1,
+[data-theme-headings="display"] h2 {
+  font-family: var(--theme-font-display);
+  letter-spacing: var(--theme-heading-letter-spacing);
+}
+
+/* Modal backdrops */
+.dialog-overlay {
+  background-color: var(--theme-overlay);
+}
+
+/* Built-in canvas effects the theme model can't express
+   (meta.decorationPreset, set as data-theme-decoration). */
+/* Dawn: subtle teal radial tint on the main screen */
+html[data-theme-decoration="dawn"] main {
+  background: radial-gradient(ellipse at top, #CCFBF1 0%, #F0FDFA 40%, #FAFAFA 100%) !important;
+}
+
+/* Nebula main screen — dark navy radial with teal glow, matches the sidebar feel */
+html[data-theme-decoration="nebula"] main {
+  background: radial-gradient(ellipse at top, #1B2A4A 0%, #0F172A 50%, #0B1120 100%) !important;
+  position: relative;
+}
+/* Subtle animated teal glow orbs in the main content area for Nebula */
+html[data-theme-decoration="nebula"] main::before {
+  content: "";
+  position: absolute;
+  top: 10%;
+  right: -10%;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(20,184,166,0.08) 0%, transparent 70%);
+  animation: glowPulse 8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+html[data-theme-decoration="nebula"] main::after {
+  content: "";
+  position: absolute;
+  bottom: 10%;
+  left: -5%;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%);
+  animation: glowPulse 10s ease-in-out 3s infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+/* Keep page content above the glow layer */
+html[data-theme-decoration="nebula"] main > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Public auth surfaces use the canonical Abyss palette regardless of a
+   previously selected tenant theme. */
+.abyss-auth .text-gray-900,
+.abyss-auth .text-gray-700,
+.abyss-auth .dark\:text-white,
+.abyss-auth .dark\:text-gray-300 {
+  color: #E6F3FA !important;
+}
+.abyss-auth .text-gray-500 {
+  color: #93AEC4 !important;
+}
+.abyss-auth .text-teal-600,
+.abyss-auth .hover\:text-teal-700:hover {
+  color: #22D3EE !important;
+}
+.abyss-auth .bg-red-50,
+.abyss-auth .dark\:bg-red-900\/20 {
+  background-color: rgba(251, 113, 133, 0.10) !important;
+}
+.abyss-auth .text-red-600,
+.abyss-auth .dark\:text-red-400 {
+  color: #FDA4AF !important;
+}
+
+/* Public documentation is theme-isolated so cached tenant styling cannot
+   repaint headings, controls, cards, or navigation on public routes. */
+.docs-abyss [class*="text-teal-"] { color: #8A6D45 !important; }
+.docs-abyss [class~="bg-teal-400"] { background-color: #B08A54 !important; }
+.docs-abyss [class*="bg-teal-400/"] { background-color: rgba(176, 138, 84, 0.12) !important; }
+.docs-abyss [class*="border-teal-"] { border-color: rgba(176, 138, 84, 0.35) !important; }
+.docs-abyss [class*="text-indigo-"] { color: #6E6759 !important; }
+.docs-abyss [class*="bg-indigo-"] { background-color: rgba(23, 21, 15, 0.05) !important; }
+.docs-abyss [class*="border-indigo-"] { border-color: rgba(23, 21, 15, 0.15) !important; }
+
+/* ─── Themed utility classes ─── */
+
+.themed-sidebar {
+  background-color: var(--theme-sidebar);
+  color: var(--theme-sidebar-text);
+  border-color: var(--theme-sidebar-border);
+}
+
+.themed-sidebar-active {
+  background-color: var(--theme-sidebar-active);
+  color: var(--theme-sidebar-accent, var(--theme-primary));
+}
+
+/* Sidebar wordmark / highlights: primary only where it reads on the sidebar. */
+.themed-sidebar-accent {
+  color: var(--theme-sidebar-accent, var(--theme-primary));
+}
+
+.themed-topbar {
+  background-color: var(--theme-topbar);
+  color: var(--theme-topbar-text);
+  border-color: var(--theme-surface-border);
+}
+
+.themed-btn-primary {
+  background-color: var(--theme-primary);
+  /* Light primaries (gold, cyan, silver) automatically get dark text */
+  color: var(--theme-on-primary, #FFFFFF);
+}
+.themed-btn-primary:hover {
+  background-color: var(--theme-primary-hover);
+}
+
+.themed-text-primary {
+  color: var(--theme-primary-text);
+}
+
+/* ─── Component override variables ─── */
+
+/* Cards use theme border-radius and shadow */
+[class*="rounded-xl"],
+[class*="rounded-lg"] {
+  border-radius: var(--theme-border-radius) !important;
+}
+
+/* Buttons */
+button[class*="rounded-lg"],
+a[class*="rounded-lg"],
+[class*="rounded-md"] {
+  border-radius: var(--theme-button-radius) !important;
+}
+
+/* Inputs */
+input[class*="rounded-lg"],
+select[class*="rounded-lg"],
+textarea[class*="rounded-lg"] {
+  border-radius: var(--theme-input-radius) !important;
+}
+
+/* Card shadows */
+.rounded-xl[class*="border"],
+.rounded-lg[class*="border"] {
+  box-shadow: var(--theme-card-shadow);
+}
+
+/* ─── Global overrides to wire theme through ─── */
+
+/* Borders */
+[class*="border-gray-200"],
+[class*="border-gray-100"],
+[class*="border-gray-800"],
+[class*="dark:border-gray-800"],
+[class*="dark:border-gray-700"] {
+  border-color: var(--theme-surface-border);
+}
+
+.divide-gray-100 > * + *,
+.divide-gray-800 > * + * {
+  border-color: var(--theme-surface-border);
+}
+
+/* Card-like surfaces: bg-white, dark:bg-gray-900 */
+[class*="bg-white"]:not(.themed-sidebar):not(.themed-topbar) {
+  background-color: var(--theme-card-bg);
+}
+
+[class*="dark:bg-gray-900"]:not(.themed-sidebar) {
+  background-color: var(--theme-card-bg);
+}
+
+/* Subtle backgrounds */
+[class*="bg-gray-50"]:not(main) {
+  background-color: var(--theme-surface);
+}
+
+[class*="bg-gray-100"] {
+  background-color: color-mix(in srgb, var(--theme-surface) 60%, var(--theme-card-bg) 40%);
+}
+
+/* Hover states — must use !important to override Tailwind hover: variants */
+.hover\:bg-gray-50:hover,
+.hover\:bg-gray-100:hover,
+[class*="dark:hover:bg-gray-800"]:hover,
+[class*="dark:hover:bg-gray-800\/50"]:hover,
+.hover\:bg-gray-100\/50:hover {
+  background-color: var(--theme-surface) !important;
+}
+
+/* Text hierarchy — uses !important to override Tailwind specificity */
+.text-gray-900,
+.text-gray-800,
+[class*="dark:text-white"] {
+  color: var(--theme-card-text) !important;
+}
+
+.text-gray-700 {
+  color: color-mix(in srgb, var(--theme-card-text) 85%, var(--theme-muted-text)) !important;
+}
+
+.text-gray-500,
+.text-gray-600 {
+  color: var(--theme-muted-text) !important;
+}
+
+/* gray-400 is used for real secondary text (hints, timestamps, separators),
+   so it gets the full muted colour — a translucent mix fell below 3:1. */
+.text-gray-400 {
+  color: var(--theme-muted-text) !important;
+}
+
+.text-gray-300 {
+  color: color-mix(in srgb, var(--theme-muted-text) 75%, transparent) !important;
+}
+
+/* Placeholder text */
+::placeholder {
+  color: color-mix(in srgb, var(--theme-muted-text) 80%, transparent) !important;
+}
+
+/* Labels inherit card text */
+label {
+  color: var(--theme-card-text);
+}
+
+/* Headings */
+h1, h2, h3, h4 {
+  color: var(--theme-card-text);
+}
+
+/* Primary color overrides */
+a.text-teal-600, .text-teal-600 { color: var(--theme-primary-text); }
+a.text-teal-600:hover, .hover\:text-teal-700:hover { color: var(--theme-primary-hover); }
+.bg-teal-500, .bg-teal-400 { background-color: var(--theme-primary); }
+.bg-teal-600, .border-teal-600 { background-color: var(--theme-primary); border-color: var(--theme-primary); }
+.bg-teal-100, .bg-teal-50 { background-color: var(--theme-primary-light); }
+.text-teal-700 { color: var(--theme-primary-text); }
+
+/* Fixed Tailwind status shades → the theme's semantic colours, which the
+   legibility pass keeps at AA on cards in every theme and mode (red-500 text
+   vanished on dark cards; green-600 / amber-500 were below AA on white). */
+.text-red-400, .text-red-500, .text-red-600, .text-red-700, .text-red-800 { color: var(--theme-danger); }
+.text-green-500, .text-green-600, .text-green-700, .text-emerald-600 { color: var(--theme-success); }
+.text-amber-500, .text-amber-600, .text-amber-700, .text-amber-800, .text-yellow-600, .text-yellow-800, .text-yellow-900, .text-orange-600, .text-orange-800 { color: var(--theme-warning); }
+.bg-red-50, .bg-red-100, .hover\:bg-red-50:hover { background-color: var(--status-danger-bg); }
+.bg-green-50, .bg-green-100 { background-color: var(--status-success-bg); }
+.bg-amber-50, .bg-amber-100 { background-color: var(--status-warning-bg); }
+
+/* Form elements */
+select,
+textarea {
+  background-color: var(--theme-input-bg);
+  border-color: var(--theme-input-border);
+  color: var(--theme-card-text);
+}
+
+/* Focus rings */
+*:focus-visible {
+  --tw-ring-color: var(--theme-focus-ring);
+}
+
+/* Hover states on card-like surfaces */
+[class*="hover:bg-gray-50"]:hover {
+  background-color: var(--theme-surface) !important;
+}
+
+[class*="dark:hover:bg-gray-800"]:hover {
+  background-color: color-mix(in srgb, var(--theme-surface) 80%, var(--theme-card-bg) 20%) !important;
+}
+
+/* ─── Form themes (components/forms/form-theme-scope) ─── */
+/* Placeholders and focus-ring offsets follow the form's palette, not the app's. */
+[data-form-theme] ::placeholder {
+  color: var(--form-placeholder, var(--theme-muted-text));
+  opacity: 1;
+}
+[data-form-theme] {
+  --tw-ring-offset-color: var(--theme-card-bg);
+}

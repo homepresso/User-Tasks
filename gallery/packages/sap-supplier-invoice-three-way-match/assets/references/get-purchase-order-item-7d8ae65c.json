@@ -1,0 +1,255 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "7d8ae65c-912c-5704-b719-7709864c4df0",
+  "asset": {
+    "id": "7d8ae65c-912c-5704-b719-7709864c4df0",
+    "integration_id": "53fb48d5-47ba-5188-9ec4-f23a209b1c13",
+    "name": "Get purchase order item",
+    "description": "API_PURCHASEORDER_PROCESS_SRV A_PurchaseOrderItem: ordered quantity, net price and price unit, currency, tax code and GR-based invoice verification flag.",
+    "tags": [
+      "sap",
+      "purchasing"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/API_PURCHASEORDER_PROCESS_SRV/A_PurchaseOrderItem(PurchaseOrder='{{purchase_order}}',PurchaseOrderItem='{{po_item}}')",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "d",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "__metadata",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "type",
+                      "type": "string",
+                      "example": "API_PURCHASEORDER_PROCESS_SRV.A_PurchaseOrderItemType"
+                    }
+                  ]
+                },
+                {
+                  "name": "PurchaseOrder",
+                  "type": "string",
+                  "example": "4500001245"
+                },
+                {
+                  "name": "PurchaseOrderItem",
+                  "type": "string",
+                  "example": "10"
+                },
+                {
+                  "name": "PurchaseOrderItemText",
+                  "type": "string",
+                  "example": "Ball bearing 6204-2RS"
+                },
+                {
+                  "name": "Material",
+                  "type": "string",
+                  "example": "BRG-6204"
+                },
+                {
+                  "name": "Plant",
+                  "type": "string",
+                  "example": "1010"
+                },
+                {
+                  "name": "StorageLocation",
+                  "type": "string",
+                  "example": "101A"
+                },
+                {
+                  "name": "MaterialGroup",
+                  "type": "string",
+                  "example": "M002"
+                },
+                {
+                  "name": "OrderQuantity",
+                  "type": "string",
+                  "example": "100"
+                },
+                {
+                  "name": "PurchaseOrderQuantityUnit",
+                  "type": "string",
+                  "example": "EA"
+                },
+                {
+                  "name": "NetPriceAmount",
+                  "type": "string",
+                  "example": "12.50"
+                },
+                {
+                  "name": "NetPriceQuantity",
+                  "type": "string",
+                  "example": "1"
+                },
+                {
+                  "name": "DocumentCurrency",
+                  "type": "string",
+                  "example": "EUR"
+                },
+                {
+                  "name": "TaxCode",
+                  "type": "string",
+                  "example": "V1"
+                },
+                {
+                  "name": "IsCompletelyDelivered",
+                  "type": "boolean",
+                  "example": false
+                },
+                {
+                  "name": "IsFinallyInvoiced",
+                  "type": "boolean",
+                  "example": false
+                },
+                {
+                  "name": "InvoiceIsGoodsReceiptBased",
+                  "type": "boolean",
+                  "example": true
+                },
+                {
+                  "name": "GoodsReceiptIsExpected",
+                  "type": "boolean",
+                  "example": true
+                },
+                {
+                  "name": "AccountAssignmentCategory",
+                  "type": "string",
+                  "example": ""
+                },
+                {
+                  "name": "PurchasingDocumentDeletionCode",
+                  "type": "string",
+                  "example": ""
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "d": {
+            "__metadata": {
+              "type": "API_PURCHASEORDER_PROCESS_SRV.A_PurchaseOrderItemType"
+            },
+            "PurchaseOrder": "4500001245",
+            "PurchaseOrderItem": "10",
+            "PurchaseOrderItemText": "Ball bearing 6204-2RS",
+            "Material": "BRG-6204",
+            "Plant": "1010",
+            "StorageLocation": "101A",
+            "MaterialGroup": "M002",
+            "OrderQuantity": "100",
+            "PurchaseOrderQuantityUnit": "EA",
+            "NetPriceAmount": "12.50",
+            "NetPriceQuantity": "1",
+            "DocumentCurrency": "EUR",
+            "TaxCode": "V1",
+            "IsCompletelyDelivered": false,
+            "IsFinallyInvoiced": false,
+            "InvoiceIsGoodsReceiptBased": true,
+            "GoodsReceiptIsExpected": true,
+            "AccountAssignmentCategory": "",
+            "PurchasingDocumentDeletionCode": ""
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "d1336ff1-31b3-54b6-a977-dc1a6d58be34",
+        "name": "purchase_order",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "cc4eb7c2-db70-5b80-b353-9f0595611d72",
+        "name": "po_item",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "1692034e-a8b9-5a03-aafb-7675676c89cd",
+        "name": "po_quantity",
+        "path": "d.OrderQuantity",
+        "type": "string"
+      },
+      {
+        "id": "ffa53df2-3ee9-5a6d-99ed-48e20b3b9caf",
+        "name": "po_unit",
+        "path": "d.PurchaseOrderQuantityUnit",
+        "type": "string"
+      },
+      {
+        "id": "b1fa18f3-cb5b-52b1-9601-ee7dc6ca1d4a",
+        "name": "po_net_price",
+        "path": "d.NetPriceAmount",
+        "type": "string"
+      },
+      {
+        "id": "5a648ed8-57ee-5127-b6e1-6893e811b328",
+        "name": "po_price_unit",
+        "path": "d.NetPriceQuantity",
+        "type": "string"
+      },
+      {
+        "id": "d5f75f8b-4538-5715-b966-7a46171fb469",
+        "name": "po_currency",
+        "path": "d.DocumentCurrency",
+        "type": "string"
+      },
+      {
+        "id": "f694b815-56d7-5052-bfb7-8fa9fb305807",
+        "name": "po_tax_code",
+        "path": "d.TaxCode",
+        "type": "string"
+      },
+      {
+        "id": "2d784133-fb08-5f09-ad90-d155f34f7e4e",
+        "name": "po_item_text",
+        "path": "d.PurchaseOrderItemText",
+        "type": "string"
+      },
+      {
+        "id": "8e28f81a-ff26-521b-b0d9-7d8f3b80c6ab",
+        "name": "material",
+        "path": "d.Material",
+        "type": "string"
+      },
+      {
+        "id": "74a073ed-4e17-590e-96d6-880dbea26ffe",
+        "name": "plant",
+        "path": "d.Plant",
+        "type": "string"
+      },
+      {
+        "id": "0496be2f-bd52-533b-aafc-4b95d07f5d67",
+        "name": "finally_invoiced",
+        "path": "d.IsFinallyInvoiced",
+        "type": "boolean"
+      }
+    ]
+  }
+}

@@ -1,0 +1,450 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "d040e8a3-ce2c-4d9b-9021-3a5e2403520d",
+  "asset": {
+    "id": "d040e8a3-ce2c-4d9b-9021-3a5e2403520d",
+    "name": "Daily contract renewal check",
+    "description": "Every morning: reads the active contracts, works out the days to each notice deadline, emails the owner at 60, 30 and 7 days and starts a Contract renewal decision 30 days out.",
+    "trigger_type": "schedule",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "schedule",
+        "label": "Every day at 07:00",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {
+          "schedule_mode": "daily",
+          "time_of_day": "07:00",
+          "timezone": "UTC"
+        }
+      },
+      {
+        "id": "as_of_date",
+        "type": "set_variable",
+        "label": "Check date",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "name": "as_of_date",
+          "expression": "{{=FORMAT_DATE(COALESCE(as_of, TODAY()), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "list",
+        "type": "update_data_table",
+        "label": "List active contracts",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "table_id": "1b5f68c4-003c-4119-8490-7de35780cb07",
+          "table_name": "Contracts",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "active"
+            }
+          ],
+          "sort_column": "end_date",
+          "sort_direction": "asc",
+          "limit": 500,
+          "output_rows_var": "contracts",
+          "output_count_var": "contract_count"
+        }
+      },
+      {
+        "id": "loop",
+        "type": "loop",
+        "label": "Each contract",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "items": "{{contracts}}",
+          "item_var": "contract"
+        }
+      },
+      {
+        "id": "deadline",
+        "type": "set_variable",
+        "label": "Notice deadline",
+        "position": {
+          "x": 1540,
+          "y": 720
+        },
+        "config": {
+          "name": "notice_deadline_label",
+          "expression": "{{=FORMAT_DATE(ADD_DAYS(contract.end_date, MULTIPLY(contract.notice_period_days, -1)), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "days",
+        "type": "set_variable",
+        "label": "Days to deadline",
+        "position": {
+          "x": 1540,
+          "y": 880
+        },
+        "config": {
+          "name": "days_to_notice",
+          "expression": "{{=ROUND(DAY_DIFF(as_of_date, notice_deadline_label), 0)}}"
+        }
+      },
+      {
+        "id": "window",
+        "type": "switch_case",
+        "label": "Reminder window",
+        "position": {
+          "x": 1540,
+          "y": 1040
+        },
+        "config": {
+          "field": "{{days_to_notice}}",
+          "cases": [
+            {
+              "value": "60",
+              "label": "60 days"
+            },
+            {
+              "value": "30",
+              "label": "30 days"
+            },
+            {
+              "value": "7",
+              "label": "7 days"
+            }
+          ],
+          "has_default": true
+        }
+      },
+      {
+        "id": "lvl60",
+        "type": "set_variable",
+        "label": "First reminder",
+        "position": {
+          "x": 660,
+          "y": 1220
+        },
+        "config": {
+          "name": "reminder_level",
+          "expression": "First reminder"
+        }
+      },
+      {
+        "id": "lvl30",
+        "type": "set_variable",
+        "label": "Second reminder",
+        "position": {
+          "x": 980,
+          "y": 1220
+        },
+        "config": {
+          "name": "reminder_level",
+          "expression": "Decision needed"
+        }
+      },
+      {
+        "id": "lvl7",
+        "type": "set_variable",
+        "label": "Final reminder",
+        "position": {
+          "x": 1300,
+          "y": 1220
+        },
+        "config": {
+          "name": "reminder_level",
+          "expression": "Final reminder"
+        }
+      },
+      {
+        "id": "remind",
+        "type": "send_email",
+        "label": "Email owner: reminder",
+        "position": {
+          "x": 660,
+          "y": 1380
+        },
+        "config": {
+          "to": "{{contract.owner_email}}",
+          "email_template_id": "80a7013d-0bc9-4733-8f8c-a5b95a2a6a82"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "needs_decision",
+        "type": "condition",
+        "label": "Decision needed?",
+        "position": {
+          "x": 1540,
+          "y": 1540
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Start decision",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{days_to_notice}}",
+                  "operator": "lte",
+                  "value": "30"
+                },
+                {
+                  "field": "{{days_to_notice}}",
+                  "operator": "gte",
+                  "value": "0"
+                },
+                {
+                  "field": "{{contract.renewal_stage}}",
+                  "operator": "not_equals",
+                  "value": "Decision requested"
+                }
+              ]
+            },
+            {
+              "label": "Deadline passed",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{days_to_notice}}",
+                  "operator": "lt",
+                  "value": "0"
+                },
+                {
+                  "field": "{{contract.renewal_stage}}",
+                  "operator": "in",
+                  "value": "Not started,Decision requested"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "mark",
+        "type": "update_data_table",
+        "label": "Mark decision requested",
+        "position": {
+          "x": 1540,
+          "y": 1720
+        },
+        "config": {
+          "table_id": "1b5f68c4-003c-4119-8490-7de35780cb07",
+          "table_name": "Contracts",
+          "operation": "update",
+          "row_id": "{{contract.row_id}}",
+          "column_values": {
+            "renewal_stage": "Decision requested"
+          }
+        }
+      },
+      {
+        "id": "start_decision",
+        "type": "call_sub_workflow",
+        "label": "Start renewal decision",
+        "position": {
+          "x": 1540,
+          "y": 1880
+        },
+        "config": {
+          "sub_workflow_id": "6a25cdff-7d02-428d-b949-6f341077b2c9",
+          "sub_workflow_name": "Contract renewal decision",
+          "input_mappings": {
+            "contract": "{{contract}}",
+            "days_to_notice": "{{days_to_notice}}",
+            "notice_deadline_label": "{{notice_deadline_label}}",
+            "owner_user_id": "{{contract.owner_user_id}}"
+          }
+        },
+        "executionMode": "async"
+      },
+      {
+        "id": "missed",
+        "type": "log",
+        "label": "Deadline missed",
+        "position": {
+          "x": 1860,
+          "y": 1720
+        },
+        "config": {
+          "message": "{{contract.contract_id}} {{contract.contract_name}}: notice deadline {{notice_deadline_label}} passed without a decision ({{=IF(contract.auto_renew, \"it will auto-renew\", \"it will expire\")}} on {{contract.end_date}})",
+          "level": "warn"
+        }
+      },
+      {
+        "id": "ok",
+        "type": "log",
+        "label": "Nothing due",
+        "position": {
+          "x": 2180,
+          "y": 1720
+        },
+        "config": {
+          "message": "{{contract.contract_id}}: {{days_to_notice}} days to the notice deadline",
+          "level": "info"
+        }
+      },
+      {
+        "id": "summary",
+        "type": "log",
+        "label": "Log summary",
+        "position": {
+          "x": 340,
+          "y": 2040
+        },
+        "config": {
+          "message": "Checked {{contract_count}} active contracts as of {{as_of_date}}",
+          "level": "info"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Check complete",
+        "position": {
+          "x": 340,
+          "y": 2200
+        },
+        "config": {
+          "reason": "Checked {{contract_count}} contracts as of {{as_of_date}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-as_of_date",
+        "source": "trigger",
+        "target": "as_of_date"
+      },
+      {
+        "id": "e-as_of_date-list",
+        "source": "as_of_date",
+        "target": "list"
+      },
+      {
+        "id": "e-list-loop",
+        "source": "list",
+        "target": "loop"
+      },
+      {
+        "id": "e-loop-deadline-each-item",
+        "source": "loop",
+        "target": "deadline",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-deadline-days",
+        "source": "deadline",
+        "target": "days"
+      },
+      {
+        "id": "e-days-window",
+        "source": "days",
+        "target": "window"
+      },
+      {
+        "id": "e-window-lvl60-60-days",
+        "source": "window",
+        "target": "lvl60",
+        "label": "60 days"
+      },
+      {
+        "id": "e-window-lvl30-30-days",
+        "source": "window",
+        "target": "lvl30",
+        "label": "30 days"
+      },
+      {
+        "id": "e-window-lvl7-7-days",
+        "source": "window",
+        "target": "lvl7",
+        "label": "7 days"
+      },
+      {
+        "id": "e-window-needs_decision-default",
+        "source": "window",
+        "target": "needs_decision",
+        "label": "Default"
+      },
+      {
+        "id": "e-lvl60-remind",
+        "source": "lvl60",
+        "target": "remind"
+      },
+      {
+        "id": "e-lvl30-remind",
+        "source": "lvl30",
+        "target": "remind"
+      },
+      {
+        "id": "e-lvl7-remind",
+        "source": "lvl7",
+        "target": "remind"
+      },
+      {
+        "id": "e-remind-needs_decision",
+        "source": "remind",
+        "target": "needs_decision"
+      },
+      {
+        "id": "e-needs_decision-mark-start-decision",
+        "source": "needs_decision",
+        "target": "mark",
+        "label": "Start decision"
+      },
+      {
+        "id": "e-mark-start_decision",
+        "source": "mark",
+        "target": "start_decision"
+      },
+      {
+        "id": "e-needs_decision-missed-deadline-passed",
+        "source": "needs_decision",
+        "target": "missed",
+        "label": "Deadline passed"
+      },
+      {
+        "id": "e-needs_decision-ok-else",
+        "source": "needs_decision",
+        "target": "ok",
+        "label": "Else"
+      },
+      {
+        "id": "e-loop-summary-done",
+        "source": "loop",
+        "target": "summary",
+        "label": "Done"
+      },
+      {
+        "id": "e-summary-done",
+        "source": "summary",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-as_of",
+        "name": "as_of",
+        "type": "string",
+        "description": "Optional: check as if today were this date (YYYY-MM-DD). Empty = today. Useful for testing and back-filling.",
+        "defaultValue": "",
+        "label": "As of date",
+        "format": "date"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

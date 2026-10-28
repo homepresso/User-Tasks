@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "7893a2c5-0b08-52a3-b13f-4bf8f52a3ee1",
+  "asset": {
+    "id": "7893a2c5-0b08-52a3-b13f-4bf8f52a3ee1",
+    "name": "Major incident declared",
+    "description": "Sent to the service's stakeholder list when the incident manager declares a major incident.",
+    "subject": "[{{task_data.severity}}] Major incident {{number}}: {{short_description}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\">\n  <div style=\"border-top:4px solid #B42318;padding-top:16px\"><h2 style=\"margin:0 0 12px;font-size:20px\">Major incident {{number}} declared ({{task_data.severity}})</h2></div>\n  <p style=\"margin:0 0 12px\"><strong>{{short_description}}</strong></p>\n  <p style=\"margin:0 0 12px\">Service: <strong>{{cmdb_ci}}</strong> (tier {{service_tier}}) · Assignment group: {{assignment_group}} · Priority {{priority_label}}</p>\n  <p style=\"margin:0 0 12px\">Business impact: {{task_data.business_impact}}</p>\n  <p style=\"margin:0 0 12px\">Incident manager: {{task_data.incident_manager}}{{=IF(task_data.bridge_url, CONCAT(\" · Bridge: \", task_data.bridge_url), \"\")}}</p>\n  <p style=\"margin:0 0 12px\">The next update will follow within <strong>{{task_data.comms_cadence}} minutes</strong>.</p>\n  <p style=\"margin:0 0 12px\"><a href=\"https://acme.service-now.example.com/nav_to.do?uri=incident.do?sys_id={{sys_id}}\" style=\"color:#1F4E79\">Open {{number}} in ServiceNow</a></p>\n  <p style=\"color:#6E6759;font-size:13px;margin-top:20px\">Sent by the ServiceNow major incident review workflow</p>\n</div>",
+    "text_body": "[{{task_data.severity}}] Major incident {{number}} declared\n{{short_description}}\nService: {{cmdb_ci}} (tier {{service_tier}})\nImpact: {{task_data.business_impact}}\nIncident manager: {{task_data.incident_manager}}\nNext update within {{task_data.comms_cadence}} minutes.",
+    "is_default": false
+  }
+}

@@ -1,0 +1,116 @@
+# On-premises / air-gapped: your own PostgreSQL (behind PgBouncer), MinIO or
+# another S3 store, Valkey, an SMTP relay, Keycloak OIDC, Vault for secrets
+# and KMS, a private CA, images from the internal registry, and an egress
+# allowlist (no internet). See docs/setup-kubernetes.md and docs/setup-air-gapped.md.
+#
+# The Secret (kubectl create secret generic usertasks-env --from-env-file=…)
+# holds ENCRYPTION_KEY, CRON_SECRET, DATABASE_URL, MIGRATION_DATABASE_URL,
+# REALTIME_DATABASE_URL, SCHEDULER_DATABASE_URL, S3_SECRET_ACCESS_KEY,
+# CACHE_REDIS_PASSWORD and SMTP_PASSWORD.
+
+global:
+  imageRegistry: registry.corp.example/usertasks
+image:
+  repository: usertasks
+  tag: "0.1.0"
+
+appUrl: https://tasks.corp.example
+instanceAdminEmails: [ops@corp.example]
+
+secrets:
+  existingSecret: usertasks-env
+
+providers:
+  db: { provider: postgres }
+  auth:
+    provider: builtin
+    options:
+      sso_providers:
+        - id: keycloak
+          type: oidc
+          preset: keycloak
+          baseUrl: https://sso.corp.example
+          realm: corp
+          clientId: usertasks
+          clientSecret: secret://keycloak-client-secret
+  storage:
+    provider: s3
+    options:
+      endpoint: https://minio.corp.example:9000
+      region: us-east-1
+      access_key_id: usertasks
+      force_path_style: true
+      bucket_prefix: usertasks-
+  realtime: { provider: sse }
+  scheduler: { provider: worker }
+  email:
+    provider: smtp
+    options:
+      smtp_host: mail.corp.example
+      smtp_port: 587
+      smtp_starttls: required
+      smtp_user: usertasks
+      from: UserTasks <tasks@corp.example>
+  secrets:
+    provider: hashicorp_vault
+    options:
+      vault_addr: https://vault.corp.example:8200
+      vault_auth: kubernetes
+      vault_k8s_role: usertasks
+  kms:
+    provider: vault_transit
+    options:
+      vault_addr: https://vault.corp.example:8200
+      vault_auth: kubernetes
+      vault_k8s_role: usertasks
+      vault_transit_key: usertasks
+  cache:
+    provider: redis
+    options:
+      redis_url: rediss://valkey.corp.example:6379
+
+security:
+  # LDAP / AD directory sync, log destinations and integrations on the LAN.
+  allowPrivateEgress: true
+
+caBundle:
+  configMap: corp-ca
+  key: ca.crt
+
+app:
+  replicas: 3
+  autoscaling: { enabled: true, minReplicas: 3, maxReplicas: 10 }
+worker:
+  replicas: 2
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    # SSE realtime: no buffering, long-lived responses.
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-body-size: 50m
+  certManager:
+    clusterIssuer: corp-ca-issuer
+  tls:
+    enabled: true
+
+networkPolicy:
+  enabled: true
+  ingress:
+    from:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: ingress-nginx
+  egress:
+    mode: allowlist
+    allow:
+      # PostgreSQL / PgBouncer, MinIO, Valkey, SMTP, Vault, LDAPS, syslog over TLS
+      - cidr: 10.20.0.0/16
+        ports: [5432, 6432, 9000, 6379, 587, 8200, 636, 6514]
+      # Keycloak
+      - cidr: 10.30.4.10/32
+        ports: [443]
+    # Vault Kubernetes auth reviews the service account token against the API.
+    kubeApiCidr: 10.96.0.1/32

@@ -1,0 +1,70 @@
+{{- if .Values.migrate.enabled }}
+{{- $hook := eq (include "usertasks.migrateMode" .) "hook" }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  {{- if $hook }}
+  name: {{ include "usertasks.fullname" . }}-migrate
+  {{- else }}
+  # One Job per release revision (Jobs are immutable): every install and
+  # upgrade migrates; app and worker pods wait for it.
+  name: {{ include "usertasks.fullname" . }}-migrate-{{ .Release.Revision }}
+  {{- end }}
+  labels:
+    {{- include "usertasks.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrate
+  {{- if $hook }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation
+  {{- end }}
+spec:
+  backoffLimit: {{ .Values.migrate.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migrate.activeDeadlineSeconds }}
+  {{- if not $hook }}
+  ttlSecondsAfterFinished: {{ .Values.migrate.ttlSecondsAfterFinished }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "usertasks.podLabels" (dict "root" . "component" "migrate") | nindent 8 }}
+    spec:
+      {{- include "usertasks.podCommon" (dict "root" . "serviceAccount" (include "usertasks.migrateServiceAccountName" .)) | nindent 6 }}
+      restartPolicy: OnFailure
+      {{- $deps := list }}
+      {{- if .Values.postgresql.enabled }}{{ $deps = append $deps (printf "%s-postgresql:5432" (include "usertasks.fullname" .)) }}{{ end }}
+      {{- if .Values.minio.enabled }}{{ $deps = append $deps (printf "%s-minio:9000" (include "usertasks.fullname" .)) }}{{ end }}
+      {{- if $deps }}
+      initContainers:
+        # The bundled dependencies start with the release: wait until they accept connections.
+        - name: wait-for-dependencies
+          {{- include "usertasks.containerCommon" (dict "root" .) | nindent 10 }}
+          command:
+            - sh
+            - -c
+            - |
+              for dep in {{ join " " $deps }}; do
+                until nc -z "${dep%:*}" "${dep#*:}"; do echo "waiting for $dep"; sleep 2; done
+              done
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 64Mi }
+      {{- end }}
+      containers:
+        - name: migrate
+          {{- include "usertasks.containerCommon" (dict "root" . "config" (ternary "migrate-config" "config" $hook)) | nindent 10 }}
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              node admin.cjs db migrate {{ range .Values.migrate.args }}{{ . | quote }} {{ end }}
+              {{- if .Values.migrate.storageInit }}
+              node admin.cjs storage init
+              {{- end }}
+          resources:
+            {{- toYaml .Values.migrate.resources | nindent 12 }}
+      volumes:
+        {{- include "usertasks.volumes" . | nindent 8 }}
+{{- end }}

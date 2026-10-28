@@ -1,0 +1,549 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "75dc4472-1355-4254-a90a-eacb16e01023",
+  "asset": {
+    "id": "75dc4472-1355-4254-a90a-eacb16e01023",
+    "name": "Joiner mover leaver sync",
+    "description": "Every night, reads the HR changes since the last run and applies each one to the directory: creates joiners with their birthright groups, updates movers, disables leavers, and logs every action.",
+    "trigger_type": "schedule",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "schedule",
+        "label": "Daily at 02:00",
+        "position": {
+          "x": 340,
+          "y": 60
+        },
+        "config": {
+          "schedule_mode": "daily",
+          "time_of_day": "02:00",
+          "timezone": "Pacific/Auckland"
+        }
+      },
+      {
+        "id": "since",
+        "type": "set_variable",
+        "label": "Changes since",
+        "position": {
+          "x": 340,
+          "y": 220
+        },
+        "config": {
+          "name": "since",
+          "expression": "{{=FORMAT_DATE(COALESCE(since, SUBTRACT_DAYS(NOW(), 1)), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 340,
+          "y": 380
+        },
+        "config": {
+          "title": "JML sync · changes since {{since}}"
+        }
+      },
+      {
+        "id": "changes",
+        "type": "call_reference",
+        "label": "List HR changes",
+        "position": {
+          "x": 340,
+          "y": 540
+        },
+        "config": {
+          "reference_id": "2acd8b82-9e18-4a5e-83a7-264039993ec9",
+          "reference_name": "List HR changes",
+          "reference_method": "GET",
+          "input_mappings": {
+            "since": "{{since}}"
+          },
+          "output_mappings": {
+            "changes": {
+              "enabled": true,
+              "variableName": "hr_changes"
+            },
+            "count": {
+              "enabled": true,
+              "variableName": "change_count"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each change",
+        "position": {
+          "x": 340,
+          "y": 700
+        },
+        "config": {
+          "items": "{{hr_changes}}",
+          "item_var": "change",
+          "index_var": "change_index"
+        }
+      },
+      {
+        "id": "key",
+        "type": "set_variable",
+        "label": "Role key",
+        "position": {
+          "x": 1140,
+          "y": 880
+        },
+        "config": {
+          "name": "mapping_key",
+          "expression": "{{change.department}}|{{change.job_family}}"
+        }
+      },
+      {
+        "id": "reset",
+        "type": "set_variable",
+        "label": "Clear previous role",
+        "position": {
+          "x": 1140,
+          "y": 1040
+        },
+        "config": {
+          "name": "role",
+          "expression": ""
+        }
+      },
+      {
+        "id": "reset_user",
+        "type": "set_variable",
+        "label": "Clear previous user",
+        "position": {
+          "x": 1140,
+          "y": 1200
+        },
+        "config": {
+          "name": "directory_user_id",
+          "expression": "{{change.directory_user_id}}"
+        }
+      },
+      {
+        "id": "role",
+        "type": "update_data_table",
+        "label": "Look up role mapping",
+        "position": {
+          "x": 1140,
+          "y": 1360
+        },
+        "config": {
+          "table_id": "49cf52c9-a3b1-45fb-844f-0746ab98fc47",
+          "table_name": "Role mappings",
+          "operation": "get",
+          "match_column": "mapping_key",
+          "match_value": "{{mapping_key}}",
+          "output_row_var": "role"
+        }
+      },
+      {
+        "id": "groups",
+        "type": "set_variable",
+        "label": "Groups",
+        "position": {
+          "x": 1140,
+          "y": 1520
+        },
+        "config": {
+          "name": "target_groups",
+          "expression": "{{=COALESCE(role.groups, default_groups)}}"
+        }
+      },
+      {
+        "id": "licence",
+        "type": "set_variable",
+        "label": "Licence",
+        "position": {
+          "x": 1140,
+          "y": 1680
+        },
+        "config": {
+          "name": "target_licence",
+          "expression": "{{=COALESCE(role.licence, default_licence)}}"
+        }
+      },
+      {
+        "id": "kind",
+        "type": "switch_case",
+        "label": "Change type",
+        "position": {
+          "x": 1140,
+          "y": 1840
+        },
+        "config": {
+          "field": "{{change.change_type}}",
+          "cases": [
+            {
+              "value": "joiner",
+              "label": "Joiner"
+            },
+            {
+              "value": "mover",
+              "label": "Mover"
+            },
+            {
+              "value": "leaver",
+              "label": "Leaver"
+            }
+          ],
+          "has_default": true
+        }
+      },
+      {
+        "id": "create",
+        "type": "call_reference",
+        "label": "Create account",
+        "position": {
+          "x": 660,
+          "y": 2020
+        },
+        "config": {
+          "reference_id": "7962544d-fe9f-4646-aa99-0f3d68dade48",
+          "reference_name": "Create user",
+          "reference_method": "POST",
+          "input_mappings": {
+            "employee_id": "{{change.employee_id}}",
+            "given_name": "{{change.first_name}}",
+            "family_name": "{{change.last_name}}",
+            "email": "{{change.email}}",
+            "department": "{{change.department}}",
+            "job_title": "{{change.job_title}}",
+            "manager_id": "{{change.manager_id}}",
+            "groups": "{{target_groups}}",
+            "licence": "{{target_licence}}",
+            "start_date": "{{change.effective_date}}"
+          },
+          "output_mappings": {
+            "id": {
+              "enabled": true,
+              "variableName": "directory_user_id"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "act_create",
+        "type": "set_variable",
+        "label": "Action: created",
+        "position": {
+          "x": 660,
+          "y": 2180
+        },
+        "config": {
+          "name": "sync_action",
+          "expression": "Created account"
+        }
+      },
+      {
+        "id": "move",
+        "type": "call_reference",
+        "label": "Update groups",
+        "position": {
+          "x": 980,
+          "y": 2020
+        },
+        "config": {
+          "reference_id": "ad59207f-84c8-4f1e-a733-8c885ec9a3a7",
+          "reference_name": "Update user",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "user_id": "{{change.directory_user_id}}",
+            "department": "{{change.department}}",
+            "job_title": "{{change.job_title}}",
+            "manager_id": "{{change.manager_id}}",
+            "groups": "{{target_groups}}",
+            "licence": "{{target_licence}}"
+          },
+          "output_mappings": {
+            "id": {
+              "enabled": true,
+              "variableName": "directory_user_id"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "act_move",
+        "type": "set_variable",
+        "label": "Action: moved",
+        "position": {
+          "x": 980,
+          "y": 2180
+        },
+        "config": {
+          "name": "sync_action",
+          "expression": "Updated department, groups and licence"
+        }
+      },
+      {
+        "id": "disable",
+        "type": "call_reference",
+        "label": "Disable account",
+        "position": {
+          "x": 1300,
+          "y": 2020
+        },
+        "config": {
+          "reference_id": "de3ca3db-1860-41b7-bf79-cabf2d1bf559",
+          "reference_name": "Disable user",
+          "reference_method": "POST",
+          "input_mappings": {
+            "user_id": "{{change.directory_user_id}}",
+            "reason": "Leaver {{change.change_id}}",
+            "effective_date": "{{change.effective_date}}"
+          },
+          "output_mappings": {
+            "id": {
+              "enabled": true,
+              "variableName": "directory_user_id"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "act_disable",
+        "type": "set_variable",
+        "label": "Action: disabled",
+        "position": {
+          "x": 1300,
+          "y": 2180
+        },
+        "config": {
+          "name": "sync_action",
+          "expression": "Disabled account, revoked sessions and groups"
+        }
+      },
+      {
+        "id": "act_skip",
+        "type": "set_variable",
+        "label": "Action: skipped",
+        "position": {
+          "x": 1620,
+          "y": 2020
+        },
+        "config": {
+          "name": "sync_action",
+          "expression": "Skipped: unknown change type \"{{change.change_type}}\""
+        }
+      },
+      {
+        "id": "write",
+        "type": "update_data_table",
+        "label": "Write sync log",
+        "position": {
+          "x": 1140,
+          "y": 2340
+        },
+        "config": {
+          "table_id": "00aac98a-6b57-49d2-82ed-0a71ebfd50a7",
+          "table_name": "JML sync log",
+          "operation": "insert",
+          "column_values": {
+            "synced_at": "{{=NOW()}}",
+            "change_id": "{{change.change_id}}",
+            "employee_id": "{{change.employee_id}}",
+            "name": "{{change.first_name}} {{change.last_name}}",
+            "change_type": "{{change.change_type}}",
+            "action": "{{sync_action}}",
+            "directory_user_id": "{{directory_user_id}}",
+            "groups": "{{=IF(CONTAINS(change.change_type, \"leaver\"), \"\", target_groups)}}",
+            "licence": "{{=IF(CONTAINS(change.change_type, \"leaver\"), \"\", target_licence)}}",
+            "http_status": "{{status}}",
+            "status": "{{=IF(status >= 400, \"failed\", \"ok\")}}"
+          }
+        }
+      },
+      {
+        "id": "summary",
+        "type": "log",
+        "label": "Sync summary",
+        "position": {
+          "x": 340,
+          "y": 2500
+        },
+        "config": {
+          "message": "JML sync since {{since}}: {{change_count}} changes ({{=COUNT(FILTER_WHERE(hr_changes, \"change_type\", \"joiner\"))}} joiners, {{=COUNT(FILTER_WHERE(hr_changes, \"change_type\", \"mover\"))}} movers, {{=COUNT(FILTER_WHERE(hr_changes, \"change_type\", \"leaver\"))}} leavers). See the JML sync log table.",
+          "level": "info"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Synced",
+        "position": {
+          "x": 340,
+          "y": 2660
+        },
+        "config": {
+          "reason": "Processed {{change_count}} HR changes since {{since}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-since",
+        "source": "trigger",
+        "target": "since"
+      },
+      {
+        "id": "e-since-title",
+        "source": "since",
+        "target": "title"
+      },
+      {
+        "id": "e-title-changes",
+        "source": "title",
+        "target": "changes"
+      },
+      {
+        "id": "e-changes-each",
+        "source": "changes",
+        "target": "each"
+      },
+      {
+        "id": "e-each-key-each-item",
+        "source": "each",
+        "target": "key",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-key-reset",
+        "source": "key",
+        "target": "reset"
+      },
+      {
+        "id": "e-reset-reset_user",
+        "source": "reset",
+        "target": "reset_user"
+      },
+      {
+        "id": "e-reset_user-role",
+        "source": "reset_user",
+        "target": "role"
+      },
+      {
+        "id": "e-role-groups",
+        "source": "role",
+        "target": "groups"
+      },
+      {
+        "id": "e-groups-licence",
+        "source": "groups",
+        "target": "licence"
+      },
+      {
+        "id": "e-licence-kind",
+        "source": "licence",
+        "target": "kind"
+      },
+      {
+        "id": "e-kind-create-joiner",
+        "source": "kind",
+        "target": "create",
+        "label": "Joiner"
+      },
+      {
+        "id": "e-kind-move-mover",
+        "source": "kind",
+        "target": "move",
+        "label": "Mover"
+      },
+      {
+        "id": "e-kind-disable-leaver",
+        "source": "kind",
+        "target": "disable",
+        "label": "Leaver"
+      },
+      {
+        "id": "e-kind-act_skip-default",
+        "source": "kind",
+        "target": "act_skip",
+        "label": "Default"
+      },
+      {
+        "id": "e-create-act_create",
+        "source": "create",
+        "target": "act_create"
+      },
+      {
+        "id": "e-move-act_move",
+        "source": "move",
+        "target": "act_move"
+      },
+      {
+        "id": "e-disable-act_disable",
+        "source": "disable",
+        "target": "act_disable"
+      },
+      {
+        "id": "e-act_create-write",
+        "source": "act_create",
+        "target": "write"
+      },
+      {
+        "id": "e-act_move-write",
+        "source": "act_move",
+        "target": "write"
+      },
+      {
+        "id": "e-act_disable-write",
+        "source": "act_disable",
+        "target": "write"
+      },
+      {
+        "id": "e-act_skip-write",
+        "source": "act_skip",
+        "target": "write"
+      },
+      {
+        "id": "e-each-summary-done",
+        "source": "each",
+        "target": "summary",
+        "label": "Done"
+      },
+      {
+        "id": "e-summary-done",
+        "source": "summary",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-since",
+        "name": "since",
+        "type": "string",
+        "description": "Optional: ISO date to read changes from. Defaults to yesterday, so each nightly run picks up the previous day.",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-default_groups",
+        "name": "default_groups",
+        "type": "string",
+        "description": "Groups for roles with no row in Role mappings",
+        "defaultValue": "all-staff"
+      },
+      {
+        "id": "v-default_licence",
+        "name": "default_licence",
+        "type": "string",
+        "description": "Licence for roles with no row in Role mappings",
+        "defaultValue": "E1"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

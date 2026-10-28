@@ -1,0 +1,17 @@
+$ echo "$USERTASKS_API_KEY" | usertasks login --url http://localhost:3100 --api-key -
+Logged in to http://localhost:3100 as tenant key @ Northwind Trading (profile "default").
+$ usertasks whoami
+profile      default
+url          http://localhost:3100
+tenant       Northwind Trading (northwind-trading)
+tenant_id    6102d958-00c9-4ec2-9808-89c87139cdb5
+user
+auth         api_key (tenant)
+scopes
+expires_at
+permissions  agents.create, agents.delete, agents.edit, agents.test, age…
+$ usertasks workflows list
+ID                                    NAME                  IS_ACTIVE  CREATED_AT                        UPDATED_AT                        TRIGGER_TYPE
+490c3c87-8a6a-4bed-9b0e-e67c9c3841a2  Invoice approval      true       2026-10-24T23:47:26.217727+00:00  2026-10-25T00:15:48.320968+00:00  webhook_received
+477a0c24-06f2-4894-969b-39816ee4dd0e  Nightly payment sync  true       2026-10-24T23:47:26.303339+00:00  2026-10-24T23:57:51.003471+00:00  schedule
+be0ec86c-51ca-4082-8ee3-730b195444e3  Vendor onboarding     true       2026-10-24T23:47:26.261694+00:00  2026-10-24T23:57:50.955672+00:00  webhook_received

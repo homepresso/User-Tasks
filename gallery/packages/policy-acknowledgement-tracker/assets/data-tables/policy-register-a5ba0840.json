@@ -1,0 +1,87 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "a5ba0840-a631-5ebc-8b44-58769b132779",
+  "asset": {
+    "id": "a5ba0840-a631-5ebc-8b44-58769b132779",
+    "name": "Policy register",
+    "description": "The policy register: each policy, its current version, where staff read it and whether staff must acknowledge it.",
+    "columns": [
+      {
+        "id": "64626fc2-4e56-514d-9bc8-578d28bc8877",
+        "required": true,
+        "key": "policy_code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "ff1345fd-73de-5465-9d90-957695e72296",
+        "required": true,
+        "key": "title",
+        "name": "Policy",
+        "type": "text"
+      },
+      {
+        "id": "bde1a009-996e-5bc9-b66a-2d3290d2ae5c",
+        "required": true,
+        "key": "version",
+        "name": "Version",
+        "type": "text"
+      },
+      {
+        "id": "5f4d39b3-ee55-5231-a83e-88345f0a2d56",
+        "required": false,
+        "key": "owner_name",
+        "name": "Policy owner",
+        "type": "text"
+      },
+      {
+        "id": "b5957777-d065-566f-940f-4b94a145d306",
+        "required": false,
+        "key": "effective_date",
+        "name": "Effective from",
+        "type": "date"
+      },
+      {
+        "id": "aecab628-1831-52fc-b1d9-2f54cf3ab61f",
+        "required": false,
+        "key": "url",
+        "name": "Link to the policy",
+        "type": "url"
+      },
+      {
+        "id": "ce92341e-c756-542d-b824-96b3ecce6397",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Draft",
+          "Current",
+          "Retired"
+        ]
+      },
+      {
+        "id": "24dc0355-6bdf-58ce-bb37-7150c0c23c7a",
+        "required": false,
+        "key": "requires_ack",
+        "name": "Staff must acknowledge",
+        "type": "boolean"
+      },
+      {
+        "id": "c717f757-2efc-50b6-a6fa-da1fff3fa1a8",
+        "required": false,
+        "key": "ack_days",
+        "name": "Days to acknowledge",
+        "type": "number"
+      },
+      {
+        "id": "f07d3b95-c83a-5364-8e36-0f6f05b73649",
+        "required": false,
+        "key": "summary",
+        "name": "What changed",
+        "type": "text"
+      }
+    ]
+  }
+}

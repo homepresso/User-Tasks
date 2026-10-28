@@ -1,0 +1,115 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "343bfd08-2e33-5cac-9174-89cb7079d732",
+  "asset": {
+    "id": "343bfd08-2e33-5cac-9174-89cb7079d732",
+    "integration_id": "bd75f6e0-512e-5150-b896-936f390bfc06",
+    "name": "Add business process comment",
+    "description": "Workday Business Process REST: add a comment to the worker change event so the access decision is visible on the business process in Workday.",
+    "tags": [
+      "workday",
+      "business process"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"comment\": \"{{comment}}\"}",
+      "path_template": "/api/businessProcess/v1/acme/events/{{event_id}}/comments",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
+            },
+            {
+              "name": "descriptor",
+              "type": "string",
+              "example": "Comment"
+            },
+            {
+              "name": "comment",
+              "type": "string",
+              "example": "Access change approved by the manager."
+            },
+            {
+              "name": "createdOn",
+              "type": "string",
+              "example": "2026-10-28T03:12:44.000Z"
+            },
+            {
+              "name": "person",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "9f8e7d6c5b4a39281706f5e4d3c2b1a0"
+                },
+                {
+                  "name": "descriptor",
+                  "type": "string",
+                  "example": "ISU_UserTasks"
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "id": "5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+          "descriptor": "Comment",
+          "comment": "Access change approved by the manager.",
+          "createdOn": "2026-10-28T03:12:44.000Z",
+          "person": {
+            "id": "9f8e7d6c5b4a39281706f5e4d3c2b1a0",
+            "descriptor": "ISU_UserTasks"
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "b4135b99-5974-52a6-b139-9242cb3693c3",
+        "name": "event_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "96c8209c-f877-54b5-9176-d91ad63e9daa",
+        "name": "comment",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "d11622da-4586-5c41-a150-aafb73838894",
+        "name": "comment_id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "79b88b60-1c1b-5c0b-b5fc-feced50277ec",
+        "name": "created_on",
+        "path": "createdOn",
+        "type": "string"
+      }
+    ]
+  }
+}

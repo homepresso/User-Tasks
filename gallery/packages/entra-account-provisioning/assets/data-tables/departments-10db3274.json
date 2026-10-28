@@ -1,0 +1,75 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "10db3274-4f9f-5f88-b7c1-c6e30b493e78",
+  "asset": {
+    "id": "10db3274-4f9f-5f88-b7c1-c6e30b493e78",
+    "name": "Departments",
+    "description": "Each department's Microsoft 365 licence (SKU id), its Entra group and defaults. The new starter form looks the department up here and fills the licence and group in.",
+    "columns": [
+      {
+        "id": "b99377c7-626e-557c-b168-0acb8d687dc6",
+        "required": true,
+        "key": "code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "5f451d51-84ba-5b4a-80a7-11ab80768013",
+        "required": true,
+        "key": "name",
+        "name": "Department",
+        "type": "text"
+      },
+      {
+        "id": "45f16dbc-9b21-596c-8458-a422fd3215f6",
+        "required": false,
+        "key": "licence_name",
+        "name": "Licence",
+        "type": "text"
+      },
+      {
+        "id": "b08b218b-53b7-5ac2-aae3-a84323d770fd",
+        "required": true,
+        "key": "licence_sku_id",
+        "name": "Licence SKU id",
+        "type": "text"
+      },
+      {
+        "id": "fecd4da6-1b8a-53ff-80fb-87d1385d38f9",
+        "required": true,
+        "key": "group_id",
+        "name": "Group object id",
+        "type": "text"
+      },
+      {
+        "id": "efef36bd-1d66-5f02-a692-1d3ec25bdf40",
+        "required": false,
+        "key": "group_name",
+        "name": "Group",
+        "type": "text"
+      },
+      {
+        "id": "e39afbc7-1deb-56f5-a387-97eb602228dd",
+        "required": false,
+        "key": "usage_location",
+        "name": "Usage location",
+        "type": "text"
+      },
+      {
+        "id": "e7de807c-e878-578a-9145-74c15580784f",
+        "required": false,
+        "key": "mail_domain",
+        "name": "Mail domain",
+        "type": "text"
+      },
+      {
+        "id": "93a5ca13-dd1c-53e4-9a94-03c39504b0a8",
+        "required": false,
+        "key": "cost_centre",
+        "name": "Cost centre",
+        "type": "text"
+      }
+    ]
+  }
+}

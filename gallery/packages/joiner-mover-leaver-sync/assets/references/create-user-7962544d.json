@@ -1,0 +1,199 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "7962544d-fe9f-4646-aa99-0f3d68dade48",
+  "asset": {
+    "id": "7962544d-fe9f-4646-aa99-0f3d68dade48",
+    "integration_id": "1f800028-d7ac-4299-8afa-dbeea2d4cdca",
+    "name": "Create user",
+    "description": "Create a directory account for a joiner with the groups and licence from the Role mappings table.",
+    "tags": [
+      "users"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"employee_id\":\"{{employee_id}}\",\"given_name\":\"{{given_name}}\",\"family_name\":\"{{family_name}}\",\"email\":\"{{email}}\",\"department\":\"{{department}}\",\"job_title\":\"{{job_title}}\",\"manager_employee_id\":\"{{manager_id}}\",\"groups\":\"{{groups}}\",\"licence\":\"{{licence}}\",\"start_date\":\"{{start_date}}\"}",
+      "path_template": "/users",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "u-a7f302"
+            },
+            {
+              "name": "username",
+              "type": "string",
+              "example": "riley.tanaka"
+            },
+            {
+              "name": "email",
+              "type": "string",
+              "example": "riley.tanaka@example.com"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "provisioned"
+            },
+            {
+              "name": "groups",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "example": "all-staff"
+              }
+            },
+            {
+              "name": "licence",
+              "type": "string",
+              "example": "E3"
+            }
+          ]
+        },
+        "sample": {
+          "id": "u-a7f302",
+          "username": "riley.tanaka",
+          "email": "riley.tanaka@example.com",
+          "status": "provisioned",
+          "groups": [
+            "all-staff",
+            "eng-developers",
+            "scm-users"
+          ],
+          "licence": "E3"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "cfe3010b-c4ec-4b6b-a298-76622344020d",
+        "name": "employee_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "fb3c19fb-f2cc-4107-9d89-06684d19d1ba",
+        "name": "given_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "d7c04e1e-6f76-45b0-bb23-ac90a1616d14",
+        "name": "family_name",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "44dccff4-17d1-40d3-a25e-5194ff85e646",
+        "name": "email",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "7956f938-5ab1-4fc0-9c4e-77844077161e",
+        "name": "department",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "93f8fa6e-e5ff-410a-8953-1b2bacc3215a",
+        "name": "job_title",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "ed3fdf11-21c8-4b06-8d53-b8a2a136c44c",
+        "name": "manager_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "1fc1a6c8-0631-4fda-8db5-9f635b478206",
+        "name": "groups",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "040a785f-0e8f-4d1d-9c8c-696cde72363d",
+        "name": "licence",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "50f0caf4-e00b-49cd-b278-a925c210d02a",
+        "name": "start_date",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "d1d49fb1-d4ac-4cbf-a452-75d48a90c823",
+        "name": "id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "372eaa03-3262-498c-8207-3edf04517dc8",
+        "name": "username",
+        "path": "username",
+        "type": "string"
+      },
+      {
+        "id": "f1d08765-0aab-468a-abd2-f8dd038ce653",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      }
+    ]
+  }
+}

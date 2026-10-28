@@ -1,0 +1,13 @@
+{{- if and .Values.app.pdb.enabled (or .Values.app.autoscaling.enabled (gt (int .Values.app.replicas) 1)) }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "usertasks.fullname" . }}
+  labels:
+    {{- include "usertasks.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.app.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "usertasks.componentLabels" (dict "root" . "component" "app") | nindent 6 }}
+{{- end }}

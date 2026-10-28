@@ -1,0 +1,184 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "bed02acf-95af-542e-a21b-ae6336d209aa",
+  "asset": {
+    "id": "bed02acf-95af-542e-a21b-ae6336d209aa",
+    "name": "Complaint priority",
+    "description": "Priority and SLA hours by customer tier and category. First matching rule wins; the last rule is the default.",
+    "inputs": [
+      {
+        "key": "tier",
+        "label": "Customer tier",
+        "type": "text",
+        "id": "f905daeb-05e1-5666-8eab-8370ae9e14c2"
+      },
+      {
+        "key": "category",
+        "label": "Category",
+        "type": "text",
+        "id": "b25e8597-b149-5b46-a879-d151b1c5a7a6"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "priority",
+        "label": "Priority",
+        "type": "text",
+        "id": "6c5b7a2b-176b-58dc-bb18-a08faa43a8d3"
+      },
+      {
+        "key": "sla_hours",
+        "label": "Resolve within (hours)",
+        "type": "number",
+        "id": "9cf90602-b29f-525d-8072-3161936c423c"
+      },
+      {
+        "key": "ack_hours",
+        "label": "Call the customer within (hours)",
+        "type": "number",
+        "id": "aed52f18-2162-5b79-9d11-5eeb387a77ce"
+      },
+      {
+        "key": "notify_account_manager",
+        "label": "Tell the account manager",
+        "type": "boolean",
+        "id": "3633f7e4-7bea-54ee-a5b0-c50dce6eda50"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Staff conduct (any tier)",
+        "conditions": [
+          {
+            "inputKey": "category",
+            "operator": "equals",
+            "value": "Staff conduct",
+            "id": "87b9f4f9-4b8b-5882-84b4-54bc266484f2"
+          }
+        ],
+        "outputs": {
+          "priority": "P1",
+          "sla_hours": 24,
+          "ack_hours": 2,
+          "notify_account_manager": true
+        },
+        "id": "c7b9f6cf-f7df-546b-ae78-80a419f88183",
+        "enabled": true
+      },
+      {
+        "label": "Platinum",
+        "conditions": [
+          {
+            "inputKey": "tier",
+            "operator": "equals",
+            "value": "Platinum",
+            "id": "df3a1433-e292-5ecf-9e63-f952cda910b4"
+          }
+        ],
+        "outputs": {
+          "priority": "P1",
+          "sla_hours": 24,
+          "ack_hours": 2,
+          "notify_account_manager": true
+        },
+        "id": "6925e7c9-dc66-5e5d-b8d1-96d43726fd7d",
+        "enabled": true
+      },
+      {
+        "label": "Gold: delivery or product",
+        "conditions": [
+          {
+            "inputKey": "tier",
+            "operator": "equals",
+            "value": "Gold",
+            "id": "0db989c9-6e88-5390-9c85-a0e77f854ce3"
+          },
+          {
+            "inputKey": "category",
+            "operator": "not_equals",
+            "value": "Billing",
+            "id": "5063fac5-8451-5983-afd3-e43c99735ddd"
+          }
+        ],
+        "outputs": {
+          "priority": "P2",
+          "sla_hours": 48,
+          "ack_hours": 4,
+          "notify_account_manager": true
+        },
+        "id": "aae6f1fd-3fee-51ab-9e40-afeb7d977a3d",
+        "enabled": true
+      },
+      {
+        "label": "Gold: billing",
+        "conditions": [
+          {
+            "inputKey": "tier",
+            "operator": "equals",
+            "value": "Gold",
+            "id": "4284a75e-10b3-5c6a-a34d-5773b77a7443"
+          }
+        ],
+        "outputs": {
+          "priority": "P2",
+          "sla_hours": 72,
+          "ack_hours": 8,
+          "notify_account_manager": false
+        },
+        "id": "514b8775-e695-5957-9bde-80192dd190e4",
+        "enabled": true
+      },
+      {
+        "label": "Billing (Silver / Standard)",
+        "conditions": [
+          {
+            "inputKey": "category",
+            "operator": "equals",
+            "value": "Billing",
+            "id": "1e5d8198-5af7-5e62-aa61-5b3f26e41a1b"
+          }
+        ],
+        "outputs": {
+          "priority": "P2",
+          "sla_hours": 72,
+          "ack_hours": 8,
+          "notify_account_manager": false
+        },
+        "id": "4645d72d-de15-58b4-b9e4-917307318872",
+        "enabled": true
+      },
+      {
+        "label": "Silver",
+        "conditions": [
+          {
+            "inputKey": "tier",
+            "operator": "equals",
+            "value": "Silver",
+            "id": "83f94572-3326-56a3-af1e-9b19a6b63ea7"
+          }
+        ],
+        "outputs": {
+          "priority": "P3",
+          "sla_hours": 96,
+          "ack_hours": 24,
+          "notify_account_manager": false
+        },
+        "id": "75c76a88-5cfe-5593-badc-56fd39615a0a",
+        "enabled": true
+      },
+      {
+        "label": "Default",
+        "conditions": [],
+        "outputs": {
+          "priority": "P4",
+          "sla_hours": 120,
+          "ack_hours": 24,
+          "notify_account_manager": false
+        },
+        "id": "3ca769ff-9d56-5fa4-8e2f-1cf15f1ad9f7",
+        "enabled": true
+      }
+    ]
+  }
+}

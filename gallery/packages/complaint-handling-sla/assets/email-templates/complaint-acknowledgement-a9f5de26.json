@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "a9f5de26-457e-42a7-b190-7261ab9dfaa7",
+  "asset": {
+    "id": "a9f5de26-457e-42a7-b190-7261ab9dfaa7",
+    "name": "Complaint acknowledgement",
+    "description": "Sent to the customer as soon as the complaint is logged, with the case number and response target.",
+    "subject": "We have received your complaint ({{case_number}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">We are looking into it</h2>\n  <p>Hi {{customer_name}},</p>\n  <p>Thank you for letting us know about the problem with {{=IF(IS_EMPTY(order_number), \"your account\", CONCAT(\"order \", order_number))}}. Your case number is <strong>{{case_number}}</strong>.</p>\n  <p>A member of our team will contact you within <strong>{{first_response_hours}} hours</strong>, and we aim to resolve it by {{resolution_due_date}}.</p>\n  <p>Reply to this email if you have anything to add.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Customer care, your company</p>\n</div>",
+    "text_body": "We are looking into it\n  Hi {{customer_name}},\n  Thank you for letting us know about the problem with {{=IF(IS_EMPTY(order_number), \"your account\", CONCAT(\"order \", order_number))}}. Your case number is {{case_number}}.\n  A member of our team will contact you within {{first_response_hours}} hours, and we aim to resolve it by {{resolution_due_date}}.\n  Reply to this email if you have anything to add.\n  Customer care, your company",
+    "is_default": false
+  }
+}

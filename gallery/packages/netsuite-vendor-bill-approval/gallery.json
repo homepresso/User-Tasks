@@ -1,0 +1,78 @@
+{
+  "title": "NetSuite vendor bill (AP) approval",
+  "category": "finance",
+  "summary": "NetSuite posts a vendor bill; subsidiary and amount limits pick the approvers, AP codes the cost centre and approves, rejects or holds, and NetSuite is updated.",
+  "description": "NetSuite vendor bill (AP) approval runs bill approvals outside the NetSuite UI while keeping the approval status in NetSuite. When a vendor bill is created with approval status Pending Approval, a SuiteScript user event or a SuiteFlow action posts its internal id to the workflow.\n\nThe workflow reads the bill from the SuiteTalk REST record API with its item and expense sublists: vendor (entity), subsidiary, currency, total, tax, terms and due date. The AP approval limits decision table picks the approver level by subsidiary and amount and whether a financial controller or the CFO must also approve.\n\nThe AP approver sees the bill, its lines and the days to the due date, picks the cost centre from the Cost centres table (name, budget owner and NetSuite department fill in) and chooses Approve, Hold or Reject. Large bills go on to the second approver. The bill is then PATCHed in NetSuite: approvalStatus 2 (Approved) or 3 (Rejected), or kept at 1 with paymentHold set, with a memo, and AP is emailed the decision.",
+  "trigger": "api",
+  "entry_workflow": "965456dc-19a7-58b1-bad3-b4f5d91e7464",
+  "start": "Starts from NetSuite: a SuiteScript afterSubmit user event (or a SuiteFlow \"Send HTTP request\" action) on Vendor Bill posts {\"bill_id\": record.id} to the workflow webhook.",
+  "difficulty": "intermediate",
+  "setup_minutes": 25,
+  "tags": [
+    "netsuite",
+    "accounts payable",
+    "vendor bills",
+    "approvals",
+    "decision table",
+    "lookup"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "webhook",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "NetSuite integration: base URL https://<account id>.suitetalk.api.netsuite.com/services/rest/record/v1 and an OAuth 2.0 bearer token (client credentials / M2M certificate flow) for an integration role with Bills (Edit) and Approve Vendor Payments.",
+    "In NetSuite, turn on Accounting Preferences > Approval Routing > Vendor Bills so approvalStatus is used, and add a user event script (afterSubmit, create) or SuiteFlow action that posts {\"bill_id\": record.id, \"tran_id\": tranid} to the workflow webhook.",
+    "Assignees: pick the AP approver and the second approver (financial controller / CFO).",
+    "Replace the Cost centres rows with yours and set the AP approval limits per subsidiary (rules match on the subsidiary name).",
+    "Email: configure EMAIL_PROVIDER so AP gets the decision (the step continues on error)."
+  ],
+  "steps": [
+    {
+      "title": "Bill posted",
+      "body": "NetSuite posts the vendor bill internal id when a bill is entered as Pending Approval."
+    },
+    {
+      "title": "Read the bill",
+      "body": "GET /vendorBill/{id}?expandSubResources=true returns vendor, subsidiary, currency, total, due date and the item / expense lines."
+    },
+    {
+      "title": "Apply the limits",
+      "body": "The AP approval limits table sets the approver level and any second approval by subsidiary and amount."
+    },
+    {
+      "title": "AP approves",
+      "body": "The approver picks the cost centre (lookup), checks the PO match and chooses Approve, Hold or Reject."
+    },
+    {
+      "title": "Second approval",
+      "body": "Over the subsidiary's limit, the financial controller or CFO approves or rejects."
+    },
+    {
+      "title": "Update NetSuite",
+      "body": "PATCH /vendorBill/{id} sets approvalStatus (2 approved, 3 rejected, 1 with paymentHold for a hold); AP is emailed."
+    }
+  ],
+  "sample_input": {
+    "bill_id": "48213",
+    "tran_id": "INV-77120",
+    "ap_email": "accounts.payable@example.com"
+  },
+  "expect": "waiting",
+  "icon": "receipt",
+  "systems": [
+    "Oracle NetSuite"
+  ],
+  "id": "79295aca-ffc9-5a29-8655-c8fd9c7bac82",
+  "slug": "netsuite-vendor-bill-approval"
+}

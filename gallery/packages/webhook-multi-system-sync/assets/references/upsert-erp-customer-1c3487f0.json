@@ -1,0 +1,94 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "1c3487f0-2081-43fa-a4c8-55a164135443",
+  "asset": {
+    "id": "1c3487f0-2081-43fa-a4c8-55a164135443",
+    "integration_id": "bba1c767-05ae-45fd-a413-bd0818b0dbac",
+    "name": "Upsert ERP customer",
+    "description": "Create or replace the customer master record in the ERP, keyed by the CRM account id.",
+    "tags": [
+      "customers"
+    ],
+    "request_config": {
+      "method": "PUT",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{{payload}}",
+      "path_template": "/customers/{{external_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "customer_number",
+              "type": "string",
+              "example": "C-004512"
+            },
+            {
+              "name": "external_id",
+              "type": "string",
+              "example": "ACC-20117"
+            },
+            {
+              "name": "result",
+              "type": "string",
+              "example": "updated"
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "example": "2026-10-26T07:14:09Z"
+            }
+          ]
+        },
+        "sample": {
+          "customer_number": "C-004512",
+          "external_id": "ACC-20117",
+          "result": "updated",
+          "updated_at": "2026-10-26T07:14:09Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "05efc931-9f1c-41fc-add5-19243b05cb45",
+        "name": "external_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "CRM account id used as the ERP external id",
+        "default_value": ""
+      },
+      {
+        "id": "ffaa7dbb-e86b-4480-a2f7-beb5c31b8818",
+        "name": "payload",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "JSON customer record",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "328e3442-428b-4ef1-b5c7-6285769525b6",
+        "name": "customer_number",
+        "path": "customer_number",
+        "type": "string"
+      },
+      {
+        "id": "65ae95e3-a060-450c-878f-690d649a5483",
+        "name": "result",
+        "path": "result",
+        "type": "string"
+      }
+    ]
+  }
+}

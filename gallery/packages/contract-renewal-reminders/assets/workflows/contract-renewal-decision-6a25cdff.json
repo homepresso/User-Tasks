@@ -1,0 +1,353 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "6a25cdff-7d02-428d-b949-6f341077b2c9",
+  "asset": {
+    "id": "6a25cdff-7d02-428d-b949-6f341077b2c9",
+    "name": "Contract renewal decision",
+    "description": "Started by the daily contract check 30 days before a notice deadline: the owner decides to renew, renegotiate or terminate, and the contract row is updated.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Decision requested",
+        "position": {
+          "x": 660,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 660,
+          "y": 220
+        },
+        "config": {
+          "title": "Renewal: {{contract.contract_name}} · {{contract.counterparty}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Decide before the deadline",
+        "position": {
+          "x": 660,
+          "y": 380
+        },
+        "config": {
+          "sla_label": "Renewal decision",
+          "mode": "exact",
+          "due_at": "{{notice_deadline_label}}",
+          "warning_amount": 7,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "decide",
+        "type": "user_task",
+        "label": "Decide on renewal",
+        "position": {
+          "x": 660,
+          "y": 540
+        },
+        "config": {
+          "task_title": "Renew, renegotiate or terminate {{contract.contract_name}} ({{contract.counterparty}})",
+          "task_description": "<p><strong>{{contract.contract_name}}</strong> with {{contract.counterparty}} ends on <strong>{{contract.end_date}}</strong>. Notice must be given by <strong>{{notice_deadline_label}}</strong> ({{days_to_notice}} days).</p><p>Annual value {{contract.currency}} {{contract.annual_value}}. Auto-renews: {{contract.auto_renew}}.</p><p>Choose <em>Renew</em> to extend on the terms below, <em>Renegotiate</em> to open talks with the counterparty, or <em>Terminate</em> to give notice.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Renew",
+            "Renegotiate",
+            "Terminate"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "b1f91780-0bbe-457d-9a48-9224d467b75f",
+          "assignee_variable": "{{=COALESCE(owner_user_id, contract.owner_user_id)}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 14,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 4320
+            },
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "new_end_date",
+              "label": "New end date",
+              "type": "date",
+              "default": "{{=FORMAT_DATE(ADD_DAYS(contract.end_date, 365), \"YYYY-MM-DD\")}}"
+            },
+            {
+              "key": "new_annual_value",
+              "label": "New annual value",
+              "type": "number",
+              "default": "{{contract.annual_value}}"
+            },
+            {
+              "key": "notes",
+              "label": "Notes (terms, negotiation points, reason)",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "new_end_date",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "new_annual_value",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "renew",
+              "label": "Renew",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Renew"
+            },
+            {
+              "id": "renegotiate",
+              "label": "Renegotiate",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Renegotiate"
+            },
+            {
+              "id": "terminate",
+              "label": "Terminate",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Terminate"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Renewal decision: {{contract.contract_name}}",
+            "align": "left",
+            "subtitle": "{{contract.counterparty}} · notice by {{notice_deadline_label}}"
+          }
+        }
+      },
+      {
+        "id": "renew",
+        "type": "update_data_table",
+        "label": "Record renewal",
+        "position": {
+          "x": 340,
+          "y": 720
+        },
+        "config": {
+          "table_id": "1b5f68c4-003c-4119-8490-7de35780cb07",
+          "table_name": "Contracts",
+          "operation": "update",
+          "row_id": "{{contract.row_id}}",
+          "column_values": {
+            "end_date": "{{task_data.new_end_date}}",
+            "annual_value": "{{task_data.new_annual_value}}",
+            "status": "active",
+            "renewal_stage": "Renewed",
+            "decision_notes": "{{task_data.notes}}"
+          }
+        }
+      },
+      {
+        "id": "renegotiate",
+        "type": "update_data_table",
+        "label": "Record renegotiation",
+        "position": {
+          "x": 660,
+          "y": 720
+        },
+        "config": {
+          "table_id": "1b5f68c4-003c-4119-8490-7de35780cb07",
+          "table_name": "Contracts",
+          "operation": "update",
+          "row_id": "{{contract.row_id}}",
+          "column_values": {
+            "status": "renegotiating",
+            "renewal_stage": "Renegotiating",
+            "decision_notes": "{{task_data.notes}}"
+          }
+        }
+      },
+      {
+        "id": "terminate",
+        "type": "update_data_table",
+        "label": "Record termination",
+        "position": {
+          "x": 980,
+          "y": 720
+        },
+        "config": {
+          "table_id": "1b5f68c4-003c-4119-8490-7de35780cb07",
+          "table_name": "Contracts",
+          "operation": "update",
+          "row_id": "{{contract.row_id}}",
+          "column_values": {
+            "status": "terminating",
+            "renewal_stage": "Terminating",
+            "decision_notes": "{{task_data.notes}}"
+          }
+        }
+      },
+      {
+        "id": "log_terminate",
+        "type": "log",
+        "label": "Notice to give",
+        "position": {
+          "x": 980,
+          "y": 880
+        },
+        "config": {
+          "message": "Give written notice to {{contract.counterparty}} for {{contract.contract_id}} by {{notice_deadline_label}}",
+          "level": "warn"
+        }
+      },
+      {
+        "id": "confirm",
+        "type": "send_email",
+        "label": "Email owner: decision",
+        "position": {
+          "x": 660,
+          "y": 1040
+        },
+        "config": {
+          "to": "{{contract.owner_email}}",
+          "email_template_id": "f9bc969f-7a84-48e7-89fb-18d03d4480eb"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Decision recorded",
+        "position": {
+          "x": 660,
+          "y": 1200
+        },
+        "config": {
+          "reason": "{{contract.contract_id}}: {{outcome}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-sla",
+        "source": "title",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-decide",
+        "source": "sla",
+        "target": "decide"
+      },
+      {
+        "id": "e-decide-renew-renew",
+        "source": "decide",
+        "target": "renew",
+        "label": "Renew"
+      },
+      {
+        "id": "e-decide-renegotiate-renegotiate",
+        "source": "decide",
+        "target": "renegotiate",
+        "label": "Renegotiate"
+      },
+      {
+        "id": "e-decide-terminate-terminate",
+        "source": "decide",
+        "target": "terminate",
+        "label": "Terminate"
+      },
+      {
+        "id": "e-terminate-log_terminate",
+        "source": "terminate",
+        "target": "log_terminate"
+      },
+      {
+        "id": "e-log_terminate-confirm",
+        "source": "log_terminate",
+        "target": "confirm"
+      },
+      {
+        "id": "e-renew-confirm",
+        "source": "renew",
+        "target": "confirm"
+      },
+      {
+        "id": "e-renegotiate-confirm",
+        "source": "renegotiate",
+        "target": "confirm"
+      },
+      {
+        "id": "e-confirm-done",
+        "source": "confirm",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-contract",
+        "name": "contract",
+        "type": "object",
+        "description": "The Contracts row (passed by the daily check)",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-days_to_notice",
+        "name": "days_to_notice",
+        "type": "number",
+        "description": "Days until the notice deadline",
+        "defaultValue": "30"
+      },
+      {
+        "id": "v-notice_deadline_label",
+        "name": "notice_deadline_label",
+        "type": "string",
+        "description": "Notice deadline (YYYY-MM-DD)",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-owner_user_id",
+        "name": "owner_user_id",
+        "type": "string",
+        "description": "Optional: user id of the contract owner (overrides the default owner chosen on install)",
+        "defaultValue": ""
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

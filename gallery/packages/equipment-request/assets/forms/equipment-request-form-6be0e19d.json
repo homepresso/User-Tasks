@@ -1,0 +1,277 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "6be0e19d-9c85-5986-a50f-a83c603e4e39",
+  "asset": {
+    "id": "6be0e19d-9c85-5986-a50f-a83c603e4e39",
+    "name": "Equipment request form",
+    "description": "The request form employees open from Forms (or its /f/ link): the item is looked up in the Equipment catalogue (category, price and lead time fill in). Submitting it starts the Equipment request workflow through its Form submitted trigger.",
+    "tags": [
+      "equipment",
+      "it assets"
+    ],
+    "fields": [
+      {
+        "key": "requester_name",
+        "label": "Your name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "requester_email",
+        "label": "Your email",
+        "type": "email",
+        "required": true
+      },
+      {
+        "key": "employee_id",
+        "label": "Employee number",
+        "type": "text",
+        "required": true,
+        "placeholder": "E-1001"
+      },
+      {
+        "key": "role_level",
+        "label": "Role level",
+        "type": "choice",
+        "options": [
+          "individual contributor",
+          "people manager",
+          "executive"
+        ],
+        "default": "individual contributor"
+      },
+      {
+        "key": "item",
+        "label": "Item",
+        "type": "lookup",
+        "required": true,
+        "help_text": "Start typing: laptop, monitor, headset…",
+        "lookup": {
+          "source": "table",
+          "table_id": "5eee9989-73aa-4dca-b0a8-7b857a887cd9",
+          "search_columns": [
+            "item",
+            "category"
+          ],
+          "display_columns": [
+            "item",
+            "category",
+            "unit_cost"
+          ],
+          "value_column": "item",
+          "fill": [
+            {
+              "from": "category",
+              "to": "item_category"
+            },
+            {
+              "from": "unit_cost",
+              "to": "unit_cost"
+            },
+            {
+              "from": "lead_time_days",
+              "to": "lead_time_days"
+            }
+          ],
+          "sort": {
+            "column": "item",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "item_category",
+        "label": "Category",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "unit_cost",
+        "label": "Unit cost",
+        "type": "number",
+        "read_only": true
+      },
+      {
+        "key": "lead_time_days",
+        "label": "Lead time (days)",
+        "type": "number",
+        "read_only": true
+      },
+      {
+        "key": "quantity",
+        "label": "Quantity",
+        "type": "number",
+        "required": true,
+        "default": "1"
+      },
+      {
+        "key": "needed_by",
+        "label": "Needed by",
+        "type": "date"
+      },
+      {
+        "key": "cost_centre",
+        "label": "Cost centre",
+        "type": "text",
+        "placeholder": "CC-310 Engineering",
+        "help_text": "Your manager can change it"
+      },
+      {
+        "key": "reason",
+        "label": "Why do you need it?",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "key": "manager_id",
+        "label": "Approving manager (optional)",
+        "type": "user",
+        "help_text": "Leave empty to use the default approver"
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "requester_name",
+              "span": 1
+            },
+            {
+              "field_key": "requester_email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "employee_id",
+              "span": 1
+            },
+            {
+              "field_key": "role_level",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "item",
+              "span": 2
+            },
+            {
+              "field_key": "quantity",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "item_category",
+              "span": 1
+            },
+            {
+              "field_key": "unit_cost",
+              "span": 1
+            },
+            {
+              "field_key": "lead_time_days",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "needed_by",
+              "span": 1
+            },
+            {
+              "field_key": "cost_centre",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "reason",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "manager_id",
+              "span": 3
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#7C3AED",
+            "background": "#FFFFFF",
+            "text": "#1B1916",
+            "page": "#F3EEFD"
+          }
+        },
+        "radius": 12,
+        "density": "comfortable",
+        "button_placement": "full",
+        "header": {
+          "enabled": true,
+          "title": "Equipment request",
+          "subtitle": "Choose from the standard catalogue; the price and lead time fill in for you."
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit request",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Request sent",
+            "screen_button": "submit_another",
+            "text": "Your request for {{quantity}} × {{item}} is on its way. Updates go to {{requester_email}}; typical lead time is {{lead_time_days}} days once approved.",
+            "screen_button_label": "Request something else"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Equipment request",
+      "align": "left",
+      "subtitle": "Choose from the standard catalogue; the price and lead time fill in for you."
+    }
+  }
+}

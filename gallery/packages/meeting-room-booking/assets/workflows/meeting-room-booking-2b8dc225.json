@@ -1,0 +1,715 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "2b8dc225-aae3-5b48-beab-ab8383d05652",
+  "asset": {
+    "id": "2b8dc225-aae3-5b48-beab-ab8383d05652",
+    "name": "Meeting room booking",
+    "description": "Book a meeting room from a themed start form: the room is read from the Rooms table, the approval rules decide whether facilities must approve, and the organiser gets a confirmation (or the reason it was declined).",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Booking requested",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 2,
+                  "cells": [
+                    {
+                      "field_key": "meeting_title",
+                      "span": 2
+                    }
+                  ]
+                },
+                {
+                  "columns": 2,
+                  "cells": [
+                    {
+                      "field_key": "room",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "booking_date",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "start_time",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "duration_hours",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "attendees",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 2,
+                  "cells": [
+                    {
+                      "field_key": "organiser_email",
+                      "span": 2
+                    }
+                  ]
+                },
+                {
+                  "columns": 2,
+                  "cells": [
+                    {
+                      "field_key": "catering",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "external_guests",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 2,
+                  "cells": [
+                    {
+                      "field_key": "notes",
+                      "span": 2
+                    }
+                  ]
+                },
+                {
+                  "columns": 2,
+                  "cells": [
+                    {
+                      "field_key": "approver_id",
+                      "span": 2
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#4338CA",
+                    "background": "#FFFFFF",
+                    "text": "#1E1B4B",
+                    "page": "#EEF0FB",
+                    "page_to": "#F8F9FE"
+                  }
+                },
+                "radius": 12,
+                "density": "comfortable",
+                "button_placement": "full",
+                "font": {
+                  "source": "google",
+                  "family": "Inter"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Booking reference",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "name": "booking_ref",
+          "expression": "RB-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "title": "Room: {{room}} · {{booking_date}} {{start_time}} · {{meeting_title}}"
+        }
+      },
+      {
+        "id": "room",
+        "type": "update_data_table",
+        "label": "Read the room",
+        "position": {
+          "x": 400,
+          "y": 480
+        },
+        "config": {
+          "table_id": "afac9325-bb0f-5e00-b601-3003fdd80f79",
+          "table_name": "Rooms",
+          "operation": "get",
+          "match_column": "room",
+          "match_value": "{{room}}",
+          "output_row_var": "room_row"
+        }
+      },
+      {
+        "id": "over",
+        "type": "set_variable",
+        "label": "Over capacity?",
+        "position": {
+          "x": 400,
+          "y": 620
+        },
+        "config": {
+          "name": "over_capacity",
+          "expression": "{{=IF(TO_NUMBER(attendees) > TO_NUMBER(room_row.capacity), true, false)}}"
+        }
+      },
+      {
+        "id": "rules",
+        "type": "decision_table",
+        "label": "Approval rules",
+        "position": {
+          "x": 400,
+          "y": 760
+        },
+        "config": {
+          "decision_table_id": "0b80467d-cbfb-552b-a79b-f3ca7802b26b",
+          "decision_table_name": "Room booking approval",
+          "input_mappings": {
+            "over_capacity": "{{over_capacity}}",
+            "capacity": "{{room_row.capacity}}",
+            "duration_hours": "{{duration_hours}}",
+            "catering": "{{catering}}",
+            "external_guests": "{{external_guests}}"
+          }
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Record the request",
+        "position": {
+          "x": 400,
+          "y": 900
+        },
+        "config": {
+          "table_id": "4ac5552d-8051-5afc-a59e-e14db98c3496",
+          "table_name": "Room bookings",
+          "operation": "insert",
+          "column_values": {
+            "booking_ref": "{{booking_ref}}",
+            "room": "{{room}}",
+            "meeting_title": "{{meeting_title}}",
+            "booking_date": "{{booking_date}}",
+            "start_time": "{{start_time}}",
+            "duration_hours": "{{duration_hours}}",
+            "attendees": "{{attendees}}",
+            "organiser_email": "{{organiser_email}}",
+            "catering": "{{catering}}",
+            "approval_reason": "{{approval_reason}}",
+            "status": "{{=IF(needs_approval, \"pending approval\", \"confirmed\")}}"
+          }
+        }
+      },
+      {
+        "id": "need",
+        "type": "condition",
+        "label": "Needs approval?",
+        "position": {
+          "x": 400,
+          "y": 1040
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Facilities approval",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_approval}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "approve",
+        "type": "user_task",
+        "label": "Facilities approval",
+        "position": {
+          "x": 240,
+          "y": 1200
+        },
+        "config": {
+          "task_title": "Approve {{room}} for \"{{meeting_title}}\" on {{booking_date}} at {{start_time}}",
+          "task_description": "<p><strong>{{organiser_email}}</strong> wants <strong>{{room}}</strong> (floor {{room_row.floor}}, {{room_row.capacity}} seats) on {{booking_date}} from {{start_time}} for {{duration_hours}} h, for {{attendees}} people.</p><p>Why it needs you: <strong>{{approval_reason}}</strong> (rule \"{{rule_label}}\").</p><p>Catering: {{catering}} · external guests: {{external_guests}}. Notes: {{notes}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{=COALESCE(approver_id, workflow_owner_id)}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 24,
+          "due_offset_unit": "hours",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "fields": [
+            {
+              "key": "room_setup",
+              "label": "Room setup",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "As is",
+                "Boardroom",
+                "U-shape",
+                "Classroom",
+                "Theatre",
+                "Cabaret"
+              ],
+              "default": "As is"
+            },
+            {
+              "key": "catering_ordered",
+              "label": "Catering ordered",
+              "type": "boolean",
+              "help_text": "Tick once the order is placed (only if catering was asked for)."
+            },
+            {
+              "key": "facilities_note",
+              "label": "Note for the organiser",
+              "type": "textarea",
+              "help_text": "Sent in the confirmation, or as the reason when you reject."
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "room_setup",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "catering_ordered",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "facilities_note",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "{{room}} · {{booking_date}} {{start_time}}",
+            "align": "left",
+            "subtitle": "{{meeting_title}} · {{attendees}} people · {{duration_hours}} h"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#4338CA",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 12,
+              "density": "comfortable",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "note",
+        "type": "set_variable",
+        "label": "Facilities note",
+        "position": {
+          "x": 240,
+          "y": 1360
+        },
+        "config": {
+          "name": "facilities_note",
+          "expression": "{{task_data.facilities_note}}"
+        }
+      },
+      {
+        "id": "split",
+        "type": "condition",
+        "label": "Approved?",
+        "position": {
+          "x": 240,
+          "y": 1440
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Approved",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{outcome}}",
+                  "operator": "equals",
+                  "value": "Approve"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "ok",
+        "type": "update_data_table",
+        "label": "Confirm the booking",
+        "position": {
+          "x": 120,
+          "y": 1600
+        },
+        "config": {
+          "table_id": "4ac5552d-8051-5afc-a59e-e14db98c3496",
+          "table_name": "Room bookings",
+          "operation": "update",
+          "match_column": "booking_ref",
+          "match_value": "{{booking_ref}}",
+          "column_values": {
+            "status": "confirmed",
+            "room_setup": "{{task_data.room_setup}}",
+            "facilities_note": "{{facilities_note}}"
+          }
+        }
+      },
+      {
+        "id": "no",
+        "type": "update_data_table",
+        "label": "Decline the booking",
+        "position": {
+          "x": 400,
+          "y": 1600
+        },
+        "config": {
+          "table_id": "4ac5552d-8051-5afc-a59e-e14db98c3496",
+          "table_name": "Room bookings",
+          "operation": "update",
+          "match_column": "booking_ref",
+          "match_value": "{{booking_ref}}",
+          "column_values": {
+            "status": "declined",
+            "facilities_note": "{{facilities_note}}"
+          }
+        }
+      },
+      {
+        "id": "mail_no",
+        "type": "send_email",
+        "label": "Email: declined",
+        "position": {
+          "x": 400,
+          "y": 1680
+        },
+        "config": {
+          "to": "{{organiser_email}}",
+          "email_template_id": "41980aa2-c722-5176-af32-0cd17eabf163"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "end_no",
+        "type": "end_workflow",
+        "label": "Declined",
+        "position": {
+          "x": 400,
+          "y": 1840
+        },
+        "config": {
+          "reason": "{{booking_ref}} declined: {{facilities_note}}"
+        }
+      },
+      {
+        "id": "mail_ok",
+        "type": "send_email",
+        "label": "Email: confirmed",
+        "position": {
+          "x": 600,
+          "y": 1680
+        },
+        "config": {
+          "to": "{{organiser_email}}",
+          "email_template_id": "495c8180-5661-527f-8672-fc253540153c"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "end_ok",
+        "type": "end_workflow",
+        "label": "Confirmed",
+        "position": {
+          "x": 600,
+          "y": 1840
+        },
+        "config": {
+          "reason": "{{booking_ref}} confirmed ({{approval_reason}})"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-room",
+        "source": "title",
+        "target": "room"
+      },
+      {
+        "id": "e-room-over",
+        "source": "room",
+        "target": "over"
+      },
+      {
+        "id": "e-over-rules",
+        "source": "over",
+        "target": "rules"
+      },
+      {
+        "id": "e-rules-log",
+        "source": "rules",
+        "target": "log"
+      },
+      {
+        "id": "e-log-need",
+        "source": "log",
+        "target": "need"
+      },
+      {
+        "id": "e-need-approve-facilities-approval",
+        "source": "need",
+        "target": "approve",
+        "label": "Facilities approval"
+      },
+      {
+        "id": "e-need-mail_ok-else",
+        "source": "need",
+        "target": "mail_ok",
+        "label": "Else"
+      },
+      {
+        "id": "e-approve-note-approve",
+        "source": "approve",
+        "target": "note",
+        "label": "Approve"
+      },
+      {
+        "id": "e-approve-note-reject",
+        "source": "approve",
+        "target": "note",
+        "label": "Reject"
+      },
+      {
+        "id": "e-note-split",
+        "source": "note",
+        "target": "split"
+      },
+      {
+        "id": "e-split-ok-approved",
+        "source": "split",
+        "target": "ok",
+        "label": "Approved"
+      },
+      {
+        "id": "e-split-no-else",
+        "source": "split",
+        "target": "no",
+        "label": "Else"
+      },
+      {
+        "id": "e-ok-mail_ok",
+        "source": "ok",
+        "target": "mail_ok"
+      },
+      {
+        "id": "e-mail_ok-end_ok",
+        "source": "mail_ok",
+        "target": "end_ok"
+      },
+      {
+        "id": "e-no-mail_no",
+        "source": "no",
+        "target": "mail_no"
+      },
+      {
+        "id": "e-mail_no-end_no",
+        "source": "mail_no",
+        "target": "end_no"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-meeting_title",
+        "name": "meeting_title",
+        "type": "string",
+        "description": "What the meeting is, as it will appear on the booking",
+        "defaultValue": "",
+        "required": true,
+        "label": "Meeting title"
+      },
+      {
+        "id": "v-room",
+        "name": "room",
+        "type": "string",
+        "description": "Pick a room (see the Rooms table for seats and equipment)",
+        "defaultValue": "Rimu",
+        "required": true,
+        "label": "Room",
+        "format": "select",
+        "options": "Kauri, Rimu, Totara, Harbour View, Boardroom, Training Room, Quiet Room"
+      },
+      {
+        "id": "v-booking_date",
+        "name": "booking_date",
+        "type": "string",
+        "description": "The day of the meeting",
+        "defaultValue": "",
+        "required": true,
+        "label": "Date",
+        "format": "date"
+      },
+      {
+        "id": "v-start_time",
+        "name": "start_time",
+        "type": "string",
+        "description": "24-hour time, e.g. 09:30",
+        "defaultValue": "09:00",
+        "required": true,
+        "label": "Start time"
+      },
+      {
+        "id": "v-duration_hours",
+        "name": "duration_hours",
+        "type": "number",
+        "description": "How long you need the room; over 4 hours needs approval",
+        "defaultValue": "1",
+        "required": true,
+        "label": "Duration (hours)"
+      },
+      {
+        "id": "v-attendees",
+        "name": "attendees",
+        "type": "number",
+        "description": "How many people, including you",
+        "defaultValue": "4",
+        "required": true,
+        "label": "Attendees"
+      },
+      {
+        "id": "v-organiser_email",
+        "name": "organiser_email",
+        "type": "string",
+        "description": "Where the confirmation goes",
+        "defaultValue": "",
+        "required": true,
+        "label": "Your email",
+        "format": "email"
+      },
+      {
+        "id": "v-catering",
+        "name": "catering",
+        "type": "boolean",
+        "description": "Tick if you need tea, coffee or lunch (facilities approve and order it)",
+        "defaultValue": "false",
+        "required": false,
+        "label": "Catering"
+      },
+      {
+        "id": "v-external_guests",
+        "name": "external_guests",
+        "type": "boolean",
+        "description": "Tick if visitors from outside the company are coming",
+        "defaultValue": "false",
+        "required": false,
+        "label": "External guests"
+      },
+      {
+        "id": "v-notes",
+        "name": "notes",
+        "type": "string",
+        "description": "Room setup, accessibility needs, anything else",
+        "defaultValue": "",
+        "required": false,
+        "label": "Notes for facilities"
+      },
+      {
+        "id": "v-approver_id",
+        "name": "approver_id",
+        "type": "string",
+        "description": "Optional: user id of the facilities coordinator who approves large, long or catered bookings. Set it as this input's default after install; empty means the person booking reviews it (handy for a demo).",
+        "defaultValue": "",
+        "required": false,
+        "label": "Facilities approver (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

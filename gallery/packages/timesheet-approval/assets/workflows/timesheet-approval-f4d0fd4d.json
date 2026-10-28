@@ -1,0 +1,764 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "f4d0fd4d-11c9-5adf-bf2e-96679a2c452b",
+  "asset": {
+    "id": "f4d0fd4d-11c9-5adf-bf2e-96679a2c452b",
+    "name": "Timesheet approval",
+    "description": "A weekly timesheet is submitted on the form: totals and overtime are calculated, the approver approves or rejects with comments, weeks over 40 hours get a second check, and the employee is emailed the decision.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Timesheet submitted",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "form_id": "62b97974-e5f8-5d18-9345-dcb5528f46bc",
+          "form_name": "Weekly timesheet"
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Timesheet reference",
+        "position": {
+          "x": 400,
+          "y": 180
+        },
+        "config": {
+          "name": "timesheet_ref",
+          "expression": "TS-{{=FORMAT_DATE(form.week_ending, \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "proj",
+        "type": "update_data_table",
+        "label": "Read the project",
+        "position": {
+          "x": 400,
+          "y": 300
+        },
+        "config": {
+          "table_id": "4e3b0f82-14a6-5d39-84f2-3bc7220a2e4e",
+          "table_name": "Projects",
+          "operation": "get",
+          "match_column": "code",
+          "match_value": "{{form.project}}",
+          "output_row_var": "project_row"
+        }
+      },
+      {
+        "id": "pname",
+        "type": "set_variable",
+        "label": "Project name",
+        "position": {
+          "x": 400,
+          "y": 420
+        },
+        "config": {
+          "name": "project_name",
+          "expression": "{{=COALESCE(project_row.name, form.project_item.name)}}"
+        }
+      },
+      {
+        "id": "client",
+        "type": "set_variable",
+        "label": "Client",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "name": "client",
+          "expression": "{{=COALESCE(project_row.client, form.project_item.client)}}"
+        }
+      },
+      {
+        "id": "bill",
+        "type": "set_variable",
+        "label": "Billable",
+        "position": {
+          "x": 400,
+          "y": 660
+        },
+        "config": {
+          "name": "billable",
+          "expression": "{{=TO_BOOLEAN(project_row.billable)}}"
+        }
+      },
+      {
+        "id": "total",
+        "type": "set_variable",
+        "label": "Total hours",
+        "position": {
+          "x": 400,
+          "y": 780
+        },
+        "config": {
+          "name": "total_hours",
+          "expression": "{{=SUM(form.mon, form.tue, form.wed, form.thu, form.fri)}}"
+        }
+      },
+      {
+        "id": "ot",
+        "type": "set_variable",
+        "label": "Overtime hours",
+        "position": {
+          "x": 400,
+          "y": 900
+        },
+        "config": {
+          "name": "overtime_hours",
+          "expression": "{{=MAX(SUBTRACT(total_hours, 40), 0)}}"
+        }
+      },
+      {
+        "id": "value",
+        "type": "set_variable",
+        "label": "Billable value",
+        "position": {
+          "x": 400,
+          "y": 1020
+        },
+        "config": {
+          "name": "billable_value",
+          "expression": "{{=IF(billable, ROUND(total_hours * COALESCE(project_row.rate, 0), 2), 0)}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 1140
+        },
+        "config": {
+          "title": "Timesheet: {{form.employee_name}} · w/e {{form.week_ending}} · {{form.project}} · {{total_hours}} h"
+        }
+      },
+      {
+        "id": "checks",
+        "type": "decision_table",
+        "label": "Timesheet checks",
+        "position": {
+          "x": 400,
+          "y": 1260
+        },
+        "config": {
+          "decision_table_id": "a3ce981b-29a4-5293-8821-416896599556",
+          "decision_table_name": "Timesheet checks",
+          "input_mappings": {
+            "total_hours": "{{total_hours}}",
+            "billable": "{{billable}}"
+          }
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Record the timesheet",
+        "position": {
+          "x": 400,
+          "y": 1380
+        },
+        "config": {
+          "table_id": "e367272f-8e86-5c5b-b4ad-06b9f3ce7200",
+          "table_name": "Timesheets",
+          "operation": "insert",
+          "column_values": {
+            "timesheet_ref": "{{timesheet_ref}}",
+            "employee_name": "{{form.employee_name}}",
+            "employee_email": "{{form.employee_email}}",
+            "week_ending": "{{form.week_ending}}",
+            "project_code": "{{form.project}}",
+            "client": "{{client}}",
+            "billable": "{{billable}}",
+            "mon": "{{form.mon}}",
+            "tue": "{{form.tue}}",
+            "wed": "{{form.wed}}",
+            "thu": "{{form.thu}}",
+            "fri": "{{form.fri}}",
+            "total_hours": "{{total_hours}}",
+            "overtime_hours": "{{overtime_hours}}",
+            "billable_value": "{{billable_value}}",
+            "status": "submitted"
+          }
+        }
+      },
+      {
+        "id": "approve",
+        "type": "user_task",
+        "label": "Approver review",
+        "position": {
+          "x": 400,
+          "y": 1500
+        },
+        "config": {
+          "task_title": "Approve timesheet: {{form.employee_name}}, {{total_hours}} h, week ending {{form.week_ending}}",
+          "task_description": "<p><strong>{{form.employee_name}}</strong> booked <strong>{{total_hours}} hours</strong> to <strong>{{form.project}} {{project_name}}</strong> ({{client}}, {{=IF(billable, \"billable\", \"non-billable\")}}) for the week ending {{form.week_ending}}.</p><table><tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Total</th></tr><tr><td>{{form.mon}}</td><td>{{form.tue}}</td><td>{{form.wed}}</td><td>{{form.thu}}</td><td>{{form.fri}}</td><td><strong>{{total_hours}}</strong></td></tr></table><p>Overtime: {{overtime_hours}} h. {{=IF(billable, CONCAT(\"Billable value \", FORMAT_NUMBER(billable_value, 2), \".\"), \"\")}} Project budget: {{project_row.hours_logged}} of {{project_row.budget_hours}} h used before this week.</p><p>Work: {{form.work_summary}}</p><p>{{=IF(IS_EMPTY(form.overtime_reason), \"\", CONCAT(\"Overtime reason: \", form.overtime_reason))}}</p><p>Check: <strong>{{check_reason}}</strong>.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.approver}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "hours_match",
+              "label": "Hours match the work described",
+              "type": "boolean"
+            },
+            {
+              "key": "right_project",
+              "label": "Booked to the right project",
+              "type": "boolean"
+            },
+            {
+              "key": "comment",
+              "label": "Comments",
+              "type": "textarea",
+              "help_text": "Sent to the employee. When you reject, say what to fix."
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "hours_match",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "right_project",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "{{form.employee_name}} · {{total_hours}} h",
+            "align": "left",
+            "subtitle": "Week ending {{form.week_ending}} · {{form.project}} {{project_name}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#0369A1",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 10,
+              "density": "compact",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "comment1",
+        "type": "set_variable",
+        "label": "Approver comment",
+        "position": {
+          "x": 200,
+          "y": 1640
+        },
+        "config": {
+          "name": "approver_comment",
+          "expression": "{{task_data.comment}}"
+        }
+      },
+      {
+        "id": "second",
+        "type": "condition",
+        "label": "Second check needed?",
+        "position": {
+          "x": 200,
+          "y": 1760
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Overtime check",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{second_check}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "ot_row",
+        "type": "update_data_table",
+        "label": "Status: overtime check",
+        "position": {
+          "x": 40,
+          "y": 1880
+        },
+        "config": {
+          "table_id": "e367272f-8e86-5c5b-b4ad-06b9f3ce7200",
+          "table_name": "Timesheets",
+          "operation": "update",
+          "match_column": "timesheet_ref",
+          "match_value": "{{timesheet_ref}}",
+          "column_values": {
+            "status": "overtime check",
+            "approver_comment": "{{approver_comment}}"
+          }
+        }
+      },
+      {
+        "id": "otcheck",
+        "type": "user_task",
+        "label": "Overtime check",
+        "position": {
+          "x": 40,
+          "y": 2000
+        },
+        "config": {
+          "task_title": "Overtime check: {{form.employee_name}}, {{total_hours}} h ({{overtime_hours}} h overtime)",
+          "task_description": "<p><strong>{{form.employee_name}}</strong> booked <strong>{{total_hours}} hours</strong> to <strong>{{form.project}} {{project_name}}</strong> ({{client}}, {{=IF(billable, \"billable\", \"non-billable\")}}) for the week ending {{form.week_ending}}.</p><table><tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Total</th></tr><tr><td>{{form.mon}}</td><td>{{form.tue}}</td><td>{{form.wed}}</td><td>{{form.thu}}</td><td>{{form.fri}}</td><td><strong>{{total_hours}}</strong></td></tr></table><p>Overtime: {{overtime_hours}} h. {{=IF(billable, CONCAT(\"Billable value \", FORMAT_NUMBER(billable_value, 2), \".\"), \"\")}} Project budget: {{project_row.hours_logged}} of {{project_row.budget_hours}} h used before this week.</p><p>Work: {{form.work_summary}}</p><p>{{=IF(IS_EMPTY(form.overtime_reason), \"\", CONCAT(\"Overtime reason: \", form.overtime_reason))}}</p><p><strong>{{check_reason}}.</strong> The approver already approved it: \"{{approver_comment}}\".</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{=COALESCE(form.overtime_checker, form.approver)}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "hours_match",
+              "label": "Hours match the work described",
+              "type": "boolean"
+            },
+            {
+              "key": "right_project",
+              "label": "Booked to the right project",
+              "type": "boolean"
+            },
+            {
+              "key": "comment",
+              "label": "Comments",
+              "type": "textarea",
+              "help_text": "Sent to the employee. When you reject, say what to fix."
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "hours_match",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "right_project",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "{{form.employee_name}} · {{total_hours}} h",
+            "align": "left",
+            "subtitle": "Week ending {{form.week_ending}} · {{form.project}} {{project_name}}"
+          },
+          "form_theme": {
+            "source": "custom",
+            "overrides": {
+              "colors": {
+                "light": {
+                  "accent": "#0369A1",
+                  "background": "#FFFFFF",
+                  "text": "#1B1916"
+                }
+              },
+              "radius": 10,
+              "density": "compact",
+              "button_placement": "right"
+            }
+          }
+        }
+      },
+      {
+        "id": "comment2",
+        "type": "set_variable",
+        "label": "Checker comment",
+        "position": {
+          "x": 40,
+          "y": 2140
+        },
+        "config": {
+          "name": "approver_comment",
+          "expression": "{{=CONCAT(approver_comment, IF(IS_EMPTY(task_data.comment), \"\", CONCAT(\" / Overtime check: \", task_data.comment)))}}"
+        }
+      },
+      {
+        "id": "rej_comment",
+        "type": "set_variable",
+        "label": "Rejection comment",
+        "position": {
+          "x": 600,
+          "y": 1640
+        },
+        "config": {
+          "name": "approver_comment",
+          "expression": "{{task_data.comment}}"
+        }
+      },
+      {
+        "id": "ok_dec",
+        "type": "set_variable",
+        "label": "Decision: approved",
+        "position": {
+          "x": 200,
+          "y": 2280
+        },
+        "config": {
+          "name": "decision",
+          "expression": "approved"
+        }
+      },
+      {
+        "id": "ok_row",
+        "type": "update_data_table",
+        "label": "Record: approved",
+        "position": {
+          "x": 200,
+          "y": 2400
+        },
+        "config": {
+          "table_id": "e367272f-8e86-5c5b-b4ad-06b9f3ce7200",
+          "table_name": "Timesheets",
+          "operation": "update",
+          "match_column": "timesheet_ref",
+          "match_value": "{{timesheet_ref}}",
+          "column_values": {
+            "status": "approved",
+            "approver_comment": "{{approver_comment}}",
+            "decided_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "budget",
+        "type": "update_data_table",
+        "label": "Add to project hours",
+        "position": {
+          "x": 200,
+          "y": 2520
+        },
+        "config": {
+          "table_id": "4e3b0f82-14a6-5d39-84f2-3bc7220a2e4e",
+          "table_name": "Projects",
+          "operation": "update",
+          "match_column": "code",
+          "match_value": "{{form.project}}",
+          "column_values": {
+            "hours_logged": "{{=ADD(COALESCE(project_row.hours_logged, 0), total_hours)}}"
+          }
+        }
+      },
+      {
+        "id": "no_dec",
+        "type": "set_variable",
+        "label": "Decision: rejected",
+        "position": {
+          "x": 600,
+          "y": 2280
+        },
+        "config": {
+          "name": "decision",
+          "expression": "rejected"
+        }
+      },
+      {
+        "id": "no_row",
+        "type": "update_data_table",
+        "label": "Record: rejected",
+        "position": {
+          "x": 600,
+          "y": 2400
+        },
+        "config": {
+          "table_id": "e367272f-8e86-5c5b-b4ad-06b9f3ce7200",
+          "table_name": "Timesheets",
+          "operation": "update",
+          "match_column": "timesheet_ref",
+          "match_value": "{{timesheet_ref}}",
+          "column_values": {
+            "status": "rejected",
+            "approver_comment": "{{approver_comment}}",
+            "decided_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email the employee",
+        "position": {
+          "x": 400,
+          "y": 2640
+        },
+        "config": {
+          "to": "{{form.employee_email}}",
+          "email_template_id": "9b909828-eff2-58a3-be17-9e38ce24c74b"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Done",
+        "position": {
+          "x": 400,
+          "y": 2760
+        },
+        "config": {
+          "reason": "{{timesheet_ref}} {{decision}} ({{total_hours}} h)"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-proj",
+        "source": "ref",
+        "target": "proj"
+      },
+      {
+        "id": "e-proj-pname",
+        "source": "proj",
+        "target": "pname"
+      },
+      {
+        "id": "e-pname-client",
+        "source": "pname",
+        "target": "client"
+      },
+      {
+        "id": "e-client-bill",
+        "source": "client",
+        "target": "bill"
+      },
+      {
+        "id": "e-bill-total",
+        "source": "bill",
+        "target": "total"
+      },
+      {
+        "id": "e-total-ot",
+        "source": "total",
+        "target": "ot"
+      },
+      {
+        "id": "e-ot-value",
+        "source": "ot",
+        "target": "value"
+      },
+      {
+        "id": "e-value-title",
+        "source": "value",
+        "target": "title"
+      },
+      {
+        "id": "e-title-checks",
+        "source": "title",
+        "target": "checks"
+      },
+      {
+        "id": "e-checks-row",
+        "source": "checks",
+        "target": "row"
+      },
+      {
+        "id": "e-row-approve",
+        "source": "row",
+        "target": "approve"
+      },
+      {
+        "id": "e-approve-comment1-approve",
+        "source": "approve",
+        "target": "comment1",
+        "label": "Approve"
+      },
+      {
+        "id": "e-approve-rej_comment-reject",
+        "source": "approve",
+        "target": "rej_comment",
+        "label": "Reject"
+      },
+      {
+        "id": "e-comment1-second",
+        "source": "comment1",
+        "target": "second"
+      },
+      {
+        "id": "e-second-ot_row-overtime-check",
+        "source": "second",
+        "target": "ot_row",
+        "label": "Overtime check"
+      },
+      {
+        "id": "e-second-ok_dec-else",
+        "source": "second",
+        "target": "ok_dec",
+        "label": "Else"
+      },
+      {
+        "id": "e-ot_row-otcheck",
+        "source": "ot_row",
+        "target": "otcheck"
+      },
+      {
+        "id": "e-otcheck-comment2-approve",
+        "source": "otcheck",
+        "target": "comment2",
+        "label": "Approve"
+      },
+      {
+        "id": "e-otcheck-rej_comment-reject",
+        "source": "otcheck",
+        "target": "rej_comment",
+        "label": "Reject"
+      },
+      {
+        "id": "e-comment2-ok_dec",
+        "source": "comment2",
+        "target": "ok_dec"
+      },
+      {
+        "id": "e-rej_comment-no_dec",
+        "source": "rej_comment",
+        "target": "no_dec"
+      },
+      {
+        "id": "e-ok_dec-ok_row",
+        "source": "ok_dec",
+        "target": "ok_row"
+      },
+      {
+        "id": "e-ok_row-budget",
+        "source": "ok_row",
+        "target": "budget"
+      },
+      {
+        "id": "e-budget-mail",
+        "source": "budget",
+        "target": "mail"
+      },
+      {
+        "id": "e-no_dec-no_row",
+        "source": "no_dec",
+        "target": "no_row"
+      },
+      {
+        "id": "e-no_row-mail",
+        "source": "no_row",
+        "target": "mail"
+      },
+      {
+        "id": "e-mail-end",
+        "source": "mail",
+        "target": "end"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

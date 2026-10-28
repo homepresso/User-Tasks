@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "e3b80f86-ff25-5fe0-b07e-16e5d844c628",
+  "asset": {
+    "id": "e3b80f86-ff25-5fe0-b07e-16e5d844c628",
+    "name": "Purchase order to supplier",
+    "description": "Sent to the supplier when a reorder is approved.",
+    "subject": "Purchase order {{reorder_ref}}: {{quantity}} × {{name}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#0B2530\">\n  <h2 style=\"margin:0 0 12px;color:#0E7490\">Purchase order {{reorder_ref}}</h2>\n  <p>Hello {{supplier}},</p>\n  <p>Please supply the following:</p>\n  <table style=\"border-collapse:collapse;font-size:14px;width:100%\">\n    <tr style=\"background:#ECFEFF\"><th style=\"text-align:left;padding:6px\">SKU</th><th style=\"text-align:left;padding:6px\">Item</th><th style=\"text-align:right;padding:6px\">Qty</th><th style=\"text-align:right;padding:6px\">Unit cost</th></tr>\n    <tr><td style=\"padding:6px\">{{sku}}</td><td style=\"padding:6px\">{{name}}</td><td style=\"padding:6px;text-align:right\">{{quantity}} {{unit}}</td><td style=\"padding:6px;text-align:right\">{{=FORMAT_NUMBER(unit_cost, 2)}}</td></tr>\n  </table>\n  <p>Estimated total <strong>{{=FORMAT_NUMBER(est_cost, 2)}}</strong>. We expect delivery by <strong>{{expected_by}}</strong>.</p>\n  <p>{{task_data.supplier_note}}</p>\n  <p>Please confirm by replying to this email, quoting {{reorder_ref}}.</p>\n  <p style=\"color:#6B7280;font-size:13px\">Sent by the inventory reorder workflow</p>\n</div>",
+    "text_body": "Purchase order {{reorder_ref}}: {{quantity}} {{unit}} of {{sku}} {{name}} at {{unit_cost}}. Estimated total {{est_cost}}. Expected by {{expected_by}}. {{task_data.supplier_note}}",
+    "is_default": false
+  }
+}

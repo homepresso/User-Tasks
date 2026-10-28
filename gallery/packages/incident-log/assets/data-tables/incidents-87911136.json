@@ -1,0 +1,164 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "87911136-89dc-51e8-b9d8-b7af1780b37c",
+  "asset": {
+    "id": "87911136-89dc-51e8-b9d8-b7af1780b37c",
+    "name": "Incidents",
+    "description": "The incident register: every report with its severity, SLA, investigation outcome and corrective actions.",
+    "columns": [
+      {
+        "id": "b017343a-8be5-54cc-a33f-9dc25e2eb812",
+        "required": true,
+        "key": "incident_ref",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "df5214bd-b929-5e46-bec2-ba6ba7ed7a82",
+        "required": false,
+        "key": "reported_on",
+        "name": "Reported",
+        "type": "date"
+      },
+      {
+        "id": "56d75da9-0853-55f0-a74f-8392af458456",
+        "required": false,
+        "key": "occurred_at",
+        "name": "Occurred",
+        "type": "datetime"
+      },
+      {
+        "id": "abe525ac-e724-5a27-a71a-a4ec2d682632",
+        "required": false,
+        "key": "site_code",
+        "name": "Site code",
+        "type": "text"
+      },
+      {
+        "id": "f26ee820-d781-503a-bab3-393c6ca9b18b",
+        "required": false,
+        "key": "site_name",
+        "name": "Site",
+        "type": "text"
+      },
+      {
+        "id": "deb86c14-87b1-59f4-8e82-261e107c1f36",
+        "required": false,
+        "key": "location_detail",
+        "name": "Exact location",
+        "type": "text"
+      },
+      {
+        "id": "445b8cb4-bb1a-55db-b36e-315825a90a35",
+        "required": false,
+        "key": "incident_type",
+        "name": "Type",
+        "type": "text"
+      },
+      {
+        "id": "43a00eb4-e6b7-5068-81e0-a75dd129eb3a",
+        "required": false,
+        "key": "injury_level",
+        "name": "Injury",
+        "type": "text"
+      },
+      {
+        "id": "0ec5f7c4-b359-5910-9bbb-28aead1f319a",
+        "required": false,
+        "key": "severity",
+        "name": "Severity",
+        "type": "select",
+        "options": [
+          "Critical",
+          "High",
+          "Medium",
+          "Low"
+        ]
+      },
+      {
+        "id": "cfe1f4d0-91c7-55aa-b0b9-7d2fc5bf89f1",
+        "required": false,
+        "key": "sla_hours",
+        "name": "SLA (hours)",
+        "type": "number"
+      },
+      {
+        "id": "7ea3c8d3-06d8-5065-8bc8-67e997619fb6",
+        "required": false,
+        "key": "investigation_required",
+        "name": "Investigation required",
+        "type": "boolean"
+      },
+      {
+        "id": "1a3fbfab-2b06-52cf-be03-9cd84624790b",
+        "required": false,
+        "key": "notifiable",
+        "name": "Possibly notifiable to the regulator",
+        "type": "boolean"
+      },
+      {
+        "id": "a0034668-a613-5b46-b77d-6f7359644a2d",
+        "required": false,
+        "key": "reporter_name",
+        "name": "Reported by",
+        "type": "text"
+      },
+      {
+        "id": "106a9044-de16-5c0a-8070-de95bee75f33",
+        "required": false,
+        "key": "reporter_email",
+        "name": "Reporter email",
+        "type": "email"
+      },
+      {
+        "id": "a78b05e9-b40b-52d4-b5ab-f018ef31a44c",
+        "required": false,
+        "key": "description",
+        "name": "What happened",
+        "type": "text"
+      },
+      {
+        "id": "48d6143a-bb14-5186-afb7-8b930aefd9d1",
+        "required": false,
+        "key": "immediate_action",
+        "name": "Immediate action",
+        "type": "text"
+      },
+      {
+        "id": "33c2e46f-7d70-5106-87b4-33ff70aa9e09",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Open",
+          "Investigating",
+          "Escalated",
+          "Closed"
+        ]
+      },
+      {
+        "id": "7a7b7a5d-3334-5098-b5b3-5251b29a3f2b",
+        "required": false,
+        "key": "root_cause",
+        "name": "Root cause",
+        "type": "text"
+      },
+      {
+        "id": "dc2aec72-81c2-57da-97a3-18d23032a329",
+        "required": false,
+        "key": "corrective_actions",
+        "name": "Corrective actions",
+        "type": "text"
+      },
+      {
+        "id": "ab85f30d-c314-5c58-a5f3-7d471d201839",
+        "required": false,
+        "key": "closed_on",
+        "name": "Closed",
+        "type": "date"
+      }
+    ]
+  }
+}

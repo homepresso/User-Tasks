@@ -1,0 +1,144 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "e367272f-8e86-5c5b-b4ad-06b9f3ce7200",
+  "asset": {
+    "id": "e367272f-8e86-5c5b-b4ad-06b9f3ce7200",
+    "name": "Timesheets",
+    "description": "Every weekly timesheet: hours per day, totals, overtime, billable value and the approval decision.",
+    "columns": [
+      {
+        "id": "3595b4f0-b107-5f84-abc0-880a9f737ffe",
+        "required": true,
+        "key": "timesheet_ref",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "c3ee3039-30a8-5eb9-99d3-a38cba0b7905",
+        "required": true,
+        "key": "employee_name",
+        "name": "Employee",
+        "type": "text"
+      },
+      {
+        "id": "9ad851c1-44a6-57d3-b78e-3feec4c66ce2",
+        "required": false,
+        "key": "employee_email",
+        "name": "Employee email",
+        "type": "text"
+      },
+      {
+        "id": "9aefaddf-b785-5384-a702-8591bde1e888",
+        "required": false,
+        "key": "week_ending",
+        "name": "Week ending",
+        "type": "date"
+      },
+      {
+        "id": "879ca2bd-d160-56d2-8377-549b2fb17cb4",
+        "required": false,
+        "key": "project_code",
+        "name": "Project",
+        "type": "text"
+      },
+      {
+        "id": "8d34bdf6-85c4-55fd-af75-4e506333d8cd",
+        "required": false,
+        "key": "client",
+        "name": "Client",
+        "type": "text"
+      },
+      {
+        "id": "e1397dea-c6f8-5ffb-8a2b-0d944b22647d",
+        "required": false,
+        "key": "billable",
+        "name": "Billable",
+        "type": "boolean"
+      },
+      {
+        "id": "1b30df7e-7167-5a1b-8676-dd767209f0f4",
+        "required": false,
+        "key": "mon",
+        "name": "Mon",
+        "type": "number"
+      },
+      {
+        "id": "8abaa5d4-c7d5-5553-aa84-96c197f0eb80",
+        "required": false,
+        "key": "tue",
+        "name": "Tue",
+        "type": "number"
+      },
+      {
+        "id": "5cd11a2c-72ef-54f5-8553-036f4f31d877",
+        "required": false,
+        "key": "wed",
+        "name": "Wed",
+        "type": "number"
+      },
+      {
+        "id": "39fa5950-2060-513e-99ce-131a8dbc986a",
+        "required": false,
+        "key": "thu",
+        "name": "Thu",
+        "type": "number"
+      },
+      {
+        "id": "fb5fcd6f-cabd-5e14-a4eb-7dfa8fe8546e",
+        "required": false,
+        "key": "fri",
+        "name": "Fri",
+        "type": "number"
+      },
+      {
+        "id": "81780f8e-f51b-58f6-bee9-4387d8188f6a",
+        "required": false,
+        "key": "total_hours",
+        "name": "Total hours",
+        "type": "number"
+      },
+      {
+        "id": "429c4767-a94d-546d-9bfe-fdb0cbf8089d",
+        "required": false,
+        "key": "overtime_hours",
+        "name": "Overtime hours",
+        "type": "number"
+      },
+      {
+        "id": "8e145865-041d-5cac-8bfb-60ad66269e63",
+        "required": false,
+        "key": "billable_value",
+        "name": "Billable value",
+        "type": "number"
+      },
+      {
+        "id": "412ba2ec-c197-5a3a-9329-02f6ee6d65db",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "submitted",
+          "overtime check",
+          "approved",
+          "rejected"
+        ]
+      },
+      {
+        "id": "4d6c3c71-7b32-5b9c-a9af-e6aa08452b0c",
+        "required": false,
+        "key": "approver_comment",
+        "name": "Approver comment",
+        "type": "text"
+      },
+      {
+        "id": "3986bf03-8566-540b-8e77-93b738053f74",
+        "required": false,
+        "key": "decided_on",
+        "name": "Decided",
+        "type": "date"
+      }
+    ]
+  }
+}

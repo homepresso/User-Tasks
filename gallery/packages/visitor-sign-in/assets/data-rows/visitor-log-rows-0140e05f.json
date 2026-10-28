@@ -1,0 +1,45 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "0140e05f-218a-5126-b9cb-61730dcc32a8",
+  "asset": {
+    "id": "0140e05f-218a-5126-b9cb-61730dcc32a8",
+    "name": "Visitor log rows",
+    "rows": [
+      {
+        "id": "802e81c1-2629-5f27-a8eb-f37fa8425285",
+        "data": {
+          "visit_ref": "VIS-20261020-A1B2",
+          "visitor_name": "Grace Kim",
+          "company": "Northwind Traders",
+          "visitor_email": "grace.kim@example.com",
+          "host_name": "Ana Lopez",
+          "host_email": "ana.lopez@example.com",
+          "purpose": "Meeting",
+          "arrived_at": "2026-10-20",
+          "nda_required": false,
+          "nda_signed": false,
+          "badge": "V-014",
+          "status": "signed out"
+        }
+      },
+      {
+        "id": "1652352f-c2e9-57ea-9f94-9258f4f55af8",
+        "data": {
+          "visit_ref": "VIS-20261021-C3D4",
+          "visitor_name": "Hugo Silva",
+          "company": "Contoso Facilities",
+          "visitor_email": "hugo.silva@example.com",
+          "host_name": "Farid Haddad",
+          "host_email": "farid.haddad@example.com",
+          "purpose": "Contractor work",
+          "arrived_at": "2026-10-21",
+          "nda_required": true,
+          "nda_signed": true,
+          "badge": "C-003",
+          "status": "signed out"
+        }
+      }
+    ]
+  }
+}

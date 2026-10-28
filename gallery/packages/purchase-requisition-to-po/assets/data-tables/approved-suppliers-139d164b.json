@@ -1,0 +1,61 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "139d164b-0570-42c4-bf9a-bb6583d6cef3",
+  "asset": {
+    "id": "139d164b-0570-42c4-bf9a-bb6583d6cef3",
+    "name": "Approved suppliers",
+    "description": "Suppliers procurement has approved, by category, with payment terms and the contract that covers them. Preferred suppliers need fewer quotes.",
+    "columns": [
+      {
+        "id": "22978756-37f0-4ae5-ac53-7601edb61755",
+        "required": true,
+        "key": "supplier_name",
+        "name": "Supplier",
+        "type": "text"
+      },
+      {
+        "id": "0db9d1bb-d11a-4550-a8ae-3a418cd9866b",
+        "required": false,
+        "key": "supplier_id",
+        "name": "ERP supplier id",
+        "type": "text"
+      },
+      {
+        "id": "e36a96ee-d362-47b9-be3e-38ef5418b188",
+        "required": true,
+        "key": "supplier_category",
+        "name": "Category",
+        "type": "text"
+      },
+      {
+        "id": "e94f1bcb-7453-4957-a448-59f27f1fa615",
+        "required": false,
+        "key": "payment_terms",
+        "name": "Payment terms",
+        "type": "text"
+      },
+      {
+        "id": "aa7689cc-65bb-49f0-96ea-22829efcc0d7",
+        "required": false,
+        "key": "preferred",
+        "name": "Preferred",
+        "type": "boolean"
+      },
+      {
+        "id": "3fc9ccd5-eebe-46d6-8576-4123fa55baae",
+        "required": false,
+        "key": "contract_ref",
+        "name": "Contract ref",
+        "type": "text"
+      },
+      {
+        "id": "d34354d5-79e9-47ae-9fad-b332ba4938ff",
+        "required": false,
+        "key": "orders_email",
+        "name": "Orders email",
+        "type": "text"
+      }
+    ]
+  }
+}

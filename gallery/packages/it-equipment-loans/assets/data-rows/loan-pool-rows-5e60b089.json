@@ -1,0 +1,128 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "5e60b089-cef3-55de-b01c-8c9793c25fe3",
+  "asset": {
+    "id": "5e60b089-cef3-55de-b01c-8c9793c25fe3",
+    "name": "Loan pool rows",
+    "rows": [
+      {
+        "id": "47089a71-dcb0-582e-baf1-58e7e5e95b72",
+        "data": {
+          "asset_tag": "LT-1042",
+          "device": "Loaner laptop 14\"",
+          "type": "Laptop",
+          "model": "Dell Latitude 7440",
+          "serial": "DL7440-8FQ2K93",
+          "status": "Available",
+          "location": "IT desk, level 2",
+          "notes": "Windows 11, Office, VPN"
+        }
+      },
+      {
+        "id": "1ffee935-055b-5e37-8694-76c6b2e95c9d",
+        "data": {
+          "asset_tag": "LT-1043",
+          "device": "Loaner laptop 14\"",
+          "type": "Laptop",
+          "model": "Dell Latitude 7440",
+          "serial": "DL7440-8FQ2K94",
+          "status": "On loan",
+          "location": "IT desk, level 2",
+          "notes": ""
+        }
+      },
+      {
+        "id": "88da8a0a-ab27-5e7e-9bb6-f512284c8e13",
+        "data": {
+          "asset_tag": "LT-1050",
+          "device": "MacBook Air 13\"",
+          "type": "Laptop",
+          "model": "MacBook Air M3",
+          "serial": "C02ZK1MBA3Q1",
+          "status": "Available",
+          "location": "IT desk, level 2",
+          "notes": "For design and video work"
+        }
+      },
+      {
+        "id": "c2bf83e0-2cbb-537a-965a-3ba88c386bae",
+        "data": {
+          "asset_tag": "PH-2011",
+          "device": "Travel phone",
+          "type": "Phone",
+          "model": "iPhone 15",
+          "serial": "F2LXK9P3N72Q",
+          "status": "Available",
+          "location": "IT desk, level 2",
+          "notes": "Roaming eSIM enabled"
+        }
+      },
+      {
+        "id": "2e2c40b7-a81d-5688-b521-fbc2512edd91",
+        "data": {
+          "asset_tag": "PH-2012",
+          "device": "Travel phone",
+          "type": "Phone",
+          "model": "Pixel 8",
+          "serial": "39KAY0F1J4",
+          "status": "Repair",
+          "location": "IT workshop",
+          "notes": "Cracked screen"
+        }
+      },
+      {
+        "id": "ea54f931-039c-5ef2-bac5-921cdaca9c59",
+        "data": {
+          "asset_tag": "HS-3005",
+          "device": "Noise-cancelling headset",
+          "type": "Headset",
+          "model": "Jabra Evolve2 75",
+          "serial": "JB75-00031288",
+          "status": "Available",
+          "location": "Reception",
+          "notes": "USB-C dongle in the case"
+        }
+      },
+      {
+        "id": "f37bd565-4310-5d04-9eb9-a5fda89302bc",
+        "data": {
+          "asset_tag": "HS-3006",
+          "device": "Noise-cancelling headset",
+          "type": "Headset",
+          "model": "Jabra Evolve2 75",
+          "serial": "JB75-00031289",
+          "status": "Available",
+          "location": "Reception",
+          "notes": ""
+        }
+      },
+      {
+        "id": "2fea0d51-834c-55e0-b79e-1a9fe4fab565",
+        "data": {
+          "asset_tag": "TB-4001",
+          "device": "Tablet with keyboard",
+          "type": "Tablet",
+          "model": "iPad Air 11\"",
+          "serial": "DMPZ31K9Q1GC",
+          "status": "Available",
+          "location": "IT desk, level 2",
+          "notes": "For events and site visits"
+        }
+      },
+      {
+        "id": "63700415-6781-5f70-85ff-eea92ddf7c05",
+        "data": {
+          "asset_tag": "PJ-5001",
+          "device": "Portable projector",
+          "type": "Projector",
+          "model": "Epson EF-21",
+          "serial": "X8JK2100437",
+          "status": "Available",
+          "location": "Facilities store",
+          "notes": "HDMI and USB-C cables included"
+        }
+      }
+    ]
+  }
+}

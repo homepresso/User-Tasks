@@ -1,0 +1,56 @@
+{
+  "name": "@usertasks/cli",
+  "version": "0.1.0",
+  "description": "Command-line interface for UserTasks: every REST endpoint as a command, browser login and config as code",
+  "keywords": [
+    "usertasks",
+    "cli",
+    "workflow",
+    "automation",
+    "config-as-code"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/homepresso/User-Tasks.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/homepresso/User-Tasks/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/homepresso/User-Tasks/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "usertasks": "./dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx --tsconfig tsconfig.json src/bin.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "generate": "tsx scripts/generate.ts",
+    "generate:check": "tsx scripts/generate.ts --check"
+  },
+  "dependencies": {
+    "@usertasks/sdk": "0.1.0",
+    "commander": "^14.0.3",
+    "yaml": "^2.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

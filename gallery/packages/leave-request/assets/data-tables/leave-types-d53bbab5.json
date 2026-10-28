@@ -1,0 +1,61 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "d53bbab5-ec9a-48d7-8567-ffe8ce173999",
+  "asset": {
+    "id": "d53bbab5-ec9a-48d7-8567-ffe8ce173999",
+    "name": "Leave types",
+    "description": "Leave types and their rules: paid or not, whether a certificate is needed, the notice expected and how many days are approved automatically.",
+    "columns": [
+      {
+        "id": "60313052-9782-4de7-8bc4-019f20397715",
+        "required": true,
+        "key": "leave_type",
+        "name": "Leave type",
+        "type": "text"
+      },
+      {
+        "id": "250fe8a2-7554-4807-8325-3707181a6fcd",
+        "required": false,
+        "key": "paid",
+        "name": "Paid",
+        "type": "boolean"
+      },
+      {
+        "id": "daa4a8f1-3ea4-402f-a319-a814cd23d7a7",
+        "required": false,
+        "key": "certificate_required",
+        "name": "Certificate required",
+        "type": "boolean"
+      },
+      {
+        "id": "9d2f00e3-d010-482a-8b53-5ffb55cedd73",
+        "required": false,
+        "key": "notice_days",
+        "name": "Notice (days)",
+        "type": "number"
+      },
+      {
+        "id": "f366515e-70c2-432b-ac63-84a743c47e8a",
+        "required": false,
+        "key": "auto_approve_up_to",
+        "name": "Auto-approve up to (days)",
+        "type": "number"
+      },
+      {
+        "id": "3c843264-bdbc-43ac-89e0-1511f75169e2",
+        "required": false,
+        "key": "deducts_balance",
+        "name": "Deducts balance",
+        "type": "boolean"
+      },
+      {
+        "id": "b8baefba-eb26-4d19-99ff-8804eff21b1d",
+        "required": false,
+        "key": "notes",
+        "name": "Policy notes",
+        "type": "text"
+      }
+    ]
+  }
+}

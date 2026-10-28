@@ -1,0 +1,284 @@
+{
+  "generatedBy": "scripts/helm-options.ts",
+  "areas": {
+    "db": {
+      "env": "DB_PROVIDER",
+      "ids": [
+        "supabase",
+        "postgres"
+      ],
+      "options": {
+        "auth": "DATABASE_AUTH",
+        "max_rows": "DB_MAX_ROWS",
+        "migration_url": "MIGRATION_DATABASE_URL",
+        "migrations_dir": "MIGRATIONS_DIR",
+        "pool_max": "DATABASE_POOL_MAX",
+        "supabase_anon_key": "SUPABASE_ANON_KEY",
+        "supabase_jwt_secret": "SUPABASE_JWT_SECRET",
+        "supabase_service_role_key": "SUPABASE_SERVICE_ROLE_KEY",
+        "supabase_url": "SUPABASE_URL",
+        "url": "DATABASE_URL"
+      },
+      "secretOptions": [
+        "supabase_jwt_secret",
+        "supabase_service_role_key"
+      ]
+    },
+    "auth": {
+      "env": "AUTH_PROVIDER",
+      "ids": [
+        "supabase",
+        "builtin",
+        "oidc",
+        "saml"
+      ],
+      "options": {
+        "allow_signup": "AUTH_ALLOW_SIGNUP",
+        "cookie_secure": "AUTH_COOKIE_SECURE",
+        "database_pool_max": "AUTH_DATABASE_POOL_MAX",
+        "database_url": "AUTH_DATABASE_URL",
+        "lockout_minutes": "AUTH_LOCKOUT_MINUTES",
+        "lockout_threshold": "AUTH_LOCKOUT_THRESHOLD",
+        "password_min_length": "AUTH_PASSWORD_MIN_LENGTH",
+        "require_email_confirmation": "AUTH_REQUIRE_EMAIL_CONFIRMATION",
+        "session_idle_hours": "AUTH_SESSION_IDLE_HOURS",
+        "session_max_days": "AUTH_SESSION_MAX_DAYS",
+        "sso_providers": "AUTH_SSO_PROVIDERS"
+      },
+      "secretOptions": [
+        "sso_providers"
+      ]
+    },
+    "storage": {
+      "env": "STORAGE_PROVIDER",
+      "ids": [
+        "supabase",
+        "s3",
+        "local",
+        "azure_blob",
+        "gcs"
+      ],
+      "options": {
+        "access_key_id": "S3_ACCESS_KEY_ID",
+        "azure_account_key": "AZURE_STORAGE_KEY",
+        "azure_account_name": "AZURE_STORAGE_ACCOUNT",
+        "azure_connection_string": "AZURE_STORAGE_CONNECTION_STRING",
+        "azure_endpoint": "AZURE_STORAGE_BLOB_ENDPOINT",
+        "azure_sas_token": "AZURE_STORAGE_SAS_TOKEN",
+        "bucket": "STORAGE_BUCKET",
+        "bucket_map": "STORAGE_BUCKET_MAP",
+        "bucket_prefix": "STORAGE_BUCKET_PREFIX",
+        "endpoint": "S3_ENDPOINT",
+        "force_path_style": "S3_FORCE_PATH_STYLE",
+        "gcs_credentials_json": "GCS_CREDENTIALS_JSON",
+        "gcs_endpoint": "GCS_API_ENDPOINT",
+        "gcs_project_id": "GCS_PROJECT_ID",
+        "local_root": "STORAGE_LOCAL_ROOT",
+        "public_base_url": "STORAGE_PUBLIC_BASE_URL",
+        "region": "S3_REGION",
+        "secret_access_key": "S3_SECRET_ACCESS_KEY"
+      },
+      "secretOptions": [
+        "azure_account_key",
+        "azure_connection_string",
+        "azure_sas_token",
+        "gcs_credentials_json",
+        "secret_access_key"
+      ]
+    },
+    "realtime": {
+      "env": "REALTIME_PROVIDER",
+      "ids": [
+        "supabase",
+        "sse"
+      ],
+      "options": {
+        "database_url": "REALTIME_DATABASE_URL",
+        "supabase_db_url": "SUPABASE_DB_URL"
+      },
+      "secretOptions": []
+    },
+    "scheduler": {
+      "env": "SCHEDULER_PROVIDER",
+      "ids": [
+        "pg_cron",
+        "worker",
+        "external"
+      ],
+      "options": {
+        "cognito_allowed_clients": "SCHEDULER_COGNITO_ALLOWED_CLIENTS",
+        "cognito_region": "SCHEDULER_COGNITO_REGION",
+        "cognito_scope": "SCHEDULER_COGNITO_SCOPE",
+        "cognito_user_pool_id": "SCHEDULER_COGNITO_USER_POOL_ID",
+        "database_url": "SCHEDULER_DATABASE_URL",
+        "entra_allowed_principals": "SCHEDULER_ENTRA_ALLOWED_PRINCIPALS",
+        "entra_audience": "SCHEDULER_ENTRA_AUDIENCE",
+        "entra_tenant_id": "SCHEDULER_ENTRA_TENANT_ID",
+        "in_process": "SCHEDULER_IN_PROCESS",
+        "oidc_audience": "SCHEDULER_OIDC_AUDIENCE",
+        "oidc_service_accounts": "SCHEDULER_OIDC_SERVICE_ACCOUNTS",
+        "pg_cron_base_url": "SCHEDULER_PG_CRON_BASE_URL",
+        "tick_concurrency": "CRON_TICK_CONCURRENCY"
+      },
+      "secretOptions": []
+    },
+    "email": {
+      "env": "EMAIL_PROVIDER",
+      "ids": [
+        "resend",
+        "smtp",
+        "ses",
+        "azure_communication",
+        "microsoft_graph",
+        "gmail",
+        "console"
+      ],
+      "options": {
+        "acs_connection_string": "ACS_EMAIL_CONNECTION_STRING",
+        "acs_endpoint": "ACS_EMAIL_ENDPOINT",
+        "console_dir": "EMAIL_CONSOLE_DIR",
+        "from": "EMAIL_FROM",
+        "gmail_sender": "GMAIL_SENDER",
+        "gmail_service_account_json": "GMAIL_SERVICE_ACCOUNT_JSON",
+        "graph_client_id": "GRAPH_CLIENT_ID",
+        "graph_client_secret": "GRAPH_CLIENT_SECRET",
+        "graph_endpoint": "GRAPH_ENDPOINT",
+        "graph_sender": "GRAPH_SENDER",
+        "graph_tenant_id": "GRAPH_TENANT_ID",
+        "reply_to": "EMAIL_REPLY_TO",
+        "resend_api_key": "RESEND_API_KEY",
+        "ses_access_key_id": "SES_ACCESS_KEY_ID",
+        "ses_configuration_set": "SES_CONFIGURATION_SET",
+        "ses_region": "SES_REGION",
+        "ses_secret_access_key": "SES_SECRET_ACCESS_KEY",
+        "smtp_host": "SMTP_HOST",
+        "smtp_name": "SMTP_NAME",
+        "smtp_password": "SMTP_PASSWORD",
+        "smtp_port": "SMTP_PORT",
+        "smtp_secure": "SMTP_SECURE",
+        "smtp_starttls": "SMTP_STARTTLS",
+        "smtp_tls_reject_unauthorized": "SMTP_TLS_REJECT_UNAUTHORIZED",
+        "smtp_tls_servername": "SMTP_TLS_SERVERNAME",
+        "smtp_user": "SMTP_USER"
+      },
+      "secretOptions": [
+        "acs_connection_string",
+        "gmail_service_account_json",
+        "graph_client_secret",
+        "resend_api_key",
+        "ses_secret_access_key",
+        "smtp_password"
+      ]
+    },
+    "secrets": {
+      "env": "SECRETS_PROVIDER",
+      "ids": [
+        "env",
+        "db",
+        "supabase_vault",
+        "hashicorp_vault",
+        "azure_key_vault",
+        "gcp_secret_manager",
+        "aws_secrets_manager"
+      ],
+      "options": {
+        "aws_endpoint": "AWS_SECRETS_MANAGER_ENDPOINT",
+        "aws_region": "AWS_SECRETS_MANAGER_REGION",
+        "azure_key_vault_url": "AZURE_KEY_VAULT_URL",
+        "cache_ttl_seconds": "SECRETS_CACHE_TTL_SECONDS",
+        "database_url": "SECRETS_DATABASE_URL",
+        "encryption_key_name": "SECRETS_ENCRYPTION_KEY_NAME",
+        "files_dir": "SECRETS_FILES_DIR",
+        "gcp_credentials_json": "GCP_SECRET_MANAGER_CREDENTIALS_JSON",
+        "gcp_endpoint": "GCP_SECRET_MANAGER_ENDPOINT",
+        "gcp_project_id": "GCP_SECRET_MANAGER_PROJECT",
+        "name_prefix": "SECRETS_NAME_PREFIX",
+        "vault_addr": "VAULT_ADDR",
+        "vault_approle_mount": "VAULT_APPROLE_MOUNT",
+        "vault_auth": "VAULT_AUTH_METHOD",
+        "vault_k8s_mount": "VAULT_K8S_MOUNT",
+        "vault_k8s_role": "VAULT_K8S_ROLE",
+        "vault_k8s_token_path": "VAULT_K8S_TOKEN_PATH",
+        "vault_mount": "VAULT_KV_MOUNT",
+        "vault_namespace": "VAULT_NAMESPACE",
+        "vault_role_id": "VAULT_ROLE_ID",
+        "vault_secret_id": "VAULT_SECRET_ID",
+        "vault_token": "VAULT_TOKEN"
+      },
+      "secretOptions": [
+        "gcp_credentials_json",
+        "vault_secret_id",
+        "vault_token"
+      ]
+    },
+    "cache": {
+      "env": "CACHE_PROVIDER",
+      "ids": [
+        "memory",
+        "postgres",
+        "redis"
+      ],
+      "options": {
+        "invalidation_check_ms": "CACHE_INVALIDATION_CHECK_MS",
+        "key_prefix": "CACHE_KEY_PREFIX",
+        "redis_auth": "CACHE_REDIS_AUTH",
+        "redis_aws_cache_name": "CACHE_REDIS_AWS_CACHE_NAME",
+        "redis_aws_region": "CACHE_REDIS_AWS_REGION",
+        "redis_aws_serverless": "CACHE_REDIS_AWS_SERVERLESS",
+        "redis_aws_service": "CACHE_REDIS_AWS_SERVICE",
+        "redis_command_timeout_ms": "CACHE_REDIS_COMMAND_TIMEOUT_MS",
+        "redis_db": "CACHE_REDIS_DB",
+        "redis_entra_scope": "CACHE_REDIS_ENTRA_SCOPE",
+        "redis_password": "CACHE_REDIS_PASSWORD",
+        "redis_tls": "CACHE_REDIS_TLS",
+        "redis_tls_ca_file": "CACHE_REDIS_TLS_CA_FILE",
+        "redis_tls_reject_unauthorized": "CACHE_REDIS_TLS_REJECT_UNAUTHORIZED",
+        "redis_tls_servername": "CACHE_REDIS_TLS_SERVERNAME",
+        "redis_url": "CACHE_REDIS_URL",
+        "redis_username": "CACHE_REDIS_USERNAME"
+      },
+      "secretOptions": [
+        "redis_password"
+      ]
+    },
+    "kms": {
+      "env": "KMS_PROVIDER",
+      "ids": [
+        "env",
+        "vault_transit",
+        "aws_kms",
+        "azure_key_vault",
+        "gcp_kms"
+      ],
+      "options": {
+        "activation_seconds": "KMS_ACTIVATION_SECONDS",
+        "aws_endpoint": "AWS_KMS_ENDPOINT",
+        "aws_kms_key_id": "AWS_KMS_KEY_ID",
+        "aws_region": "AWS_KMS_REGION",
+        "azure_key_algorithm": "AZURE_KMS_KEY_ALGORITHM",
+        "azure_key_id": "AZURE_KMS_KEY_ID",
+        "gcp_credentials_json": "GCP_KMS_CREDENTIALS_JSON",
+        "gcp_kms_endpoint": "GCP_KMS_ENDPOINT",
+        "gcp_kms_key_name": "GCP_KMS_KEY_NAME",
+        "refresh_seconds": "KMS_REFRESH_SECONDS",
+        "vault_addr": "VAULT_ADDR",
+        "vault_approle_mount": "VAULT_APPROLE_MOUNT",
+        "vault_auth": "VAULT_AUTH_METHOD",
+        "vault_k8s_mount": "VAULT_K8S_MOUNT",
+        "vault_k8s_role": "VAULT_K8S_ROLE",
+        "vault_k8s_token_path": "VAULT_K8S_TOKEN_PATH",
+        "vault_namespace": "VAULT_NAMESPACE",
+        "vault_role_id": "VAULT_ROLE_ID",
+        "vault_secret_id": "VAULT_SECRET_ID",
+        "vault_token": "VAULT_TOKEN",
+        "vault_transit_key": "VAULT_TRANSIT_KEY",
+        "vault_transit_mount": "VAULT_TRANSIT_MOUNT"
+      },
+      "secretOptions": [
+        "gcp_credentials_json",
+        "vault_secret_id",
+        "vault_token"
+      ]
+    }
+  }
+}

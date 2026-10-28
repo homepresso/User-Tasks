@@ -1,0 +1,1172 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "b8d355b3-7653-4a88-bc85-b5e6295dac60",
+  "asset": {
+    "id": "b8d355b3-7653-4a88-bc85-b5e6295dac60",
+    "name": "Data subject request",
+    "description": "A data subject request from the privacy team or a web form: sets the statutory deadline, verifies identity, searches the CRM, billing and support systems, erases where asked, and sends a DPO-approved response.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Request received",
+        "position": {
+          "x": 580,
+          "y": 60
+        },
+        "config": {
+          "start_form": {
+            "layout": {
+              "rows": [
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "requester_name",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "requester_email",
+                      "span": 2
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "request_type",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "jurisdiction",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "received_date",
+                      "span": 1
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "details",
+                      "span": 3
+                    }
+                  ]
+                },
+                {
+                  "columns": 3,
+                  "cells": [
+                    {
+                      "field_key": "privacy_officer_id",
+                      "span": 1
+                    },
+                    {
+                      "field_key": "dpo_id",
+                      "span": 2
+                    }
+                  ]
+                }
+              ]
+            },
+            "theme": {
+              "source": "custom",
+              "overrides": {
+                "colors": {
+                  "light": {
+                    "accent": "#475569",
+                    "background": "#FFFFFF",
+                    "text": "#1B1916",
+                    "page": "#EEF1F5"
+                  }
+                },
+                "radius": 10,
+                "density": "comfortable",
+                "button_placement": "right",
+                "header": {
+                  "enabled": true,
+                  "title": "Log a data subject request",
+                  "subtitle": "The statutory deadline is calculated from the received date."
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Reference",
+        "position": {
+          "x": 580,
+          "y": 220
+        },
+        "config": {
+          "name": "reference",
+          "expression": "DSAR-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 5))}}"
+        }
+      },
+      {
+        "id": "received",
+        "type": "set_variable",
+        "label": "Received date",
+        "position": {
+          "x": 580,
+          "y": 380
+        },
+        "config": {
+          "name": "received_date",
+          "expression": "{{=FORMAT_DATE(COALESCE(received_date, TODAY()), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 580,
+          "y": 540
+        },
+        "config": {
+          "title": "{{reference}} · {{request_type}} · {{requester_name}}"
+        }
+      },
+      {
+        "id": "rules",
+        "type": "decision_table",
+        "label": "Statutory deadline",
+        "position": {
+          "x": 580,
+          "y": 700
+        },
+        "config": {
+          "decision_table_id": "da908ccd-f758-475b-82b7-25f04de8f4b4",
+          "decision_table_name": "Statutory deadlines",
+          "input_mappings": {
+            "jurisdiction": "{{jurisdiction}}",
+            "request_type": "{{request_type}}"
+          }
+        }
+      },
+      {
+        "id": "due",
+        "type": "set_variable",
+        "label": "Due date",
+        "position": {
+          "x": 580,
+          "y": 860
+        },
+        "config": {
+          "name": "due_date",
+          "expression": "{{=FORMAT_DATE(ADD_DAYS(received_date, deadline_days), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Statutory SLA",
+        "position": {
+          "x": 580,
+          "y": 1020
+        },
+        "config": {
+          "sla_label": "DSAR response ({{legal_basis}})",
+          "mode": "exact",
+          "due_at": "{{due_date}}T17:00:00Z",
+          "warning_amount": 7,
+          "warning_unit": "days"
+        }
+      },
+      {
+        "id": "log_in",
+        "type": "update_data_table",
+        "label": "Add to DSAR register",
+        "position": {
+          "x": 580,
+          "y": 1180
+        },
+        "config": {
+          "table_id": "28cebfbb-335c-4ad6-8383-77ea2f308b4d",
+          "table_name": "DSAR register",
+          "operation": "insert",
+          "output_row_id_var": "register_row_id",
+          "column_values": {
+            "reference": "{{reference}}",
+            "requester_name": "{{requester_name}}",
+            "requester_email": "{{requester_email}}",
+            "request_type": "{{request_type}}",
+            "jurisdiction": "{{jurisdiction}}",
+            "received_date": "{{received_date}}",
+            "due_date": "{{due_date}}",
+            "status": "Identity check"
+          }
+        }
+      },
+      {
+        "id": "verify",
+        "type": "user_task",
+        "label": "Verify identity",
+        "position": {
+          "x": 580,
+          "y": 1340
+        },
+        "config": {
+          "task_title": "Verify identity: {{requester_name}} ({{request_type}}, due {{due_date}})",
+          "task_description": "<p><strong>{{requester_name}}</strong> &lt;{{requester_email}}&gt; made a <strong>{{request_type}}</strong> request under {{jurisdiction}} on {{received_date}}.</p><p>{{details}}</p><p>Deadline <strong>{{due_date}}</strong> ({{deadline_days}} days; {{legal_basis}}). Extension allowed: {{extension_allowed}}.</p><p>Confirm the requester is the data subject (for example a match to their account login, or a reply from the email on file) before any data is searched or released.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Verified",
+            "Need more info",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "50c726c8-4126-40b1-a3ef-664b86b34e5f",
+          "assignee_variable": "{{privacy_officer_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "verification_method",
+              "label": "How was identity checked?",
+              "type": "choice",
+              "options": [
+                "Email on file confirmed",
+                "Account login matched",
+                "ID document checked",
+                "Other"
+              ],
+              "required": true
+            },
+            {
+              "key": "verification_notes",
+              "label": "Notes (sent to the requester if more info is needed or the request is rejected)",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "verification_method",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "verification_notes",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "verified",
+              "label": "Verified",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Verified"
+            },
+            {
+              "id": "need_more_info",
+              "label": "Need more info",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Need more info"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Verify identity: {{requester_name}}",
+            "align": "left",
+            "subtitle": "{{request_type}} · {{jurisdiction}} · due {{due_date}}"
+          }
+        }
+      },
+      {
+        "id": "ask_id",
+        "type": "send_email",
+        "label": "Email requester: more info",
+        "position": {
+          "x": 900,
+          "y": 1520
+        },
+        "config": {
+          "to": "{{requester_email}}",
+          "email_template_id": "05f2145e-23bf-4b5e-9b18-775b5d7842a5"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "st_wait",
+        "type": "update_data_table",
+        "label": "Status awaiting identity",
+        "position": {
+          "x": 900,
+          "y": 1680
+        },
+        "config": {
+          "table_id": "28cebfbb-335c-4ad6-8383-77ea2f308b4d",
+          "table_name": "DSAR register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Awaiting identity"
+          }
+        }
+      },
+      {
+        "id": "again",
+        "type": "goto_activity",
+        "label": "Back to verification",
+        "position": {
+          "x": 900,
+          "y": 1840
+        },
+        "config": {
+          "target_node_id": "verify",
+          "target_node_label": "Verify identity"
+        }
+      },
+      {
+        "id": "reject_mail",
+        "type": "send_email",
+        "label": "Email requester: not verified",
+        "position": {
+          "x": 1220,
+          "y": 1520
+        },
+        "config": {
+          "to": "{{requester_email}}",
+          "email_template_id": "6b77cdfe-c367-4003-bb11-92c32092e660"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "st_rejected",
+        "type": "update_data_table",
+        "label": "Status rejected",
+        "position": {
+          "x": 1220,
+          "y": 1680
+        },
+        "config": {
+          "table_id": "28cebfbb-335c-4ad6-8383-77ea2f308b4d",
+          "table_name": "DSAR register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Rejected",
+            "outcome": "Identity not verified: {{task_data.verification_notes}}",
+            "closed_at": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "end_rejected",
+        "type": "end_workflow",
+        "label": "Closed: not verified",
+        "position": {
+          "x": 1220,
+          "y": 1840
+        },
+        "config": {
+          "reason": "{{reference}} rejected at identity check"
+        }
+      },
+      {
+        "id": "st_progress",
+        "type": "update_data_table",
+        "label": "Status in progress",
+        "position": {
+          "x": 580,
+          "y": 1520
+        },
+        "config": {
+          "table_id": "28cebfbb-335c-4ad6-8383-77ea2f308b4d",
+          "table_name": "DSAR register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "In progress"
+          }
+        }
+      },
+      {
+        "id": "crm",
+        "type": "call_reference",
+        "label": "Search CRM",
+        "position": {
+          "x": 580,
+          "y": 1680
+        },
+        "config": {
+          "reference_id": "ee351bd7-4c84-4fe2-a209-b62f746dee06",
+          "reference_name": "Find CRM subject",
+          "reference_method": "GET",
+          "input_mappings": {
+            "email": "{{requester_email}}"
+          },
+          "output_mappings": {
+            "match_count": {
+              "enabled": true,
+              "variableName": "crm_matches"
+            },
+            "subject_id": {
+              "enabled": true,
+              "variableName": "crm_subject_id"
+            },
+            "record_types": {
+              "enabled": true,
+              "variableName": "crm_record_types"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "bill",
+        "type": "call_reference",
+        "label": "Search billing",
+        "position": {
+          "x": 580,
+          "y": 1840
+        },
+        "config": {
+          "reference_id": "790b41d0-de31-4537-ba24-0840fb8bc35f",
+          "reference_name": "Find billing customer",
+          "reference_method": "GET",
+          "input_mappings": {
+            "email": "{{requester_email}}"
+          },
+          "output_mappings": {
+            "match_count": {
+              "enabled": true,
+              "variableName": "billing_matches"
+            },
+            "customer_id": {
+              "enabled": true,
+              "variableName": "billing_customer_id"
+            },
+            "invoice_count": {
+              "enabled": true,
+              "variableName": "billing_invoices"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "sd",
+        "type": "call_reference",
+        "label": "Search support desk",
+        "position": {
+          "x": 580,
+          "y": 2000
+        },
+        "config": {
+          "reference_id": "6c8e7309-0b98-4b26-b6b8-04950768bb05",
+          "reference_name": "Find support contact",
+          "reference_method": "GET",
+          "input_mappings": {
+            "email": "{{requester_email}}"
+          },
+          "output_mappings": {
+            "match_count": {
+              "enabled": true,
+              "variableName": "support_matches"
+            },
+            "contact_id": {
+              "enabled": true,
+              "variableName": "support_contact_id"
+            },
+            "ticket_count": {
+              "enabled": true,
+              "variableName": "support_tickets"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "found",
+        "type": "text_template",
+        "label": "Systems summary",
+        "position": {
+          "x": 580,
+          "y": 2160
+        },
+        "config": {
+          "template": "CRM: {{crm_matches}} record(s) {{crm_subject_id}} ({{=JOIN(\", \", crm_record_types)}}); Billing: {{billing_matches}} account(s) {{billing_customer_id}}, {{billing_invoices}} invoices; Support desk: {{support_matches}} contact(s) {{support_contact_id}}, {{support_tickets}} tickets",
+          "output_var": "systems_found"
+        }
+      },
+      {
+        "id": "kind",
+        "type": "condition",
+        "label": "Erasure?",
+        "position": {
+          "x": 580,
+          "y": 2320
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Erasure",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{request_type}}",
+                  "operator": "equals",
+                  "value": "erasure"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "erase_crm",
+        "type": "call_reference",
+        "label": "Erase in CRM",
+        "position": {
+          "x": 340,
+          "y": 2500
+        },
+        "config": {
+          "reference_id": "7eaa7c35-9365-4c93-9c7e-5666affc8cf9",
+          "reference_name": "Request CRM erasure",
+          "reference_method": "POST",
+          "input_mappings": {
+            "subject_id": "{{crm_subject_id}}",
+            "email": "{{requester_email}}",
+            "reference": "{{reference}}"
+          },
+          "output_mappings": {
+            "erasure_id": {
+              "enabled": true,
+              "variableName": "crm_erasure_id"
+            },
+            "retained": {
+              "enabled": true,
+              "variableName": "crm_retained"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "erase_bill",
+        "type": "call_reference",
+        "label": "Erase in billing",
+        "position": {
+          "x": 340,
+          "y": 2660
+        },
+        "config": {
+          "reference_id": "f9b77f60-d947-48d0-900a-8f9c44b94406",
+          "reference_name": "Request billing erasure",
+          "reference_method": "POST",
+          "input_mappings": {
+            "customer_id": "{{billing_customer_id}}",
+            "email": "{{requester_email}}",
+            "reference": "{{reference}}"
+          },
+          "output_mappings": {
+            "erasure_id": {
+              "enabled": true,
+              "variableName": "billing_erasure_id"
+            },
+            "retained": {
+              "enabled": true,
+              "variableName": "billing_retained"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "erase_sd",
+        "type": "call_reference",
+        "label": "Erase in support desk",
+        "position": {
+          "x": 340,
+          "y": 2820
+        },
+        "config": {
+          "reference_id": "10440226-40fa-497a-aa59-bb84ea239ec8",
+          "reference_name": "Request support erasure",
+          "reference_method": "POST",
+          "input_mappings": {
+            "contact_id": "{{support_contact_id}}",
+            "email": "{{requester_email}}",
+            "reference": "{{reference}}"
+          },
+          "output_mappings": {
+            "erasure_id": {
+              "enabled": true,
+              "variableName": "support_erasure_id"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "erase_refs",
+        "type": "set_variable",
+        "label": "Erasure references",
+        "position": {
+          "x": 340,
+          "y": 2980
+        },
+        "config": {
+          "name": "erasure_refs",
+          "expression": "CRM {{crm_erasure_id}}, billing {{billing_erasure_id}}, support {{support_erasure_id}}. Kept: {{=JOIN(\"; \", crm_retained)}}; {{=JOIN(\"; \", billing_retained)}}"
+        }
+      },
+      {
+        "id": "draft",
+        "type": "text_template",
+        "label": "Draft response",
+        "position": {
+          "x": 580,
+          "y": 3140
+        },
+        "config": {
+          "template": "We searched our CRM, billing and support systems for data about you. {{systems_found}}. {{=IF(request_type == \"erasure\", CONCAT(\"We have erased your personal data (\", erasure_refs, \"). Records we must keep by law are retained only for that purpose.\"), CONCAT(\"We have actioned your \", request_type, \" request; details are attached or follow below.\"))}}",
+          "output_var": "response_summary"
+        }
+      },
+      {
+        "id": "st_dpo",
+        "type": "update_data_table",
+        "label": "Status DPO review",
+        "position": {
+          "x": 580,
+          "y": 3300
+        },
+        "config": {
+          "table_id": "28cebfbb-335c-4ad6-8383-77ea2f308b4d",
+          "table_name": "DSAR register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "DPO review",
+            "systems_found": "{{systems_found}}",
+            "erasure_refs": "{{erasure_refs}}"
+          }
+        }
+      },
+      {
+        "id": "dpo",
+        "type": "user_task",
+        "label": "DPO review",
+        "position": {
+          "x": 580,
+          "y": 3460
+        },
+        "config": {
+          "task_title": "Approve DSAR response {{reference}} ({{request_type}}, due {{due_date}})",
+          "task_description": "<p><strong>{{requester_name}}</strong> &lt;{{requester_email}}&gt;, {{request_type}} under {{jurisdiction}}, due <strong>{{due_date}}</strong>.</p><p>Identity checked by: {{task_data.verification_method}}.</p><p>Systems: {{systems_found}}</p><p>Erasure: {{erasure_refs}}</p><p>Edit the response if needed and approve it, or send it back to the privacy team.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve response",
+            "Send back"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "d3c8059d-e5e8-4b98-b6cc-149db4ece2d3",
+          "assignee_variable": "{{dpo_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "fields": [
+            {
+              "key": "response_summary",
+              "label": "Response to the requester",
+              "type": "text",
+              "required": true,
+              "default": "{{response_summary}}"
+            },
+            {
+              "key": "dpo_notes",
+              "label": "Notes for the privacy team",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "response_summary",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "dpo_notes",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve_response",
+              "label": "Approve response",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve response"
+            },
+            {
+              "id": "send_back",
+              "label": "Send back",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Send back"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "DPO review: {{reference}}",
+            "align": "left",
+            "subtitle": "{{request_type}} · {{requester_name}} · due {{due_date}}"
+          }
+        }
+      },
+      {
+        "id": "rework",
+        "type": "user_task",
+        "label": "Revise response",
+        "position": {
+          "x": 900,
+          "y": 3640
+        },
+        "config": {
+          "task_title": "Revise DSAR response {{reference}}",
+          "task_description": "<p>The DPO sent the response back: {{task_data.dpo_notes}}</p><p>Update the response (and check the systems again if needed), then resubmit.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Resubmit"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "50c726c8-4126-40b1-a3ef-664b86b34e5f",
+          "assignee_variable": "{{privacy_officer_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "fields": [
+            {
+              "key": "response_summary",
+              "label": "Response to the requester",
+              "type": "text",
+              "required": true,
+              "default": "{{task_data.response_summary}}"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "response_summary",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "resubmit",
+              "label": "Resubmit",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Resubmit"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Revise response: {{reference}}",
+            "align": "left",
+            "subtitle": "Sent back by the DPO"
+          }
+        }
+      },
+      {
+        "id": "apply",
+        "type": "set_variable",
+        "label": "Use revised response",
+        "position": {
+          "x": 900,
+          "y": 3820
+        },
+        "config": {
+          "name": "response_summary",
+          "expression": "{{task_data.response_summary}}"
+        }
+      },
+      {
+        "id": "back",
+        "type": "goto_activity",
+        "label": "Back to DPO",
+        "position": {
+          "x": 900,
+          "y": 3980
+        },
+        "config": {
+          "target_node_id": "dpo",
+          "target_node_label": "DPO review"
+        }
+      },
+      {
+        "id": "send",
+        "type": "send_email",
+        "label": "Email requester: response",
+        "position": {
+          "x": 580,
+          "y": 3640
+        },
+        "config": {
+          "to": "{{requester_email}}",
+          "email_template_id": "6261023c-c29c-4540-8bf3-6fe6b18ccde7"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "st_closed",
+        "type": "update_data_table",
+        "label": "Status closed",
+        "position": {
+          "x": 580,
+          "y": 3820
+        },
+        "config": {
+          "table_id": "28cebfbb-335c-4ad6-8383-77ea2f308b4d",
+          "table_name": "DSAR register",
+          "operation": "update",
+          "row_id": "{{register_row_id}}",
+          "column_values": {
+            "status": "Closed",
+            "outcome": "{{task_data.response_summary}}",
+            "closed_at": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Request closed",
+        "position": {
+          "x": 580,
+          "y": 3980
+        },
+        "config": {
+          "reason": "{{reference}} answered before {{due_date}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-received",
+        "source": "ref",
+        "target": "received"
+      },
+      {
+        "id": "e-received-title",
+        "source": "received",
+        "target": "title"
+      },
+      {
+        "id": "e-title-rules",
+        "source": "title",
+        "target": "rules"
+      },
+      {
+        "id": "e-rules-due",
+        "source": "rules",
+        "target": "due"
+      },
+      {
+        "id": "e-due-sla",
+        "source": "due",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-log_in",
+        "source": "sla",
+        "target": "log_in"
+      },
+      {
+        "id": "e-log_in-verify",
+        "source": "log_in",
+        "target": "verify"
+      },
+      {
+        "id": "e-verify-st_progress-verified",
+        "source": "verify",
+        "target": "st_progress",
+        "label": "Verified"
+      },
+      {
+        "id": "e-verify-ask_id-need-more-info",
+        "source": "verify",
+        "target": "ask_id",
+        "label": "Need more info"
+      },
+      {
+        "id": "e-verify-reject_mail-reject",
+        "source": "verify",
+        "target": "reject_mail",
+        "label": "Reject"
+      },
+      {
+        "id": "e-ask_id-st_wait",
+        "source": "ask_id",
+        "target": "st_wait"
+      },
+      {
+        "id": "e-st_wait-again",
+        "source": "st_wait",
+        "target": "again"
+      },
+      {
+        "id": "e-reject_mail-st_rejected",
+        "source": "reject_mail",
+        "target": "st_rejected"
+      },
+      {
+        "id": "e-st_rejected-end_rejected",
+        "source": "st_rejected",
+        "target": "end_rejected"
+      },
+      {
+        "id": "e-st_progress-crm",
+        "source": "st_progress",
+        "target": "crm"
+      },
+      {
+        "id": "e-crm-bill",
+        "source": "crm",
+        "target": "bill"
+      },
+      {
+        "id": "e-bill-sd",
+        "source": "bill",
+        "target": "sd"
+      },
+      {
+        "id": "e-sd-found",
+        "source": "sd",
+        "target": "found"
+      },
+      {
+        "id": "e-found-kind",
+        "source": "found",
+        "target": "kind"
+      },
+      {
+        "id": "e-kind-erase_crm-erasure",
+        "source": "kind",
+        "target": "erase_crm",
+        "label": "Erasure"
+      },
+      {
+        "id": "e-erase_crm-erase_bill",
+        "source": "erase_crm",
+        "target": "erase_bill"
+      },
+      {
+        "id": "e-erase_bill-erase_sd",
+        "source": "erase_bill",
+        "target": "erase_sd"
+      },
+      {
+        "id": "e-erase_sd-erase_refs",
+        "source": "erase_sd",
+        "target": "erase_refs"
+      },
+      {
+        "id": "e-erase_refs-draft",
+        "source": "erase_refs",
+        "target": "draft"
+      },
+      {
+        "id": "e-kind-draft-else",
+        "source": "kind",
+        "target": "draft",
+        "label": "Else"
+      },
+      {
+        "id": "e-draft-st_dpo",
+        "source": "draft",
+        "target": "st_dpo"
+      },
+      {
+        "id": "e-st_dpo-dpo",
+        "source": "st_dpo",
+        "target": "dpo"
+      },
+      {
+        "id": "e-dpo-send-approve-response",
+        "source": "dpo",
+        "target": "send",
+        "label": "Approve response"
+      },
+      {
+        "id": "e-dpo-rework-send-back",
+        "source": "dpo",
+        "target": "rework",
+        "label": "Send back"
+      },
+      {
+        "id": "e-rework-apply-resubmit",
+        "source": "rework",
+        "target": "apply",
+        "label": "Resubmit"
+      },
+      {
+        "id": "e-apply-back",
+        "source": "apply",
+        "target": "back"
+      },
+      {
+        "id": "e-send-st_closed",
+        "source": "send",
+        "target": "st_closed"
+      },
+      {
+        "id": "e-st_closed-done",
+        "source": "st_closed",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-requester_name",
+        "name": "requester_name",
+        "type": "string",
+        "description": "Full name of the data subject",
+        "defaultValue": "",
+        "required": true,
+        "label": "Requester name"
+      },
+      {
+        "id": "v-requester_email",
+        "name": "requester_email",
+        "type": "string",
+        "description": "Email the request came from (used to search the systems)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Requester email",
+        "format": "email"
+      },
+      {
+        "id": "v-request_type",
+        "name": "request_type",
+        "type": "string",
+        "description": "What the requester is asking for",
+        "defaultValue": "",
+        "required": true,
+        "label": "Request type",
+        "options": [
+          "access",
+          "erasure",
+          "rectification",
+          "portability",
+          "objection"
+        ]
+      },
+      {
+        "id": "v-jurisdiction",
+        "name": "jurisdiction",
+        "type": "string",
+        "description": "Which law applies (sets the deadline)",
+        "defaultValue": "EU-GDPR",
+        "required": true,
+        "label": "Jurisdiction",
+        "options": [
+          "EU-GDPR",
+          "UK-GDPR",
+          "CCPA",
+          "other"
+        ]
+      },
+      {
+        "id": "v-details",
+        "name": "details",
+        "type": "string",
+        "description": "The request in the requester's words, and anything that helps identify them",
+        "defaultValue": "",
+        "label": "Details"
+      },
+      {
+        "id": "v-received_date",
+        "name": "received_date",
+        "type": "string",
+        "description": "When the request was received (the deadline runs from here). Empty = today.",
+        "defaultValue": "",
+        "label": "Received date",
+        "format": "date"
+      },
+      {
+        "id": "v-privacy_officer_id",
+        "name": "privacy_officer_id",
+        "type": "string",
+        "description": "Optional: user id of the privacy team member handling it (otherwise the one chosen on install)",
+        "defaultValue": "",
+        "label": "Privacy officer (user id)"
+      },
+      {
+        "id": "v-dpo_id",
+        "name": "dpo_id",
+        "type": "string",
+        "description": "Optional: user id of the DPO who approves the response (otherwise the one chosen on install)",
+        "defaultValue": "",
+        "label": "DPO (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

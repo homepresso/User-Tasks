@@ -1,0 +1,79 @@
+{
+  "title": "Workday new hire → onboarding",
+  "category": "hr-people",
+  "summary": "A Workday Hire event reads the worker, applies the job family checklist and onboarding plan, starts IT provisioning and has the hiring manager prepare day one.",
+  "description": "Workday new hire → onboarding turns a completed Hire business process into a ready first day. Workday sends the hire event (an outbound integration or business process notification) with the worker id, and the workflow reads the worker from the Workday Staffing REST API: name, business title, job profile and family, supervisory organization, manager, hire date and location.\n\nThe Onboarding checklist by job family table supplies the equipment, systems, buddy team and IT lead time, and a Workday report-as-a-service call reads the onboarding plan tasks already assigned in Workday. The hire is logged, an IT provisioning sub-workflow starts with a ready-by date, and an SLA tracks readiness to day one.\n\nThe hiring manager gets a task form with the job family checklist lookup, equipment choice, buddy and first-week plan, and Ready for day one / Not ready buttons. When ready, the new hire gets a welcome email. Point the integration at your Workday tenant and adjust the checklist rows.",
+  "trigger": "api",
+  "entry_workflow": "dd3325fe-9fb5-5b86-b8cb-151cd3990a76",
+  "start": "Starts when Workday posts a Hire event (worker id) to the workflow start API or inbound webhook, e.g. from a business process notification or an outbound EIB/Studio integration.",
+  "difficulty": "intermediate",
+  "setup_minutes": 25,
+  "tags": [
+    "onboarding",
+    "new hire",
+    "workday",
+    "sub-workflow",
+    "lookup"
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "webhook"
+  ],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Workday integration: set the base URL to your tenant services host (https://<host>/ccx) and an OAuth 2.0 bearer token for an Integration System User (API client for integrations). Replace \"acme\" in the reference paths with your tenant name.",
+    "Get onboarding plan calls a RaaS custom report (ISU_UserTasks/Onboarding_Plan_Tasks, JSON, prompt Worker_ID): create or rename the report and share it with the integration system user.",
+    "Assignees: pick the default hiring manager and the IT provisioning person (runs can pass hiring_manager_user_id).",
+    "Point Workday at the start API: a business process notification or an integration subscribed to Hire posts {\"worker_id\": \"<WID>\", \"event_id\": \"<event WID>\"}.",
+    "Edit the Onboarding checklist by job family rows; optional: set EMAIL_PROVIDER for the welcome email and apply the 24-month retention policy to the New hire log."
+  ],
+  "steps": [
+    {
+      "title": "Hire event",
+      "body": "Workday posts the worker id when the Hire business process completes."
+    },
+    {
+      "title": "Read the worker",
+      "body": "Get worker returns the title, job profile and family, supervisory organization, manager, hire date and location."
+    },
+    {
+      "title": "Checklist and plan",
+      "body": "The job family row sets equipment, systems and IT lead time; the RaaS report lists the Workday onboarding plan tasks."
+    },
+    {
+      "title": "IT provisioning",
+      "body": "An async sub-workflow gives IT a task to prepare the laptop and accounts by the ready-by date."
+    },
+    {
+      "title": "Hiring manager",
+      "body": "A task form with the checklist lookup, equipment choice and buddy; Ready for day one or Not ready."
+    },
+    {
+      "title": "Welcome",
+      "body": "When ready, the new hire is emailed their first-day details and the log is updated."
+    }
+  ],
+  "sample_input": {
+    "worker_id": "3aa5550b7fe348b98d7b5741afc65534",
+    "event_id": "c0ffee00a1b2c3d4e5f60718293a4b5c",
+    "hire_date": "2026-11-16"
+  },
+  "expect": "waiting",
+  "icon": "user-plus",
+  "systems": [
+    "Workday"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-28",
+      "notes": "First release."
+    }
+  ],
+  "id": "e7fd04ee-7b59-57fc-8a6b-f5101e7ec21d",
+  "slug": "workday-new-hire-onboarding"
+}

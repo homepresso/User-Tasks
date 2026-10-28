@@ -1,0 +1,61 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "202cb15c-2ec6-50a7-96ed-54d4b8818f87",
+  "asset": {
+    "id": "202cb15c-2ec6-50a7-96ed-54d4b8818f87",
+    "name": "Cost centres",
+    "description": "Cost centres AP approvers code bills to, with the NetSuite department and class ids and the budget owner. The approver picks one in the task form; its details fill in.",
+    "columns": [
+      {
+        "id": "6bb40569-39c4-595c-ad12-242fd7b5ad02",
+        "required": true,
+        "key": "code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "a9146b50-2b06-5608-9619-568e040bee27",
+        "required": true,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "fff0d41d-f9b6-5974-9ba7-84935178a8b3",
+        "required": false,
+        "key": "ns_department_id",
+        "name": "NetSuite department id",
+        "type": "text"
+      },
+      {
+        "id": "37d3d6f1-f285-5e8c-82c7-5716028e7f71",
+        "required": false,
+        "key": "ns_class_id",
+        "name": "NetSuite class id",
+        "type": "text"
+      },
+      {
+        "id": "83ebb354-361f-54c1-9571-b914c0b5dac9",
+        "required": false,
+        "key": "budget_owner",
+        "name": "Budget owner",
+        "type": "text"
+      },
+      {
+        "id": "6e53de1b-5c60-5478-ade2-9023ae57a510",
+        "required": false,
+        "key": "budget_owner_email",
+        "name": "Budget owner email",
+        "type": "email"
+      },
+      {
+        "id": "9c5cbdde-dd09-504a-bce8-c55eba5eef4a",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

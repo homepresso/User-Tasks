@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "6261023c-c29c-4540-8bf3-6fe6b18ccde7",
+  "asset": {
+    "id": "6261023c-c29c-4540-8bf3-6fe6b18ccde7",
+    "name": "DSAR response",
+    "description": "The final response to the requester, approved by the DPO.",
+    "subject": "Response to your privacy request {{reference}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Our response to your {{request_type}} request</h2>\n  <p>Hi {{requester_name}},</p>\n  <p>{{task_data.response_summary}}</p>\n  <p style=\"color:#6E6759\">Legal basis: {{legal_basis}}. If you are not satisfied with this response you can complain to your data protection authority.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Privacy team, your company · Reference {{reference}}</p>\n</div>",
+    "text_body": "Our response to your {{request_type}} request\n  Hi {{requester_name}},\n  {{task_data.response_summary}}\n  Legal basis: {{legal_basis}}. If you are not satisfied with this response you can complain to your data protection authority.\n  Privacy team, your company · Reference {{reference}}",
+    "is_default": false
+  }
+}

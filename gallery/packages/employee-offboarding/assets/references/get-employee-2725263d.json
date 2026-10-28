@@ -1,0 +1,208 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "2725263d-a4de-4d53-a3e4-a62b2b5b2be0",
+  "asset": {
+    "id": "2725263d-a4de-4d53-a3e4-a62b2b5b2be0",
+    "integration_id": "ec3ac8b0-b261-4769-a60d-013a05992920",
+    "name": "Get employee",
+    "description": "Employee record: name, email, job, manager, privileged access flag, issued devices and remaining annual leave.",
+    "tags": [
+      "employees"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/employees/{{employee_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "E-1042"
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "example": "Alex Morgan"
+            },
+            {
+              "name": "email",
+              "type": "string",
+              "example": "alex.morgan@yourcompany.example"
+            },
+            {
+              "name": "job_title",
+              "type": "string",
+              "example": "Senior Systems Engineer"
+            },
+            {
+              "name": "department",
+              "type": "string",
+              "example": "engineering"
+            },
+            {
+              "name": "start_date",
+              "type": "string",
+              "example": "2021-03-01"
+            },
+            {
+              "name": "manager",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "E-0042"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "example": "Priya Shah"
+                },
+                {
+                  "name": "email",
+                  "type": "string",
+                  "example": "priya.shah@example.com"
+                }
+              ]
+            },
+            {
+              "name": "privileged_access",
+              "type": "boolean",
+              "example": true
+            },
+            {
+              "name": "systems",
+              "type": "string",
+              "example": "Email, chat, cloud console (admin), code hosting, VPN, password vault"
+            },
+            {
+              "name": "devices",
+              "type": "string",
+              "example": "Laptop LT-01876, phone MB-00412, security key SK-0331"
+            },
+            {
+              "name": "leave_balance",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "annual_days",
+                  "type": "number",
+                  "example": 6.5
+                },
+                {
+                  "name": "sick_days",
+                  "type": "integer",
+                  "example": 4
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "id": "E-1042",
+          "name": "Alex Morgan",
+          "email": "alex.morgan@yourcompany.example",
+          "job_title": "Senior Systems Engineer",
+          "department": "engineering",
+          "start_date": "2021-03-01",
+          "manager": {
+            "id": "E-0042",
+            "name": "Priya Shah",
+            "email": "priya.shah@example.com"
+          },
+          "privileged_access": true,
+          "systems": "Email, chat, cloud console (admin), code hosting, VPN, password vault",
+          "devices": "Laptop LT-01876, phone MB-00412, security key SK-0331",
+          "leave_balance": {
+            "annual_days": 6.5,
+            "sick_days": 4
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "87ce0dbc-5626-4420-977a-1fb890cfd4e7",
+        "name": "employee_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Employee number, e.g. E-1042",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "9926248d-806e-40d3-9685-d80b36334c8c",
+        "name": "name",
+        "path": "name",
+        "type": "string"
+      },
+      {
+        "id": "923a4908-ce4f-4085-b6bd-9a7c5bdbad8e",
+        "name": "email",
+        "path": "email",
+        "type": "string"
+      },
+      {
+        "id": "650fa1ef-d369-4528-9551-04f4aa2871b6",
+        "name": "job_title",
+        "path": "job_title",
+        "type": "string"
+      },
+      {
+        "id": "9da0b200-35e2-425c-9285-994f02bf8262",
+        "name": "department",
+        "path": "department",
+        "type": "string"
+      },
+      {
+        "id": "6cbff3ea-b0c7-4b7c-a0f4-86f6c871773b",
+        "name": "manager_name",
+        "path": "manager.name",
+        "type": "string"
+      },
+      {
+        "id": "d9896512-ccb1-44e3-a078-ae38295a82aa",
+        "name": "manager_email",
+        "path": "manager.email",
+        "type": "string"
+      },
+      {
+        "id": "d001bff4-cf1d-48d3-b17b-9e8d95420914",
+        "name": "privileged_access",
+        "path": "privileged_access",
+        "type": "boolean"
+      },
+      {
+        "id": "1af7ba68-e867-4582-9ef0-3a2179cb2a4c",
+        "name": "systems",
+        "path": "systems",
+        "type": "string"
+      },
+      {
+        "id": "a717e7be-432a-4875-8ae3-84ab952caef6",
+        "name": "devices",
+        "path": "devices",
+        "type": "string"
+      },
+      {
+        "id": "ef030946-b61a-4a9d-9d00-8e30fb548b74",
+        "name": "leave_balance_days",
+        "path": "leave_balance.annual_days",
+        "type": "number"
+      }
+    ]
+  }
+}

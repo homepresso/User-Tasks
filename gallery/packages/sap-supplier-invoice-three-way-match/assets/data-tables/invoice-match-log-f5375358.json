@@ -1,0 +1,124 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "f5375358-ee8e-5b70-a163-32e44c6e520f",
+  "asset": {
+    "id": "f5375358-ee8e-5b70-a163-32e44c6e520f",
+    "name": "Invoice match log",
+    "description": "Every captured supplier invoice: the PO and goods receipt it was matched to, the variances, the decision and the SAP invoice document.",
+    "columns": [
+      {
+        "id": "5b328f0a-f539-5429-bf2c-caf43fa081a6",
+        "required": true,
+        "key": "match_ref",
+        "name": "Match reference",
+        "type": "text"
+      },
+      {
+        "id": "d4cf82f5-0e39-5d1b-aac5-d0020a9bff8d",
+        "required": false,
+        "key": "invoice_reference",
+        "name": "Supplier invoice no.",
+        "type": "text"
+      },
+      {
+        "id": "52124e56-16a8-50d7-9450-e5c95a36f3be",
+        "required": false,
+        "key": "supplier",
+        "name": "Supplier",
+        "type": "text"
+      },
+      {
+        "id": "ed7c14cf-bab0-5df3-bd93-0d8a621e4a84",
+        "required": false,
+        "key": "purchase_order",
+        "name": "PO",
+        "type": "text"
+      },
+      {
+        "id": "2874bfe2-b7fc-5067-8fcb-79a6e5ff443d",
+        "required": false,
+        "key": "po_item",
+        "name": "PO item",
+        "type": "text"
+      },
+      {
+        "id": "0eeae25c-8b84-5b3b-b4f0-ebb562b1dd2c",
+        "required": false,
+        "key": "invoiced_quantity",
+        "name": "Invoiced qty",
+        "type": "number"
+      },
+      {
+        "id": "5327f307-e4da-5008-98f1-ad55b5231235",
+        "required": false,
+        "key": "received_quantity",
+        "name": "Received qty",
+        "type": "number"
+      },
+      {
+        "id": "f485da31-ac2e-5eda-b8c3-59c86280415e",
+        "required": false,
+        "key": "po_price",
+        "name": "PO price",
+        "type": "number"
+      },
+      {
+        "id": "f0922dc7-291f-5920-9a22-ba89da6b07c7",
+        "required": false,
+        "key": "invoiced_price",
+        "name": "Invoiced price",
+        "type": "number"
+      },
+      {
+        "id": "83df6ed0-c0b2-5228-ad30-87e3b877793c",
+        "required": false,
+        "key": "price_variance_pct",
+        "name": "Price variance %",
+        "type": "number"
+      },
+      {
+        "id": "83539c1e-f4a8-54d8-8d14-61ea41f5fc11",
+        "required": false,
+        "key": "amount_variance",
+        "name": "Amount variance",
+        "type": "number"
+      },
+      {
+        "id": "caec415a-2597-56b0-8134-973ade316a06",
+        "required": false,
+        "key": "result",
+        "name": "Match result",
+        "type": "text"
+      },
+      {
+        "id": "75e729c1-a602-56c4-9618-a619db60051a",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      },
+      {
+        "id": "a011e6ba-2332-5f57-b932-e06dce283cb1",
+        "required": false,
+        "key": "reason_code",
+        "name": "Reason code",
+        "type": "text"
+      },
+      {
+        "id": "fd17f595-cd6f-5265-96c2-878d5121ee7d",
+        "required": false,
+        "key": "sap_invoice",
+        "name": "SAP invoice",
+        "type": "text"
+      },
+      {
+        "id": "2932bb46-75f3-5b40-9c08-481ee1e867f8",
+        "required": false,
+        "key": "fiscal_year",
+        "name": "Fiscal year",
+        "type": "text"
+      }
+    ]
+  }
+}

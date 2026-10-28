@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "85563cbf-b21d-49aa-b238-96b3c3e86d4c",
+  "asset": {
+    "id": "85563cbf-b21d-49aa-b238-96b3c3e86d4c",
+    "name": "Fulfilment API",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://fulfilment.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "orders",
+      "fulfilment"
+    ]
+  }
+}

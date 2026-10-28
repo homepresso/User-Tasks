@@ -1,0 +1,49 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "dafdd4b5-a82f-5f39-82f9-c9d2031eccd3",
+  "asset": {
+    "id": "dafdd4b5-a82f-5f39-82f9-c9d2031eccd3",
+    "name": "Loans rows",
+    "rows": [
+      {
+        "id": "c80884d5-3736-53f3-986c-2d0290fb46e9",
+        "data": {
+          "loan_ref": "LN-20261005-7Q2C",
+          "asset_tag": "LT-1043",
+          "device": "Loaner laptop 14\"",
+          "serial": "DL7440-8FQ2K94",
+          "borrower_name": "Priya Shah",
+          "borrower_email": "priya.shah@example.com",
+          "team": "Sales",
+          "purpose": "Laptop under repair",
+          "start_date": "2026-10-05",
+          "due_date": "2026-11-06",
+          "status": "On loan",
+          "approver_comment": "Approved while her laptop is at the vendor",
+          "returned_on": null,
+          "return_condition": ""
+        }
+      },
+      {
+        "id": "46a5dff0-3d94-51a2-8b2a-8113515e7611",
+        "data": {
+          "loan_ref": "LN-20260914-K8D1",
+          "asset_tag": "PH-2011",
+          "device": "Travel phone",
+          "serial": "F2LXK9P3N72Q",
+          "borrower_name": "Tom Reid",
+          "borrower_email": "tom.reid@example.com",
+          "team": "Engineering",
+          "purpose": "Travel",
+          "start_date": "2026-09-14",
+          "due_date": "2026-09-28",
+          "status": "Returned",
+          "approver_comment": "",
+          "returned_on": "2026-09-27",
+          "return_condition": "Good"
+        }
+      }
+    ]
+  }
+}

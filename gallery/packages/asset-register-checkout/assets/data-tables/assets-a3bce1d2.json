@@ -1,0 +1,111 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "a3bce1d2-e26c-5ce9-8d48-ed94be7e8562",
+  "asset": {
+    "id": "a3bce1d2-e26c-5ce9-8d48-ed94be7e8562",
+    "name": "Assets",
+    "description": "The asset register: every item people can borrow, where it lives, its condition and whether it is out right now.",
+    "columns": [
+      {
+        "id": "76dedb7e-e3fd-54d4-b627-b5a884648fa2",
+        "required": true,
+        "key": "asset_tag",
+        "name": "Asset tag",
+        "type": "text"
+      },
+      {
+        "id": "0ceb650c-639f-5625-8209-4514ff407a35",
+        "required": true,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "e3cbcffe-8d74-5130-81ab-708da2bb713b",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "Laptop",
+          "AV equipment",
+          "Camera",
+          "Tools",
+          "Vehicle",
+          "Safety equipment",
+          "Other"
+        ]
+      },
+      {
+        "id": "60fffdf7-e7da-5a99-a9d6-5bb3890cc3fe",
+        "required": false,
+        "key": "location",
+        "name": "Home location",
+        "type": "text"
+      },
+      {
+        "id": "d08f1e96-e98c-5a95-8a8d-07a70976a0bb",
+        "required": false,
+        "key": "serial_number",
+        "name": "Serial number",
+        "type": "text"
+      },
+      {
+        "id": "fb7bff81-9af0-5a17-85c5-b445947086f9",
+        "required": false,
+        "key": "condition",
+        "name": "Condition",
+        "type": "select",
+        "options": [
+          "New",
+          "Good",
+          "Fair",
+          "Worn",
+          "Damaged"
+        ]
+      },
+      {
+        "id": "06c9f7db-244b-5331-b02c-f8a8c91f34b9",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "available",
+          "checked out",
+          "in repair",
+          "retired"
+        ]
+      },
+      {
+        "id": "47275ae2-b283-59f7-8bdd-cd67b6ecdcac",
+        "required": false,
+        "key": "checked_out_to",
+        "name": "Checked out to (email)",
+        "type": "text"
+      },
+      {
+        "id": "518192f9-356d-53c3-81ce-813c3e95d6c8",
+        "required": false,
+        "key": "due_back",
+        "name": "Due back",
+        "type": "date"
+      },
+      {
+        "id": "62fe10a3-22af-5796-8380-11a31c1664be",
+        "required": false,
+        "key": "purchase_date",
+        "name": "Purchased",
+        "type": "date"
+      },
+      {
+        "id": "a8531601-436c-5f05-a54a-87f3c86f1923",
+        "required": false,
+        "key": "value",
+        "name": "Replacement value",
+        "type": "number"
+      }
+    ]
+  }
+}

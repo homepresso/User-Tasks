@@ -1,0 +1,84 @@
+{
+  "id": "4d0e7cd6-c96a-445d-aad3-46a2141dfece",
+  "slug": "customer-onboarding-kyc",
+  "title": "Customer onboarding with KYC",
+  "category": "customer-sales",
+  "summary": "Account managers register a new business customer; KYC screening, a credit report and a risk rating set the tier and limit before the account is opened.",
+  "description": "Customer onboarding with KYC takes a new business customer from the sales hand-off to an open account. The account manager fills in the form: company name, registration number, country, primary contact, product and expected monthly volume.\n\nThe workflow reads the country risk from the Country risk table, runs registry, sanctions and PEP screening through your KYC provider and pulls a commercial credit report. The Customer risk rating decision table combines the KYC result, credit score, country risk and volume into a risk tier, credit limit and payment terms, and decides whether compliance must review the customer. Clean, low-risk customers go straight through.\n\nCompliance can approve (adjusting the tier, limit and terms), request documents from the account manager, which loops back to the same review, or decline. Approved customers get an account in billing and CRM with the agreed limit, a welcome email goes to the primary contact, and the onboarding manager gets a kickoff task. Adapt the country list, the rating rules and the three API paths.",
+  "trigger": "form",
+  "entry_workflow": "1e13dfb0-7ca4-46ca-8950-4a1a234bd4f0",
+  "start": "Starts from a form: the account manager fills in the new-customer details (Run dialog, or your CRM posting them to the start API).",
+  "difficulty": "intermediate",
+  "setup_minutes": 20,
+  "tags": [
+    "kyc",
+    "aml",
+    "customer onboarding",
+    "credit check",
+    "compliance"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: a themed start form with a grid and header, Approve / Request documents / Decline buttons on the compliance review (with a Country risk lookup), and buttons, grids and headers on the documents and kickoff steps."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "setup": [
+    "KYC provider integration: base URL and API token. Run KYC checks expects POST /kyc/checks returning result clear / review / fail with registry, sanctions and PEP sections; adjust the body and response model in Integrations.",
+    "Credit bureau integration: base URL and token. Get credit report expects GET /credit-reports/{registration_number} with a 0-1000 score.",
+    "Billing and CRM integration: base URL and token. Create customer account expects POST /accounts and returns the account number and portal link.",
+    "Assignees: pick the compliance officer, the default account manager for document requests (runs can pass account_manager_user_id) and the onboarding manager.",
+    "Edit the Country risk rows to your AML risk assessment (keep the names in sync with the form options) and the Customer risk rating rules to your credit policy.",
+    "Email: configure EMAIL_PROVIDER on the instance so the welcome and declined emails are delivered (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Register the customer",
+      "body": "The account manager enters the company, registration number, country, contact, product and expected monthly volume."
+    },
+    {
+      "title": "Screen and credit-check",
+      "body": "The Country risk table gives the country rating; the KYC provider screens the registry, sanctions and PEP lists; the credit bureau returns a score."
+    },
+    {
+      "title": "Rate the customer",
+      "body": "The Customer risk rating decision table sets the tier, credit limit and payment terms and decides whether compliance must review."
+    },
+    {
+      "title": "Compliance review",
+      "body": "Compliance approves with an adjusted tier and limit, requests documents (the account manager collects them and the review repeats) or declines."
+    },
+    {
+      "title": "Open the account",
+      "body": "The account is created in billing and CRM with the agreed limit and terms, and the primary contact gets a welcome email."
+    },
+    {
+      "title": "Kick off onboarding",
+      "body": "The onboarding manager records the kickoff date, go-live target and plan."
+    }
+  ],
+  "sample_input": {
+    "company_name": "Harbourside Logistics Ltd",
+    "registration_number": "5523017",
+    "country": "New Zealand",
+    "contact_name": "Pat Hollis",
+    "contact_email": "pat.hollis@example.com",
+    "product": "Business",
+    "expected_monthly_volume": 85000,
+    "account_manager_email": "sam.carter@example.com"
+  },
+  "expect": "waiting",
+  "icon": "building-2"
+}

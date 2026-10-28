@@ -1,0 +1,176 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "cae203d1-db58-4f14-b8d4-a69f2a99d94b",
+  "asset": {
+    "id": "cae203d1-db58-4f14-b8d4-a69f2a99d94b",
+    "integration_id": "49ee43f1-c00d-4c35-8b47-a824f179f12d",
+    "name": "Get goods receipts",
+    "description": "Goods received against a purchase order, summed per line, with the received value at PO prices.",
+    "tags": [
+      "purchasing"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {
+        "po": "{{po_number}}"
+      },
+      "body_template": "",
+      "path_template": "/goods-receipts",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "po_number",
+              "type": "string",
+              "example": "PO-4500123"
+            },
+            {
+              "name": "receipt_count",
+              "type": "integer",
+              "example": 2
+            },
+            {
+              "name": "last_received_at",
+              "type": "string",
+              "example": "2026-10-14"
+            },
+            {
+              "name": "total_quantity_received",
+              "type": "integer",
+              "example": 210
+            },
+            {
+              "name": "total_received_value",
+              "type": "integer",
+              "example": 11500
+            },
+            {
+              "name": "lines",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "type": "integer",
+                    "example": 1,
+                    "name": "line"
+                  },
+                  {
+                    "type": "string",
+                    "example": "BRG-6204",
+                    "name": "sku"
+                  },
+                  {
+                    "type": "integer",
+                    "example": 200,
+                    "name": "quantity_ordered"
+                  },
+                  {
+                    "type": "integer",
+                    "example": 200,
+                    "name": "quantity_received"
+                  },
+                  {
+                    "type": "number",
+                    "example": 12.5,
+                    "name": "unit_price"
+                  },
+                  {
+                    "type": "integer",
+                    "example": 2500,
+                    "name": "received_value"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "example": "GRN-7781"
+                    },
+                    "name": "receipts"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "sample": {
+          "po_number": "PO-4500123",
+          "receipt_count": 2,
+          "last_received_at": "2026-10-14",
+          "total_quantity_received": 210,
+          "total_received_value": 11500,
+          "lines": [
+            {
+              "line": 1,
+              "sku": "BRG-6204",
+              "quantity_ordered": 200,
+              "quantity_received": 200,
+              "unit_price": 12.5,
+              "received_value": 2500,
+              "receipts": [
+                "GRN-7781"
+              ]
+            },
+            {
+              "line": 2,
+              "sku": "MTR-0750",
+              "quantity_ordered": 10,
+              "quantity_received": 10,
+              "unit_price": 900,
+              "received_value": 9000,
+              "receipts": [
+                "GRN-7781",
+                "GRN-7802"
+              ]
+            }
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "02060013-0830-4300-8e13-6600aa1097df",
+        "name": "po_number",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "Purchase order number",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "bd523203-5100-437f-b3a5-2186902348ab",
+        "name": "total_quantity_received",
+        "path": "total_quantity_received",
+        "type": "number"
+      },
+      {
+        "id": "f605f263-62c5-4c29-bd2b-4a4ee101f322",
+        "name": "total_received_value",
+        "path": "total_received_value",
+        "type": "number"
+      },
+      {
+        "id": "2cc0b373-a2f8-4673-8647-404e4c9cb3ac",
+        "name": "receipt_count",
+        "path": "receipt_count",
+        "type": "number"
+      },
+      {
+        "id": "a30f24fd-2ace-4267-8b2a-96fc5068ae89",
+        "name": "last_received_at",
+        "path": "last_received_at",
+        "type": "string"
+      }
+    ]
+  }
+}

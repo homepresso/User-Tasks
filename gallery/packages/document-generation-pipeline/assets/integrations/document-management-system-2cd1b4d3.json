@@ -1,0 +1,22 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "2cd1b4d3-fe71-4921-b42f-f4da76057a1e",
+  "asset": {
+    "id": "2cd1b4d3-fe71-4921-b42f-f4da76057a1e",
+    "name": "Document management system",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://dms.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "documents"
+    ]
+  }
+}

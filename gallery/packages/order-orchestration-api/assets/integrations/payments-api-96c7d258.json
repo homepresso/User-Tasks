@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "96c7d258-c1a4-43b7-b03a-7a3ccc9ce207",
+  "asset": {
+    "id": "96c7d258-c1a4-43b7-b03a-7a3ccc9ce207",
+    "name": "Payments API",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://payments.example.com/v1",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "orders",
+      "payments"
+    ]
+  }
+}

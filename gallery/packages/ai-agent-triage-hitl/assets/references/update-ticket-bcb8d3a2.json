@@ -1,0 +1,150 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "bcb8d3a2-bc6e-4707-aefb-ac5be0a7b487",
+  "asset": {
+    "id": "bcb8d3a2-bc6e-4707-aefb-ac5be0a7b487",
+    "integration_id": "307dbb48-f993-4741-b526-bb4870989220",
+    "name": "Update ticket",
+    "description": "Set the ticket status, priority, queue, category and tags.",
+    "tags": [
+      "tickets"
+    ],
+    "request_config": {
+      "method": "PATCH",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"status\":\"{{status}}\",\"priority\":\"{{priority}}\",\"queue\":\"{{queue}}\",\"category\":\"{{category}}\",\"tags\":[\"ai-triaged\",\"{{tag}}\"],\"internal_note\":{{internal_note}}}",
+      "path_template": "/tickets/{{ticket_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "ticket_id",
+              "type": "string",
+              "example": "T-48213"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "open"
+            },
+            {
+              "name": "priority",
+              "type": "string",
+              "example": "high"
+            },
+            {
+              "name": "queue",
+              "type": "string",
+              "example": "Tier 2"
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "example": "https://helpdesk.example.com/tickets/T-48213"
+            }
+          ]
+        },
+        "sample": {
+          "ticket_id": "T-48213",
+          "status": "open",
+          "priority": "high",
+          "queue": "Tier 2",
+          "url": "https://helpdesk.example.com/tickets/T-48213"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "4274ab70-ca3c-47ce-9ec0-182b843b0944",
+        "name": "ticket_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "54153ad8-cdc2-4333-80a5-82bb1d78624c",
+        "name": "status",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "264f67e1-ccab-440a-ab42-2f550f4f26ec",
+        "name": "priority",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "d1ca4945-894d-41e5-afa9-380552e52157",
+        "name": "queue",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "661c38ac-63d5-4e3d-b17d-75a3450477dc",
+        "name": "category",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "054953ca-6203-4df8-9adb-909f5768fc95",
+        "name": "tag",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "73391f9e-5f8e-46d3-bfa8-f00e33b3230d",
+        "name": "internal_note",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "JSON-encoded string",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "77a84ff8-c0ef-4fb0-9282-a54b9dac335a",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "422be908-4ae5-45b7-8a95-7476cacf66cf",
+        "name": "ticket_url",
+        "path": "url",
+        "type": "string"
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "287b284f-b0d7-52c1-924b-4ca6d5ec2d62",
+  "asset": {
+    "id": "287b284f-b0d7-52c1-924b-4ca6d5ec2d62",
+    "name": "Loan overdue",
+    "description": "Sent to the borrower when IT records a device as not returned.",
+    "subject": "Please return {{device}} ({{asset_tag}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <div style=\"height:4px;background:#B45309;border-radius:2px;margin-bottom:16px\"></div>\n  <h2 style=\"margin:0 0 12px\">Your loan is overdue</h2>\n  <p style=\"margin:0 0 12px\">Hi {{borrower_name}},</p>\n  <p style=\"margin:0 0 12px\"><strong>{{device}}</strong> ({{asset_tag}}) was due back on {{original_due}}. Please return it to the IT desk by <strong>{{due_date}}</strong> or reply to ask for an extension.</p>\n  <p style=\"margin:0 0 12px\">Loan reference: {{loan_ref}}</p>\n  <p style=\"color:#6E6759;font-size:13px;margin-top:20px\">Sent by the IT equipment loans workflow</p>\n</div>",
+    "text_body": "Your loan is overdue\n\nHi {{borrower_name}},\n{{device}} ({{asset_tag}}) was due back on {{original_due}}. Please return it by {{due_date}}.",
+    "is_default": false
+  }
+}

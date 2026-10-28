@@ -1,0 +1,89 @@
+# Google Kubernetes Engine: Cloud SQL for PostgreSQL with IAM database auth
+# (through the Cloud SQL Auth Proxy sidecar-less connector or private IP + TLS),
+# Cloud Storage, Memorystore for Valkey / Redis (IAM auth), Secret Manager and
+# Cloud KMS, all through GKE workload identity; a Workspace SMTP relay for email.
+# The Google service account needs roles/cloudsql.client + instanceUser,
+# roles/storage.objectAdmin on the buckets, roles/secretmanager.secretAccessor,
+# roles/cloudkms.cryptoKeyEncrypterDecrypter and roles/memorystore.dbConnectionUser.
+
+appUrl: https://tasks.example.com
+
+serviceAccount:
+  workloadIdentity:
+    gcpServiceAccount: usertasks@my-project.iam.gserviceaccount.com
+
+secrets:
+  create: false
+  externalSecret:
+    enabled: true
+    secretStoreRef: { name: gcp-secret-manager, kind: ClusterSecretStore }
+    data:
+      - { secretKey: ENCRYPTION_KEY, remoteRef: { key: usertasks-encryption-key } }
+      - { secretKey: CRON_SECRET, remoteRef: { key: usertasks-cron-secret } }
+      - { secretKey: SMTP_PASSWORD, remoteRef: { key: usertasks-smtp-password } }
+
+providers:
+  db:
+    provider: postgres
+    options:
+      auth: gcp
+      url: postgresql://usertasks%40my-project.iam@10.10.0.3:5432/usertasks?sslmode=require
+      migration_url: postgresql://usertasks%40my-project.iam@10.10.0.3:5432/usertasks?sslmode=require
+  auth:
+    provider: builtin
+    options:
+      sso_providers:
+        - id: google
+          type: oidc
+          preset: google
+          hostedDomain: example.com
+          clientId: 1234567890-abc.apps.googleusercontent.com
+          clientSecret: secret://google-client-secret
+  storage:
+    provider: gcs
+    options:
+      gcs_project_id: my-project
+      bucket_prefix: my-project-usertasks-
+  realtime:
+    provider: sse
+    options:
+      database_url: postgresql://usertasks%40my-project.iam@10.10.0.3:5432/usertasks?sslmode=require
+  scheduler:
+    provider: worker
+    options:
+      database_url: postgresql://usertasks%40my-project.iam@10.10.0.3:5432/usertasks?sslmode=require
+  email:
+    provider: smtp
+    options:
+      smtp_host: smtp-relay.gmail.com
+      smtp_port: 587
+      smtp_starttls: required
+      smtp_user: tasks@example.com
+      from: UserTasks <tasks@example.com>
+  secrets:
+    provider: gcp_secret_manager
+    options:
+      gcp_project_id: my-project
+  kms:
+    provider: gcp_kms
+    options:
+      gcp_kms_key_name: projects/my-project/locations/europe-west1/keyRings/usertasks/cryptoKeys/usertasks
+  cache:
+    provider: redis
+    options:
+      redis_url: rediss://10.10.0.5:6379
+      redis_auth: gcp_iam
+      redis_tls_ca_file: /etc/usertasks/ca/ca.crt
+
+# The Memorystore server CA.
+caBundle:
+  configMap: memorystore-ca
+  key: ca.crt
+
+app:
+  autoscaling: { enabled: true, minReplicas: 2, maxReplicas: 10 }
+
+gateway:
+  enabled: true
+  parentRefs:
+    - { name: external-https, namespace: gateway-infra }

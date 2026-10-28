@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "349fee62-c63e-5ae2-bc2b-3b67989b4f11",
+  "asset": {
+    "id": "349fee62-c63e-5ae2-bc2b-3b67989b4f11",
+    "name": "Special request answered",
+    "description": "Sent to the attendee with the organiser's answer to their special request.",
+    "subject": "About your request for {{event_row.title}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <div style=\"height:4px;background:#DB2777;border-radius:2px;margin-bottom:16px\"></div>\n  <h2 style=\"margin:0 0 12px\">About your request</h2>\n  <p style=\"margin:0 0 12px\">Hi {{form.name}},</p>\n  <p style=\"margin:0 0 12px\">You asked: <em>{{form.special_request}}</em></p>\n  <p style=\"margin:0 0 12px\">{{task_data.reply}}</p>\n  <p style=\"margin:0 0 12px\">Reference {{reg_ref}}.</p>\n  <p style=\"color:#6E6759;font-size:13px;margin-top:20px\">Sent by the event registration workflow</p>\n</div>",
+    "text_body": "About your request\n\nHi {{form.name}},\nYou asked: {{form.special_request}}\n{{task_data.reply}}",
+    "is_default": false
+  }
+}

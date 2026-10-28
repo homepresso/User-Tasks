@@ -1,0 +1,928 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "9132762d-a9cc-5e15-9da3-57a3f0b951c3",
+  "asset": {
+    "id": "9132762d-a9cc-5e15-9da3-57a3f0b951c3",
+    "name": "SAP supplier invoice three-way match",
+    "description": "A captured supplier invoice is matched to the SAP PO item and goods receipts; within tolerance it is posted, otherwise AP decides on a task form.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Invoice captured",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Match reference",
+        "position": {
+          "x": 400,
+          "y": 220
+        },
+        "config": {
+          "name": "match_ref",
+          "expression": "IM-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 400,
+          "y": 380
+        },
+        "config": {
+          "title": "Invoice {{invoice_reference}} · supplier {{supplier}} · PO {{purchase_order}}/{{po_item}}"
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Log captured invoice",
+        "position": {
+          "x": 400,
+          "y": 540
+        },
+        "config": {
+          "table_id": "f5375358-ee8e-5b70-a163-32e44c6e520f",
+          "table_name": "Invoice match log",
+          "operation": "insert",
+          "column_values": {
+            "match_ref": "{{match_ref}}",
+            "invoice_reference": "{{invoice_reference}}",
+            "supplier": "{{supplier}}",
+            "purchase_order": "{{purchase_order}}",
+            "po_item": "{{po_item}}",
+            "invoiced_quantity": "{{invoiced_quantity}}",
+            "invoiced_price": "{{invoiced_unit_price}}",
+            "status": "matching"
+          }
+        }
+      },
+      {
+        "id": "poi",
+        "type": "call_reference",
+        "label": "Get purchase order item",
+        "position": {
+          "x": 400,
+          "y": 700
+        },
+        "config": {
+          "reference_id": "7d8ae65c-912c-5704-b719-7709864c4df0",
+          "reference_name": "Get purchase order item",
+          "reference_method": "GET",
+          "input_mappings": {
+            "purchase_order": "{{purchase_order}}",
+            "po_item": "{{po_item}}"
+          },
+          "output_mappings": {
+            "po_quantity": {
+              "enabled": true,
+              "variableName": "po_quantity"
+            },
+            "po_unit": {
+              "enabled": true,
+              "variableName": "po_unit"
+            },
+            "po_net_price": {
+              "enabled": true,
+              "variableName": "po_net_price"
+            },
+            "po_price_unit": {
+              "enabled": true,
+              "variableName": "po_price_unit"
+            },
+            "po_currency": {
+              "enabled": true,
+              "variableName": "po_currency"
+            },
+            "po_tax_code": {
+              "enabled": true,
+              "variableName": "po_tax_code"
+            },
+            "po_item_text": {
+              "enabled": true,
+              "variableName": "po_item_text"
+            },
+            "material": {
+              "enabled": true,
+              "variableName": "material"
+            },
+            "plant": {
+              "enabled": true,
+              "variableName": "plant"
+            },
+            "finally_invoiced": {
+              "enabled": true,
+              "variableName": "finally_invoiced"
+            }
+          }
+        }
+      },
+      {
+        "id": "gr",
+        "type": "call_reference",
+        "label": "Get goods receipts",
+        "position": {
+          "x": 400,
+          "y": 860
+        },
+        "config": {
+          "reference_id": "59398871-ad1a-5e15-ac44-22599cb28793",
+          "reference_name": "Get goods receipts",
+          "reference_method": "GET",
+          "input_mappings": {
+            "purchase_order": "{{purchase_order}}",
+            "po_item": "{{po_item}}"
+          },
+          "output_mappings": {
+            "receipts": {
+              "enabled": true,
+              "variableName": "receipts"
+            },
+            "gr_document": {
+              "enabled": true,
+              "variableName": "gr_document"
+            },
+            "gr_year": {
+              "enabled": true,
+              "variableName": "gr_year"
+            },
+            "gr_doc_item": {
+              "enabled": true,
+              "variableName": "gr_doc_item"
+            }
+          }
+        }
+      },
+      {
+        "id": "r0",
+        "type": "set_variable",
+        "label": "Received = 0",
+        "position": {
+          "x": 400,
+          "y": 1020
+        },
+        "config": {
+          "name": "received_quantity",
+          "expression": "0"
+        }
+      },
+      {
+        "id": "loop",
+        "type": "loop",
+        "label": "Each goods receipt",
+        "position": {
+          "x": 400,
+          "y": 1180
+        },
+        "config": {
+          "items": "{{receipts}}",
+          "item_var": "receipt"
+        }
+      },
+      {
+        "id": "add",
+        "type": "math",
+        "label": "Add received quantity",
+        "position": {
+          "x": 720,
+          "y": 1340
+        },
+        "config": {
+          "expression": "{{received_quantity}} + {{receipt.QuantityInEntryUnit}}",
+          "output_var": "received_quantity"
+        }
+      },
+      {
+        "id": "unit_price",
+        "type": "math",
+        "label": "PO unit price",
+        "position": {
+          "x": 400,
+          "y": 1500
+        },
+        "config": {
+          "expression": "{{po_net_price}} / {{po_price_unit}}",
+          "output_var": "po_price"
+        }
+      },
+      {
+        "id": "qty_over",
+        "type": "math",
+        "label": "Quantity over receipt",
+        "position": {
+          "x": 400,
+          "y": 1660
+        },
+        "config": {
+          "expression": "{{invoiced_quantity}} - {{received_quantity}}",
+          "output_var": "qty_over_received"
+        }
+      },
+      {
+        "id": "pct",
+        "type": "set_variable",
+        "label": "Price variance %",
+        "position": {
+          "x": 400,
+          "y": 1820
+        },
+        "config": {
+          "name": "price_variance_pct",
+          "expression": "{{=ROUND((TO_NUMBER(invoiced_unit_price) - TO_NUMBER(po_price)) / TO_NUMBER(po_price) * 100, 2)}}"
+        }
+      },
+      {
+        "id": "amt",
+        "type": "set_variable",
+        "label": "Amount variance",
+        "position": {
+          "x": 400,
+          "y": 1980
+        },
+        "config": {
+          "name": "amount_variance",
+          "expression": "{{=ROUND(TO_NUMBER(invoiced_quantity) * TO_NUMBER(invoiced_unit_price) - MIN(TO_NUMBER(invoiced_quantity), TO_NUMBER(received_quantity)) * TO_NUMBER(po_price), 2)}}"
+        }
+      },
+      {
+        "id": "net",
+        "type": "set_variable",
+        "label": "Invoice net amount",
+        "position": {
+          "x": 400,
+          "y": 2140
+        },
+        "config": {
+          "name": "item_amount",
+          "expression": "{{=ROUND(TO_NUMBER(invoiced_quantity) * TO_NUMBER(invoiced_unit_price), 2)}}"
+        }
+      },
+      {
+        "id": "tol",
+        "type": "decision_table",
+        "label": "Invoice tolerance",
+        "position": {
+          "x": 400,
+          "y": 2300
+        },
+        "config": {
+          "decision_table_id": "206dbd62-ea72-5170-93d2-ddace201ad87",
+          "decision_table_name": "Invoice tolerance",
+          "input_mappings": {
+            "qty_over_received": "{{qty_over_received}}",
+            "price_variance_pct": "{{price_variance_pct}}",
+            "amount_variance": "{{amount_variance}}"
+          }
+        }
+      },
+      {
+        "id": "log2",
+        "type": "update_data_table",
+        "label": "Record variances",
+        "position": {
+          "x": 400,
+          "y": 2460
+        },
+        "config": {
+          "table_id": "f5375358-ee8e-5b70-a163-32e44c6e520f",
+          "table_name": "Invoice match log",
+          "operation": "update",
+          "match_column": "match_ref",
+          "match_value": "{{match_ref}}",
+          "column_values": {
+            "received_quantity": "{{received_quantity}}",
+            "po_price": "{{po_price}}",
+            "price_variance_pct": "{{price_variance_pct}}",
+            "amount_variance": "{{amount_variance}}",
+            "result": "{{=IF(within_tolerance, \"Within tolerance\", exception_reason)}}"
+          }
+        }
+      },
+      {
+        "id": "block0",
+        "type": "set_variable",
+        "label": "No payment block",
+        "position": {
+          "x": 400,
+          "y": 2620
+        },
+        "config": {
+          "name": "payment_block",
+          "expression": ""
+        }
+      },
+      {
+        "id": "ok",
+        "type": "condition",
+        "label": "Within tolerance?",
+        "position": {
+          "x": 400,
+          "y": 2780
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Within tolerance",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{within_tolerance}}",
+                  "operator": "is_true",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "exception",
+        "type": "user_task",
+        "label": "Invoice exception",
+        "position": {
+          "x": 720,
+          "y": 2940
+        },
+        "config": {
+          "task_title": "Invoice {{invoice_reference}} outside tolerance: {{exception_reason}}",
+          "task_description": "<p>Supplier <strong>{{supplier}}</strong> invoice <strong>{{invoice_reference}}</strong> ({{document_date}}) for PO {{purchase_order}}/{{po_item}}: {{po_item_text}} ({{material}}, plant {{plant}}).</p><table style=\"border-collapse:collapse\"><tr><th></th><th align=\"left\">PO</th><th align=\"left\">Received</th><th align=\"left\">Invoiced</th></tr><tr><td>Quantity</td><td>{{po_quantity}} {{po_unit}}</td><td>{{received_quantity}} {{po_unit}}</td><td><strong>{{invoiced_quantity}}</strong></td></tr><tr><td>Unit price</td><td>{{po_price}} {{po_currency}}</td><td></td><td><strong>{{invoiced_unit_price}} {{currency}}</strong></td></tr></table><p>Price variance <strong>{{price_variance_pct}}%</strong>, amount variance <strong>{{currency}} {{amount_variance}}</strong>. Rule “{{rule_label}}”.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve variance",
+            "Reject",
+            "Hold"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "0cc21c7d-aedf-592b-8f81-4bbab7e9ec77",
+          "assignee_variable": "{{ap_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320,
+          "fields": [
+            {
+              "key": "reason_code",
+              "label": "Reason code",
+              "type": "lookup",
+              "required": true,
+              "default": "{{suggested_code}}",
+              "lookup": {
+                "source": "table",
+                "table_id": "d14f8ee8-b8f1-5481-8ba8-0e55adf6617d",
+                "search_columns": [
+                  "code",
+                  "description"
+                ],
+                "display_columns": [
+                  "code",
+                  "description",
+                  "typical_action"
+                ],
+                "value_column": "code",
+                "fill": [
+                  {
+                    "from": "description",
+                    "to": "reason_text"
+                  },
+                  {
+                    "from": "payment_block",
+                    "to": "payment_block"
+                  }
+                ]
+              }
+            },
+            {
+              "key": "reason_text",
+              "label": "Reason",
+              "type": "text",
+              "read_only": true
+            },
+            {
+              "key": "payment_block",
+              "label": "Payment block",
+              "type": "text",
+              "help_text": "Blank = free for payment, R = blocked (invoice verification)"
+            },
+            {
+              "key": "buyer_contacted",
+              "label": "Buyer / supplier contacted",
+              "type": "boolean"
+            },
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "reason_code",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "reason_text",
+                    "span": 2
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "payment_block",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "buyer_contacted",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Three-way match exception",
+            "align": "left",
+            "subtitle": "Invoice {{invoice_reference}} · PO {{purchase_order}}/{{po_item}} · {{currency}} {{gross_amount}}"
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve variance",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve variance"
+            },
+            {
+              "id": "hold",
+              "label": "Hold",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Hold"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ]
+        }
+      },
+      {
+        "id": "block1",
+        "type": "set_variable",
+        "label": "Payment block from review",
+        "position": {
+          "x": 560,
+          "y": 3120
+        },
+        "config": {
+          "name": "payment_block",
+          "expression": "{{task_data.payment_block}}"
+        }
+      },
+      {
+        "id": "post",
+        "type": "call_reference",
+        "label": "Post supplier invoice",
+        "position": {
+          "x": 400,
+          "y": 3280
+        },
+        "config": {
+          "reference_id": "27968e43-e65a-508d-b8d4-d4b4ffc8ec1a",
+          "reference_name": "Post supplier invoice",
+          "reference_method": "POST",
+          "input_mappings": {
+            "company_code": "{{company_code}}",
+            "document_date": "{{document_date}}",
+            "invoice_reference": "{{invoice_reference}}",
+            "supplier": "{{supplier}}",
+            "currency": "{{currency}}",
+            "gross_amount": "{{gross_amount}}",
+            "payment_block": "{{payment_block}}",
+            "purchase_order": "{{purchase_order}}",
+            "po_item": "{{po_item}}",
+            "gr_document": "{{gr_document}}",
+            "gr_year": "{{gr_year}}",
+            "gr_doc_item": "{{gr_doc_item}}",
+            "tax_code": "{{po_tax_code}}",
+            "item_amount": "{{item_amount}}",
+            "quantity": "{{invoiced_quantity}}",
+            "unit": "{{po_unit}}"
+          },
+          "output_mappings": {
+            "supplier_invoice": {
+              "enabled": true,
+              "variableName": "supplier_invoice"
+            },
+            "fiscal_year": {
+              "enabled": true,
+              "variableName": "fiscal_year"
+            },
+            "invoice_status": {
+              "enabled": true,
+              "variableName": "invoice_status"
+            }
+          }
+        }
+      },
+      {
+        "id": "posted",
+        "type": "update_data_table",
+        "label": "Record posting",
+        "position": {
+          "x": 400,
+          "y": 3440
+        },
+        "config": {
+          "table_id": "f5375358-ee8e-5b70-a163-32e44c6e520f",
+          "table_name": "Invoice match log",
+          "operation": "update",
+          "match_column": "match_ref",
+          "match_value": "{{match_ref}}",
+          "column_values": {
+            "status": "posted",
+            "sap_invoice": "{{supplier_invoice}}",
+            "fiscal_year": "{{fiscal_year}}",
+            "reason_code": "{{task_data.reason_code}}"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Invoice posted",
+        "position": {
+          "x": 400,
+          "y": 3600
+        },
+        "config": {
+          "reason": "Invoice {{invoice_reference}} posted as {{supplier_invoice}}/{{fiscal_year}}"
+        }
+      },
+      {
+        "id": "held",
+        "type": "update_data_table",
+        "label": "Record hold",
+        "position": {
+          "x": 880,
+          "y": 3120
+        },
+        "config": {
+          "table_id": "f5375358-ee8e-5b70-a163-32e44c6e520f",
+          "table_name": "Invoice match log",
+          "operation": "update",
+          "match_column": "match_ref",
+          "match_value": "{{match_ref}}",
+          "column_values": {
+            "status": "on hold",
+            "reason_code": "{{task_data.reason_code}}"
+          }
+        }
+      },
+      {
+        "id": "held_end",
+        "type": "end_workflow",
+        "label": "On hold",
+        "position": {
+          "x": 880,
+          "y": 3280
+        },
+        "config": {
+          "reason": "Invoice {{invoice_reference}} on hold: {{task_data.reason_text}}"
+        }
+      },
+      {
+        "id": "rejected",
+        "type": "update_data_table",
+        "label": "Record rejection",
+        "position": {
+          "x": 1200,
+          "y": 3120
+        },
+        "config": {
+          "table_id": "f5375358-ee8e-5b70-a163-32e44c6e520f",
+          "table_name": "Invoice match log",
+          "operation": "update",
+          "match_column": "match_ref",
+          "match_value": "{{match_ref}}",
+          "column_values": {
+            "status": "rejected",
+            "reason_code": "{{task_data.reason_code}}"
+          }
+        }
+      },
+      {
+        "id": "rej_end",
+        "type": "end_workflow",
+        "label": "Rejected",
+        "position": {
+          "x": 1200,
+          "y": 3280
+        },
+        "config": {
+          "reason": "Invoice {{invoice_reference}} rejected: {{task_data.reason_text}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-log",
+        "source": "title",
+        "target": "log"
+      },
+      {
+        "id": "e-log-poi",
+        "source": "log",
+        "target": "poi"
+      },
+      {
+        "id": "e-poi-gr",
+        "source": "poi",
+        "target": "gr"
+      },
+      {
+        "id": "e-gr-r0",
+        "source": "gr",
+        "target": "r0"
+      },
+      {
+        "id": "e-r0-loop",
+        "source": "r0",
+        "target": "loop"
+      },
+      {
+        "id": "e-loop-add-each-item",
+        "source": "loop",
+        "target": "add",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-loop-unit_price-done",
+        "source": "loop",
+        "target": "unit_price",
+        "label": "Done"
+      },
+      {
+        "id": "e-unit_price-qty_over",
+        "source": "unit_price",
+        "target": "qty_over"
+      },
+      {
+        "id": "e-qty_over-pct",
+        "source": "qty_over",
+        "target": "pct"
+      },
+      {
+        "id": "e-pct-amt",
+        "source": "pct",
+        "target": "amt"
+      },
+      {
+        "id": "e-amt-net",
+        "source": "amt",
+        "target": "net"
+      },
+      {
+        "id": "e-net-tol",
+        "source": "net",
+        "target": "tol"
+      },
+      {
+        "id": "e-tol-log2",
+        "source": "tol",
+        "target": "log2"
+      },
+      {
+        "id": "e-log2-block0",
+        "source": "log2",
+        "target": "block0"
+      },
+      {
+        "id": "e-block0-ok",
+        "source": "block0",
+        "target": "ok"
+      },
+      {
+        "id": "e-ok-post-within-tolerance",
+        "source": "ok",
+        "target": "post",
+        "label": "Within tolerance"
+      },
+      {
+        "id": "e-ok-exception-else",
+        "source": "ok",
+        "target": "exception",
+        "label": "Else"
+      },
+      {
+        "id": "e-exception-block1-approve-variance",
+        "source": "exception",
+        "target": "block1",
+        "label": "Approve variance"
+      },
+      {
+        "id": "e-exception-held-hold",
+        "source": "exception",
+        "target": "held",
+        "label": "Hold"
+      },
+      {
+        "id": "e-exception-rejected-reject",
+        "source": "exception",
+        "target": "rejected",
+        "label": "Reject"
+      },
+      {
+        "id": "e-block1-post",
+        "source": "block1",
+        "target": "post"
+      },
+      {
+        "id": "e-post-posted",
+        "source": "post",
+        "target": "posted"
+      },
+      {
+        "id": "e-posted-done",
+        "source": "posted",
+        "target": "done"
+      },
+      {
+        "id": "e-held-held_end",
+        "source": "held",
+        "target": "held_end"
+      },
+      {
+        "id": "e-rejected-rej_end",
+        "source": "rejected",
+        "target": "rej_end"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-invoice_reference",
+        "name": "invoice_reference",
+        "type": "string",
+        "description": "The supplier's own invoice number",
+        "defaultValue": "",
+        "required": true,
+        "label": "Supplier invoice number"
+      },
+      {
+        "id": "v-supplier",
+        "name": "supplier",
+        "type": "string",
+        "description": "SAP supplier (invoicing party), e.g. 17300001",
+        "defaultValue": "",
+        "required": true,
+        "label": "Supplier"
+      },
+      {
+        "id": "v-company_code",
+        "name": "company_code",
+        "type": "string",
+        "description": "SAP company code",
+        "defaultValue": "1010",
+        "required": true,
+        "label": "Company code"
+      },
+      {
+        "id": "v-document_date",
+        "name": "document_date",
+        "type": "string",
+        "description": "Date on the invoice",
+        "defaultValue": "",
+        "required": true,
+        "label": "Invoice date",
+        "format": "date"
+      },
+      {
+        "id": "v-purchase_order",
+        "name": "purchase_order",
+        "type": "string",
+        "description": "SAP PO number on the invoice",
+        "defaultValue": "",
+        "required": true,
+        "label": "Purchase order"
+      },
+      {
+        "id": "v-po_item",
+        "name": "po_item",
+        "type": "string",
+        "description": "PO item number (10, 20…)",
+        "defaultValue": "10",
+        "required": true,
+        "label": "PO item"
+      },
+      {
+        "id": "v-invoiced_quantity",
+        "name": "invoiced_quantity",
+        "type": "number",
+        "description": "Quantity on the invoice line",
+        "defaultValue": "",
+        "required": true,
+        "label": "Invoiced quantity"
+      },
+      {
+        "id": "v-invoiced_unit_price",
+        "name": "invoiced_unit_price",
+        "type": "number",
+        "description": "Net unit price on the invoice line",
+        "defaultValue": "",
+        "required": true,
+        "label": "Invoiced unit price"
+      },
+      {
+        "id": "v-gross_amount",
+        "name": "gross_amount",
+        "type": "number",
+        "description": "Invoice total including tax",
+        "defaultValue": "",
+        "required": true,
+        "label": "Gross amount"
+      },
+      {
+        "id": "v-currency",
+        "name": "currency",
+        "type": "string",
+        "description": "Invoice currency",
+        "defaultValue": "EUR",
+        "required": true,
+        "label": "Currency"
+      },
+      {
+        "id": "v-capture_id",
+        "name": "capture_id",
+        "type": "string",
+        "description": "Id of the document in your capture / OCR tool, for traceability",
+        "defaultValue": "",
+        "required": false,
+        "label": "Capture id"
+      },
+      {
+        "id": "v-ap_user_id",
+        "name": "ap_user_id",
+        "type": "string",
+        "description": "Optional: UserTasks user id who handles exceptions; the install-time default otherwise",
+        "defaultValue": "",
+        "required": false,
+        "label": "AP approver (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

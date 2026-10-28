@@ -1,0 +1,88 @@
+{
+  "id": "25aa751f-5cb1-4607-af75-831e197aedfb",
+  "slug": "gdpr-dsar-handling",
+  "title": "GDPR data subject requests",
+  "category": "operations-compliance",
+  "summary": "Handle access, erasure and other privacy requests: statutory deadline, identity check, search of CRM, billing and support, erasure, and a DPO-approved reply.",
+  "description": "GDPR data subject requests takes a privacy request from receipt to response inside the statutory deadline. The privacy team (or your web form posting to the API) fills in the start form: who is asking, their email, the request type (access, erasure, rectification, portability, objection), the jurisdiction and the date it arrived.\n\nThe Statutory deadlines decision table sets the response deadline and whether it can be extended (one month under EU and UK GDPR, 45 days under CCPA, 15 days for a CCPA opt-out) and the run gets an SLA to match. The request is added to the DSAR register and nothing is searched until the privacy team has verified the requester's identity; they can ask for more information or reject the request. Once verified, the CRM, billing system and support desk are searched by email, and for erasure requests an erasure is requested in each system, with any records kept by law listed.\n\nThe DPO reviews a drafted response with everything found, edits and approves it or sends it back, and the approved response is emailed to the requester and the register row closed. Adapt the deadline rules to your legal advice and the three system references to the systems that hold personal data.",
+  "trigger": "form",
+  "entry_workflow": "b8d355b3-7653-4a88-bc85-b5e6295dac60",
+  "start": "Starts from a form: the privacy team fills in the request from the Run dialog, or your privacy web form posts it to the start API or an inbound webhook.",
+  "difficulty": "advanced",
+  "setup_minutes": 30,
+  "tags": [
+    "privacy",
+    "GDPR",
+    "DSAR",
+    "CCPA",
+    "statutory deadline"
+  ],
+  "version": "1.1.0",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-28",
+      "notes": "Uses the new forms: a themed start form with a grid and header, Verified / Need more info / Reject buttons on identity verification, Approve response / Send back on the DPO review, each with a grid and header."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-26",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "rest_api",
+    "assignees",
+    "email"
+  ],
+  "optional_needs": [
+    "webhook"
+  ],
+  "setup": [
+    "CRM, Billing system and Support desk integrations: set each base URL and API token. Each has a search reference (GET with ?email=) and an erasure reference (POST /erasure-requests); adjust paths and response models to your systems in Integrations, or remove a system you do not use.",
+    "Assignees: pick the privacy officer who verifies identity and revises responses, and the DPO who approves them (runs can pass privacy_officer_id and dpo_id).",
+    "Review the Statutory deadlines rules with your legal team; add rows for other jurisdictions you serve.",
+    "Optional: create an inbound webhook for the workflow so your privacy web form can submit requests directly.",
+    "Email: configure EMAIL_PROVIDER on the instance so requesters receive the identity request and the response (the steps continue on error)."
+  ],
+  "steps": [
+    {
+      "title": "Request received",
+      "body": "The start form records the requester, email, request type, jurisdiction, details and received date; the request gets a DSAR reference."
+    },
+    {
+      "title": "Set the statutory deadline",
+      "body": "The Statutory deadlines decision table gives the deadline and extension rule; the run SLA and the DSAR register row use it."
+    },
+    {
+      "title": "Verify identity",
+      "body": "The privacy officer confirms the requester is the data subject, asks for more information (emailed to the requester) or rejects the request."
+    },
+    {
+      "title": "Search the systems",
+      "body": "The CRM, billing system and support desk are searched by email and the matches summarised."
+    },
+    {
+      "title": "Erase where asked",
+      "body": "For erasure requests an erasure is requested in each system; records kept by law are listed in the response."
+    },
+    {
+      "title": "DPO approval",
+      "body": "The DPO edits and approves the drafted response, or sends it back to the privacy officer to revise."
+    },
+    {
+      "title": "Respond and close",
+      "body": "The approved response is emailed to the requester and the DSAR register row is closed."
+    }
+  ],
+  "sample_input": {
+    "requester_name": "Robin James",
+    "requester_email": "robin.james@example.com",
+    "request_type": "erasure",
+    "jurisdiction": "EU-GDPR",
+    "details": "Please delete all my data. I closed my account in September; my customer number was CUS-20417.",
+    "received_date": "2026-10-26"
+  },
+  "expect": "waiting",
+  "icon": "user-lock"
+}

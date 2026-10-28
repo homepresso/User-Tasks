@@ -1,0 +1,135 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "17642cf3-cc67-48c2-9062-4842805fdbfd",
+  "asset": {
+    "id": "17642cf3-cc67-48c2-9062-4842805fdbfd",
+    "name": "Controls rows",
+    "rows": [
+      {
+        "id": "a60f5358-7bb9-4144-b956-9bc55d6c4655",
+        "data": {
+          "control_id": "AC-01",
+          "framework": "SOC 2",
+          "framework_ref": "CC6.2",
+          "title": "User access reviews",
+          "evidence_type": "automated",
+          "system": "Identity provider",
+          "evidence_source": "access-reviews",
+          "owner_role": "IT manager",
+          "owner_email": "it.manager@example.com",
+          "frequency": "monthly",
+          "active": true
+        }
+      },
+      {
+        "id": "72bc4247-3966-44b7-8985-82d268076c1b",
+        "data": {
+          "control_id": "BK-01",
+          "framework": "ISO 27001",
+          "framework_ref": "A.8.13",
+          "title": "Backups completed and restorable",
+          "evidence_type": "automated",
+          "system": "Backup service",
+          "evidence_source": "backups",
+          "owner_role": "Infrastructure lead",
+          "owner_email": "infra.lead@example.com",
+          "frequency": "monthly",
+          "active": true
+        }
+      },
+      {
+        "id": "e6ea2a08-a0df-4fee-ad54-90d6ebc07546",
+        "data": {
+          "control_id": "VM-01",
+          "framework": "SOC 2",
+          "framework_ref": "CC7.1",
+          "title": "Vulnerability scans and remediation",
+          "evidence_type": "automated",
+          "system": "Vulnerability scanner",
+          "evidence_source": "vulnerability-scans",
+          "owner_role": "Security engineer",
+          "owner_email": "security@example.com",
+          "frequency": "monthly",
+          "active": true
+        }
+      },
+      {
+        "id": "2c0a865c-3174-4a32-b5b7-5374433183a5",
+        "data": {
+          "control_id": "CM-01",
+          "framework": "SOC 2",
+          "framework_ref": "CC8.1",
+          "title": "Changes approved before release",
+          "evidence_type": "automated",
+          "system": "Change tickets",
+          "evidence_source": "change-tickets",
+          "owner_role": "Engineering manager",
+          "owner_email": "eng.manager@example.com",
+          "frequency": "quarterly",
+          "active": true
+        }
+      },
+      {
+        "id": "04df158a-2e08-4ce0-8882-da223f3978c7",
+        "data": {
+          "control_id": "HR-01",
+          "framework": "ISO 27001",
+          "framework_ref": "A.6.3",
+          "title": "Security awareness training completed",
+          "evidence_type": "manual",
+          "system": "Learning platform",
+          "owner_role": "People & Culture",
+          "owner_email": "people@example.com",
+          "frequency": "quarterly",
+          "active": true
+        }
+      },
+      {
+        "id": "ae158054-636b-49be-a955-f2852ebb3080",
+        "data": {
+          "control_id": "VR-01",
+          "framework": "ISO 27001",
+          "framework_ref": "A.5.19",
+          "title": "Supplier security reviews",
+          "evidence_type": "manual",
+          "system": "Procurement",
+          "owner_role": "Procurement lead",
+          "owner_email": "procurement@example.com",
+          "frequency": "quarterly",
+          "active": true
+        }
+      },
+      {
+        "id": "dadd49af-b075-4084-a7d6-895c28f0cb67",
+        "data": {
+          "control_id": "IR-01",
+          "framework": "SOC 2",
+          "framework_ref": "CC7.4",
+          "title": "Incident response test",
+          "evidence_type": "manual",
+          "system": "Runbooks",
+          "owner_role": "Security lead",
+          "owner_email": "security.lead@example.com",
+          "frequency": "monthly",
+          "active": true
+        }
+      },
+      {
+        "id": "9fca5a34-a75d-48c5-a17c-cde38edab71f",
+        "data": {
+          "control_id": "PS-01",
+          "framework": "ISO 27001",
+          "framework_ref": "A.7.2",
+          "title": "Physical access log review",
+          "evidence_type": "manual",
+          "system": "Building access",
+          "owner_role": "Facilities manager",
+          "owner_email": "facilities@example.com",
+          "frequency": "monthly",
+          "active": true
+        }
+      }
+    ]
+  }
+}

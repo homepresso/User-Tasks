@@ -1,0 +1,130 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "08830b82-40c8-5d97-8484-e047dbef377b",
+  "asset": {
+    "id": "08830b82-40c8-5d97-8484-e047dbef377b",
+    "name": "Customers rows",
+    "rows": [
+      {
+        "id": "ca2515ec-fad6-568e-ae06-7b4f8811351e",
+        "data": {
+          "account_no": "C-10021",
+          "company": "Bluebird Cafes",
+          "contact_name": "Olivia Harris",
+          "contact_email": "olivia.harris@example.com",
+          "phone": "+1 555 0141",
+          "tier": "Platinum",
+          "account_manager": "Ravi Patel",
+          "account_manager_email": "ravi.patel@example.com",
+          "region": "North",
+          "customer_since": "2019-04-01",
+          "open_complaints": 0,
+          "active": true
+        }
+      },
+      {
+        "id": "8e90f67c-ca00-5fee-8c9d-6677d5b9d3b7",
+        "data": {
+          "account_no": "C-10034",
+          "company": "Harbourside Dental",
+          "contact_name": "Tom Becker",
+          "contact_email": "tom.becker@example.com",
+          "phone": "+1 555 0156",
+          "tier": "Gold",
+          "account_manager": "Ravi Patel",
+          "account_manager_email": "ravi.patel@example.com",
+          "region": "North",
+          "customer_since": "2021-09-15",
+          "open_complaints": 1,
+          "active": true
+        }
+      },
+      {
+        "id": "3bd3eb54-2014-5a37-904f-ddbddeaddcb4",
+        "data": {
+          "account_no": "C-10047",
+          "company": "Summit Outdoor Gear",
+          "contact_name": "Aroha Ngata",
+          "contact_email": "aroha.ngata@example.com",
+          "phone": "+1 555 0173",
+          "tier": "Gold",
+          "account_manager": "Sofia Rossi",
+          "account_manager_email": "sofia.rossi@example.com",
+          "region": "Central",
+          "customer_since": "2020-02-03",
+          "open_complaints": 0,
+          "active": true
+        }
+      },
+      {
+        "id": "bd289cba-b9f5-5c24-904b-30986b0308e6",
+        "data": {
+          "account_no": "C-10052",
+          "company": "Maple Street Bakery",
+          "contact_name": "Liam Murphy",
+          "contact_email": "liam.murphy@example.com",
+          "phone": "+1 555 0188",
+          "tier": "Silver",
+          "account_manager": "Sofia Rossi",
+          "account_manager_email": "sofia.rossi@example.com",
+          "region": "Central",
+          "customer_since": "2023-06-12",
+          "open_complaints": 0,
+          "active": true
+        }
+      },
+      {
+        "id": "e5b8259f-88df-553c-a3d4-9135528d60d6",
+        "data": {
+          "account_no": "C-10068",
+          "company": "Clearwater Physio",
+          "contact_name": "Hannah Schmidt",
+          "contact_email": "hannah.schmidt@example.com",
+          "phone": "+1 555 0102",
+          "tier": "Silver",
+          "account_manager": "Marcus Johnson",
+          "account_manager_email": "marcus.johnson@example.com",
+          "region": "South",
+          "customer_since": "2022-11-28",
+          "open_complaints": 0,
+          "active": true
+        }
+      },
+      {
+        "id": "f20f3ef7-adaf-5493-93b1-4d1fc1771aaf",
+        "data": {
+          "account_no": "C-10075",
+          "company": "Pixel & Print Studio",
+          "contact_name": "Kenji Watanabe",
+          "contact_email": "kenji.watanabe@example.com",
+          "phone": "+1 555 0119",
+          "tier": "Standard",
+          "account_manager": "Marcus Johnson",
+          "account_manager_email": "marcus.johnson@example.com",
+          "region": "South",
+          "customer_since": "2025-01-20",
+          "open_complaints": 0,
+          "active": true
+        }
+      },
+      {
+        "id": "542c9f92-e82f-5c12-9313-26c2735567ae",
+        "data": {
+          "account_no": "C-10081",
+          "company": "Greenleaf Grocers",
+          "contact_name": "Fatima Al-Sayed",
+          "contact_email": "fatima.alsayed@example.com",
+          "phone": "+1 555 0127",
+          "tier": "Standard",
+          "account_manager": "Sofia Rossi",
+          "account_manager_email": "sofia.rossi@example.com",
+          "region": "Central",
+          "customer_since": "2025-08-05",
+          "open_complaints": 0,
+          "active": true
+        }
+      }
+    ]
+  }
+}

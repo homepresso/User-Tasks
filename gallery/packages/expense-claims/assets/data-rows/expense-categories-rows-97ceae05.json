@@ -1,0 +1,71 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "97ceae05-d174-4525-befd-f2c2ec0a80be",
+  "asset": {
+    "id": "97ceae05-d174-4525-befd-f2c2ec0a80be",
+    "name": "Expense categories rows",
+    "rows": [
+      {
+        "id": "a236b113-57d4-4720-8ee8-4b5b9d097bd9",
+        "data": {
+          "category": "travel",
+          "gl_code": "6100",
+          "claim_limit": 5000,
+          "receipt_required": true,
+          "notes": "Flights, rail, taxis and mileage"
+        }
+      },
+      {
+        "id": "af93e408-8b5a-4c60-a585-c70c1880e87a",
+        "data": {
+          "category": "accommodation",
+          "gl_code": "6110",
+          "claim_limit": 3000,
+          "receipt_required": true,
+          "notes": "Hotels up to the city rate card"
+        }
+      },
+      {
+        "id": "e485bf86-c511-4161-9b1d-6f08e81ffb1f",
+        "data": {
+          "category": "meals",
+          "gl_code": "6120",
+          "claim_limit": 400,
+          "receipt_required": true,
+          "notes": "Client meals need attendee names"
+        }
+      },
+      {
+        "id": "a9dee417-9832-4ab7-9997-e3787409e4f1",
+        "data": {
+          "category": "equipment",
+          "gl_code": "6300",
+          "claim_limit": 1500,
+          "receipt_required": true,
+          "notes": "Over 1,500 use a purchase request"
+        }
+      },
+      {
+        "id": "ab51cdbf-8b56-4dc4-a772-ec1e19734bbb",
+        "data": {
+          "category": "training",
+          "gl_code": "6400",
+          "claim_limit": 2500,
+          "receipt_required": true,
+          "notes": "Courses, books and conferences"
+        }
+      },
+      {
+        "id": "129b1f24-781f-4de6-bc4f-f2703ecd067a",
+        "data": {
+          "category": "other",
+          "gl_code": "6900",
+          "claim_limit": 500,
+          "receipt_required": false,
+          "notes": "Anything else; explain in the purpose"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "2057a304-c1e8-53e0-996e-288a17bb6b89",
+  "asset": {
+    "id": "2057a304-c1e8-53e0-996e-288a17bb6b89",
+    "name": "Risk rating",
+    "description": "Rates a risk from its score (likelihood × impact, 1-25) using a 5×5 matrix, and sets the owner review SLA and how often the risk is reviewed. First matching rule wins.",
+    "inputs": [
+      {
+        "key": "score",
+        "label": "Score (likelihood × impact)",
+        "type": "number",
+        "id": "456b920d-0614-53d7-8974-926741bbe646"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "rating",
+        "label": "Rating",
+        "type": "text",
+        "id": "a4ecd4bc-ec03-565e-87b8-004f550777a0"
+      },
+      {
+        "key": "sla_days",
+        "label": "Owner review SLA (days)",
+        "type": "number",
+        "id": "636fe4aa-1d2c-563a-8379-b69076535ecf"
+      },
+      {
+        "key": "review_every_days",
+        "label": "Review every (days)",
+        "type": "number",
+        "id": "5063b055-b3db-53aa-bf9b-a96ccddf1485"
+      },
+      {
+        "key": "escalate_to_board",
+        "label": "Report to the board",
+        "type": "boolean",
+        "id": "70c42c3b-2367-5018-be5c-04eede63e5a2"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Extreme (20-25)",
+        "conditions": [
+          {
+            "inputKey": "score",
+            "operator": "greater_than_or_equal",
+            "value": "20",
+            "id": "b30dd686-fc83-53cf-807c-8b5c2be2e84c"
+          }
+        ],
+        "outputs": {
+          "rating": "Extreme",
+          "sla_days": 2,
+          "review_every_days": 14,
+          "escalate_to_board": true
+        },
+        "id": "dcd84039-b0e6-5fc6-9118-debfb46faf43",
+        "enabled": true
+      },
+      {
+        "label": "High (12-19)",
+        "conditions": [
+          {
+            "inputKey": "score",
+            "operator": "greater_than_or_equal",
+            "value": "12",
+            "id": "f4a165dc-291e-5e69-beff-571cd98121d4"
+          }
+        ],
+        "outputs": {
+          "rating": "High",
+          "sla_days": 5,
+          "review_every_days": 30,
+          "escalate_to_board": false
+        },
+        "id": "1e4fa306-60a6-5ed5-9f2c-a27c43a99b85",
+        "enabled": true
+      },
+      {
+        "label": "Medium (6-11)",
+        "conditions": [
+          {
+            "inputKey": "score",
+            "operator": "greater_than_or_equal",
+            "value": "6",
+            "id": "e532b785-58d3-522a-97c3-53e6ef156217"
+          }
+        ],
+        "outputs": {
+          "rating": "Medium",
+          "sla_days": 10,
+          "review_every_days": 90,
+          "escalate_to_board": false
+        },
+        "id": "d72e3685-8648-5fa7-bb2c-10898d346d9e",
+        "enabled": true
+      },
+      {
+        "label": "Low (1-5)",
+        "conditions": [],
+        "outputs": {
+          "rating": "Low",
+          "sla_days": 20,
+          "review_every_days": 180,
+          "escalate_to_board": false
+        },
+        "id": "8e9d9658-d540-58e5-bf3e-923417f98c0c",
+        "enabled": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "6cef2483-7c8f-41a9-93ca-d9bcc6f5f634",
+  "asset": {
+    "id": "6cef2483-7c8f-41a9-93ca-d9bcc6f5f634",
+    "name": "IT setup blocked",
+    "description": "Sent to the hiring manager when IT cannot complete the setup before the start date.",
+    "subject": "IT setup blocked for {{new_hire_name}} (starts {{start_date}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">IT setup needs your help</h2>\n  <p>Hi {{manager_name}},</p>\n  <p>IT could not finish the setup for <strong>{{new_hire_name}}</strong> ({{job_title}}, starts {{start_date}}).</p>\n  <p>IT note: {{task_data.notes}}</p>\n  <p>Reply to the IT service desk to unblock it, or agree a temporary arrangement for day one.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your employee onboarding workflow</p>\n</div>",
+    "text_body": "IT setup needs your help\n  Hi {{manager_name}},\n  IT could not finish the setup for {{new_hire_name}} ({{job_title}}, starts {{start_date}}).\n  IT note: {{task_data.notes}}\n  Reply to the IT service desk to unblock it, or agree a temporary arrangement for day one.\n  Sent by your employee onboarding workflow",
+    "is_default": false
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "7190ce81-5899-47ee-8241-4b04e55009bc",
+  "asset": {
+    "id": "7190ce81-5899-47ee-8241-4b04e55009bc",
+    "integration_id": "0be764c2-0c95-4a03-8dda-677b1b6e1aba",
+    "name": "Register asset",
+    "description": "Register the delivered item in the asset register and assign it to the employee.",
+    "tags": [
+      "assets"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"asset_tag\":\"{{asset_tag}}\",\"serial_number\":\"{{serial_number}}\",\"item\":\"{{item}}\",\"category\":\"{{category}}\",\"supplier_sku\":\"{{supplier_sku}}\",\"unit_cost\":{{unit_cost}},\"assigned_to\":\"{{employee_id}}\",\"cost_centre\":\"{{cost_centre}}\",\"delivered_on\":\"{{delivery_date}}\",\"request_reference\":\"{{request_reference}}\"}",
+      "path_template": "/assets",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "AST-77310"
+            },
+            {
+              "name": "asset_tag",
+              "type": "string",
+              "example": "LT-02231"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "assigned"
+            },
+            {
+              "name": "assigned_to",
+              "type": "string",
+              "example": "E-1001"
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "example": "2026-11-04T11:20:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "id": "AST-77310",
+          "asset_tag": "LT-02231",
+          "status": "assigned",
+          "assigned_to": "E-1001",
+          "created_at": "2026-11-04T11:20:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "02f4a5b1-0654-44b4-adb2-cd437756bc7d",
+        "name": "asset_tag",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "bef69a8b-e443-4e9d-b47f-a24e373afe7c",
+        "name": "serial_number",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "f95e62d0-f464-46c0-880a-bcb2ae49a20d",
+        "name": "item",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "bb22ba02-0427-4cdf-ac6f-67d6441fc0b7",
+        "name": "category",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "74a5d693-d484-4a76-b114-4412f8286f5d",
+        "name": "supplier_sku",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "a7fdd9e1-ddbb-48bd-9bb2-267dd37188aa",
+        "name": "unit_cost",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "486b31d8-af23-440d-9adc-d645ae1e4104",
+        "name": "employee_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "45b9568d-3d88-4142-8853-14189ca4104d",
+        "name": "cost_centre",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "e621f6b7-67f2-4679-ac39-63443e2bdbbc",
+        "name": "delivery_date",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "19e8cf88-0e3b-4fe0-ae8b-3a8de926242e",
+        "name": "request_reference",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "3f245541-ec97-4e9c-b5f4-92dbee50e5ac",
+        "name": "asset_id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "4ef7df39-4c34-48ab-8b9e-53813c9866c6",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      }
+    ]
+  }
+}

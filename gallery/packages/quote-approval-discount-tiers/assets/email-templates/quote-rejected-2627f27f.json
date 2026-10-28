@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "2627f27f-ee01-4f96-9149-eb5eca382fa7",
+  "asset": {
+    "id": "2627f27f-ee01-4f96-9149-eb5eca382fa7",
+    "name": "Quote rejected",
+    "description": "Sent to the sales rep when an approver rejects the discount.",
+    "subject": "Not approved: {{customer}} quote {{quote_id}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your quote discount was not approved</h2>\n  <p>Hi,</p>\n  <p>The {{discount_pct}}% discount on quote <strong>{{quote_id}}</strong> for {{customer}} was rejected by the {{decided_by}}.</p>\n  <p>Reason: {{task_data.comment}}</p>\n  <p>Rework the quote (term, payment terms, scope) and resubmit it.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the quote approval workflow</p>\n</div>",
+    "text_body": "Your quote discount was not approved\n  Hi,\n  The {{discount_pct}}% discount on quote {{quote_id}} for {{customer}} was rejected by the {{decided_by}}.\n  Reason: {{task_data.comment}}\n  Rework the quote (term, payment terms, scope) and resubmit it.\n  Sent by the quote approval workflow",
+    "is_default": false
+  }
+}

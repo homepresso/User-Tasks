@@ -1,0 +1,117 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "575a6012-0d3c-5ea7-9ad4-2a86d272ded4",
+  "asset": {
+    "id": "575a6012-0d3c-5ea7-9ad4-2a86d272ded4",
+    "name": "Bank change risk",
+    "description": "Risk of a supplier bank detail change. High risk needs a second call-back contact and same-day treasury review. First matching rule wins.",
+    "inputs": [
+      {
+        "key": "country_changed",
+        "label": "Bank country changed",
+        "type": "boolean",
+        "id": "d2581fcc-36c2-5619-a5a7-74548a6f5ba4"
+      },
+      {
+        "key": "holder_matches",
+        "label": "Holder matches supplier name",
+        "type": "boolean",
+        "id": "c67a8322-2e04-5333-b0a5-40d1630bb29d"
+      },
+      {
+        "key": "payment_blocked",
+        "label": "Supplier payment blocked",
+        "type": "boolean",
+        "id": "0ac95e60-fee0-5315-abe2-9fc66f2ec258"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "risk",
+        "label": "Risk",
+        "type": "text",
+        "id": "7c187479-8640-5162-a922-16109949f5cb"
+      },
+      {
+        "key": "callbacks_required",
+        "label": "Call-backs required",
+        "type": "number",
+        "id": "edaa031b-6d97-5828-aa77-50c7ea20549d"
+      },
+      {
+        "key": "treasury_hours",
+        "label": "Treasury SLA (hours)",
+        "type": "number",
+        "id": "07d8ff15-d421-5f47-a695-704c19d78832"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Holder name differs",
+        "conditions": [
+          {
+            "inputKey": "holder_matches",
+            "operator": "equals",
+            "value": "false",
+            "id": "b063a035-6c72-593c-8e03-37ef016049f0"
+          }
+        ],
+        "outputs": {
+          "risk": "high",
+          "callbacks_required": 2,
+          "treasury_hours": 8
+        },
+        "id": "f93048e9-2085-5aea-84cd-11156e15cbda",
+        "enabled": true
+      },
+      {
+        "label": "Bank country changed",
+        "conditions": [
+          {
+            "inputKey": "country_changed",
+            "operator": "equals",
+            "value": "true",
+            "id": "3d52b661-e2a9-59f1-8297-2f0b970bf7e3"
+          }
+        ],
+        "outputs": {
+          "risk": "high",
+          "callbacks_required": 2,
+          "treasury_hours": 8
+        },
+        "id": "03c55292-19cf-58fa-8fdb-2ab3fbc6a939",
+        "enabled": true
+      },
+      {
+        "label": "Supplier already blocked",
+        "conditions": [
+          {
+            "inputKey": "payment_blocked",
+            "operator": "equals",
+            "value": "true",
+            "id": "b286c6f9-5d9f-5e2a-8b7b-977e87398bf2"
+          }
+        ],
+        "outputs": {
+          "risk": "medium",
+          "callbacks_required": 1,
+          "treasury_hours": 24
+        },
+        "id": "1edef35f-d39c-58b4-a1cf-27621a568c18",
+        "enabled": true
+      },
+      {
+        "label": "Same country, same holder",
+        "conditions": [],
+        "outputs": {
+          "risk": "medium",
+          "callbacks_required": 1,
+          "treasury_hours": 24
+        },
+        "id": "ed779493-98e9-5bab-996b-a8decf8c478d",
+        "enabled": true
+      }
+    ]
+  }
+}

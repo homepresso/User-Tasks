@@ -1,0 +1,88 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "e392c9de-d0ba-53be-9a1d-c47394c07538",
+  "asset": {
+    "id": "e392c9de-d0ba-53be-9a1d-c47394c07538",
+    "name": "Access bundles rows",
+    "rows": [
+      {
+        "id": "cd4015f7-2636-5f45-b852-bffddf05acb7",
+        "data": {
+          "bundle_code": "FIN-MGR",
+          "name": "Finance manager",
+          "applications": "ERP (approve journals, PO approval to 50k), BI finance workspace, expense approvals",
+          "groups": "fin-managers, bi-finance-editors",
+          "risk": "high",
+          "owner_team": "Finance systems"
+        }
+      },
+      {
+        "id": "cd07fd99-9a02-5789-9ecf-340fdcd9b762",
+        "data": {
+          "bundle_code": "FIN-AP",
+          "name": "Accounts payable",
+          "applications": "ERP (supplier invoices, payment proposals), invoice capture",
+          "groups": "fin-ap, invoice-capture-users",
+          "risk": "high",
+          "owner_team": "Finance systems"
+        }
+      },
+      {
+        "id": "6cb8a77d-89c8-5291-b170-ce618851f6e4",
+        "data": {
+          "bundle_code": "FIN-BASE",
+          "name": "Finance baseline",
+          "applications": "ERP (display), BI finance viewer",
+          "groups": "fin-all, bi-finance-viewers",
+          "risk": "medium",
+          "owner_team": "Finance systems"
+        }
+      },
+      {
+        "id": "eadfaa40-417e-5c0d-8161-9de10537615a",
+        "data": {
+          "bundle_code": "ENG-DEV",
+          "name": "Engineering developer",
+          "applications": "GitHub (write), CI/CD, AWS dev accounts",
+          "groups": "eng-devs, aws-dev",
+          "risk": "medium",
+          "owner_team": "Platform"
+        }
+      },
+      {
+        "id": "fb3d6d05-17ce-5ae6-b675-0116b17a8a28",
+        "data": {
+          "bundle_code": "PEOPLE-HRP",
+          "name": "HR partner",
+          "applications": "Workday HR partner, case management",
+          "groups": "hr-partners",
+          "risk": "high",
+          "owner_team": "People systems"
+        }
+      },
+      {
+        "id": "753fde6a-a8eb-5d53-a286-7e4d8cdff93b",
+        "data": {
+          "bundle_code": "BASE",
+          "name": "All staff",
+          "applications": "Email, chat, intranet, LMS",
+          "groups": "all-staff",
+          "risk": "low",
+          "owner_team": "IT"
+        }
+      },
+      {
+        "id": "37cdc108-e2f3-57b0-aa1a-2b94163169f8",
+        "data": {
+          "bundle_code": "NONE",
+          "name": "No access (leaver)",
+          "applications": "None: disable account",
+          "groups": "",
+          "risk": "low",
+          "owner_team": "IT"
+        }
+      }
+    ]
+  }
+}

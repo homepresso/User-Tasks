@@ -1,0 +1,47 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "79ab1927-d86a-519b-9a18-a084f7f472a4",
+  "asset": {
+    "id": "79ab1927-d86a-519b-9a18-a084f7f472a4",
+    "name": "Staff directory",
+    "description": "People who can host visitors: the sign-in form looks the host up here and fills in their email and team.",
+    "columns": [
+      {
+        "id": "6ed3f5c0-40cd-5638-8d12-97083e1072b0",
+        "required": true,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "f76ecf93-e208-5f14-b11c-d0fd8f6cf6cc",
+        "required": true,
+        "key": "email",
+        "name": "Email",
+        "type": "text"
+      },
+      {
+        "id": "8947fc7b-4ad5-543d-b6c4-9c32a8fb8ef8",
+        "required": false,
+        "key": "team",
+        "name": "Team",
+        "type": "text"
+      },
+      {
+        "id": "9058be9e-4eae-5e99-ab89-496a4a82df46",
+        "required": false,
+        "key": "floor",
+        "name": "Floor",
+        "type": "text"
+      },
+      {
+        "id": "c975efcc-7e42-5c1a-b97b-d35a8d47aa7d",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      }
+    ]
+  }
+}

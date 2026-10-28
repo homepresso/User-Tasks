@@ -1,0 +1,50 @@
+{{- if .Values.bootstrap.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "usertasks.fullname" . }}-bootstrap
+  labels:
+    {{- include "usertasks.labels" . | nindent 4 }}
+    app.kubernetes.io/component: bootstrap
+  annotations:
+    # Once, after the first install. Re-running is harmless (--if-missing).
+    helm.sh/hook: post-install
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 6
+  activeDeadlineSeconds: 1800
+  template:
+    metadata:
+      labels:
+        {{- include "usertasks.podLabels" (dict "root" . "component" "bootstrap") | nindent 8 }}
+    spec:
+      {{- include "usertasks.podCommon" (dict "root" .) | nindent 6 }}
+      restartPolicy: OnFailure
+      {{- if and .Values.migrate.enabled .Values.waitForMigrations }}
+      initContainers:
+        {{- include "usertasks.waitForMigrations" . | trim | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: bootstrap
+          {{- $pw := dict "name" "BOOTSTRAP_PASSWORD" "valueFrom" (dict "secretKeyRef" (dict "name" (default (include "usertasks.secretName" .) .Values.bootstrap.passwordSecret) "key" .Values.bootstrap.passwordKey)) }}
+          {{- include "usertasks.containerCommon" (dict "root" . "env" (list $pw)) | nindent 10 }}
+          command:
+            - node
+            - admin.cjs
+            - bootstrap
+            - --email
+            - {{ required "bootstrap.email is required with bootstrap.enabled" .Values.bootstrap.email | quote }}
+            - --org
+            - {{ required "bootstrap.org is required with bootstrap.enabled" .Values.bootstrap.org | quote }}
+            {{- with .Values.bootstrap.name }}
+            - --name
+            - {{ . | quote }}
+            {{- end }}
+            - --if-missing
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 512Mi }
+      volumes:
+        {{- include "usertasks.volumes" . | nindent 8 }}
+{{- end }}

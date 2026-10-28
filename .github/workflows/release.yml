@@ -1,0 +1,95 @@
+name: Release packages
+
+# Publishes @usertasks/sdk and/or @usertasks/cli to npm with provenance.
+#   - push a tag sdk-v<version> or cli-v<version> (must match the package.json version), or
+#   - run manually and choose the package(s).
+# Requires the NPM_TOKEN repository secret (an npm automation token with publish
+# rights on the @usertasks scope). Publish the SDK before a CLI that depends on a
+# new SDK version.
+
+on:
+  push:
+    tags:
+      - 'sdk-v*'
+      - 'cli-v*'
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Package(s) to publish
+        type: choice
+        options: [sdk, cli, both]
+        default: both
+      dry_run:
+        description: Run npm publish --dry-run only
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write # npm provenance
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Never from a fork (no NPM_TOKEN there, and provenance would name the fork).
+    if: ${{ !github.event.repository.fork }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      - name: Select packages
+        id: select
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            tag="${GITHUB_REF_NAME}"
+            pkg="${tag%%-v*}"
+            version="${tag#*-v}"
+            actual="$(node -p "require('./packages/${pkg}/package.json').version")"
+            if [[ "$actual" != "$version" ]]; then
+              echo "::error::Tag ${tag} does not match packages/${pkg}/package.json version ${actual}"
+              exit 1
+            fi
+            echo "packages=${pkg}" >> "$GITHUB_OUTPUT"
+            echo "dry_run=false" >> "$GITHUB_OUTPUT"
+          else
+            choice="${{ inputs.package }}"
+            [[ "$choice" == "both" ]] && choice="sdk cli"
+            echo "packages=${choice}" >> "$GITHUB_OUTPUT"
+            echo "dry_run=${{ inputs.dry_run }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify
+        run: |
+          npx next typegen
+          npm run typecheck
+          npm run openapi:check
+          npx vitest run packages
+
+      - name: Build
+        run: npm run cli:build
+
+      - name: Publish
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          flags="--provenance --access public"
+          [[ "${{ steps.select.outputs.dry_run }}" == "true" ]] && flags="$flags --dry-run"
+          for pkg in ${{ steps.select.outputs.packages }}; do
+            echo "::group::npm publish @usertasks/${pkg}"
+            npm publish -w "@usertasks/${pkg}" $flags
+            echo "::endgroup::"
+          done

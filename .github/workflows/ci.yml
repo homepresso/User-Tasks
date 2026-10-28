@@ -1,0 +1,241 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # next-env.d.ts (image module types) and route types are generated and
+      # gitignored: a fresh checkout has neither.
+      - name: Generate Next.js types
+        run: npx next typegen
+
+      - name: Type check (app + packages)
+        run: npm run typecheck
+
+      - name: OpenAPI spec, SDK types and CLI commands up to date
+        run: npm run openapi:check
+
+      - name: Unit tests (app, SDK, CLI)
+        run: npx vitest run
+
+      - name: Build and pack SDK + CLI
+        run: |
+          npm run cli:build
+          npm pack --dry-run -w @usertasks/sdk -w @usertasks/cli
+          node packages/cli/dist/bin.js --version
+
+      # The build needs no database: Supabase is only contacted at request
+      # time, so placeholder values are enough. (It does need network access
+      # for next/font/google.)
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          DEPLOYMENT_MODE: self_hosted
+
+  # The full suite against a local Supabase stack, once per database provider:
+  # `supabase` (supabase-js → PostgREST, the production default) and
+  # `postgres` (the same clients served in-process by @usertasks/pg-query over
+  # DATABASE_URL). DB-gated tests run here (they skip in `check`), including
+  # the pg-query conformance suite (PostgREST vs pg-query, same role/claims).
+  # Plain PostgreSQL (no Supabase stack) is the plain-postgres job below.
+  db-providers:
+    name: DB suite (${{ matrix.provider }} db, ${{ matrix.realtime }} realtime, ${{ matrix.storage }} storage, ${{ matrix.cache }} cache)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: [supabase, postgres]
+        realtime: [supabase]
+        storage: [supabase]
+        cache: [memory]
+        include:
+          # Realtime provider phase 5: the SSE provider's NOTIFY/LISTEN path.
+          - provider: supabase
+            realtime: sse
+            storage: supabase
+          # Storage provider phase 6: the whole suite on local disk and on S3 (MinIO).
+          - provider: supabase
+            realtime: supabase
+            storage: local
+          - provider: supabase
+            realtime: supabase
+            storage: s3
+          # Cache provider phase 13: the whole suite with shared rate limits
+          # and invalidations in Postgres and in Valkey.
+          - provider: supabase
+            realtime: supabase
+            storage: supabase
+            cache: postgres
+          - provider: postgres
+            realtime: supabase
+            storage: supabase
+            cache: redis
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      EVENT_STREAM_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      # Storage provider contract suite against emulators (started below).
+      STORAGE_TEST_S3_ENDPOINT: http://127.0.0.1:9010
+      STORAGE_TEST_AZURE_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10010/devstoreaccount1;
+      STORAGE_TEST_GCS_ENDPOINT: http://127.0.0.1:4443
+      # Cache store contract + multi-replica suite against Valkey (started below).
+      CACHE_TEST_REDIS_URL: redis://127.0.0.1:6390
+      # Directory sync phase 16: LDAP sync + bind login against OpenLDAP.
+      LDAP_TEST_URL: ldap://127.0.0.1:3890
+      LDAP_TEST_BIND_DN: cn=admin,dc=acme,dc=test
+      LDAP_TEST_BIND_PASSWORD: admin-pass
+      LDAP_TEST_BASE_DN: dc=acme,dc=test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Applies supabase/migrations. Only the services the tests use.
+      - name: Start the local Supabase stack
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit,postgres-meta
+
+      # MinIO (community build), Azurite and fake-gcs-server.
+      - name: Start storage emulators
+        run: |
+          docker run -d --name minio -p 9010:9000 -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin pgsty/minio server /data
+          docker run -d --name azurite -p 10010:10000 mcr.microsoft.com/azure-storage/azurite azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck --loose
+          docker run -d --name fake-gcs -p 4443:4443 fsouza/fake-gcs-server -scheme http -port 4443 -public-host 127.0.0.1:4443 -external-url http://127.0.0.1:4443
+          docker run -d --name valkey -p 6390:6379 valkey/valkey:8-alpine
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:9010/minio/health/live && break; sleep 1; done
+
+      - name: Start a directory server (OpenLDAP)
+        run: |
+          docker run -d --name openldap -p 3890:389 -e LDAP_DOMAIN=acme.test -e LDAP_ADMIN_PASSWORD=admin-pass -e LDAP_TLS=false osixia/openldap:1.5.0
+          for i in $(seq 1 30); do docker exec openldap ldapsearch -x -H ldap://localhost -b dc=acme,dc=test -D cn=admin,dc=acme,dc=test -w admin-pass -s base >/dev/null 2>&1 && break; sleep 1; done
+
+      - name: Full test suite
+        run: npx vitest run
+        env:
+          DB_PROVIDER: ${{ matrix.provider }}
+          REALTIME_PROVIDER: ${{ matrix.realtime }}
+          STORAGE_PROVIDER: ${{ matrix.storage }}
+          CACHE_PROVIDER: ${{ matrix.cache }}
+          CACHE_REDIS_URL: ${{ matrix.cache == 'redis' && 'redis://127.0.0.1:6390' || '' }}
+          STORAGE_LOCAL_ROOT: ${{ runner.temp }}/storage
+          S3_ENDPOINT: ${{ matrix.storage == 's3' && 'http://127.0.0.1:9010' || '' }}
+          S3_ACCESS_KEY_ID: ${{ matrix.storage == 's3' && 'minioadmin' || '' }}
+          S3_SECRET_ACCESS_KEY: ${{ matrix.storage == 's3' && 'minioadmin' || '' }}
+          S3_FORCE_PATH_STYLE: ${{ matrix.storage == 's3' && 'true' || '' }}
+          DATABASE_URL: ${{ matrix.provider == 'postgres' && 'postgresql://postgres:postgres@127.0.0.1:54322/postgres' || '' }}
+          # The local stack's well-known JWT secret (HS256 API keys); user
+          # sessions are verified against its JWKS.
+          SUPABASE_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
+
+      - name: Stop the stack
+        if: always()
+        run: supabase stop --no-backup
+
+  # Supabase-free: the migration chain applied by usertasks-admin to plain
+  # PostgreSQL (as a superuser, and as a managed-style owner without SUPERUSER
+  # or BYPASSRLS), then the full suite with every non-Supabase provider.
+  # Tests of Supabase services (Auth admin API, Storage, PostgREST
+  # conformance, pg_cron, Vault) skip by capability detection.
+  plain-postgres:
+    name: Plain PostgreSQL ${{ matrix.pg }} (${{ matrix.owner }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { pg: 16, owner: superuser }
+          - { pg: 17, owner: superuser }
+          - { pg: 16, owner: managed }
+    services:
+      postgres:
+        image: postgres:${{ matrix.pg }}
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 2s --health-timeout 5s --health-retries 30
+      valkey:
+        image: valkey/valkey:8-alpine
+        ports: ['6390:6379']
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Create the database (managed = a CREATEDB/CREATEROLE owner, no SUPERUSER)
+        run: |
+          if [ "${{ matrix.owner }}" = managed ]; then
+            psql "$ADMIN_URL" -c "CREATE ROLE app_owner LOGIN PASSWORD 'app_owner' CREATEDB CREATEROLE" -c "CREATE DATABASE usertasks OWNER app_owner"
+            echo "DB_URL=postgresql://app_owner:app_owner@127.0.0.1:5432/usertasks" >> "$GITHUB_ENV"
+          else
+            psql "$ADMIN_URL" -c "CREATE DATABASE usertasks"
+            echo "DB_URL=postgresql://postgres:postgres@127.0.0.1:5432/usertasks" >> "$GITHUB_ENV"
+          fi
+
+      - name: usertasks-admin db migrate (twice — the second run has nothing to do)
+        run: |
+          npm run admin -- db migrate --db-url "$DB_URL"
+          npm run admin -- db migrate --db-url "$DB_URL" | grep -q 'Up to date.'
+          npm run admin -- db status --db-url "$DB_URL"
+
+      - name: Full test suite, Supabase-free providers
+        run: npx vitest run
+        env:
+          EVENT_STREAM_DB_URL: ${{ env.DB_URL }}
+          DATABASE_URL: ${{ env.DB_URL }}
+          MIGRATION_TEST_ADMIN_URL: ${{ env.ADMIN_URL }}
+          DB_PROVIDER: postgres
+          AUTH_PROVIDER: builtin
+          REALTIME_PROVIDER: sse
+          STORAGE_PROVIDER: local
+          STORAGE_LOCAL_ROOT: ${{ runner.temp }}/storage
+          SCHEDULER_PROVIDER: worker
+          CACHE_PROVIDER: postgres
+          CACHE_TEST_REDIS_URL: redis://127.0.0.1:6390
+          # Nothing may reach a Supabase stack (there is none).
+          ENGINE_SMOKE_SUPABASE_URL: http://127.0.0.1:9
+          LOCKDOWN_SUPABASE_URL: http://127.0.0.1:9
+          PGQ_CONFORMANCE_API_URL: http://127.0.0.1:9

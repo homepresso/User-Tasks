@@ -1,0 +1,110 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "9b8b8387-f6a0-4c00-93e3-784279f82251",
+  "asset": {
+    "id": "9b8b8387-f6a0-4c00-93e3-784279f82251",
+    "name": "Country risk rows",
+    "rows": [
+      {
+        "id": "5cff0620-c226-4258-90d3-56da9bd2a828",
+        "data": {
+          "country": "NZ",
+          "country_name": "New Zealand",
+          "risk_rating": "low",
+          "notes": ""
+        }
+      },
+      {
+        "id": "de58e17a-99bd-4c7c-92fd-c0d452275445",
+        "data": {
+          "country": "AU",
+          "country_name": "Australia",
+          "risk_rating": "low",
+          "notes": ""
+        }
+      },
+      {
+        "id": "eceb761b-09b3-465d-84e4-1e91ef2ea4e6",
+        "data": {
+          "country": "GB",
+          "country_name": "United Kingdom",
+          "risk_rating": "low",
+          "notes": ""
+        }
+      },
+      {
+        "id": "e420525a-d752-4e95-b4f5-e016c95eb101",
+        "data": {
+          "country": "US",
+          "country_name": "United States",
+          "risk_rating": "low",
+          "notes": ""
+        }
+      },
+      {
+        "id": "0f2e5fd6-0cdc-4a84-bb54-3881af37b2c4",
+        "data": {
+          "country": "DE",
+          "country_name": "Germany",
+          "risk_rating": "low",
+          "notes": ""
+        }
+      },
+      {
+        "id": "8dc58a67-4394-42a9-8897-3453988f0530",
+        "data": {
+          "country": "SG",
+          "country_name": "Singapore",
+          "risk_rating": "low",
+          "notes": ""
+        }
+      },
+      {
+        "id": "c3452d67-e43d-4f0f-9830-b4f0e82df668",
+        "data": {
+          "country": "IN",
+          "country_name": "India",
+          "risk_rating": "medium",
+          "notes": "Check beneficial ownership"
+        }
+      },
+      {
+        "id": "0c5b5f19-41f0-4942-8f92-294a1c2f57a5",
+        "data": {
+          "country": "CN",
+          "country_name": "China",
+          "risk_rating": "medium",
+          "notes": "Check export-control lists"
+        }
+      },
+      {
+        "id": "4dd3f9ee-8ffe-4451-b930-118c4872851e",
+        "data": {
+          "country": "AE",
+          "country_name": "United Arab Emirates",
+          "risk_rating": "medium",
+          "notes": "Check beneficial ownership"
+        }
+      },
+      {
+        "id": "874774a4-90cf-4421-968d-edb4f226e396",
+        "data": {
+          "country": "ZA",
+          "country_name": "South Africa",
+          "risk_rating": "medium",
+          "notes": ""
+        }
+      },
+      {
+        "id": "997b945b-b3a9-4a28-a9a5-6f489f0ec742",
+        "data": {
+          "country": "BR",
+          "country_name": "Brazil",
+          "risk_rating": "medium",
+          "notes": ""
+        }
+      }
+    ]
+  }
+}

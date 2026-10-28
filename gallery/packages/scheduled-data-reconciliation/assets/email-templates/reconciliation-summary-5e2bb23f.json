@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "5e2bb23f-900b-4c0b-b53c-0171f1a73797",
+  "asset": {
+    "id": "5e2bb23f-900b-4c0b-b53c-0171f1a73797",
+    "name": "Reconciliation summary",
+    "description": "Daily summary sent to finance operations.",
+    "subject": "Order-to-invoice reconciliation {{date}}: {{exception_count}} exceptions",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Reconciliation for {{date}}</h2>\n  <ul>\n    <li>Orders checked: <strong>{{order_count}}</strong></li>\n    <li>Matched: {{matched_count}}</li>\n    <li>Missing invoice: {{missing_count}}</li>\n    <li>Amount mismatch: {{mismatch_count}}</li>\n  </ul>\n  <p>Open exceptions are in the Reconciliation exceptions table.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your scheduled reconciliation workflow</p>\n</div>",
+    "text_body": "Reconciliation for {{date}}\n\n    Orders checked: {{order_count}}\n    Matched: {{matched_count}}\n    Missing invoice: {{missing_count}}\n    Amount mismatch: {{mismatch_count}}\n\n  Open exceptions are in the Reconciliation exceptions table.\n  Sent by your scheduled reconciliation workflow",
+    "is_default": false
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "format_version": 3,
+  "asset_type": "integrations",
+  "id": "6d6b9008-fcfe-463d-b597-fccec99d0518",
+  "asset": {
+    "id": "6d6b9008-fcfe-463d-b597-fccec99d0518",
+    "name": "Inventory API",
+    "type": "rest_api",
+    "config": {
+      "base_url": "https://inventory.example.com/api",
+      "auth_type": "bearer",
+      "auth_config": {
+        "token": "__SECRET__"
+      },
+      "headers": {}
+    },
+    "is_active": true,
+    "tags": [
+      "orders",
+      "inventory"
+    ]
+  }
+}

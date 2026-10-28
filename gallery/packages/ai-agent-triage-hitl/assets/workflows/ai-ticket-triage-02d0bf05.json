@@ -1,0 +1,544 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "02d0bf05-aec5-4b89-ac69-413c4268b540",
+  "asset": {
+    "id": "02d0bf05-aec5-4b89-ac69-413c4268b540",
+    "name": "AI ticket triage",
+    "description": "A helpdesk ticket is triaged by an AI agent; routing rules decide whether its reply is sent automatically or a person reviews the triage, edits the reply and sends, escalates or discards it.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Ticket received",
+        "position": {
+          "x": 980,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 980,
+          "y": 220
+        },
+        "config": {
+          "title": "Ticket {{ticket_id}}: {{subject}}"
+        }
+      },
+      {
+        "id": "triage",
+        "type": "run_agent",
+        "label": "Triage ticket",
+        "position": {
+          "x": 980,
+          "y": 380
+        },
+        "config": {
+          "agent_id": "57ca51c4-2f94-41e0-a047-61ed701f3bc9",
+          "agent_name": "Ticket triage agent",
+          "output_variable": "triage",
+          "max_iterations": 3,
+          "timeout_ms": 60000,
+          "user_message": "Ticket {{ticket_id}} via {{channel}} from a {{tier}} plan customer.\n\nSubject: {{subject}}\n\n{{body}}"
+        }
+      },
+      {
+        "id": "route",
+        "type": "decision_table",
+        "label": "Triage routing",
+        "position": {
+          "x": 980,
+          "y": 540
+        },
+        "config": {
+          "decision_table_id": "19ef99f1-33f7-41d8-8007-2665393e53de",
+          "decision_table_name": "Triage routing",
+          "input_mappings": {
+            "confidence": "{{=COALESCE(confidence, 0)}}",
+            "urgency": "{{=LOWER(COALESCE(urgency, \"normal\"))}}",
+            "category": "{{=LOWER(COALESCE(category, \"other\"))}}",
+            "tier": "{{=LOWER(tier)}}"
+          }
+        }
+      },
+      {
+        "id": "auto",
+        "type": "condition",
+        "label": "Auto-reply?",
+        "position": {
+          "x": 980,
+          "y": 700
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Auto-reply",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{auto_reply}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "auto_text",
+        "type": "set_variable",
+        "label": "AI reply",
+        "position": {
+          "x": 340,
+          "y": 880
+        },
+        "config": {
+          "name": "reply_text",
+          "expression": "{{suggested_reply}}"
+        }
+      },
+      {
+        "id": "auto_status",
+        "type": "set_variable",
+        "label": "Status pending",
+        "position": {
+          "x": 340,
+          "y": 1060
+        },
+        "config": {
+          "name": "final_status",
+          "expression": "pending"
+        }
+      },
+      {
+        "id": "review",
+        "type": "user_task",
+        "label": "Review AI triage",
+        "position": {
+          "x": 980,
+          "y": 880
+        },
+        "config": {
+          "task_title": "Review triage: {{ticket_id}} {{subject}} ({{urgency}}, {{=ROUND(MULTIPLY(confidence, 100), 0)}}% confident)",
+          "task_description": "<p><strong>{{subject}}</strong> from {{customer_email}} ({{tier}} plan, {{channel}}).</p><blockquote>{{body}}</blockquote><p>AI summary: {{summary}}</p><p>Category <strong>{{category}}</strong>, urgency <strong>{{urgency}}</strong>, sentiment {{sentiment}}, confidence {{confidence}}. Rule “{{rule_label}}” → queue {{queue}}, priority {{priority}}.</p><p>Check the category and edit the suggested reply, then send it, escalate or discard.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Send reply",
+            "Escalate",
+            "Discard"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "a64c86ee-ee4f-4336-9bb5-b170674765c3",
+          "assignee_variable": "{{reviewer_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 4,
+          "due_offset_unit": "hours",
+          "reminders": [
+            {
+              "offset_minutes": 120
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 480,
+          "fields": [
+            {
+              "key": "category",
+              "label": "Category",
+              "type": "choice",
+              "required": true,
+              "options": [
+                "billing",
+                "technical",
+                "how_to",
+                "account",
+                "security",
+                "feedback",
+                "other"
+              ],
+              "default": "{{category}}"
+            },
+            {
+              "key": "reply",
+              "label": "Reply to the customer",
+              "type": "text",
+              "required": true,
+              "default": "{{suggested_reply}}"
+            },
+            {
+              "key": "priority",
+              "label": "Priority",
+              "type": "choice",
+              "options": [
+                "low",
+                "medium",
+                "high",
+                "critical"
+              ],
+              "default": "{{priority}}"
+            },
+            {
+              "key": "note",
+              "label": "Internal note",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      {
+        "id": "human_text",
+        "type": "set_variable",
+        "label": "Reviewed reply",
+        "position": {
+          "x": 660,
+          "y": 1060
+        },
+        "config": {
+          "name": "reply_text",
+          "expression": "{{task_data.reply}}"
+        }
+      },
+      {
+        "id": "human_status",
+        "type": "set_variable",
+        "label": "Status pending (reviewed)",
+        "position": {
+          "x": 660,
+          "y": 1220
+        },
+        "config": {
+          "name": "final_status",
+          "expression": "pending"
+        }
+      },
+      {
+        "id": "reply",
+        "type": "call_reference",
+        "label": "Post reply",
+        "position": {
+          "x": 340,
+          "y": 1380
+        },
+        "config": {
+          "reference_id": "029e391f-463c-4eb8-b3c9-120c5d877231",
+          "reference_name": "Post reply",
+          "reference_method": "POST",
+          "input_mappings": {
+            "ticket_id": "{{ticket_id}}",
+            "body": "{{=TO_JSON(reply_text)}}",
+            "author": "Support team"
+          },
+          "output_mappings": {
+            "reply_id": {
+              "enabled": true,
+              "variableName": "reply_id"
+            }
+          }
+        }
+      },
+      {
+        "id": "update",
+        "type": "call_reference",
+        "label": "Update ticket",
+        "position": {
+          "x": 340,
+          "y": 1540
+        },
+        "config": {
+          "reference_id": "bcb8d3a2-bc6e-4707-aefb-ac5be0a7b487",
+          "reference_name": "Update ticket",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "ticket_id": "{{ticket_id}}",
+            "status": "{{final_status}}",
+            "priority": "{{=COALESCE(task_data.priority, priority)}}",
+            "queue": "{{queue}}",
+            "category": "{{=COALESCE(task_data.category, category)}}",
+            "tag": "{{=IF(auto_reply, \"auto-replied\", \"human-reviewed\")}}",
+            "internal_note": "{{=TO_JSON(CONCAT(\"AI summary: \", summary, \" | confidence \", confidence, \" | \", COALESCE(task_data.note, \"\")))}}"
+          },
+          "output_mappings": {
+            "ticket_url": {
+              "enabled": true,
+              "variableName": "ticket_url"
+            }
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Replied",
+        "position": {
+          "x": 340,
+          "y": 1700
+        },
+        "config": {
+          "reason": "Ticket {{ticket_id}} replied ({{reply_id}}), queue {{queue}}"
+        }
+      },
+      {
+        "id": "esc_update",
+        "type": "call_reference",
+        "label": "Escalate ticket",
+        "position": {
+          "x": 980,
+          "y": 1060
+        },
+        "config": {
+          "reference_id": "bcb8d3a2-bc6e-4707-aefb-ac5be0a7b487",
+          "reference_name": "Update ticket",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "ticket_id": "{{ticket_id}}",
+            "status": "open",
+            "priority": "{{=COALESCE(task_data.priority, \"high\")}}",
+            "queue": "Escalations",
+            "category": "{{task_data.category}}",
+            "tag": "escalated",
+            "internal_note": "{{=TO_JSON(CONCAT(\"Escalated after AI triage: \", COALESCE(task_data.note, \"\"), \" | AI summary: \", summary))}}"
+          }
+        }
+      },
+      {
+        "id": "esc_email",
+        "type": "send_email",
+        "label": "Email escalation contact",
+        "position": {
+          "x": 980,
+          "y": 1220
+        },
+        "config": {
+          "to": "{{escalation_email}}",
+          "email_template_id": "67b50444-1479-427f-87d8-add24622633e"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "end_esc",
+        "type": "end_workflow",
+        "label": "Escalated",
+        "position": {
+          "x": 980,
+          "y": 1380
+        },
+        "config": {
+          "reason": "Ticket {{ticket_id}} escalated"
+        }
+      },
+      {
+        "id": "discard",
+        "type": "call_reference",
+        "label": "Keep in queue",
+        "position": {
+          "x": 1300,
+          "y": 1060
+        },
+        "config": {
+          "reference_id": "bcb8d3a2-bc6e-4707-aefb-ac5be0a7b487",
+          "reference_name": "Update ticket",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "ticket_id": "{{ticket_id}}",
+            "status": "open",
+            "priority": "{{=COALESCE(task_data.priority, priority)}}",
+            "queue": "{{queue}}",
+            "category": "{{task_data.category}}",
+            "tag": "ai-reply-discarded",
+            "internal_note": "{{=TO_JSON(CONCAT(\"AI reply discarded: \", COALESCE(task_data.note, \"\")))}}"
+          }
+        }
+      },
+      {
+        "id": "end_discard",
+        "type": "end_workflow",
+        "label": "Left for an agent",
+        "position": {
+          "x": 1300,
+          "y": 1220
+        },
+        "config": {
+          "reason": "Ticket {{ticket_id}}: AI reply discarded, left in {{queue}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-triage",
+        "source": "title",
+        "target": "triage"
+      },
+      {
+        "id": "e-triage-route",
+        "source": "triage",
+        "target": "route"
+      },
+      {
+        "id": "e-route-auto",
+        "source": "route",
+        "target": "auto"
+      },
+      {
+        "id": "e-auto-auto_text-auto-reply",
+        "source": "auto",
+        "target": "auto_text",
+        "label": "Auto-reply"
+      },
+      {
+        "id": "e-auto_text-auto_status",
+        "source": "auto_text",
+        "target": "auto_status"
+      },
+      {
+        "id": "e-auto_status-reply",
+        "source": "auto_status",
+        "target": "reply"
+      },
+      {
+        "id": "e-auto-review-else",
+        "source": "auto",
+        "target": "review",
+        "label": "Else"
+      },
+      {
+        "id": "e-review-human_text-send-reply",
+        "source": "review",
+        "target": "human_text",
+        "label": "Send reply"
+      },
+      {
+        "id": "e-human_text-human_status",
+        "source": "human_text",
+        "target": "human_status"
+      },
+      {
+        "id": "e-human_status-reply",
+        "source": "human_status",
+        "target": "reply"
+      },
+      {
+        "id": "e-reply-update",
+        "source": "reply",
+        "target": "update"
+      },
+      {
+        "id": "e-update-done",
+        "source": "update",
+        "target": "done"
+      },
+      {
+        "id": "e-review-esc_update-escalate",
+        "source": "review",
+        "target": "esc_update",
+        "label": "Escalate"
+      },
+      {
+        "id": "e-esc_update-esc_email",
+        "source": "esc_update",
+        "target": "esc_email"
+      },
+      {
+        "id": "e-esc_email-end_esc",
+        "source": "esc_email",
+        "target": "end_esc"
+      },
+      {
+        "id": "e-review-discard-discard",
+        "source": "review",
+        "target": "discard",
+        "label": "Discard"
+      },
+      {
+        "id": "e-discard-end_discard",
+        "source": "discard",
+        "target": "end_discard"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-ticket_id",
+        "name": "ticket_id",
+        "type": "string",
+        "description": "Ticket id in the helpdesk",
+        "defaultValue": "",
+        "required": true,
+        "label": "Ticket id"
+      },
+      {
+        "id": "v-subject",
+        "name": "subject",
+        "type": "string",
+        "description": "Ticket subject",
+        "defaultValue": "",
+        "required": true,
+        "label": "Subject"
+      },
+      {
+        "id": "v-body",
+        "name": "body",
+        "type": "string",
+        "description": "Ticket text from the customer",
+        "defaultValue": "",
+        "required": true,
+        "label": "Body"
+      },
+      {
+        "id": "v-customer_email",
+        "name": "customer_email",
+        "type": "string",
+        "description": "Customer email",
+        "defaultValue": "",
+        "label": "Customer email",
+        "format": "email"
+      },
+      {
+        "id": "v-channel",
+        "name": "channel",
+        "type": "string",
+        "description": "Where the ticket came from: email, web_form, chat",
+        "defaultValue": "email",
+        "label": "Channel"
+      },
+      {
+        "id": "v-tier",
+        "name": "tier",
+        "type": "string",
+        "description": "Customer plan tier: free, pro, enterprise",
+        "defaultValue": "pro",
+        "label": "Plan tier"
+      },
+      {
+        "id": "v-escalation_email",
+        "name": "escalation_email",
+        "type": "string",
+        "description": "Who is emailed when a reviewer escalates",
+        "defaultValue": "support-leads@example.com",
+        "label": "Escalation email",
+        "format": "email"
+      },
+      {
+        "id": "v-reviewer_id",
+        "name": "reviewer_id",
+        "type": "string",
+        "description": "Optional: user id of the support reviewer (overrides the install-time default)",
+        "defaultValue": "",
+        "label": "Reviewer (user id)"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

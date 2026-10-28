@@ -1,0 +1,115 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "7eaa7c35-9365-4c93-9c7e-5666affc8cf9",
+  "asset": {
+    "id": "7eaa7c35-9365-4c93-9c7e-5666affc8cf9",
+    "integration_id": "67cd1f32-620a-4b1d-b812-388e8016357d",
+    "name": "Request CRM erasure",
+    "description": "Queues erasure (or anonymisation where records must be kept) of the subject in the CRM.",
+    "tags": [
+      "dsar"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"subject_id\":\"{{subject_id}}\",\"email\":\"{{email}}\",\"reference\":\"{{reference}}\"}",
+      "path_template": "/erasure-requests",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "ER-CRM-7741"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "scheduled"
+            },
+            {
+              "name": "scheduled_for",
+              "type": "string",
+              "example": "2026-10-27"
+            },
+            {
+              "name": "retained",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "example": "opportunities (legal hold: contract records)"
+              }
+            }
+          ]
+        },
+        "sample": {
+          "id": "ER-CRM-7741",
+          "status": "scheduled",
+          "scheduled_for": "2026-10-27",
+          "retained": [
+            "opportunities (legal hold: contract records)"
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "4742500a-3707-4816-bd58-865df5be0283",
+        "name": "subject_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "76c55880-5653-41cf-8227-18bfdcf60763",
+        "name": "email",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "00753dc5-dc8c-4994-80f1-e875b4b8bfee",
+        "name": "reference",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "36d002c8-027a-4814-9942-0ce0a00c5a60",
+        "name": "erasure_id",
+        "path": "id",
+        "type": "string"
+      },
+      {
+        "id": "d66d97b5-cf82-4cfd-84c4-150531471e35",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "88e9ef96-6544-40a2-9bf0-beff14b38b7a",
+        "name": "retained",
+        "path": "retained",
+        "type": "array"
+      }
+    ]
+  }
+}

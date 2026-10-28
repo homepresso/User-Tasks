@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "16a13442-4573-59ed-bfd6-95df0e1c83ab",
+  "asset": {
+    "id": "16a13442-4573-59ed-bfd6-95df0e1c83ab",
+    "name": "Discount approved",
+    "description": "Sent to the opportunity owner when the discount is approved.",
+    "subject": "Discount approved: {{opportunity_name}} ({{approved_discount}}%)",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;color:#1B1916\">\n  <div style=\"border-top:4px solid #0B5CAB;padding-top:16px\"><h2 style=\"margin:0 0 12px;font-size:20px\">Your discount is approved</h2></div>\n  <p style=\"margin:0 0 12px\"><strong>{{opportunity_name}}</strong> · {{currency}} {{=FORMAT_NUMBER(amount, 0)}} · close {{close_date}}</p>\n  <p style=\"margin:0 0 12px\">Approved discount: <strong>{{approved_discount}}%</strong> (requested {{discount}}%). {{tier}}.</p>\n  <p style=\"margin:0 0 12px\">Notes: {{approval_notes}}</p>\n  <p style=\"margin:0 0 12px\"><a href=\"https://acme.lightning.force.example.com/lightning/r/Opportunity/{{opportunity_id}}/view\" style=\"color:#0B5CAB\">Open the opportunity</a></p>\n  <p style=\"color:#6E6759;font-size:13px;margin-top:20px\">Sent by the Salesforce discount approval workflow</p>\n</div>",
+    "text_body": "Discount approved: {{opportunity_name}}\nApproved {{approved_discount}}% (requested {{discount}}%). {{tier}}.\nNotes: {{approval_notes}}",
+    "is_default": false
+  }
+}

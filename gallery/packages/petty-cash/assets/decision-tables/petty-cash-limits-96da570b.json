@@ -1,0 +1,152 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "96da570b-c820-5b76-be90-6ff085722f9b",
+  "asset": {
+    "id": "96da570b-c820-5b76-be90-6ff085722f9b",
+    "name": "Petty cash limits",
+    "description": "How a claim is handled, by amount, receipt and the month's float. First matching rule wins.",
+    "inputs": [
+      {
+        "key": "amount",
+        "label": "Amount (NZD)",
+        "type": "number",
+        "id": "fd157920-5282-5f11-89c5-4387eb4d7ae7"
+      },
+      {
+        "key": "has_receipt",
+        "label": "Receipt attached",
+        "type": "boolean",
+        "id": "63a120e8-8b9c-5ad5-9e57-0a67bc5f3e46"
+      },
+      {
+        "key": "over_float",
+        "label": "Over the monthly float",
+        "type": "boolean",
+        "id": "435563b4-9098-5430-853c-c7472b809ab0"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "route",
+        "label": "Route",
+        "type": "text",
+        "id": "5c664c92-034a-5499-aa36-d13fde908d48"
+      },
+      {
+        "key": "auto_approve",
+        "label": "Auto-approve",
+        "type": "boolean",
+        "id": "6c2bd6f0-4828-5d36-8735-363ec838e71c"
+      },
+      {
+        "key": "auto_reject",
+        "label": "Auto-reject",
+        "type": "boolean",
+        "id": "03e15934-74fc-5672-b091-ed78d2361b08"
+      },
+      {
+        "key": "note",
+        "label": "Note",
+        "type": "text",
+        "id": "bf326e1c-d814-5f60-89a7-f995e6c4e8a1"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Above the petty cash limit",
+        "conditions": [
+          {
+            "inputKey": "amount",
+            "operator": "greater_than",
+            "value": "250",
+            "id": "7fa31327-9e6b-57cf-ab58-6d2ed4f31ca1"
+          }
+        ],
+        "outputs": {
+          "route": "Above limit",
+          "auto_approve": false,
+          "auto_reject": true,
+          "note": "Petty cash covers up to NZD 250; please submit an expense claim instead"
+        },
+        "id": "c091616c-4ac7-5d0a-875c-989ad8c0ade7",
+        "enabled": true
+      },
+      {
+        "label": "No receipt over 20",
+        "conditions": [
+          {
+            "inputKey": "has_receipt",
+            "operator": "equals",
+            "value": "false",
+            "id": "060eb69d-0616-5b95-a403-fa021f905d3e"
+          },
+          {
+            "inputKey": "amount",
+            "operator": "greater_than",
+            "value": "20",
+            "id": "a6d12327-e2aa-506c-afb0-cd0055c29fa4"
+          }
+        ],
+        "outputs": {
+          "route": "Receipt missing",
+          "auto_approve": false,
+          "auto_reject": true,
+          "note": "A receipt is needed for anything over NZD 20"
+        },
+        "id": "beaf6a7b-77b1-56db-b0fb-df27b8a51928",
+        "enabled": true
+      },
+      {
+        "label": "Float used up",
+        "conditions": [
+          {
+            "inputKey": "over_float",
+            "operator": "equals",
+            "value": "true",
+            "id": "3d137469-d212-52b5-9315-6e812d5c8589"
+          }
+        ],
+        "outputs": {
+          "route": "Over float",
+          "auto_approve": false,
+          "auto_reject": false,
+          "note": "This claim takes the cost centre over its monthly float"
+        },
+        "id": "5abf662d-ac39-5a11-aba2-9c9bc1e1e8fd",
+        "enabled": true
+      },
+      {
+        "label": "Small with receipt",
+        "conditions": [
+          {
+            "inputKey": "amount",
+            "operator": "less_than_or_equal",
+            "value": "50",
+            "id": "02d4d7d2-7a17-51e9-8b51-645b258a0646"
+          }
+        ],
+        "outputs": {
+          "route": "Small with receipt",
+          "auto_approve": true,
+          "auto_reject": false,
+          "note": "Up to NZD 50 with a receipt is paid without approval"
+        },
+        "id": "967cd4aa-8ac1-57a6-b54f-eb4bffe49a37",
+        "enabled": true
+      },
+      {
+        "label": "Budget holder",
+        "conditions": [],
+        "outputs": {
+          "route": "Budget holder",
+          "auto_approve": false,
+          "auto_reject": false,
+          "note": "NZD 50 to 250: the budget holder approves"
+        },
+        "id": "3a631c40-55d1-545e-8a0d-18788599e651",
+        "enabled": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "4e4a23e9-834c-47eb-9326-704495f8c238",
+  "asset": {
+    "id": "4e4a23e9-834c-47eb-9326-704495f8c238",
+    "name": "Application catalogue",
+    "description": "Applications people can request, with the owner, risk level, whether roles are privileged and the directory group that grants access. Edit the rows to match your estate.",
+    "columns": [
+      {
+        "id": "ee88465f-67cf-4548-aaed-f44cceb7bef1",
+        "required": true,
+        "key": "application",
+        "name": "Application",
+        "type": "text"
+      },
+      {
+        "id": "20811ccf-2a89-459a-b763-303abd9db52e",
+        "required": false,
+        "key": "owner_role",
+        "name": "Application owner",
+        "type": "text"
+      },
+      {
+        "id": "cca30229-1cba-4e06-a77f-facbbe3b8053",
+        "required": false,
+        "key": "risk_level",
+        "name": "Risk level",
+        "type": "text"
+      },
+      {
+        "id": "8ab6a24f-d867-4ed0-b399-35533dfe2930",
+        "required": false,
+        "key": "privileged",
+        "name": "Privileged",
+        "type": "boolean"
+      },
+      {
+        "id": "d7be0ec2-3054-4d81-a81f-3f3a6c02a9c5",
+        "required": true,
+        "key": "provisioning_group",
+        "name": "Provisioning group",
+        "type": "text"
+      },
+      {
+        "id": "65f8a9b0-0154-4cc5-8696-c0861e4f49af",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      }
+    ]
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "d33433d3-e885-41dc-b51c-4e213e529d4d",
+  "asset": {
+    "id": "d33433d3-e885-41dc-b51c-4e213e529d4d",
+    "integration_id": "96c7d258-c1a4-43b7-b03a-7a3ccc9ce207",
+    "name": "Authorise payment",
+    "description": "Authorise (not capture) the order total against the tokenised payment method from the storefront.",
+    "tags": [
+      "payments"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"order_id\":\"{{order_id}}\",\"amount\":{{amount}},\"currency\":\"{{currency}}\",\"payment_method_ref\":\"{{payment_method_ref}}\",\"customer_id\":\"{{customer_id}}\",\"risk_score\":{{risk_score}}}",
+      "path_template": "/payments/authorize",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "authorization_id",
+              "type": "string",
+              "example": "AUTH-5Q2K91"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "authorized"
+            },
+            {
+              "name": "amount",
+              "type": "number",
+              "example": 162.38
+            },
+            {
+              "name": "currency",
+              "type": "string",
+              "example": "NZD"
+            },
+            {
+              "name": "decline_code",
+              "type": "null"
+            },
+            {
+              "name": "expires_at",
+              "type": "string",
+              "example": "2026-11-02T10:05:00Z"
+            }
+          ]
+        },
+        "sample": {
+          "authorization_id": "AUTH-5Q2K91",
+          "status": "authorized",
+          "amount": 162.38,
+          "currency": "NZD",
+          "decline_code": null,
+          "expires_at": "2026-11-02T10:05:00Z"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "a21f44e6-e936-4d41-89ef-cc181349b574",
+        "name": "order_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "9e2dfb3e-b847-4a5d-958b-fd01b8b29256",
+        "name": "amount",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "36a6edc3-9c5a-48af-bf3b-153c19740a19",
+        "name": "currency",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "7401e15b-e464-4f8d-a234-25c60f614a01",
+        "name": "payment_method_ref",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Payment-method token from the PSP (never card data)",
+        "default_value": ""
+      },
+      {
+        "id": "0bdd4e80-f066-4e8a-b656-3ec1ad66575b",
+        "name": "customer_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "770b3795-90eb-48fd-9c46-4ff25794c9d4",
+        "name": "risk_score",
+        "type": "number",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "52a28f94-f116-49c9-b0fd-f1ce2b68f60c",
+        "name": "authorization_id",
+        "path": "authorization_id",
+        "type": "string"
+      },
+      {
+        "id": "afd2f659-98ba-4267-ba28-12fcfd9f350d",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "88056778-b21e-4b35-9db0-be1c777bf12a",
+        "name": "decline_code",
+        "path": "decline_code",
+        "type": "string"
+      }
+    ]
+  }
+}

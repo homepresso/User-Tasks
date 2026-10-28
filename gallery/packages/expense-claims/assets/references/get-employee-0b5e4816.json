@@ -1,0 +1,134 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "0b5e4816-404b-4450-a823-a3ba92d9116a",
+  "asset": {
+    "id": "0b5e4816-404b-4450-a823-a3ba92d9116a",
+    "integration_id": "38608541-ea8e-4bf2-825a-a43d1eb771ee",
+    "name": "Get employee",
+    "description": "Employee record from the HR / finance system: name, cost centre and line manager.",
+    "tags": [
+      "employees"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/employees/{{employee_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "example": "E-1001"
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "example": "Sam Carter"
+            },
+            {
+              "name": "email",
+              "type": "string",
+              "example": "sam.carter@example.com"
+            },
+            {
+              "name": "cost_centre",
+              "type": "string",
+              "example": "CC-200 Sales"
+            },
+            {
+              "name": "department",
+              "type": "string",
+              "example": "Sales"
+            },
+            {
+              "name": "manager",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "example": "E-0042"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "example": "Priya Shah"
+                },
+                {
+                  "name": "email",
+                  "type": "string",
+                  "example": "priya.shah@example.com"
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "id": "E-1001",
+          "name": "Sam Carter",
+          "email": "sam.carter@example.com",
+          "cost_centre": "CC-200 Sales",
+          "department": "Sales",
+          "manager": {
+            "id": "E-0042",
+            "name": "Priya Shah",
+            "email": "priya.shah@example.com"
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "786e03e2-9120-4bb5-8525-04947f5eb8b1",
+        "name": "employee_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "Employee number, e.g. E-1001",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "40f5b23a-c2a8-4df2-a2b5-68c9a5d9d391",
+        "name": "name",
+        "path": "name",
+        "type": "string"
+      },
+      {
+        "id": "fda270ff-a947-4c8d-a935-332a1651fd8e",
+        "name": "email",
+        "path": "email",
+        "type": "string"
+      },
+      {
+        "id": "58f61038-1577-464a-8140-c67f8fde8a2a",
+        "name": "cost_centre",
+        "path": "cost_centre",
+        "type": "string"
+      },
+      {
+        "id": "296ccd3f-6fe9-4dff-8cf5-0a55907e7812",
+        "name": "manager_name",
+        "path": "manager.name",
+        "type": "string"
+      },
+      {
+        "id": "73d0b409-8725-4b76-86d8-809a7222629d",
+        "name": "manager_email",
+        "path": "manager.email",
+        "type": "string"
+      }
+    ]
+  }
+}

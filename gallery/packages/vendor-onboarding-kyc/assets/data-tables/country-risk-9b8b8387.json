@@ -1,0 +1,46 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "9b8b8387-f6a0-4c00-93e3-784279f82251",
+  "asset": {
+    "id": "9b8b8387-f6a0-4c00-93e3-784279f82251",
+    "name": "Country risk",
+    "description": "Country risk rating used by the vendor risk tier rules. Align it with your sanctions and anti-corruption policy; unlisted countries are treated as high risk.",
+    "columns": [
+      {
+        "id": "0672397d-3a31-4034-8bb1-9f31d24cdccf",
+        "required": true,
+        "key": "country",
+        "name": "Country code",
+        "type": "text"
+      },
+      {
+        "id": "49544035-9e17-4792-8378-6f6126aef8a2",
+        "required": false,
+        "key": "country_name",
+        "name": "Country",
+        "type": "text"
+      },
+      {
+        "id": "de48e431-367a-4c4a-9c57-884e62b708e6",
+        "required": false,
+        "key": "risk_rating",
+        "name": "Risk rating",
+        "type": "select",
+        "options": [
+          "low",
+          "medium",
+          "high",
+          "prohibited"
+        ]
+      },
+      {
+        "id": "76ae0036-72f5-4bc9-847f-084fd6e33702",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      }
+    ]
+  }
+}

@@ -1,0 +1,196 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "2acd8b82-9e18-4a5e-83a7-264039993ec9",
+  "asset": {
+    "id": "2acd8b82-9e18-4a5e-83a7-264039993ec9",
+    "integration_id": "bded65ee-597a-4b34-893b-b7842e42d00d",
+    "name": "List HR changes",
+    "description": "Workforce changes (joiners, movers and leavers) effective since a date.",
+    "tags": [
+      "workforce"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {
+        "since": "{{since}}"
+      },
+      "body_template": "",
+      "path_template": "/hr/changes",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "since",
+              "type": "string",
+              "example": "2026-10-25"
+            },
+            {
+              "name": "count",
+              "type": "integer",
+              "example": 3
+            },
+            {
+              "name": "changes",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": [
+                  {
+                    "type": "string",
+                    "example": "HRC-7741",
+                    "name": "change_id"
+                  },
+                  {
+                    "type": "string",
+                    "example": "joiner",
+                    "name": "change_type"
+                  },
+                  {
+                    "type": "string",
+                    "example": "E-3107",
+                    "name": "employee_id"
+                  },
+                  {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "u-5c1e8a",
+                    "name": "directory_user_id"
+                  },
+                  {
+                    "type": "string",
+                    "example": "Riley",
+                    "name": "first_name"
+                  },
+                  {
+                    "type": "string",
+                    "example": "Tanaka",
+                    "name": "last_name"
+                  },
+                  {
+                    "type": "string",
+                    "example": "riley.tanaka@example.com",
+                    "name": "email"
+                  },
+                  {
+                    "type": "string",
+                    "example": "Engineering",
+                    "name": "department"
+                  },
+                  {
+                    "type": "string",
+                    "example": "Software engineering",
+                    "name": "job_family"
+                  },
+                  {
+                    "type": "string",
+                    "example": "Software engineer",
+                    "name": "job_title"
+                  },
+                  {
+                    "type": "string",
+                    "example": "E-1288",
+                    "name": "manager_id"
+                  },
+                  {
+                    "type": "string",
+                    "example": "Auckland",
+                    "name": "location"
+                  },
+                  {
+                    "type": "string",
+                    "example": "2026-10-27",
+                    "name": "effective_date"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "sample": {
+          "since": "2026-10-25",
+          "count": 3,
+          "changes": [
+            {
+              "change_id": "HRC-7741",
+              "change_type": "joiner",
+              "employee_id": "E-3107",
+              "directory_user_id": null,
+              "first_name": "Riley",
+              "last_name": "Tanaka",
+              "email": "riley.tanaka@example.com",
+              "department": "Engineering",
+              "job_family": "Software engineering",
+              "job_title": "Software engineer",
+              "manager_id": "E-1288",
+              "location": "Auckland",
+              "effective_date": "2026-10-27"
+            },
+            {
+              "change_id": "HRC-7742",
+              "change_type": "mover",
+              "employee_id": "E-2216",
+              "directory_user_id": "u-5c1e8a",
+              "first_name": "Casey",
+              "last_name": "Brennan",
+              "email": "casey.brennan@example.com",
+              "department": "Finance",
+              "job_family": "Financial planning",
+              "job_title": "FP&A analyst",
+              "manager_id": "E-0310",
+              "location": "Wellington",
+              "effective_date": "2026-10-26"
+            },
+            {
+              "change_id": "HRC-7743",
+              "change_type": "leaver",
+              "employee_id": "E-1954",
+              "directory_user_id": "u-91d0f4",
+              "first_name": "Jamie",
+              "last_name": "Okafor",
+              "email": "jamie.okafor@example.com",
+              "department": "Sales",
+              "job_family": "Account management",
+              "job_title": "Account manager",
+              "manager_id": "E-0877",
+              "location": "Sydney",
+              "effective_date": "2026-10-26"
+            }
+          ]
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "75d05cb3-870a-437d-8be2-6cf436a7d943",
+        "name": "since",
+        "type": "string",
+        "source": "variable",
+        "location": "query",
+        "required": true,
+        "description": "ISO date, e.g. 2026-10-25",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "e307ae83-1d11-4326-8dd3-a80d63b42947",
+        "name": "changes",
+        "path": "changes",
+        "type": "array"
+      },
+      {
+        "id": "493acb95-5482-4c85-85cf-c5ad6124d6ac",
+        "name": "count",
+        "path": "count",
+        "type": "number"
+      }
+    ]
+  }
+}

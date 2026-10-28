@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "21b58180-f59a-4455-b74a-a7e5019a948a",
+  "asset": {
+    "id": "21b58180-f59a-4455-b74a-a7e5019a948a",
+    "name": "Vendor welcome",
+    "description": "Sent to the vendor contact when the vendor record is live.",
+    "subject": "Welcome aboard: {{legal_name}} is set up as a supplier",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">You are set up as a supplier</h2>\n  <p>Hello,</p>\n  <p><strong>{{legal_name}}</strong> is now an approved supplier. Your vendor number is <strong>{{vendor_number}}</strong>; please quote it and our PO number on every invoice.</p>\n  <p>Payments go to the bank account ending {{=RIGHT(iban, 4)}}. Any change to bank details must be confirmed by phone with our finance team.</p>\n  <p><a href=\"{{portal_url}}\">Register on the supplier portal</a></p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the procurement team at your company</p>\n</div>",
+    "text_body": "You are set up as a supplier\n  Hello,\n  {{legal_name}} is now an approved supplier. Your vendor number is {{vendor_number}}; please quote it and our PO number on every invoice.\n  Payments go to the bank account ending {{=RIGHT(iban, 4)}}. Any change to bank details must be confirmed by phone with our finance team.\n  Register on the supplier portal\n  Sent by the procurement team at your company",
+    "is_default": false
+  }
+}

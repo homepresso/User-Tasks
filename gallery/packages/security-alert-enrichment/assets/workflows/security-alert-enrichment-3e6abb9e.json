@@ -1,0 +1,619 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "3e6abb9e-29ea-43fe-9024-57f8ddc38144",
+  "asset": {
+    "id": "3e6abb9e-29ea-43fe-9024-57f8ddc38144",
+    "name": "Security alert enrichment",
+    "description": "The SIEM posts an alert; the workflow enriches it with IP reputation, the user and the asset, decides a disposition, and closes it, opens a SOAR case, or isolates the host after analyst approval.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Alert received",
+        "position": {
+          "x": 820,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 820,
+          "y": 220
+        },
+        "config": {
+          "title": "Alert {{alert_id}}: {{rule_name}} · {{username}} · {{hostname}}"
+        }
+      },
+      {
+        "id": "d_score",
+        "type": "set_variable",
+        "label": "Default: no intel",
+        "position": {
+          "x": 820,
+          "y": 380
+        },
+        "config": {
+          "name": "intel_score",
+          "expression": "0"
+        }
+      },
+      {
+        "id": "d_priv",
+        "type": "set_variable",
+        "label": "Default: not privileged",
+        "position": {
+          "x": 820,
+          "y": 540
+        },
+        "config": {
+          "name": "user_privileged",
+          "expression": "false"
+        }
+      },
+      {
+        "id": "d_crit",
+        "type": "set_variable",
+        "label": "Default: medium criticality",
+        "position": {
+          "x": 820,
+          "y": 700
+        },
+        "config": {
+          "name": "asset_criticality",
+          "expression": "medium"
+        }
+      },
+      {
+        "id": "ip",
+        "type": "call_reference",
+        "label": "IP reputation",
+        "position": {
+          "x": 820,
+          "y": 860
+        },
+        "config": {
+          "reference_id": "64acf1eb-ff89-4f44-9b27-7aac4e20c3d3",
+          "reference_name": "IP reputation",
+          "reference_method": "GET",
+          "input_mappings": {
+            "ip": "{{source_ip}}"
+          },
+          "output_mappings": {
+            "reputation_score": {
+              "enabled": true,
+              "variableName": "intel_score"
+            },
+            "categories": {
+              "enabled": true,
+              "variableName": "intel_categories"
+            },
+            "country": {
+              "enabled": true,
+              "variableName": "ip_country"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "user",
+        "type": "call_reference",
+        "label": "Get user",
+        "position": {
+          "x": 820,
+          "y": 1020
+        },
+        "config": {
+          "reference_id": "6928962e-d18a-41fb-bba0-ad3b5006b50a",
+          "reference_name": "Get user",
+          "reference_method": "GET",
+          "input_mappings": {
+            "username": "{{username}}"
+          },
+          "output_mappings": {
+            "display_name": {
+              "enabled": true,
+              "variableName": "user_name"
+            },
+            "department": {
+              "enabled": true,
+              "variableName": "user_department"
+            },
+            "privileged": {
+              "enabled": true,
+              "variableName": "user_privileged"
+            },
+            "mfa_enrolled": {
+              "enabled": true,
+              "variableName": "user_mfa"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "asset",
+        "type": "call_reference",
+        "label": "Get asset",
+        "position": {
+          "x": 820,
+          "y": 1180
+        },
+        "config": {
+          "reference_id": "4de2524f-d83f-459a-8767-2a277df1634f",
+          "reference_name": "Get asset",
+          "reference_method": "GET",
+          "input_mappings": {
+            "hostname": "{{hostname}}"
+          },
+          "output_mappings": {
+            "criticality": {
+              "enabled": true,
+              "variableName": "asset_criticality"
+            },
+            "owner": {
+              "enabled": true,
+              "variableName": "asset_owner"
+            },
+            "environment": {
+              "enabled": true,
+              "variableName": "asset_environment"
+            },
+            "edr_host_id": {
+              "enabled": true,
+              "variableName": "edr_host_id"
+            }
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "summary",
+        "type": "set_variable",
+        "label": "Enrichment summary",
+        "position": {
+          "x": 820,
+          "y": 1340
+        },
+        "config": {
+          "name": "enrichment",
+          "expression": "IP {{source_ip}} ({{ip_country}}) score {{intel_score}} {{intel_categories}}; user {{user_name}} ({{user_department}}), privileged {{user_privileged}}, MFA {{user_mfa}}; host {{hostname}} {{asset_environment}} criticality {{asset_criticality}}, owner {{asset_owner}}"
+        }
+      },
+      {
+        "id": "decide",
+        "type": "decision_table",
+        "label": "Alert disposition",
+        "position": {
+          "x": 820,
+          "y": 1500
+        },
+        "config": {
+          "decision_table_id": "acd30d7c-6c69-43ff-9882-c92786f0a932",
+          "decision_table_name": "Alert disposition",
+          "input_mappings": {
+            "intel_score": "{{intel_score}}",
+            "asset_criticality": "{{asset_criticality}}",
+            "privileged": "{{user_privileged}}",
+            "severity": "{{severity}}"
+          }
+        }
+      },
+      {
+        "id": "route",
+        "type": "switch_case",
+        "label": "Disposition",
+        "position": {
+          "x": 820,
+          "y": 1660
+        },
+        "config": {
+          "field": "{{disposition}}",
+          "cases": [
+            {
+              "value": "auto-close",
+              "label": "Auto-close"
+            },
+            {
+              "value": "investigate",
+              "label": "Investigate"
+            },
+            {
+              "value": "contain",
+              "label": "Contain"
+            }
+          ],
+          "has_default": true
+        }
+      },
+      {
+        "id": "close",
+        "type": "call_reference",
+        "label": "Close alert",
+        "position": {
+          "x": 340,
+          "y": 1840
+        },
+        "config": {
+          "reference_id": "3fc3bf20-7ce3-48ea-aedc-406b94605abc",
+          "reference_name": "Update alert",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "alert_id": "{{alert_id}}",
+            "alert_status": "closed",
+            "disposition": "benign",
+            "comment": "Auto-closed ({{rule_label}}): {{reason}}. {{enrichment}}"
+          },
+          "output_mappings": {}
+        }
+      },
+      {
+        "id": "closed",
+        "type": "end_workflow",
+        "label": "Auto-closed",
+        "position": {
+          "x": 340,
+          "y": 2020
+        },
+        "config": {
+          "reason": "Alert {{alert_id}} auto-closed: {{reason}}"
+        }
+      },
+      {
+        "id": "case",
+        "type": "call_reference",
+        "label": "Open investigation case",
+        "position": {
+          "x": 460,
+          "y": 2340
+        },
+        "config": {
+          "reference_id": "f7f2d2d5-91f9-4f0e-b36f-977443715bee",
+          "reference_name": "Create case",
+          "reference_method": "POST",
+          "input_mappings": {
+            "title": "{{rule_name}}: {{username}} on {{hostname}}",
+            "severity": "{{case_severity}}",
+            "alert_id": "{{alert_id}}",
+            "summary": "{{reason}} ({{rule_label}}). {{enrichment}}",
+            "source_ip": "{{source_ip}}",
+            "username": "{{username}}",
+            "hostname": "{{hostname}}"
+          },
+          "output_mappings": {
+            "case_id": {
+              "enabled": true,
+              "variableName": "case_id"
+            },
+            "case_number": {
+              "enabled": true,
+              "variableName": "case_number"
+            },
+            "url": {
+              "enabled": true,
+              "variableName": "case_url"
+            }
+          }
+        }
+      },
+      {
+        "id": "link",
+        "type": "call_reference",
+        "label": "Link alert to case",
+        "position": {
+          "x": 460,
+          "y": 2500
+        },
+        "config": {
+          "reference_id": "3fc3bf20-7ce3-48ea-aedc-406b94605abc",
+          "reference_name": "Update alert",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "alert_id": "{{alert_id}}",
+            "alert_status": "in_progress",
+            "disposition": "{{disposition}}",
+            "comment": "Case {{case_number}}: {{reason}}. {{enrichment}}",
+            "case_id": "{{case_id}}"
+          },
+          "output_mappings": {}
+        }
+      },
+      {
+        "id": "investigating",
+        "type": "end_workflow",
+        "label": "Case opened",
+        "position": {
+          "x": 460,
+          "y": 2660
+        },
+        "config": {
+          "reason": "Alert {{alert_id}} → {{case_number}} ({{case_severity}})"
+        }
+      },
+      {
+        "id": "approve",
+        "type": "user_task",
+        "label": "Approve host isolation",
+        "position": {
+          "x": 820,
+          "y": 1840
+        },
+        "config": {
+          "task_title": "Isolate {{hostname}}? {{rule_name}} ({{username}})",
+          "task_description": "<p><strong>{{reason}}</strong> (rule “{{rule_label}}”).</p><p>Alert {{alert_id}}: {{rule_name}}, severity {{severity}}.</p><ul><li>Source IP {{source_ip}} ({{ip_country}}), reputation score <strong>{{intel_score}}</strong></li><li>User {{user_name}} ({{user_department}}), privileged {{user_privileged}}</li><li>Host {{hostname}} ({{asset_environment}}, criticality {{asset_criticality}}), owner {{asset_owner}}</li></ul><p>Isolating cuts the host off the network except for the EDR console.</p>",
+          "task_priority": "critical",
+          "outcomes": [
+            "Isolate host",
+            "Do not isolate"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "1a8b363a-3b45-4236-9b12-4cc8a5bd817f",
+          "assignee_variable": "{{analyst_user_id}}",
+          "due_date_mode": "relative",
+          "due_offset_amount": 30,
+          "due_offset_unit": "minutes",
+          "escalation_enabled": true,
+          "escalation_type": "individual",
+          "escalation_user_id": "9fec1aaa-cec0-417e-baf0-907f8e8d8067",
+          "escalate_after_minutes": 30,
+          "fields": [
+            {
+              "key": "analyst_notes",
+              "label": "Analyst notes",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "notify_owner",
+              "label": "Asset owner informed",
+              "type": "boolean"
+            }
+          ]
+        }
+      },
+      {
+        "id": "isolate",
+        "type": "call_reference",
+        "label": "Isolate host",
+        "position": {
+          "x": 660,
+          "y": 2020
+        },
+        "config": {
+          "reference_id": "b78b88e7-72d0-4599-8f02-ef76c8eaf900",
+          "reference_name": "Isolate host",
+          "reference_method": "POST",
+          "input_mappings": {
+            "host_id": "{{edr_host_id}}",
+            "reason": "Alert {{alert_id}}: {{reason}}. {{task_data.analyst_notes}}",
+            "requested_by": "{{analyst_user_id}}"
+          },
+          "output_mappings": {
+            "action_id": {
+              "enabled": true,
+              "variableName": "isolation_action_id"
+            },
+            "status": {
+              "enabled": true,
+              "variableName": "isolation_status"
+            }
+          }
+        }
+      },
+      {
+        "id": "contained",
+        "type": "set_variable",
+        "label": "Contained",
+        "position": {
+          "x": 660,
+          "y": 2180
+        },
+        "config": {
+          "name": "reason",
+          "expression": "{{reason}}. Host isolated ({{isolation_action_id}}). Analyst: {{task_data.analyst_notes}}"
+        }
+      },
+      {
+        "id": "not_contained",
+        "type": "set_variable",
+        "label": "Isolation declined",
+        "position": {
+          "x": 980,
+          "y": 2020
+        },
+        "config": {
+          "name": "reason",
+          "expression": "{{reason}}. Isolation declined by analyst: {{task_data.analyst_notes}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-d_score",
+        "source": "title",
+        "target": "d_score"
+      },
+      {
+        "id": "e-d_score-d_priv",
+        "source": "d_score",
+        "target": "d_priv"
+      },
+      {
+        "id": "e-d_priv-d_crit",
+        "source": "d_priv",
+        "target": "d_crit"
+      },
+      {
+        "id": "e-d_crit-ip",
+        "source": "d_crit",
+        "target": "ip"
+      },
+      {
+        "id": "e-ip-user",
+        "source": "ip",
+        "target": "user"
+      },
+      {
+        "id": "e-user-asset",
+        "source": "user",
+        "target": "asset"
+      },
+      {
+        "id": "e-asset-summary",
+        "source": "asset",
+        "target": "summary"
+      },
+      {
+        "id": "e-summary-decide",
+        "source": "summary",
+        "target": "decide"
+      },
+      {
+        "id": "e-decide-route",
+        "source": "decide",
+        "target": "route"
+      },
+      {
+        "id": "e-route-close-auto-close",
+        "source": "route",
+        "target": "close",
+        "label": "Auto-close"
+      },
+      {
+        "id": "e-close-closed",
+        "source": "close",
+        "target": "closed"
+      },
+      {
+        "id": "e-route-case-investigate",
+        "source": "route",
+        "target": "case",
+        "label": "Investigate"
+      },
+      {
+        "id": "e-route-case-default",
+        "source": "route",
+        "target": "case",
+        "label": "Default"
+      },
+      {
+        "id": "e-case-link",
+        "source": "case",
+        "target": "link"
+      },
+      {
+        "id": "e-link-investigating",
+        "source": "link",
+        "target": "investigating"
+      },
+      {
+        "id": "e-route-approve-contain",
+        "source": "route",
+        "target": "approve",
+        "label": "Contain"
+      },
+      {
+        "id": "e-approve-isolate-isolate-host",
+        "source": "approve",
+        "target": "isolate",
+        "label": "Isolate host"
+      },
+      {
+        "id": "e-approve-not_contained-do-not-isolate",
+        "source": "approve",
+        "target": "not_contained",
+        "label": "Do not isolate"
+      },
+      {
+        "id": "e-isolate-contained",
+        "source": "isolate",
+        "target": "contained"
+      },
+      {
+        "id": "e-contained-case",
+        "source": "contained",
+        "target": "case"
+      },
+      {
+        "id": "e-not_contained-case",
+        "source": "not_contained",
+        "target": "case"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-alert_id",
+        "name": "alert_id",
+        "type": "string",
+        "description": "SIEM alert id",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-rule_name",
+        "name": "rule_name",
+        "type": "string",
+        "description": "Detection rule that fired, e.g. \"Impossible travel sign-in\"",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-source_ip",
+        "name": "source_ip",
+        "type": "string",
+        "description": "Source IP address in the alert",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-username",
+        "name": "username",
+        "type": "string",
+        "description": "Account in the alert (directory username)",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-hostname",
+        "name": "hostname",
+        "type": "string",
+        "description": "Host in the alert (CMDB hostname)",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-severity",
+        "name": "severity",
+        "type": "string",
+        "description": "SIEM severity: low, medium, high or critical",
+        "defaultValue": "medium",
+        "required": true,
+        "options": [
+          "low",
+          "medium",
+          "high",
+          "critical"
+        ]
+      },
+      {
+        "id": "v-analyst_user_id",
+        "name": "analyst_user_id",
+        "type": "string",
+        "description": "Optional: user id of the on-shift analyst who approves containment (falls back to the default chosen on install)",
+        "defaultValue": ""
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

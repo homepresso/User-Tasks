@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "6bfc3ec6-3f24-4b52-a917-267f6bf49dcd",
+  "asset": {
+    "id": "6bfc3ec6-3f24-4b52-a917-267f6bf49dcd",
+    "name": "Supplier risk decision",
+    "description": "Sent to the business owner with procurement's decision on a high-risk supplier.",
+    "subject": "Decision for {{name}}: {{outcome}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Supplier risk decision: {{outcome}}</h2>\n  <p>Procurement reviewed <strong>{{name}}</strong> ({{risk_tier}} risk) and decided: <strong>{{outcome}}</strong>.</p>\n  <p>Mitigation plan: {{task_data.mitigation_plan}}</p>\n  <p>Next review: {{task_data.review_date}}</p>\n  <p style=\"color:#6E6759\">Notes: {{task_data.notes}}</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your supplier risk workflow</p>\n</div>",
+    "text_body": "Supplier risk decision: {{outcome}}\n  Procurement reviewed {{name}} ({{risk_tier}} risk) and decided: {{outcome}}.\n  Mitigation plan: {{task_data.mitigation_plan}}\n  Next review: {{task_data.review_date}}\n  Notes: {{task_data.notes}}\n  Sent by your supplier risk workflow",
+    "is_default": false
+  }
+}

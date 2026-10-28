@@ -1,0 +1,101 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "2be60946-5eb8-5297-84a5-de344921e96b",
+  "asset": {
+    "id": "2be60946-5eb8-5297-84a5-de344921e96b",
+    "name": "Check-outs",
+    "description": "Every loan: who took which asset, when it is due back and the condition it came back in.",
+    "columns": [
+      {
+        "id": "581eb84a-28ad-5cd1-ae3b-214612a1fe9d",
+        "required": true,
+        "key": "checkout_ref",
+        "name": "Check-out reference",
+        "type": "text"
+      },
+      {
+        "id": "67ea723d-2c47-5a28-81b7-4f428daf770e",
+        "required": true,
+        "key": "asset_tag",
+        "name": "Asset tag",
+        "type": "text"
+      },
+      {
+        "id": "cdcbbec8-92c0-57d9-b138-f330c4670244",
+        "required": false,
+        "key": "asset_name",
+        "name": "Asset",
+        "type": "text"
+      },
+      {
+        "id": "24564923-9962-5d2e-93fc-9c2732a8f245",
+        "required": false,
+        "key": "borrower_email",
+        "name": "Borrower email",
+        "type": "text"
+      },
+      {
+        "id": "e450a6d2-1f80-54f5-af65-70ea67a99580",
+        "required": false,
+        "key": "purpose",
+        "name": "Purpose",
+        "type": "text"
+      },
+      {
+        "id": "b48c7261-5625-53a7-878c-c1adc459c6ed",
+        "required": false,
+        "key": "checked_out_on",
+        "name": "Checked out",
+        "type": "date"
+      },
+      {
+        "id": "8c0b5010-a89d-5261-a8c6-8b6cf3994f05",
+        "required": false,
+        "key": "due_back",
+        "name": "Due back",
+        "type": "date"
+      },
+      {
+        "id": "4c4fdb68-30fd-5f2b-a122-0a086cbaa522",
+        "required": false,
+        "key": "condition_out",
+        "name": "Condition out",
+        "type": "text"
+      },
+      {
+        "id": "0f7fdb71-1ab7-5cdd-9ba6-a150d1327a50",
+        "required": false,
+        "key": "returned_on",
+        "name": "Returned",
+        "type": "date"
+      },
+      {
+        "id": "1dd08dfe-4bfc-5d88-b5b4-478c8b22b845",
+        "required": false,
+        "key": "condition_in",
+        "name": "Condition in",
+        "type": "text"
+      },
+      {
+        "id": "38c6af91-1435-50bd-8e63-b04899fdf9f9",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "on loan",
+          "returned",
+          "returned damaged"
+        ]
+      },
+      {
+        "id": "442164d0-9065-5b1c-a0c0-dd5afef16d43",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      }
+    ]
+  }
+}

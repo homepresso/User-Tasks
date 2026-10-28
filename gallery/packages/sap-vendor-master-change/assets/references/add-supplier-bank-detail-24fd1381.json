@@ -1,0 +1,218 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "24fd1381-1120-5ab1-9069-0da72468e4bc",
+  "asset": {
+    "id": "24fd1381-1120-5ab1-9069-0da72468e4bc",
+    "integration_id": "6f1f1c79-952c-5684-8f42-968ee0adef0e",
+    "name": "Add supplier bank detail",
+    "description": "API_BUSINESS_PARTNER: create the new A_BusinessPartnerBank entry (new bank id) valid from the effective date.",
+    "tags": [
+      "sap",
+      "supplier",
+      "bank"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"BusinessPartner\":\"{{supplier}}\",\"BankIdentification\":\"{{bank_id}}\",\"BankCountryKey\":\"{{bank_country}}\",\"BankNumber\":\"{{bank_number}}\",\"SWIFTCode\":\"{{swift}}\",\"IBAN\":\"{{iban}}\",\"BankAccountHolderName\":\"{{holder}}\",\"ValidityStartDate\":\"{{valid_from}}T00:00:00\"}",
+      "path_template": "/API_BUSINESS_PARTNER/A_BusinessPartnerBank",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "d",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "__metadata",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "type",
+                      "type": "string",
+                      "example": "API_BUSINESS_PARTNER.A_BusinessPartnerBankType"
+                    }
+                  ]
+                },
+                {
+                  "name": "BusinessPartner",
+                  "type": "string",
+                  "example": "17300001"
+                },
+                {
+                  "name": "BankIdentification",
+                  "type": "string",
+                  "example": "0002"
+                },
+                {
+                  "name": "BankCountryKey",
+                  "type": "string",
+                  "example": "NL"
+                },
+                {
+                  "name": "BankName",
+                  "type": "string",
+                  "example": "ING Bank"
+                },
+                {
+                  "name": "BankNumber",
+                  "type": "string",
+                  "example": "INGBNL2A"
+                },
+                {
+                  "name": "SWIFTCode",
+                  "type": "string",
+                  "example": "INGBNL2AXXX"
+                },
+                {
+                  "name": "IBAN",
+                  "type": "string",
+                  "example": "NL91ABNA0417164300"
+                },
+                {
+                  "name": "BankAccountHolderName",
+                  "type": "string",
+                  "example": "Northwind Industrial Supply GmbH"
+                },
+                {
+                  "name": "ValidityStartDate",
+                  "type": "string",
+                  "example": "/Date(1762300800000)/"
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "d": {
+            "__metadata": {
+              "type": "API_BUSINESS_PARTNER.A_BusinessPartnerBankType"
+            },
+            "BusinessPartner": "17300001",
+            "BankIdentification": "0002",
+            "BankCountryKey": "NL",
+            "BankName": "ING Bank",
+            "BankNumber": "INGBNL2A",
+            "SWIFTCode": "INGBNL2AXXX",
+            "IBAN": "NL91ABNA0417164300",
+            "BankAccountHolderName": "Northwind Industrial Supply GmbH",
+            "ValidityStartDate": "/Date(1762300800000)/"
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "5c4abc3e-6fec-50fe-8144-fa843eed90ad",
+        "name": "supplier",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "07edd77b-0b97-58a0-9e28-299b21135a06",
+        "name": "bank_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "d535dc02-dd0a-58e6-b4a3-121b8fc5324e",
+        "name": "bank_country",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "9969a20f-77aa-57d8-9444-bfcdca3ad02b",
+        "name": "bank_number",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "99d7ff29-b389-53cb-a98d-b23462ab847b",
+        "name": "swift",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "7e36cb3c-0b56-58f5-b568-8ad51a410284",
+        "name": "iban",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "6ea81a23-4714-5b6a-91e4-371cb89dad84",
+        "name": "holder",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "1ccb5375-c6f2-5951-8d84-b5c2188f961c",
+        "name": "valid_from",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "a5806054-940f-56c4-a3b5-96ddb5e01767",
+        "name": "x-csrf-token",
+        "type": "string",
+        "source": "variable",
+        "location": "header",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "2d8a9970-bf62-5efb-8a29-83f73f8df45b",
+        "name": "new_bank_id",
+        "path": "d.BankIdentification",
+        "type": "string"
+      },
+      {
+        "id": "fe208b93-4939-5239-9ac2-77e904f2e540",
+        "name": "new_iban",
+        "path": "d.IBAN",
+        "type": "string"
+      }
+    ]
+  }
+}

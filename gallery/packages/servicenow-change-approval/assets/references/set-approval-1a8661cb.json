@@ -1,0 +1,113 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "1a8661cb-ff2a-505a-aa71-a3824d03de1b",
+  "asset": {
+    "id": "1a8661cb-ff2a-505a-aa71-a3824d03de1b",
+    "integration_id": "2d4f8199-d586-5b02-bc32-526657bd3ee1",
+    "name": "Set approval",
+    "description": "Approve or reject the approval record (PATCH /table/sysapproval_approver/{sys_id} with state approved / rejected and comments). The change workflow in ServiceNow then moves the change on.",
+    "tags": [
+      "change",
+      "approval"
+    ],
+    "request_config": {
+      "method": "PATCH",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"state\":\"{{state}}\",\"comments\":\"{{comments}}\"}",
+      "path_template": "/table/sysapproval_approver/{{approval_sys_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "result",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "sys_id",
+                  "type": "string",
+                  "example": "3f1dd0320a0a0b99000a53f7604a2ef9"
+                },
+                {
+                  "name": "state",
+                  "type": "string",
+                  "example": "approved"
+                },
+                {
+                  "name": "sys_updated_on",
+                  "type": "string",
+                  "example": "2026-10-28 10:15:44"
+                },
+                {
+                  "name": "sys_updated_by",
+                  "type": "string",
+                  "example": "usertasks.integration"
+                }
+              ]
+            }
+          ]
+        },
+        "sample": {
+          "result": {
+            "sys_id": "3f1dd0320a0a0b99000a53f7604a2ef9",
+            "state": "approved",
+            "sys_updated_on": "2026-10-28 10:15:44",
+            "sys_updated_by": "usertasks.integration"
+          }
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "53944644-cfe3-5197-a294-3c7ae193d48d",
+        "name": "approval_sys_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "sysapproval_approver sys_id",
+        "default_value": ""
+      },
+      {
+        "id": "b4ba4655-15c0-533f-8ff7-d3fd3279a013",
+        "name": "state",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "approved or rejected",
+        "default_value": ""
+      },
+      {
+        "id": "7511c353-c536-56c8-bbb5-05f1ec275e52",
+        "name": "comments",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "Approval comments (journal)",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "89b86f2b-8a4e-56d9-9f8f-9e4953aef69f",
+        "name": "approval_state",
+        "path": "result.state",
+        "type": "string"
+      },
+      {
+        "id": "a57dc2ae-4b48-51b2-b4d7-f65d265f734f",
+        "name": "updated_on",
+        "path": "result.sys_updated_on",
+        "type": "string"
+      }
+    ]
+  }
+}

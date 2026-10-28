@@ -1,0 +1,30 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "7d379017-d377-5996-a98d-750e193075b6",
+  "asset": {
+    "id": "7d379017-d377-5996-a98d-750e193075b6",
+    "name": "Bookings rows",
+    "rows": [
+      {
+        "id": "1cc5cb92-1bfc-54d8-867a-bc159d356d0a",
+        "data": {
+          "booking_ref": "CAR-20261103-Q7M2",
+          "rego": "EVB202",
+          "vehicle": "Tesla Model Y",
+          "requester_name": "Ben Carter",
+          "requester_email": "ben.carter@example.com",
+          "pickup_at": "2026-11-03T08:00",
+          "return_at": "2026-11-03T17:30",
+          "destination": "Client site, Lower Hutt",
+          "distance_km": 40,
+          "passengers": 2,
+          "purpose": "Client meeting",
+          "approval_reason": "",
+          "status": "Confirmed",
+          "approver_comment": ""
+        }
+      }
+    ]
+  }
+}

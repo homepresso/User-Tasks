@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "89f2588a-0955-4ddb-a607-937bc4be9af8",
+  "asset": {
+    "id": "89f2588a-0955-4ddb-a607-937bc4be9af8",
+    "name": "Expense claim approved",
+    "description": "Sent to the claimant when the claim is approved and queued for reimbursement.",
+    "subject": "Approved: {{claim_title}} ({{currency}} {{=FORMAT_NUMBER(approved_amount, 2)}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your expense claim was approved</h2>\n  <p>Hi {{employee_name}},</p>\n  <p><strong>{{claim_title}}</strong> was approved for <strong>{{currency}} {{=FORMAT_NUMBER(approved_amount, 2)}}</strong> and will be paid in the payment run on {{payment_run_date}} (reference {{reimbursement_id}}).</p>\n  <p style=\"color:#6E6759\">Approver note: {{task_data.comment}}</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your expense claims workflow</p>\n</div>",
+    "text_body": "Your expense claim was approved\n  Hi {{employee_name}},\n  {{claim_title}} was approved for {{currency}} {{=FORMAT_NUMBER(approved_amount, 2)}} and will be paid in the payment run on {{payment_run_date}} (reference {{reimbursement_id}}).\n  Approver note: {{task_data.comment}}\n  Sent by your expense claims workflow",
+    "is_default": false
+  }
+}

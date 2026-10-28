@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "3b2d297f-0e17-4987-a5f1-9a4e960d70c0",
+  "asset": {
+    "id": "3b2d297f-0e17-4987-a5f1-9a4e960d70c0",
+    "name": "Customer onboarding declined",
+    "description": "Sent to the account manager when compliance declines the customer.",
+    "subject": "Onboarding declined: {{company_name}} ({{onboarding_reference}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Customer onboarding declined</h2>\n  <p>Hi,</p>\n  <p>Compliance declined onboarding for <strong>{{company_name}}</strong> ({{registration_number}}, {{country}}).</p>\n  <p>Reason: {{task_data.review_notes}}</p>\n  <p>Do not share screening details with the customer; contact compliance with any questions.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by your customer onboarding workflow</p>\n</div>",
+    "text_body": "Customer onboarding declined\n  Hi,\n  Compliance declined onboarding for {{company_name}} ({{registration_number}}, {{country}}).\n  Reason: {{task_data.review_notes}}\n  Do not share screening details with the customer; contact compliance with any questions.\n  Sent by your customer onboarding workflow",
+    "is_default": false
+  }
+}

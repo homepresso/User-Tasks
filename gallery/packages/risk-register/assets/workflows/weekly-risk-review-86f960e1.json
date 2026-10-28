@@ -1,0 +1,212 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "86f960e1-4f1b-5bf0-819e-70eb25cb5d06",
+  "asset": {
+    "id": "86f960e1-4f1b-5bf0-819e-70eb25cb5d06",
+    "name": "Weekly risk review",
+    "description": "Every Monday, each open risk whose next review date has passed goes back to its owner for a periodic review, and the risk committee gets the list.",
+    "trigger_type": "schedule",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "schedule",
+        "label": "Every Monday 08:00",
+        "position": {
+          "x": 400,
+          "y": 60
+        },
+        "config": {
+          "schedule_mode": "weekly",
+          "day_of_week": 1,
+          "time_of_day": "08:00",
+          "timezone": "Pacific/Auckland"
+        }
+      },
+      {
+        "id": "today",
+        "type": "set_variable",
+        "label": "Today",
+        "position": {
+          "x": 400,
+          "y": 200
+        },
+        "config": {
+          "name": "today",
+          "expression": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}"
+        }
+      },
+      {
+        "id": "list",
+        "type": "update_data_table",
+        "label": "Risks due for review",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "config": {
+          "table_id": "4c980ba2-6b7c-5876-b8d8-de42f0d147c5",
+          "table_name": "Risks",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "status",
+              "operator": "neq",
+              "value": "closed"
+            },
+            {
+              "column": "next_review",
+              "operator": "lte",
+              "value": "{{today}}"
+            }
+          ],
+          "sort_column": "score",
+          "sort_direction": "desc",
+          "limit": 100,
+          "output_rows_var": "due_risks",
+          "output_count_var": "due_count"
+        }
+      },
+      {
+        "id": "names",
+        "type": "set_variable",
+        "label": "Due list",
+        "position": {
+          "x": 400,
+          "y": 480
+        },
+        "config": {
+          "name": "due_list",
+          "expression": "{{=JOIN(\", \", PLUCK(due_risks, \"risk_id\"))}}"
+        }
+      },
+      {
+        "id": "loop",
+        "type": "loop",
+        "label": "Each due risk",
+        "position": {
+          "x": 400,
+          "y": 620
+        },
+        "config": {
+          "items": "{{due_risks}}",
+          "item_var": "risk",
+          "index_var": "risk_index"
+        }
+      },
+      {
+        "id": "call",
+        "type": "call_sub_workflow",
+        "label": "Send for review",
+        "position": {
+          "x": 200,
+          "y": 780
+        },
+        "config": {
+          "sub_workflow_id": "8c4878c3-4b45-53ef-a4cc-eba8d1a238c6",
+          "sub_workflow_name": "Risk periodic review",
+          "input_mappings": {
+            "risk_id": "{{risk.risk_id}}",
+            "title": "{{risk.title}}",
+            "likelihood": "{{risk.likelihood}}",
+            "impact": "{{risk.impact}}",
+            "rating": "{{risk.rating}}",
+            "score": "{{risk.score}}",
+            "owner_id": "{{risk.owner_id}}",
+            "response": "{{risk.response}}",
+            "mitigation_plan": "{{risk.mitigation_plan}}",
+            "target_date": "{{risk.target_date}}",
+            "next_review": "{{risk.next_review}}"
+          }
+        }
+      },
+      {
+        "id": "committee",
+        "type": "set_variable",
+        "label": "Risk committee email",
+        "position": {
+          "x": 600,
+          "y": 780
+        },
+        "config": {
+          "name": "risk_committee_email",
+          "expression": "risk-committee@example.com"
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email the committee",
+        "position": {
+          "x": 600,
+          "y": 920
+        },
+        "config": {
+          "to": "{{risk_committee_email}}",
+          "email_template_id": "c29ef2d6-08ee-5791-9ad0-bd95213ba0bc"
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Reviews issued",
+        "position": {
+          "x": 600,
+          "y": 1060
+        },
+        "config": {
+          "reason": "{{due_count}} risks sent for periodic review"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-today",
+        "source": "trigger",
+        "target": "today"
+      },
+      {
+        "id": "e-today-list",
+        "source": "today",
+        "target": "list"
+      },
+      {
+        "id": "e-list-names",
+        "source": "list",
+        "target": "names"
+      },
+      {
+        "id": "e-names-loop",
+        "source": "names",
+        "target": "loop"
+      },
+      {
+        "id": "e-loop-call-each-item",
+        "source": "loop",
+        "target": "call",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-loop-committee-done",
+        "source": "loop",
+        "target": "committee",
+        "label": "Done"
+      },
+      {
+        "id": "e-committee-mail",
+        "source": "committee",
+        "target": "mail"
+      },
+      {
+        "id": "e-mail-end",
+        "source": "mail",
+        "target": "end"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

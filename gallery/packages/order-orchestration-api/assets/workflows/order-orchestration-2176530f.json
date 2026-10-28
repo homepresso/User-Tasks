@@ -1,0 +1,1415 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "2176530f-4405-4578-be1e-94bc2f445d8f",
+  "asset": {
+    "id": "2176530f-4405-4578-be1e-94bc2f445d8f",
+    "name": "Order orchestration",
+    "description": "Synchronous order API for a storefront: validates the order, prices it, screens it for fraud, reserves stock, authorises payment and creates the shipment, then answers the caller with the ids and delivery estimate.",
+    "trigger_type": "middleware_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "middleware_received",
+        "label": "Order posted",
+        "position": {
+          "x": 900,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 900,
+          "y": 220
+        },
+        "config": {
+          "title": "Order {{order_id}} · {{customer_id}}"
+        }
+      },
+      {
+        "id": "needs_review0",
+        "type": "set_variable",
+        "label": "No review yet",
+        "position": {
+          "x": 900,
+          "y": 380
+        },
+        "config": {
+          "name": "needs_review",
+          "expression": "{{=TO_BOOLEAN(\"false\")}}"
+        }
+      },
+      {
+        "id": "validate",
+        "type": "condition",
+        "label": "Order valid?",
+        "position": {
+          "x": 900,
+          "y": 540
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Invalid",
+              "logic": "or",
+              "rules": [
+                {
+                  "field": "{{order_id}}",
+                  "operator": "is_empty",
+                  "value": ""
+                },
+                {
+                  "field": "{{customer_id}}",
+                  "operator": "is_empty",
+                  "value": ""
+                },
+                {
+                  "field": "{{lines}}",
+                  "operator": "is_empty",
+                  "value": ""
+                },
+                {
+                  "field": "{{payment_method_ref}}",
+                  "operator": "is_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "bad_result",
+        "type": "set_variable",
+        "label": "Rejected",
+        "position": {
+          "x": 580,
+          "y": 720
+        },
+        "config": {
+          "name": "result",
+          "expression": "rejected"
+        }
+      },
+      {
+        "id": "bad_status",
+        "type": "set_variable",
+        "label": "Status invalid",
+        "position": {
+          "x": 580,
+          "y": 880
+        },
+        "config": {
+          "name": "order_status",
+          "expression": "invalid"
+        }
+      },
+      {
+        "id": "bad_reason",
+        "type": "set_variable",
+        "label": "Reason",
+        "position": {
+          "x": 580,
+          "y": 1060
+        },
+        "config": {
+          "name": "reason",
+          "expression": "Order id, customer id, payment token and at least one line are required"
+        }
+      },
+      {
+        "id": "end_invalid_body",
+        "type": "json_build_object",
+        "label": "Invalid order response",
+        "position": {
+          "x": 580,
+          "y": 1220
+        },
+        "config": {
+          "fields": [
+            {
+              "key": "result",
+              "value": "{{result}}"
+            },
+            {
+              "key": "order_id",
+              "value": "{{order_id}}"
+            },
+            {
+              "key": "order_status",
+              "value": "{{order_status}}"
+            },
+            {
+              "key": "reason",
+              "value": "{{reason}}"
+            },
+            {
+              "key": "total",
+              "value": "{{total}}"
+            },
+            {
+              "key": "currency",
+              "value": "{{currency}}"
+            },
+            {
+              "key": "risk_score",
+              "value": "{{risk_score}}"
+            },
+            {
+              "key": "needs_review",
+              "value": "{{needs_review}}"
+            },
+            {
+              "key": "reservation_id",
+              "value": "{{reservation_id}}"
+            },
+            {
+              "key": "authorization_id",
+              "value": "{{authorization_id}}"
+            },
+            {
+              "key": "shipment_id",
+              "value": "{{shipment_id}}"
+            },
+            {
+              "key": "estimated_delivery",
+              "value": "{{estimated_delivery}}"
+            }
+          ],
+          "output_var": "order_response"
+        }
+      },
+      {
+        "id": "end_invalid",
+        "type": "end_workflow",
+        "label": "Invalid order",
+        "position": {
+          "x": 580,
+          "y": 1380
+        },
+        "config": {
+          "reason": "Order {{order_id}}: {{result}} ({{order_status}})",
+          "response_status_code": "400",
+          "response_body_mode": "json_variable",
+          "response_json_body": "{{order_response}}"
+        }
+      },
+      {
+        "id": "sub0",
+        "type": "set_variable",
+        "label": "Start subtotal",
+        "position": {
+          "x": 900,
+          "y": 720
+        },
+        "config": {
+          "name": "subtotal",
+          "expression": "{{=TO_NUMBER(0)}}"
+        }
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each line",
+        "position": {
+          "x": 900,
+          "y": 880
+        },
+        "config": {
+          "items": "{{lines}}",
+          "item_var": "line",
+          "index_var": "line_index"
+        }
+      },
+      {
+        "id": "add_line",
+        "type": "math",
+        "label": "Add line",
+        "position": {
+          "x": 1220,
+          "y": 1060
+        },
+        "config": {
+          "expression": "{{subtotal}} + {{line.qty}} * {{line.price}}",
+          "output_var": "subtotal"
+        }
+      },
+      {
+        "id": "shipping",
+        "type": "set_variable",
+        "label": "Shipping",
+        "position": {
+          "x": 900,
+          "y": 1220
+        },
+        "config": {
+          "name": "shipping",
+          "expression": "{{=IF(subtotal >= free_shipping_over, 0, shipping_fee)}}"
+        }
+      },
+      {
+        "id": "tax",
+        "type": "math",
+        "label": "Tax",
+        "position": {
+          "x": 900,
+          "y": 1380
+        },
+        "config": {
+          "expression": "({{subtotal}} + {{shipping}}) * {{tax_rate}}",
+          "output_var": "tax"
+        }
+      },
+      {
+        "id": "total_raw",
+        "type": "math",
+        "label": "Total",
+        "position": {
+          "x": 900,
+          "y": 1540
+        },
+        "config": {
+          "expression": "{{subtotal}} + {{shipping}} + {{tax}}",
+          "output_var": "total_raw"
+        }
+      },
+      {
+        "id": "total",
+        "type": "set_variable",
+        "label": "Round total",
+        "position": {
+          "x": 900,
+          "y": 1700
+        },
+        "config": {
+          "name": "total",
+          "expression": "{{=ROUND(total_raw, 2)}}"
+        }
+      },
+      {
+        "id": "mismatch",
+        "type": "set_variable",
+        "label": "Address mismatch?",
+        "position": {
+          "x": 900,
+          "y": 1860
+        },
+        "config": {
+          "name": "address_mismatch",
+          "expression": "{{=IF(AND(NOT(IS_EMPTY(billing_country)), NEQ(UPPER(billing_country), UPPER(shipping_address.country))), true, false)}}"
+        }
+      },
+      {
+        "id": "fraud",
+        "type": "decision_table",
+        "label": "Fraud screening",
+        "position": {
+          "x": 900,
+          "y": 2020
+        },
+        "config": {
+          "decision_table_id": "91ef56d6-91df-4fee-ac35-b268015c182d",
+          "decision_table_name": "Fraud screening",
+          "input_mappings": {
+            "order_value": "{{total}}",
+            "country": "{{=UPPER(shipping_address.country)}}",
+            "new_customer": "{{new_customer}}",
+            "address_mismatch": "{{address_mismatch}}"
+          }
+        }
+      },
+      {
+        "id": "route",
+        "type": "switch_case",
+        "label": "Fraud decision",
+        "position": {
+          "x": 900,
+          "y": 2180
+        },
+        "config": {
+          "field": "{{decision}}",
+          "cases": [
+            {
+              "value": "reject"
+            },
+            {
+              "value": "review"
+            }
+          ],
+          "has_default": true
+        }
+      },
+      {
+        "id": "fraud_result",
+        "type": "set_variable",
+        "label": "Rejected (fraud)",
+        "position": {
+          "x": 340,
+          "y": 2360
+        },
+        "config": {
+          "name": "result",
+          "expression": "rejected"
+        }
+      },
+      {
+        "id": "fraud_status",
+        "type": "set_variable",
+        "label": "Status declined",
+        "position": {
+          "x": 340,
+          "y": 2520
+        },
+        "config": {
+          "name": "order_status",
+          "expression": "declined"
+        }
+      },
+      {
+        "id": "fraud_reason_v",
+        "type": "set_variable",
+        "label": "Fraud reason",
+        "position": {
+          "x": 340,
+          "y": 2680
+        },
+        "config": {
+          "name": "reason",
+          "expression": "Order declined by fraud screening"
+        }
+      },
+      {
+        "id": "end_fraud_body",
+        "type": "json_build_object",
+        "label": "Declined response",
+        "position": {
+          "x": 340,
+          "y": 2860
+        },
+        "config": {
+          "fields": [
+            {
+              "key": "result",
+              "value": "{{result}}"
+            },
+            {
+              "key": "order_id",
+              "value": "{{order_id}}"
+            },
+            {
+              "key": "order_status",
+              "value": "{{order_status}}"
+            },
+            {
+              "key": "reason",
+              "value": "{{reason}}"
+            },
+            {
+              "key": "total",
+              "value": "{{total}}"
+            },
+            {
+              "key": "currency",
+              "value": "{{currency}}"
+            },
+            {
+              "key": "risk_score",
+              "value": "{{risk_score}}"
+            },
+            {
+              "key": "needs_review",
+              "value": "{{needs_review}}"
+            },
+            {
+              "key": "reservation_id",
+              "value": "{{reservation_id}}"
+            },
+            {
+              "key": "authorization_id",
+              "value": "{{authorization_id}}"
+            },
+            {
+              "key": "shipment_id",
+              "value": "{{shipment_id}}"
+            },
+            {
+              "key": "estimated_delivery",
+              "value": "{{estimated_delivery}}"
+            }
+          ],
+          "output_var": "order_response"
+        }
+      },
+      {
+        "id": "end_fraud",
+        "type": "end_workflow",
+        "label": "Declined",
+        "position": {
+          "x": 340,
+          "y": 3020
+        },
+        "config": {
+          "reason": "Order {{order_id}}: {{result}} ({{order_status}})",
+          "response_status_code": "422",
+          "response_body_mode": "json_variable",
+          "response_json_body": "{{order_response}}"
+        }
+      },
+      {
+        "id": "flag",
+        "type": "set_variable",
+        "label": "Flag for review",
+        "position": {
+          "x": 660,
+          "y": 2360
+        },
+        "config": {
+          "name": "needs_review",
+          "expression": "{{=TO_BOOLEAN(\"true\")}}"
+        }
+      },
+      {
+        "id": "reserve",
+        "type": "call_reference",
+        "label": "Reserve stock",
+        "position": {
+          "x": 660,
+          "y": 2520
+        },
+        "config": {
+          "reference_id": "f5c8cafc-ed3b-467b-a5e0-9e94473c487b",
+          "reference_name": "Reserve stock",
+          "reference_method": "POST",
+          "input_mappings": {
+            "order_id": "{{order_id}}",
+            "lines": "{{=TO_JSON(lines)}}"
+          },
+          "output_mappings": {
+            "reservation_id": {
+              "enabled": true,
+              "variableName": "reservation_id"
+            },
+            "status": {
+              "enabled": true,
+              "variableName": "reservation_status"
+            }
+          }
+        }
+      },
+      {
+        "id": "stock_ok",
+        "type": "condition",
+        "label": "Stock reserved?",
+        "position": {
+          "x": 660,
+          "y": 2680
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Reserved",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{reservation_status}}",
+                  "operator": "equals",
+                  "value": "reserved"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "oos_result",
+        "type": "set_variable",
+        "label": "Rejected (stock)",
+        "position": {
+          "x": 1300,
+          "y": 2860
+        },
+        "config": {
+          "name": "result",
+          "expression": "rejected"
+        }
+      },
+      {
+        "id": "oos_status",
+        "type": "set_variable",
+        "label": "Status out of stock",
+        "position": {
+          "x": 1300,
+          "y": 3020
+        },
+        "config": {
+          "name": "order_status",
+          "expression": "out_of_stock"
+        }
+      },
+      {
+        "id": "oos_reason",
+        "type": "set_variable",
+        "label": "Stock reason",
+        "position": {
+          "x": 1300,
+          "y": 3200
+        },
+        "config": {
+          "name": "reason",
+          "expression": "Stock could not be reserved ({{reservation_status}})"
+        }
+      },
+      {
+        "id": "end_oos_body",
+        "type": "json_build_object",
+        "label": "Out of stock response",
+        "position": {
+          "x": 1300,
+          "y": 3360
+        },
+        "config": {
+          "fields": [
+            {
+              "key": "result",
+              "value": "{{result}}"
+            },
+            {
+              "key": "order_id",
+              "value": "{{order_id}}"
+            },
+            {
+              "key": "order_status",
+              "value": "{{order_status}}"
+            },
+            {
+              "key": "reason",
+              "value": "{{reason}}"
+            },
+            {
+              "key": "total",
+              "value": "{{total}}"
+            },
+            {
+              "key": "currency",
+              "value": "{{currency}}"
+            },
+            {
+              "key": "risk_score",
+              "value": "{{risk_score}}"
+            },
+            {
+              "key": "needs_review",
+              "value": "{{needs_review}}"
+            },
+            {
+              "key": "reservation_id",
+              "value": "{{reservation_id}}"
+            },
+            {
+              "key": "authorization_id",
+              "value": "{{authorization_id}}"
+            },
+            {
+              "key": "shipment_id",
+              "value": "{{shipment_id}}"
+            },
+            {
+              "key": "estimated_delivery",
+              "value": "{{estimated_delivery}}"
+            }
+          ],
+          "output_var": "order_response"
+        }
+      },
+      {
+        "id": "end_oos",
+        "type": "end_workflow",
+        "label": "Out of stock",
+        "position": {
+          "x": 1300,
+          "y": 3520
+        },
+        "config": {
+          "reason": "Order {{order_id}}: {{result}} ({{order_status}})",
+          "response_status_code": "409",
+          "response_body_mode": "json_variable",
+          "response_json_body": "{{order_response}}"
+        }
+      },
+      {
+        "id": "auth",
+        "type": "call_reference",
+        "label": "Authorise payment",
+        "position": {
+          "x": 660,
+          "y": 2860
+        },
+        "config": {
+          "reference_id": "d33433d3-e885-41dc-b51c-4e213e529d4d",
+          "reference_name": "Authorise payment",
+          "reference_method": "POST",
+          "input_mappings": {
+            "order_id": "{{order_id}}",
+            "amount": "{{total}}",
+            "currency": "{{currency}}",
+            "payment_method_ref": "{{payment_method_ref}}",
+            "customer_id": "{{customer_id}}",
+            "risk_score": "{{risk_score}}"
+          },
+          "output_mappings": {
+            "authorization_id": {
+              "enabled": true,
+              "variableName": "authorization_id"
+            },
+            "status": {
+              "enabled": true,
+              "variableName": "payment_status"
+            },
+            "decline_code": {
+              "enabled": true,
+              "variableName": "decline_code"
+            }
+          }
+        }
+      },
+      {
+        "id": "paid",
+        "type": "condition",
+        "label": "Authorised?",
+        "position": {
+          "x": 660,
+          "y": 3020
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Authorised",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{payment_status}}",
+                  "operator": "equals",
+                  "value": "authorized"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "unreserve",
+        "type": "call_reference",
+        "label": "Release reservation",
+        "position": {
+          "x": 980,
+          "y": 3200
+        },
+        "config": {
+          "reference_id": "052f65f1-f63c-4cfa-972d-12a8fb5bf0b8",
+          "reference_name": "Release reservation",
+          "reference_method": "POST",
+          "input_mappings": {
+            "reservation_id": "{{reservation_id}}",
+            "reason": "Payment declined"
+          }
+        },
+        "onError": "continue"
+      },
+      {
+        "id": "pay_result",
+        "type": "set_variable",
+        "label": "Rejected (payment)",
+        "position": {
+          "x": 980,
+          "y": 3360
+        },
+        "config": {
+          "name": "result",
+          "expression": "rejected"
+        }
+      },
+      {
+        "id": "pay_status",
+        "type": "set_variable",
+        "label": "Status payment declined",
+        "position": {
+          "x": 980,
+          "y": 3520
+        },
+        "config": {
+          "name": "order_status",
+          "expression": "payment_declined"
+        }
+      },
+      {
+        "id": "pay_reason",
+        "type": "set_variable",
+        "label": "Payment reason",
+        "position": {
+          "x": 980,
+          "y": 3680
+        },
+        "config": {
+          "name": "reason",
+          "expression": "Payment was not authorised ({{decline_code}})"
+        }
+      },
+      {
+        "id": "end_pay_body",
+        "type": "json_build_object",
+        "label": "Payment declined response",
+        "position": {
+          "x": 980,
+          "y": 3840
+        },
+        "config": {
+          "fields": [
+            {
+              "key": "result",
+              "value": "{{result}}"
+            },
+            {
+              "key": "order_id",
+              "value": "{{order_id}}"
+            },
+            {
+              "key": "order_status",
+              "value": "{{order_status}}"
+            },
+            {
+              "key": "reason",
+              "value": "{{reason}}"
+            },
+            {
+              "key": "total",
+              "value": "{{total}}"
+            },
+            {
+              "key": "currency",
+              "value": "{{currency}}"
+            },
+            {
+              "key": "risk_score",
+              "value": "{{risk_score}}"
+            },
+            {
+              "key": "needs_review",
+              "value": "{{needs_review}}"
+            },
+            {
+              "key": "reservation_id",
+              "value": "{{reservation_id}}"
+            },
+            {
+              "key": "authorization_id",
+              "value": "{{authorization_id}}"
+            },
+            {
+              "key": "shipment_id",
+              "value": "{{shipment_id}}"
+            },
+            {
+              "key": "estimated_delivery",
+              "value": "{{estimated_delivery}}"
+            }
+          ],
+          "output_var": "order_response"
+        }
+      },
+      {
+        "id": "end_pay",
+        "type": "end_workflow",
+        "label": "Payment declined",
+        "position": {
+          "x": 980,
+          "y": 4020
+        },
+        "config": {
+          "reason": "Order {{order_id}}: {{result}} ({{order_status}})",
+          "response_status_code": "402",
+          "response_body_mode": "json_variable",
+          "response_json_body": "{{order_response}}"
+        }
+      },
+      {
+        "id": "ship",
+        "type": "call_reference",
+        "label": "Create shipment",
+        "position": {
+          "x": 660,
+          "y": 3200
+        },
+        "config": {
+          "reference_id": "9a55747f-e1ab-4e9e-8979-ae281d1aecbd",
+          "reference_name": "Create shipment",
+          "reference_method": "POST",
+          "input_mappings": {
+            "order_id": "{{order_id}}",
+            "reservation_id": "{{reservation_id}}",
+            "address": "{{=TO_JSON(shipping_address)}}",
+            "service": "{{shipping_service}}",
+            "hold": "{{needs_review}}"
+          },
+          "output_mappings": {
+            "shipment_id": {
+              "enabled": true,
+              "variableName": "shipment_id"
+            },
+            "estimated_delivery": {
+              "enabled": true,
+              "variableName": "estimated_delivery"
+            }
+          }
+        }
+      },
+      {
+        "id": "ok_result",
+        "type": "set_variable",
+        "label": "Accepted",
+        "position": {
+          "x": 660,
+          "y": 3360
+        },
+        "config": {
+          "name": "result",
+          "expression": "accepted"
+        }
+      },
+      {
+        "id": "ok_status",
+        "type": "set_variable",
+        "label": "Order status",
+        "position": {
+          "x": 660,
+          "y": 3520
+        },
+        "config": {
+          "name": "order_status",
+          "expression": "{{=IF(needs_review, \"on_hold_for_review\", \"confirmed\")}}"
+        }
+      },
+      {
+        "id": "ok_reason",
+        "type": "set_variable",
+        "label": "Note",
+        "position": {
+          "x": 660,
+          "y": 3680
+        },
+        "config": {
+          "name": "reason",
+          "expression": "{{=IF(needs_review, fraud_reason, \"\")}}"
+        }
+      },
+      {
+        "id": "review_needed",
+        "type": "condition",
+        "label": "Review needed?",
+        "position": {
+          "x": 660,
+          "y": 3840
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Review",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_review}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "start_review",
+        "type": "call_sub_workflow",
+        "label": "Start fraud review",
+        "position": {
+          "x": 420,
+          "y": 4020
+        },
+        "config": {
+          "sub_workflow_id": "cc6f34fa-a650-4e22-860f-0756a320798f",
+          "sub_workflow_name": "Manual fraud review",
+          "input_mappings": {
+            "order_id": "{{order_id}}",
+            "customer_email": "{{email}}",
+            "order_total": "{{total}}",
+            "currency": "{{currency}}",
+            "risk_score": "{{risk_score}}",
+            "fraud_reason": "{{fraud_reason}}",
+            "shipment_id": "{{shipment_id}}",
+            "reservation_id": "{{reservation_id}}",
+            "authorization_id": "{{authorization_id}}"
+          }
+        },
+        "executionMode": "async"
+      },
+      {
+        "id": "end_ok_body",
+        "type": "json_build_object",
+        "label": "Order accepted response",
+        "position": {
+          "x": 660,
+          "y": 4180
+        },
+        "config": {
+          "fields": [
+            {
+              "key": "result",
+              "value": "{{result}}"
+            },
+            {
+              "key": "order_id",
+              "value": "{{order_id}}"
+            },
+            {
+              "key": "order_status",
+              "value": "{{order_status}}"
+            },
+            {
+              "key": "reason",
+              "value": "{{reason}}"
+            },
+            {
+              "key": "total",
+              "value": "{{total}}"
+            },
+            {
+              "key": "currency",
+              "value": "{{currency}}"
+            },
+            {
+              "key": "risk_score",
+              "value": "{{risk_score}}"
+            },
+            {
+              "key": "needs_review",
+              "value": "{{needs_review}}"
+            },
+            {
+              "key": "reservation_id",
+              "value": "{{reservation_id}}"
+            },
+            {
+              "key": "authorization_id",
+              "value": "{{authorization_id}}"
+            },
+            {
+              "key": "shipment_id",
+              "value": "{{shipment_id}}"
+            },
+            {
+              "key": "estimated_delivery",
+              "value": "{{estimated_delivery}}"
+            }
+          ],
+          "output_var": "order_response"
+        }
+      },
+      {
+        "id": "end_ok",
+        "type": "end_workflow",
+        "label": "Order accepted",
+        "position": {
+          "x": 660,
+          "y": 4340
+        },
+        "config": {
+          "reason": "Order {{order_id}}: {{result}} ({{order_status}})",
+          "response_status_code": "201",
+          "response_body_mode": "json_variable",
+          "response_json_body": "{{order_response}}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-needs_review0",
+        "source": "title",
+        "target": "needs_review0"
+      },
+      {
+        "id": "e-needs_review0-validate",
+        "source": "needs_review0",
+        "target": "validate"
+      },
+      {
+        "id": "e-validate-bad_result-invalid",
+        "source": "validate",
+        "target": "bad_result",
+        "label": "Invalid"
+      },
+      {
+        "id": "e-bad_result-bad_status",
+        "source": "bad_result",
+        "target": "bad_status"
+      },
+      {
+        "id": "e-bad_status-bad_reason",
+        "source": "bad_status",
+        "target": "bad_reason"
+      },
+      {
+        "id": "e-bad_reason-end_invalid_body",
+        "source": "bad_reason",
+        "target": "end_invalid_body"
+      },
+      {
+        "id": "e-end_invalid_body-end_invalid",
+        "source": "end_invalid_body",
+        "target": "end_invalid"
+      },
+      {
+        "id": "e-validate-sub0-else",
+        "source": "validate",
+        "target": "sub0",
+        "label": "Else"
+      },
+      {
+        "id": "e-sub0-each",
+        "source": "sub0",
+        "target": "each"
+      },
+      {
+        "id": "e-each-add_line-each-item",
+        "source": "each",
+        "target": "add_line",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-each-shipping-done",
+        "source": "each",
+        "target": "shipping",
+        "label": "Done"
+      },
+      {
+        "id": "e-shipping-tax",
+        "source": "shipping",
+        "target": "tax"
+      },
+      {
+        "id": "e-tax-total_raw",
+        "source": "tax",
+        "target": "total_raw"
+      },
+      {
+        "id": "e-total_raw-total",
+        "source": "total_raw",
+        "target": "total"
+      },
+      {
+        "id": "e-total-mismatch",
+        "source": "total",
+        "target": "mismatch"
+      },
+      {
+        "id": "e-mismatch-fraud",
+        "source": "mismatch",
+        "target": "fraud"
+      },
+      {
+        "id": "e-fraud-route",
+        "source": "fraud",
+        "target": "route"
+      },
+      {
+        "id": "e-route-fraud_result-reject",
+        "source": "route",
+        "target": "fraud_result",
+        "label": "reject"
+      },
+      {
+        "id": "e-fraud_result-fraud_status",
+        "source": "fraud_result",
+        "target": "fraud_status"
+      },
+      {
+        "id": "e-fraud_status-fraud_reason_v",
+        "source": "fraud_status",
+        "target": "fraud_reason_v"
+      },
+      {
+        "id": "e-fraud_reason_v-end_fraud_body",
+        "source": "fraud_reason_v",
+        "target": "end_fraud_body"
+      },
+      {
+        "id": "e-end_fraud_body-end_fraud",
+        "source": "end_fraud_body",
+        "target": "end_fraud"
+      },
+      {
+        "id": "e-route-flag-review",
+        "source": "route",
+        "target": "flag",
+        "label": "review"
+      },
+      {
+        "id": "e-flag-reserve",
+        "source": "flag",
+        "target": "reserve"
+      },
+      {
+        "id": "e-route-reserve-default",
+        "source": "route",
+        "target": "reserve",
+        "label": "Default"
+      },
+      {
+        "id": "e-reserve-stock_ok",
+        "source": "reserve",
+        "target": "stock_ok"
+      },
+      {
+        "id": "e-stock_ok-auth-reserved",
+        "source": "stock_ok",
+        "target": "auth",
+        "label": "Reserved"
+      },
+      {
+        "id": "e-stock_ok-oos_result-else",
+        "source": "stock_ok",
+        "target": "oos_result",
+        "label": "Else"
+      },
+      {
+        "id": "e-oos_result-oos_status",
+        "source": "oos_result",
+        "target": "oos_status"
+      },
+      {
+        "id": "e-oos_status-oos_reason",
+        "source": "oos_status",
+        "target": "oos_reason"
+      },
+      {
+        "id": "e-oos_reason-end_oos_body",
+        "source": "oos_reason",
+        "target": "end_oos_body"
+      },
+      {
+        "id": "e-end_oos_body-end_oos",
+        "source": "end_oos_body",
+        "target": "end_oos"
+      },
+      {
+        "id": "e-auth-paid",
+        "source": "auth",
+        "target": "paid"
+      },
+      {
+        "id": "e-paid-ship-authorised",
+        "source": "paid",
+        "target": "ship",
+        "label": "Authorised"
+      },
+      {
+        "id": "e-paid-unreserve-else",
+        "source": "paid",
+        "target": "unreserve",
+        "label": "Else"
+      },
+      {
+        "id": "e-unreserve-pay_result",
+        "source": "unreserve",
+        "target": "pay_result"
+      },
+      {
+        "id": "e-pay_result-pay_status",
+        "source": "pay_result",
+        "target": "pay_status"
+      },
+      {
+        "id": "e-pay_status-pay_reason",
+        "source": "pay_status",
+        "target": "pay_reason"
+      },
+      {
+        "id": "e-pay_reason-end_pay_body",
+        "source": "pay_reason",
+        "target": "end_pay_body"
+      },
+      {
+        "id": "e-end_pay_body-end_pay",
+        "source": "end_pay_body",
+        "target": "end_pay"
+      },
+      {
+        "id": "e-ship-ok_result",
+        "source": "ship",
+        "target": "ok_result"
+      },
+      {
+        "id": "e-ok_result-ok_status",
+        "source": "ok_result",
+        "target": "ok_status"
+      },
+      {
+        "id": "e-ok_status-ok_reason",
+        "source": "ok_status",
+        "target": "ok_reason"
+      },
+      {
+        "id": "e-ok_reason-review_needed",
+        "source": "ok_reason",
+        "target": "review_needed"
+      },
+      {
+        "id": "e-review_needed-start_review-review",
+        "source": "review_needed",
+        "target": "start_review",
+        "label": "Review"
+      },
+      {
+        "id": "e-review_needed-end_ok_body-else",
+        "source": "review_needed",
+        "target": "end_ok_body",
+        "label": "Else"
+      },
+      {
+        "id": "e-start_review-end_ok_body",
+        "source": "start_review",
+        "target": "end_ok_body"
+      },
+      {
+        "id": "e-end_ok_body-end_ok",
+        "source": "end_ok_body",
+        "target": "end_ok"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-order_id",
+        "name": "order_id",
+        "type": "string",
+        "description": "Storefront order id",
+        "defaultValue": "",
+        "required": true,
+        "label": "Order id"
+      },
+      {
+        "id": "v-customer_id",
+        "name": "customer_id",
+        "type": "string",
+        "description": "Customer id in the storefront",
+        "defaultValue": "",
+        "required": true,
+        "label": "Customer id"
+      },
+      {
+        "id": "v-email",
+        "name": "email",
+        "type": "string",
+        "description": "Customer email",
+        "defaultValue": "",
+        "label": "Email",
+        "format": "email"
+      },
+      {
+        "id": "v-lines",
+        "name": "lines",
+        "type": "object",
+        "description": "Order lines: [{ sku, qty, price }] with unit prices excluding tax",
+        "defaultValue": "",
+        "required": true,
+        "label": "Lines"
+      },
+      {
+        "id": "v-currency",
+        "name": "currency",
+        "type": "string",
+        "description": "ISO currency code",
+        "defaultValue": "NZD",
+        "label": "Currency"
+      },
+      {
+        "id": "v-shipping_address",
+        "name": "shipping_address",
+        "type": "object",
+        "description": "Shipping address { name, line1, city, postcode, country }",
+        "defaultValue": "",
+        "required": true,
+        "label": "Shipping address"
+      },
+      {
+        "id": "v-billing_country",
+        "name": "billing_country",
+        "type": "string",
+        "description": "Country of the payment method / billing address (ISO code)",
+        "defaultValue": "",
+        "label": "Billing country"
+      },
+      {
+        "id": "v-new_customer",
+        "name": "new_customer",
+        "type": "boolean",
+        "description": "True when this is the customer's first order",
+        "defaultValue": "false",
+        "label": "New customer"
+      },
+      {
+        "id": "v-payment_method_ref",
+        "name": "payment_method_ref",
+        "type": "string",
+        "description": "Payment-method token from your payment provider (a reference, never card data)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Payment token"
+      },
+      {
+        "id": "v-shipping_service",
+        "name": "shipping_service",
+        "type": "string",
+        "description": "Shipping service code",
+        "defaultValue": "standard",
+        "label": "Shipping service"
+      },
+      {
+        "id": "v-tax_rate",
+        "name": "tax_rate",
+        "type": "number",
+        "description": "Sales tax rate applied to the subtotal (0.15 = 15%)",
+        "defaultValue": "0.15",
+        "label": "Tax rate"
+      },
+      {
+        "id": "v-free_shipping_over",
+        "name": "free_shipping_over",
+        "type": "number",
+        "description": "Subtotal from which shipping is free",
+        "defaultValue": "100",
+        "label": "Free shipping threshold"
+      },
+      {
+        "id": "v-shipping_fee",
+        "name": "shipping_fee",
+        "type": "number",
+        "description": "Flat shipping fee below the threshold",
+        "defaultValue": "9.95",
+        "label": "Shipping fee"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

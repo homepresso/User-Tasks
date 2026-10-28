@@ -1,0 +1,240 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "95dc5df4-d234-5767-839a-a3ef43da4ab0",
+  "asset": {
+    "id": "95dc5df4-d234-5767-839a-a3ef43da4ab0",
+    "integration_id": "e3d58d05-b9c4-589d-b1df-20fcb1b3c7a0",
+    "name": "Get opportunity",
+    "description": "Read the opportunity (GET /sobjects/Opportunity/{id}): name, amount, stage, close date, owner and the custom discount fields.",
+    "tags": [
+      "opportunity"
+    ],
+    "request_config": {
+      "method": "GET",
+      "headers": {},
+      "query_params": {},
+      "body_template": "",
+      "path_template": "/sobjects/Opportunity/{{opportunity_id}}",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "attributes",
+              "type": "object",
+              "fields": [
+                {
+                  "name": "type",
+                  "type": "string",
+                  "example": "Opportunity"
+                },
+                {
+                  "name": "url",
+                  "type": "string",
+                  "example": "/services/data/v61.0/sobjects/Opportunity/0065g00000XyZ12AAB"
+                }
+              ]
+            },
+            {
+              "name": "Id",
+              "type": "string",
+              "example": "0065g00000XyZ12AAB"
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "example": "Northwind Traders - Platform renewal FY27"
+            },
+            {
+              "name": "AccountId",
+              "type": "string",
+              "example": "0015g00000AbCdEAAZ"
+            },
+            {
+              "name": "Amount",
+              "type": "number",
+              "example": 186000.0
+            },
+            {
+              "name": "CurrencyIsoCode",
+              "type": "string",
+              "example": "USD"
+            },
+            {
+              "name": "StageName",
+              "type": "string",
+              "example": "Negotiation/Review"
+            },
+            {
+              "name": "Probability",
+              "type": "number",
+              "example": 80.0
+            },
+            {
+              "name": "CloseDate",
+              "type": "string",
+              "example": "2026-11-28"
+            },
+            {
+              "name": "Type",
+              "type": "string",
+              "example": "Existing Customer - Upgrade"
+            },
+            {
+              "name": "OwnerId",
+              "type": "string",
+              "example": "0055g00000Q1wErAAJ"
+            },
+            {
+              "name": "ForecastCategoryName",
+              "type": "string",
+              "example": "Commit"
+            },
+            {
+              "name": "Discount_Percent__c",
+              "type": "number",
+              "example": 22.0
+            },
+            {
+              "name": "Discount_Approval_Status__c",
+              "type": "string",
+              "example": "Pending"
+            },
+            {
+              "name": "Discount_Reason__c",
+              "type": "string",
+              "example": "Competitive pressure"
+            },
+            {
+              "name": "Contract_Term_Months__c",
+              "type": "integer",
+              "example": 36
+            },
+            {
+              "name": "LastModifiedDate",
+              "type": "string",
+              "example": "2026-10-28T08:41:12.000+0000"
+            }
+          ]
+        },
+        "sample": {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v61.0/sobjects/Opportunity/0065g00000XyZ12AAB"
+          },
+          "Id": "0065g00000XyZ12AAB",
+          "Name": "Northwind Traders - Platform renewal FY27",
+          "AccountId": "0015g00000AbCdEAAZ",
+          "Amount": 186000.0,
+          "CurrencyIsoCode": "USD",
+          "StageName": "Negotiation/Review",
+          "Probability": 80.0,
+          "CloseDate": "2026-11-28",
+          "Type": "Existing Customer - Upgrade",
+          "OwnerId": "0055g00000Q1wErAAJ",
+          "ForecastCategoryName": "Commit",
+          "Discount_Percent__c": 22.0,
+          "Discount_Approval_Status__c": "Pending",
+          "Discount_Reason__c": "Competitive pressure",
+          "Contract_Term_Months__c": 36,
+          "LastModifiedDate": "2026-10-28T08:41:12.000+0000"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-28T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "00c095cf-e5ba-56a8-bfa9-b75fabbe1e7d",
+        "name": "opportunity_id",
+        "type": "string",
+        "source": "variable",
+        "location": "path",
+        "required": true,
+        "description": "18-character Opportunity Id",
+        "default_value": ""
+      },
+      {
+        "id": "38d3667b-62cd-56c9-82a2-ffea187e7354",
+        "name": "fields",
+        "type": "string",
+        "source": "static",
+        "location": "query",
+        "required": false,
+        "description": "Fields to return",
+        "default_value": "Id,Name,AccountId,Amount,CurrencyIsoCode,StageName,Probability,CloseDate,Type,OwnerId,ForecastCategoryName,Discount_Percent__c,Discount_Approval_Status__c,Discount_Reason__c,Contract_Term_Months__c,LastModifiedDate"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "5d079baa-0e0a-50af-a969-c2f345339be0",
+        "name": "opportunity_name",
+        "path": "Name",
+        "type": "string"
+      },
+      {
+        "id": "315917b8-1be2-52cd-99bf-892173d8414e",
+        "name": "amount",
+        "path": "Amount",
+        "type": "number"
+      },
+      {
+        "id": "88e72b70-bd39-5d12-816f-317a2251cb5a",
+        "name": "currency",
+        "path": "CurrencyIsoCode",
+        "type": "string"
+      },
+      {
+        "id": "c714f9ff-9628-5769-ad4e-6204e51832bc",
+        "name": "stage",
+        "path": "StageName",
+        "type": "string"
+      },
+      {
+        "id": "c0b2481b-933b-51ff-9c9b-bfd46a44833a",
+        "name": "close_date",
+        "path": "CloseDate",
+        "type": "string"
+      },
+      {
+        "id": "bae4cf9d-5d5b-5cdd-a003-7a3e69c40cac",
+        "name": "opp_type",
+        "path": "Type",
+        "type": "string"
+      },
+      {
+        "id": "50447a06-3f35-5164-bddc-9eb81d50e8e3",
+        "name": "owner_id",
+        "path": "OwnerId",
+        "type": "string"
+      },
+      {
+        "id": "63780608-4cb2-5ebc-8db3-1a171a042d6f",
+        "name": "requested_discount",
+        "path": "Discount_Percent__c",
+        "type": "number"
+      },
+      {
+        "id": "30b61298-2b61-57bd-b29b-ef1e785d8391",
+        "name": "discount_reason",
+        "path": "Discount_Reason__c",
+        "type": "string"
+      },
+      {
+        "id": "63db6d2a-9c2d-5381-be28-615139988c95",
+        "name": "term_months",
+        "path": "Contract_Term_Months__c",
+        "type": "number"
+      },
+      {
+        "id": "99bf235b-64df-5ebb-8482-a6acf7f2ff12",
+        "name": "approval_status",
+        "path": "Discount_Approval_Status__c",
+        "type": "string"
+      }
+    ]
+  }
+}

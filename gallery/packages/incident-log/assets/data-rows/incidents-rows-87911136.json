@@ -1,0 +1,61 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "87911136-89dc-51e8-b9d8-b7af1780b37c",
+  "asset": {
+    "id": "87911136-89dc-51e8-b9d8-b7af1780b37c",
+    "name": "Incidents rows",
+    "rows": [
+      {
+        "id": "5bbb34d2-a3f7-52ef-81de-5028f96e5f51",
+        "data": {
+          "incident_ref": "INC-20261012-3KF9",
+          "reported_on": "2026-10-12",
+          "occurred_at": "2026-10-12T10:15:00Z",
+          "site_code": "AKL-DC",
+          "site_name": "Auckland distribution centre",
+          "location_detail": "Loading bay 3",
+          "incident_type": "Near miss",
+          "injury_level": "None",
+          "severity": "Low",
+          "sla_hours": 168,
+          "investigation_required": false,
+          "notifiable": false,
+          "reporter_name": "Hugo Silva",
+          "reporter_email": "hugo.silva@example.com",
+          "description": "Pallet slipped from forklift forks while reversing; nobody in the area.",
+          "immediate_action": "Area cordoned off, load re-stacked.",
+          "status": "Closed",
+          "root_cause": "Load not centred on the forks",
+          "corrective_actions": "Toolbox talk on load centring",
+          "closed_on": "2026-10-14"
+        }
+      },
+      {
+        "id": "40c304f8-4341-5e66-8983-968a338778c6",
+        "data": {
+          "incident_ref": "INC-20261020-8PQ2",
+          "reported_on": "2026-10-20",
+          "occurred_at": "2026-10-20T15:40:00Z",
+          "site_code": "CHC-WS",
+          "site_name": "Christchurch workshop",
+          "location_detail": "Bench grinder station",
+          "incident_type": "Injury",
+          "injury_level": "First aid",
+          "severity": "Medium",
+          "sla_hours": 120,
+          "investigation_required": false,
+          "notifiable": false,
+          "reporter_name": "Ivy Chen",
+          "reporter_email": "ivy.chen@example.com",
+          "description": "Small cut to the hand while changing a grinding disc.",
+          "immediate_action": "First aid given, plaster applied.",
+          "status": "Closed",
+          "root_cause": "Gloves not worn for disc change",
+          "corrective_actions": "Glove dispenser mounted at the station",
+          "closed_on": "2026-10-22"
+        }
+      }
+    ]
+  }
+}

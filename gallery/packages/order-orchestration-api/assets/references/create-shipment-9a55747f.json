@@ -1,0 +1,142 @@
+{
+  "format_version": 3,
+  "asset_type": "references",
+  "id": "9a55747f-e1ab-4e9e-8979-ae281d1aecbd",
+  "asset": {
+    "id": "9a55747f-e1ab-4e9e-8979-ae281d1aecbd",
+    "integration_id": "85563cbf-b21d-49aa-b238-96b3c3e86d4c",
+    "name": "Create shipment",
+    "description": "Create the shipment for the reserved stock, optionally on hold until a fraud review releases it.",
+    "tags": [
+      "fulfilment"
+    ],
+    "request_config": {
+      "method": "POST",
+      "headers": {},
+      "query_params": {},
+      "body_template": "{\"order_id\":\"{{order_id}}\",\"reservation_id\":\"{{reservation_id}}\",\"address\":{{address}},\"service\":\"{{service}}\",\"hold\":{{hold}}}",
+      "path_template": "/shipments",
+      "response_schema": {
+        "version": 1,
+        "source": "sample",
+        "root": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "shipment_id",
+              "type": "string",
+              "example": "SHP-310588"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "example": "ready_to_pick"
+            },
+            {
+              "name": "carrier",
+              "type": "string",
+              "example": "Courier Standard"
+            },
+            {
+              "name": "estimated_delivery",
+              "type": "string",
+              "example": "2026-10-29"
+            },
+            {
+              "name": "tracking_url",
+              "type": "string",
+              "example": "https://fulfilment.example.com/track/SHP-310588"
+            }
+          ]
+        },
+        "sample": {
+          "shipment_id": "SHP-310588",
+          "status": "ready_to_pick",
+          "carrier": "Courier Standard",
+          "estimated_delivery": "2026-10-29",
+          "tracking_url": "https://fulfilment.example.com/track/SHP-310588"
+        },
+        "samples": 1,
+        "updated_at": "2026-10-26T00:00:00.000Z"
+      }
+    },
+    "inputs": [
+      {
+        "id": "f9b78f51-061a-4968-8eea-578af4c650d1",
+        "name": "order_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "fa0fc12e-cb34-4426-8e8b-53eba75e2b29",
+        "name": "reservation_id",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "c1b10aa9-8ca5-43e4-b927-86d8abb5b694",
+        "name": "address",
+        "type": "object",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "5ba9ced9-f584-4b6c-9082-6de3d88bbbc2",
+        "name": "service",
+        "type": "string",
+        "source": "variable",
+        "location": "body",
+        "required": false,
+        "description": "",
+        "default_value": ""
+      },
+      {
+        "id": "e027beec-205a-485e-8549-2856c0e5ab54",
+        "name": "hold",
+        "type": "boolean",
+        "source": "variable",
+        "location": "body",
+        "required": true,
+        "description": "",
+        "default_value": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "8da20e07-1301-4403-a302-c320bd3ede7d",
+        "name": "shipment_id",
+        "path": "shipment_id",
+        "type": "string"
+      },
+      {
+        "id": "32b11fcb-6648-4e37-b41d-50f620af31b7",
+        "name": "status",
+        "path": "status",
+        "type": "string"
+      },
+      {
+        "id": "e398ee60-61c7-417d-aef1-5547ecdba564",
+        "name": "estimated_delivery",
+        "path": "estimated_delivery",
+        "type": "string"
+      },
+      {
+        "id": "2614f697-5236-4635-9b83-0fb55ca600dd",
+        "name": "carrier",
+        "path": "carrier",
+        "type": "string"
+      }
+    ]
+  }
+}

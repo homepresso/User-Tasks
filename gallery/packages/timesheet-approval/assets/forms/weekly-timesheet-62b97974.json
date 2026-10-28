@@ -1,0 +1,339 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "62b97974-e5f8-5d18-9345-dcb5528f46bc",
+  "asset": {
+    "id": "62b97974-e5f8-5d18-9345-dcb5528f46bc",
+    "name": "Weekly timesheet",
+    "description": "Employees record their hours per day against a project for the week and pick who approves them.",
+    "tags": [
+      "timesheets",
+      "time tracking"
+    ],
+    "fields": [
+      {
+        "key": "employee_name",
+        "label": "Your name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "employee_email",
+        "label": "Your email",
+        "type": "email",
+        "required": true,
+        "help_text": "The decision is emailed here."
+      },
+      {
+        "key": "week_ending",
+        "label": "Week ending (Friday)",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "project",
+        "label": "Project",
+        "type": "lookup",
+        "required": true,
+        "help_text": "Search by code, project or client.",
+        "lookup": {
+          "source": "table",
+          "table_id": "4e3b0f82-14a6-5d39-84f2-3bc7220a2e4e",
+          "search_columns": [
+            "code",
+            "name",
+            "client"
+          ],
+          "display_columns": [
+            "code",
+            "name",
+            "client"
+          ],
+          "value_column": "code",
+          "fill": [
+            {
+              "from": "client",
+              "to": "client"
+            },
+            {
+              "from": "billable",
+              "to": "billable"
+            },
+            {
+              "from": "name",
+              "to": "project_name"
+            }
+          ],
+          "filters": [
+            {
+              "column": "active",
+              "operator": "eq",
+              "value": "true"
+            }
+          ],
+          "sort": {
+            "column": "code",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "project_name",
+        "label": "Project name",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "client",
+        "label": "Client",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "billable",
+        "label": "Billable",
+        "type": "boolean",
+        "read_only": true
+      },
+      {
+        "key": "hours_heading",
+        "label": "Hours worked",
+        "type": "heading"
+      },
+      {
+        "key": "mon",
+        "label": "Mon",
+        "type": "number",
+        "required": true,
+        "min": 0,
+        "max": 24,
+        "default": "0"
+      },
+      {
+        "key": "tue",
+        "label": "Tue",
+        "type": "number",
+        "required": true,
+        "min": 0,
+        "max": 24,
+        "default": "0"
+      },
+      {
+        "key": "wed",
+        "label": "Wed",
+        "type": "number",
+        "required": true,
+        "min": 0,
+        "max": 24,
+        "default": "0"
+      },
+      {
+        "key": "thu",
+        "label": "Thu",
+        "type": "number",
+        "required": true,
+        "min": 0,
+        "max": 24,
+        "default": "0"
+      },
+      {
+        "key": "fri",
+        "label": "Fri",
+        "type": "number",
+        "required": true,
+        "min": 0,
+        "max": 24,
+        "default": "0"
+      },
+      {
+        "key": "work_summary",
+        "label": "What you worked on",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "key": "overtime_reason",
+        "label": "Reason for overtime",
+        "type": "textarea",
+        "help_text": "Needed if the week is over 40 hours."
+      },
+      {
+        "key": "approver",
+        "label": "Approver",
+        "type": "user",
+        "required": true,
+        "help_text": "Usually your manager or the project manager."
+      },
+      {
+        "key": "overtime_checker",
+        "label": "Overtime checker",
+        "type": "user",
+        "help_text": "Payroll or a second manager. Only used for weeks over 40 hours; empty means the approver checks it again."
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "employee_name",
+              "span": 1
+            },
+            {
+              "field_key": "employee_email",
+              "span": 1
+            },
+            {
+              "field_key": "week_ending",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "project",
+              "span": 3
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "project_name",
+              "span": 1
+            },
+            {
+              "field_key": "client",
+              "span": 1
+            },
+            {
+              "field_key": "billable",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 5,
+          "cells": [
+            {
+              "field_key": "hours_heading",
+              "span": 5
+            }
+          ]
+        },
+        {
+          "columns": 5,
+          "cells": [
+            {
+              "field_key": "mon",
+              "span": 1
+            },
+            {
+              "field_key": "tue",
+              "span": 1
+            },
+            {
+              "field_key": "wed",
+              "span": 1
+            },
+            {
+              "field_key": "thu",
+              "span": 1
+            },
+            {
+              "field_key": "fri",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 5,
+          "cells": [
+            {
+              "field_key": "work_summary",
+              "span": 5
+            }
+          ]
+        },
+        {
+          "columns": 5,
+          "cells": [
+            {
+              "field_key": "overtime_reason",
+              "span": 5
+            }
+          ]
+        },
+        {
+          "columns": 5,
+          "cells": [
+            {
+              "field_key": "approver",
+              "span": 3
+            },
+            {
+              "field_key": "overtime_checker",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#0369A1",
+            "background": "#FFFFFF",
+            "text": "#0C1E2C",
+            "page": "#E8F2F9",
+            "page_to": "#F6FAFD"
+          }
+        },
+        "radius": 10,
+        "density": "compact",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Manrope"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit timesheet",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Timesheet submitted",
+            "screen_button": "submit_another",
+            "text": "Thanks {{employee_name}}. Your hours for {{project_item.name}} (week ending {{week_ending}}) are with {{approver}} for approval.",
+            "screen_button_label": "Submit another project"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Weekly timesheet",
+      "align": "left",
+      "subtitle": "Hours for one project for the week. Submit one per project."
+    }
+  }
+}

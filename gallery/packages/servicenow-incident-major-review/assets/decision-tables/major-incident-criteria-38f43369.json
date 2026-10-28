@@ -1,0 +1,181 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "38f43369-4508-5d6d-8bf4-1d5a388bf8d3",
+  "asset": {
+    "id": "38f43369-4508-5d6d-8bf4-1d5a388bf8d3",
+    "name": "Major incident criteria",
+    "description": "Whether an incident is a major incident candidate, its severity and the stakeholder communication cadence, from ServiceNow priority / impact / urgency and the service tier. First matching rule wins.",
+    "inputs": [
+      {
+        "key": "priority",
+        "label": "Priority (1-5)",
+        "type": "number",
+        "id": "8817fb0d-49c9-5a66-b1b1-0279f3c3e0b3"
+      },
+      {
+        "key": "impact",
+        "label": "Impact (1-3)",
+        "type": "number",
+        "id": "6663bcf4-9584-5cb0-bd87-36638eaa6ae7"
+      },
+      {
+        "key": "urgency",
+        "label": "Urgency (1-3)",
+        "type": "number",
+        "id": "34eb8807-2650-5d19-a8ed-84d318895f23"
+      },
+      {
+        "key": "tier",
+        "label": "Service tier",
+        "type": "number",
+        "id": "964ae577-8559-56cd-a828-f61b599c4f91"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "major_candidate",
+        "label": "Major incident candidate",
+        "type": "boolean",
+        "id": "7ce2e0d5-abc5-5eff-9df2-cd9e5aa334ae"
+      },
+      {
+        "key": "severity",
+        "label": "Proposed severity",
+        "type": "text",
+        "id": "6e2963ae-5692-5252-acdd-3327cf50044e"
+      },
+      {
+        "key": "comms_cadence_minutes",
+        "label": "Comms cadence (minutes)",
+        "type": "number",
+        "id": "dcfb6b78-f019-5079-8b58-3c7a8f1059f2"
+      },
+      {
+        "key": "bridge_required",
+        "label": "Bridge call",
+        "type": "boolean",
+        "id": "d78e8d44-92cf-5634-9fdc-04b9d08ed5f0"
+      },
+      {
+        "key": "review_minutes",
+        "label": "Review within (minutes)",
+        "type": "number",
+        "id": "4b788347-39ef-510e-ad2b-d4d04c49d926"
+      }
+    ],
+    "rules": [
+      {
+        "label": "P1 on a tier-1 service",
+        "conditions": [
+          {
+            "inputKey": "priority",
+            "operator": "equals",
+            "value": "1",
+            "id": "be137703-2c3a-57d3-9f06-e043d6428043"
+          },
+          {
+            "inputKey": "tier",
+            "operator": "equals",
+            "value": "1",
+            "id": "8f85b3c3-d37e-56f2-9925-0538251d0028"
+          }
+        ],
+        "outputs": {
+          "major_candidate": true,
+          "severity": "SEV1",
+          "comms_cadence_minutes": 30,
+          "bridge_required": true,
+          "review_minutes": 15
+        },
+        "id": "cedfc7f5-d47a-50a1-88db-1e5746096d06",
+        "enabled": true
+      },
+      {
+        "label": "Any P1",
+        "conditions": [
+          {
+            "inputKey": "priority",
+            "operator": "equals",
+            "value": "1",
+            "id": "85ee119e-2bb2-5a5d-9620-80caae72228a"
+          }
+        ],
+        "outputs": {
+          "major_candidate": true,
+          "severity": "SEV1",
+          "comms_cadence_minutes": 60,
+          "bridge_required": true,
+          "review_minutes": 30
+        },
+        "id": "70d30bf4-99b0-52f2-8795-e12e39835adf",
+        "enabled": true
+      },
+      {
+        "label": "High impact on a tier-1 service",
+        "conditions": [
+          {
+            "inputKey": "impact",
+            "operator": "equals",
+            "value": "1",
+            "id": "648b7980-ebc5-577b-bac4-22f992c20e92"
+          },
+          {
+            "inputKey": "tier",
+            "operator": "equals",
+            "value": "1",
+            "id": "d8bf89e9-c883-5bc9-8eb6-74427fe39ff3"
+          }
+        ],
+        "outputs": {
+          "major_candidate": true,
+          "severity": "SEV2",
+          "comms_cadence_minutes": 60,
+          "bridge_required": true,
+          "review_minutes": 30
+        },
+        "id": "19440c96-719e-5672-96f5-605753638a86",
+        "enabled": true
+      },
+      {
+        "label": "P2 on a tier-1 or tier-2 service",
+        "conditions": [
+          {
+            "inputKey": "priority",
+            "operator": "equals",
+            "value": "2",
+            "id": "50426396-2e10-5224-b538-9cc823a2fa19"
+          },
+          {
+            "inputKey": "tier",
+            "operator": "less_than_or_equal",
+            "value": "2",
+            "id": "5a4a315b-4493-5819-8f4b-4e60968c54fa"
+          }
+        ],
+        "outputs": {
+          "major_candidate": true,
+          "severity": "SEV2",
+          "comms_cadence_minutes": 120,
+          "bridge_required": false,
+          "review_minutes": 60
+        },
+        "id": "1b214ef0-f9fd-5298-b3c6-3ccc19f2a660",
+        "enabled": true
+      },
+      {
+        "label": "Everything else",
+        "conditions": [],
+        "outputs": {
+          "major_candidate": false,
+          "severity": "SEV3",
+          "comms_cadence_minutes": 240,
+          "bridge_required": false,
+          "review_minutes": 240
+        },
+        "id": "7f8c9989-0cc9-5e70-901f-4e333ccc04f8",
+        "enabled": true
+      }
+    ]
+  }
+}

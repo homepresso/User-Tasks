@@ -1,0 +1,89 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "00aac98a-6b57-49d2-82ed-0a71ebfd50a7",
+  "asset": {
+    "id": "00aac98a-6b57-49d2-82ed-0a71ebfd50a7",
+    "name": "JML sync log",
+    "description": "One row per HR change processed by the nightly sync: what was done in the directory and whether it succeeded. Filter by status to find failures.",
+    "columns": [
+      {
+        "id": "5ebf52c4-fa98-4f72-8f82-976c2d1d6ee6",
+        "required": false,
+        "key": "synced_at",
+        "name": "Synced at",
+        "type": "text"
+      },
+      {
+        "id": "e5862cee-2b5d-4518-9609-c8fbb17e47bf",
+        "required": false,
+        "key": "change_id",
+        "name": "HR change",
+        "type": "text"
+      },
+      {
+        "id": "e2c43012-01ca-4c35-82f6-00fbec2eda47",
+        "required": false,
+        "key": "employee_id",
+        "name": "Employee",
+        "type": "text"
+      },
+      {
+        "id": "3f224e2d-502e-4abd-b559-a237f1477b77",
+        "required": false,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "9b24f399-b1c2-4af1-8ec3-714d409b9bdb",
+        "required": false,
+        "key": "change_type",
+        "name": "Change type",
+        "type": "text"
+      },
+      {
+        "id": "79ee44bb-b319-4306-be6a-fef58e0f318d",
+        "required": false,
+        "key": "action",
+        "name": "Directory action",
+        "type": "text"
+      },
+      {
+        "id": "01408e38-68a2-498f-980f-0aa528ee5dca",
+        "required": false,
+        "key": "directory_user_id",
+        "name": "Directory user",
+        "type": "text"
+      },
+      {
+        "id": "73b1e255-eb9b-441e-a5f9-60f804fa43d3",
+        "required": false,
+        "key": "groups",
+        "name": "Groups",
+        "type": "text"
+      },
+      {
+        "id": "d102f7cc-d1dd-465b-a901-98d9e1d47f5f",
+        "required": false,
+        "key": "licence",
+        "name": "Licence",
+        "type": "text"
+      },
+      {
+        "id": "90b5391d-676a-4aee-9070-e793812fce93",
+        "required": false,
+        "key": "http_status",
+        "name": "HTTP status",
+        "type": "number"
+      },
+      {
+        "id": "9661ab29-468b-4d10-83c7-ea8f804192b2",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      }
+    ]
+  }
+}

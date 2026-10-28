@@ -1,0 +1,157 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "1b5f68c4-003c-4119-8490-7de35780cb07",
+  "asset": {
+    "id": "1b5f68c4-003c-4119-8490-7de35780cb07",
+    "name": "Contracts rows",
+    "rows": [
+      {
+        "id": "5c053f93-f170-4244-9a34-7ea9aa5ecdd9",
+        "data": {
+          "contract_id": "CT-1001",
+          "contract_name": "Cloud hosting",
+          "counterparty": "Northwind Hosting",
+          "owner_name": "Alex Morgan",
+          "owner_email": "alex.morgan@example.com",
+          "start_date": "2024-03-01",
+          "end_date": "2027-03-03",
+          "notice_period_days": 61,
+          "auto_renew": true,
+          "annual_value": 184000,
+          "currency": "NZD",
+          "status": "active",
+          "renewal_stage": "Not started"
+        }
+      },
+      {
+        "id": "6204b7d0-e2bc-4562-8256-5ef4b58a2bc4",
+        "data": {
+          "contract_id": "CT-1002",
+          "contract_name": "Office cleaning",
+          "counterparty": "Brightway Facilities",
+          "owner_name": "Jordan Lee",
+          "owner_email": "jordan.lee@example.com",
+          "start_date": "2025-01-01",
+          "end_date": "2026-12-31",
+          "notice_period_days": 29,
+          "auto_renew": true,
+          "annual_value": 42000,
+          "currency": "NZD",
+          "status": "active",
+          "renewal_stage": "Not started"
+        }
+      },
+      {
+        "id": "6856a95f-da95-420c-a652-a6fe79e0e35f",
+        "data": {
+          "contract_id": "CT-1003",
+          "contract_name": "CRM licences",
+          "counterparty": "Contoso Software",
+          "owner_name": "Priya Shah",
+          "owner_email": "priya.shah@example.com",
+          "start_date": "2025-11-30",
+          "end_date": "2026-11-30",
+          "notice_period_days": 21,
+          "auto_renew": false,
+          "annual_value": 96500,
+          "currency": "USD",
+          "status": "active",
+          "renewal_stage": "Not started"
+        }
+      },
+      {
+        "id": "f802b218-2a8e-4e3c-862b-2c6bc53f1907",
+        "data": {
+          "contract_id": "CT-1004",
+          "contract_name": "Payroll bureau",
+          "counterparty": "Fabrikam Payroll",
+          "owner_name": "Sam Carter",
+          "owner_email": "sam.carter@example.com",
+          "start_date": "2023-07-01",
+          "end_date": "2027-06-30",
+          "notice_period_days": 90,
+          "auto_renew": true,
+          "annual_value": 58000,
+          "currency": "NZD",
+          "status": "active",
+          "renewal_stage": "Not started"
+        }
+      },
+      {
+        "id": "da8efe50-75c0-43cf-aa10-22638291c2ac",
+        "data": {
+          "contract_id": "CT-1005",
+          "contract_name": "Fleet leasing",
+          "counterparty": "Tailspin Leasing",
+          "owner_name": "Casey Wong",
+          "owner_email": "casey.wong@example.com",
+          "start_date": "2023-12-15",
+          "end_date": "2026-12-21",
+          "notice_period_days": 45,
+          "auto_renew": false,
+          "annual_value": 211000,
+          "currency": "NZD",
+          "status": "active",
+          "renewal_stage": "Not started"
+        }
+      },
+      {
+        "id": "d86e0833-df7b-4dc5-8685-f28bc93f550f",
+        "data": {
+          "contract_id": "CT-1006",
+          "contract_name": "Security monitoring",
+          "counterparty": "Woodgrove Security",
+          "owner_name": "Alex Morgan",
+          "owner_email": "alex.morgan@example.com",
+          "start_date": "2025-04-01",
+          "end_date": "2027-03-31",
+          "notice_period_days": 60,
+          "auto_renew": true,
+          "annual_value": 73000,
+          "currency": "NZD",
+          "status": "active",
+          "renewal_stage": "Not started"
+        }
+      },
+      {
+        "id": "d7ce3bad-ab55-4644-a5c3-9032cd65641f",
+        "data": {
+          "contract_id": "CT-1007",
+          "contract_name": "Courier services",
+          "counterparty": "Adventure Freight",
+          "owner_name": "Jordan Lee",
+          "owner_email": "jordan.lee@example.com",
+          "start_date": "2024-10-01",
+          "end_date": "2026-10-31",
+          "notice_period_days": 30,
+          "auto_renew": true,
+          "annual_value": 18500,
+          "currency": "NZD",
+          "status": "expired",
+          "renewal_stage": "Renewed",
+          "decision_notes": "Replaced by CT-1009"
+        }
+      },
+      {
+        "id": "9d8d14ea-12e2-41ed-8c12-02bf52f89b24",
+        "data": {
+          "contract_id": "CT-1008",
+          "contract_name": "Legal panel retainer",
+          "counterparty": "Litware Legal",
+          "owner_name": "Priya Shah",
+          "owner_email": "priya.shah@example.com",
+          "start_date": "2025-02-01",
+          "end_date": "2027-01-31",
+          "notice_period_days": 60,
+          "auto_renew": false,
+          "annual_value": 120000,
+          "currency": "NZD",
+          "status": "active",
+          "renewal_stage": "Decision requested",
+          "decision_notes": "Reviewing panel rates"
+        }
+      }
+    ]
+  }
+}

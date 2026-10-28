@@ -1,0 +1,2590 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "UserTasks Helm chart values",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "appUrl",
+    "image",
+    "providers"
+  ],
+  "properties": {
+    "global": {
+      "type": "object",
+      "properties": {
+        "imageRegistry": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "nameOverride": {
+      "type": "string"
+    },
+    "fullnameOverride": {
+      "type": "string"
+    },
+    "image": {
+      "type": "object",
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tag": {
+          "type": "string"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^(sha256:[a-f0-9]{64})?$"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": [
+            "Always",
+            "IfNotPresent",
+            "Never"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "imagePullSecrets": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "appUrl": {
+      "type": "string",
+      "pattern": "^https?://[^/]+$",
+      "description": "Public origin, no trailing slash"
+    },
+    "instanceAdminEmails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "infrastructureUi": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "switching": {
+          "type": "boolean",
+          "description": "Provider changes from Settings → Infrastructure (INFRA_UI_SWITCHING)"
+        },
+        "backupDir": {
+          "type": "string",
+          "description": "BACKUP_DIR for switches started from the page"
+        }
+      }
+    },
+    "providers": {
+      "type": "object",
+      "properties": {
+        "db": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "",
+                "supabase",
+                "postgres"
+              ],
+              "description": "DB_PROVIDER (empty: the app default)"
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "auth": {
+                  "description": "DATABASE_AUTH",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "max_rows": {
+                  "description": "DB_MAX_ROWS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "migration_url": {
+                  "description": "MIGRATION_DATABASE_URL",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "migrations_dir": {
+                  "description": "MIGRATIONS_DIR",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "pool_max": {
+                  "description": "DATABASE_POOL_MAX",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "supabase_anon_key": {
+                  "description": "SUPABASE_ANON_KEY",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "supabase_jwt_secret": {
+                  "description": "SUPABASE_JWT_SECRET",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "supabase_service_role_key": {
+                  "description": "SUPABASE_SERVICE_ROLE_KEY",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "supabase_url": {
+                  "description": "SUPABASE_URL",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "url": {
+                  "description": "DATABASE_URL",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "description": "db provider options by instance-setting name"
+            }
+          },
+          "additionalProperties": false
+        },
+        "auth": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "",
+                "supabase",
+                "builtin",
+                "oidc",
+                "saml"
+              ],
+              "description": "AUTH_PROVIDER (empty: the app default)"
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "allow_signup": {
+                  "description": "AUTH_ALLOW_SIGNUP",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "cookie_secure": {
+                  "description": "AUTH_COOKIE_SECURE",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "database_pool_max": {
+                  "description": "AUTH_DATABASE_POOL_MAX",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "database_url": {
+                  "description": "AUTH_DATABASE_URL",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "lockout_minutes": {
+                  "description": "AUTH_LOCKOUT_MINUTES",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "lockout_threshold": {
+                  "description": "AUTH_LOCKOUT_THRESHOLD",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "password_min_length": {
+                  "description": "AUTH_PASSWORD_MIN_LENGTH",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "require_email_confirmation": {
+                  "description": "AUTH_REQUIRE_EMAIL_CONFIRMATION",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "session_idle_hours": {
+                  "description": "AUTH_SESSION_IDLE_HOURS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "session_max_days": {
+                  "description": "AUTH_SESSION_MAX_DAYS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "sso_providers": {
+                  "description": "AUTH_SSO_PROVIDERS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "description": "auth provider options by instance-setting name"
+            }
+          },
+          "additionalProperties": false
+        },
+        "storage": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "",
+                "supabase",
+                "s3",
+                "local",
+                "azure_blob",
+                "gcs"
+              ],
+              "description": "STORAGE_PROVIDER (empty: the app default)"
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "access_key_id": {
+                  "description": "S3_ACCESS_KEY_ID",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "azure_account_key": {
+                  "description": "AZURE_STORAGE_KEY",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "azure_account_name": {
+                  "description": "AZURE_STORAGE_ACCOUNT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "azure_connection_string": {
+                  "description": "AZURE_STORAGE_CONNECTION_STRING",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "azure_endpoint": {
+                  "description": "AZURE_STORAGE_BLOB_ENDPOINT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "azure_sas_token": {
+                  "description": "AZURE_STORAGE_SAS_TOKEN",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "bucket": {
+                  "description": "STORAGE_BUCKET",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "bucket_map": {
+                  "description": "STORAGE_BUCKET_MAP",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "bucket_prefix": {
+                  "description": "STORAGE_BUCKET_PREFIX",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "endpoint": {
+                  "description": "S3_ENDPOINT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "force_path_style": {
+                  "description": "S3_FORCE_PATH_STYLE",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "gcs_credentials_json": {
+                  "description": "GCS_CREDENTIALS_JSON",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "gcs_endpoint": {
+                  "description": "GCS_API_ENDPOINT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "gcs_project_id": {
+                  "description": "GCS_PROJECT_ID",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "local_root": {
+                  "description": "STORAGE_LOCAL_ROOT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "public_base_url": {
+                  "description": "STORAGE_PUBLIC_BASE_URL",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "region": {
+                  "description": "S3_REGION",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "secret_access_key": {
+                  "description": "S3_SECRET_ACCESS_KEY",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "description": "storage provider options by instance-setting name"
+            }
+          },
+          "additionalProperties": false
+        },
+        "realtime": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "",
+                "supabase",
+                "sse"
+              ],
+              "description": "REALTIME_PROVIDER (empty: the app default)"
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "database_url": {
+                  "description": "REALTIME_DATABASE_URL",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "supabase_db_url": {
+                  "description": "SUPABASE_DB_URL",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "description": "realtime provider options by instance-setting name"
+            }
+          },
+          "additionalProperties": false
+        },
+        "scheduler": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "",
+                "pg_cron",
+                "worker",
+                "external"
+              ],
+              "description": "SCHEDULER_PROVIDER (empty: the app default)"
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "cognito_allowed_clients": {
+                  "description": "SCHEDULER_COGNITO_ALLOWED_CLIENTS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "cognito_region": {
+                  "description": "SCHEDULER_COGNITO_REGION",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "cognito_scope": {
+                  "description": "SCHEDULER_COGNITO_SCOPE",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "cognito_user_pool_id": {
+                  "description": "SCHEDULER_COGNITO_USER_POOL_ID",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "database_url": {
+                  "description": "SCHEDULER_DATABASE_URL",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "entra_allowed_principals": {
+                  "description": "SCHEDULER_ENTRA_ALLOWED_PRINCIPALS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "entra_audience": {
+                  "description": "SCHEDULER_ENTRA_AUDIENCE",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "entra_tenant_id": {
+                  "description": "SCHEDULER_ENTRA_TENANT_ID",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "in_process": {
+                  "description": "SCHEDULER_IN_PROCESS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "oidc_audience": {
+                  "description": "SCHEDULER_OIDC_AUDIENCE",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "oidc_service_accounts": {
+                  "description": "SCHEDULER_OIDC_SERVICE_ACCOUNTS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "pg_cron_base_url": {
+                  "description": "SCHEDULER_PG_CRON_BASE_URL",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "tick_concurrency": {
+                  "description": "CRON_TICK_CONCURRENCY",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "description": "scheduler provider options by instance-setting name"
+            }
+          },
+          "additionalProperties": false
+        },
+        "email": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "",
+                "resend",
+                "smtp",
+                "ses",
+                "azure_communication",
+                "microsoft_graph",
+                "gmail",
+                "console"
+              ],
+              "description": "EMAIL_PROVIDER (empty: the app default)"
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "acs_connection_string": {
+                  "description": "ACS_EMAIL_CONNECTION_STRING",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "acs_endpoint": {
+                  "description": "ACS_EMAIL_ENDPOINT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "console_dir": {
+                  "description": "EMAIL_CONSOLE_DIR",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "from": {
+                  "description": "EMAIL_FROM",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "gmail_sender": {
+                  "description": "GMAIL_SENDER",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "gmail_service_account_json": {
+                  "description": "GMAIL_SERVICE_ACCOUNT_JSON",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "graph_client_id": {
+                  "description": "GRAPH_CLIENT_ID",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "graph_client_secret": {
+                  "description": "GRAPH_CLIENT_SECRET",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "graph_endpoint": {
+                  "description": "GRAPH_ENDPOINT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "graph_sender": {
+                  "description": "GRAPH_SENDER",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "graph_tenant_id": {
+                  "description": "GRAPH_TENANT_ID",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "reply_to": {
+                  "description": "EMAIL_REPLY_TO",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "resend_api_key": {
+                  "description": "RESEND_API_KEY",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "ses_access_key_id": {
+                  "description": "SES_ACCESS_KEY_ID",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "ses_configuration_set": {
+                  "description": "SES_CONFIGURATION_SET",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "ses_region": {
+                  "description": "SES_REGION",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "ses_secret_access_key": {
+                  "description": "SES_SECRET_ACCESS_KEY",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "smtp_host": {
+                  "description": "SMTP_HOST",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "smtp_name": {
+                  "description": "SMTP_NAME",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "smtp_password": {
+                  "description": "SMTP_PASSWORD",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "smtp_port": {
+                  "description": "SMTP_PORT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "smtp_secure": {
+                  "description": "SMTP_SECURE",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "smtp_starttls": {
+                  "description": "SMTP_STARTTLS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "smtp_tls_reject_unauthorized": {
+                  "description": "SMTP_TLS_REJECT_UNAUTHORIZED",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "smtp_tls_servername": {
+                  "description": "SMTP_TLS_SERVERNAME",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "smtp_user": {
+                  "description": "SMTP_USER",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "description": "email provider options by instance-setting name"
+            }
+          },
+          "additionalProperties": false
+        },
+        "secrets": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "",
+                "env",
+                "db",
+                "supabase_vault",
+                "hashicorp_vault",
+                "azure_key_vault",
+                "gcp_secret_manager",
+                "aws_secrets_manager"
+              ],
+              "description": "SECRETS_PROVIDER (empty: the app default)"
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "aws_endpoint": {
+                  "description": "AWS_SECRETS_MANAGER_ENDPOINT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "aws_region": {
+                  "description": "AWS_SECRETS_MANAGER_REGION",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "azure_key_vault_url": {
+                  "description": "AZURE_KEY_VAULT_URL",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "cache_ttl_seconds": {
+                  "description": "SECRETS_CACHE_TTL_SECONDS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "database_url": {
+                  "description": "SECRETS_DATABASE_URL",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "encryption_key_name": {
+                  "description": "SECRETS_ENCRYPTION_KEY_NAME",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "files_dir": {
+                  "description": "SECRETS_FILES_DIR",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "gcp_credentials_json": {
+                  "description": "GCP_SECRET_MANAGER_CREDENTIALS_JSON",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "gcp_endpoint": {
+                  "description": "GCP_SECRET_MANAGER_ENDPOINT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "gcp_project_id": {
+                  "description": "GCP_SECRET_MANAGER_PROJECT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "name_prefix": {
+                  "description": "SECRETS_NAME_PREFIX",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_addr": {
+                  "description": "VAULT_ADDR",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_approle_mount": {
+                  "description": "VAULT_APPROLE_MOUNT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_auth": {
+                  "description": "VAULT_AUTH_METHOD",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_k8s_mount": {
+                  "description": "VAULT_K8S_MOUNT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_k8s_role": {
+                  "description": "VAULT_K8S_ROLE",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_k8s_token_path": {
+                  "description": "VAULT_K8S_TOKEN_PATH",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_mount": {
+                  "description": "VAULT_KV_MOUNT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_namespace": {
+                  "description": "VAULT_NAMESPACE",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_role_id": {
+                  "description": "VAULT_ROLE_ID",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_secret_id": {
+                  "description": "VAULT_SECRET_ID",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_token": {
+                  "description": "VAULT_TOKEN",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "description": "secrets provider options by instance-setting name"
+            }
+          },
+          "additionalProperties": false
+        },
+        "cache": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "",
+                "memory",
+                "postgres",
+                "redis"
+              ],
+              "description": "CACHE_PROVIDER (empty: the app default)"
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "invalidation_check_ms": {
+                  "description": "CACHE_INVALIDATION_CHECK_MS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "key_prefix": {
+                  "description": "CACHE_KEY_PREFIX",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "redis_auth": {
+                  "description": "CACHE_REDIS_AUTH",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "redis_aws_cache_name": {
+                  "description": "CACHE_REDIS_AWS_CACHE_NAME",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "redis_aws_region": {
+                  "description": "CACHE_REDIS_AWS_REGION",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "redis_aws_serverless": {
+                  "description": "CACHE_REDIS_AWS_SERVERLESS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "redis_aws_service": {
+                  "description": "CACHE_REDIS_AWS_SERVICE",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "redis_command_timeout_ms": {
+                  "description": "CACHE_REDIS_COMMAND_TIMEOUT_MS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "redis_db": {
+                  "description": "CACHE_REDIS_DB",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "redis_entra_scope": {
+                  "description": "CACHE_REDIS_ENTRA_SCOPE",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "redis_password": {
+                  "description": "CACHE_REDIS_PASSWORD",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "redis_tls": {
+                  "description": "CACHE_REDIS_TLS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "redis_tls_ca_file": {
+                  "description": "CACHE_REDIS_TLS_CA_FILE",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "redis_tls_reject_unauthorized": {
+                  "description": "CACHE_REDIS_TLS_REJECT_UNAUTHORIZED",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "redis_tls_servername": {
+                  "description": "CACHE_REDIS_TLS_SERVERNAME",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "redis_url": {
+                  "description": "CACHE_REDIS_URL",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "redis_username": {
+                  "description": "CACHE_REDIS_USERNAME",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "description": "cache provider options by instance-setting name"
+            }
+          },
+          "additionalProperties": false
+        },
+        "kms": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "",
+                "env",
+                "vault_transit",
+                "aws_kms",
+                "azure_key_vault",
+                "gcp_kms"
+              ],
+              "description": "KMS_PROVIDER (empty: the app default)"
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "activation_seconds": {
+                  "description": "KMS_ACTIVATION_SECONDS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "aws_endpoint": {
+                  "description": "AWS_KMS_ENDPOINT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "aws_kms_key_id": {
+                  "description": "AWS_KMS_KEY_ID",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "aws_region": {
+                  "description": "AWS_KMS_REGION",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "azure_key_algorithm": {
+                  "description": "AZURE_KMS_KEY_ALGORITHM",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "azure_key_id": {
+                  "description": "AZURE_KMS_KEY_ID",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "gcp_credentials_json": {
+                  "description": "GCP_KMS_CREDENTIALS_JSON",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "gcp_kms_endpoint": {
+                  "description": "GCP_KMS_ENDPOINT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "gcp_kms_key_name": {
+                  "description": "GCP_KMS_KEY_NAME",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "refresh_seconds": {
+                  "description": "KMS_REFRESH_SECONDS",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_addr": {
+                  "description": "VAULT_ADDR",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_approle_mount": {
+                  "description": "VAULT_APPROLE_MOUNT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_auth": {
+                  "description": "VAULT_AUTH_METHOD",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_k8s_mount": {
+                  "description": "VAULT_K8S_MOUNT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_k8s_role": {
+                  "description": "VAULT_K8S_ROLE",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_k8s_token_path": {
+                  "description": "VAULT_K8S_TOKEN_PATH",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_namespace": {
+                  "description": "VAULT_NAMESPACE",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_role_id": {
+                  "description": "VAULT_ROLE_ID",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_secret_id": {
+                  "description": "VAULT_SECRET_ID",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_token": {
+                  "description": "VAULT_TOKEN",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_transit_key": {
+                  "description": "VAULT_TRANSIT_KEY",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
+                "vault_transit_mount": {
+                  "description": "VAULT_TRANSIT_MOUNT",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "description": "kms provider options by instance-setting name"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "logExport": {
+      "type": "object",
+      "properties": {
+        "allowInstanceIdentity": {
+          "type": "boolean"
+        },
+        "endpoints": {
+          "type": "object",
+          "properties": {
+            "datadog_url": {
+              "type": "string"
+            },
+            "event_hubs_url": {
+              "type": "string"
+            },
+            "gcp_logging_url": {
+              "type": "string"
+            },
+            "gcp_pubsub_url": {
+              "type": "string"
+            },
+            "azure_authority_url": {
+              "type": "string"
+            },
+            "gcp_token_url": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "security": {
+      "type": "object",
+      "properties": {
+        "allowPrivateEgress": {
+          "type": "boolean"
+        },
+        "enableCustomActivityCode": {
+          "type": "boolean"
+        },
+        "allowQueryKeyAuth": {
+          "type": "boolean"
+        },
+        "mcpAllowedOrigins": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean"
+        ]
+      },
+      "propertyNames": {
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      }
+    },
+    "extraEnv": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "extraEnvFrom": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "extraVolumes": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "extraVolumeMounts": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "caBundle": {
+      "type": "object",
+      "properties": {
+        "configMap": {
+          "type": "string"
+        },
+        "secret": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "secrets": {
+      "type": "object",
+      "properties": {
+        "existingSecret": {
+          "type": "string"
+        },
+        "externalSecret": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "apiVersion": {
+              "type": "string",
+              "enum": [
+                "external-secrets.io/v1",
+                "external-secrets.io/v1beta1"
+              ]
+            },
+            "secretStoreRef": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "SecretStore",
+                    "ClusterSecretStore"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            "refreshInterval": {
+              "type": "string"
+            },
+            "data": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "dataFrom": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "create": {
+          "type": "boolean"
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "csi": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "secretProviderClass": {
+              "type": "string"
+            },
+            "spec": {
+              "type": "object"
+            },
+            "mountPath": {
+              "type": "string",
+              "pattern": "^/"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "bootstrap": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "email": {
+          "type": "string"
+        },
+        "org": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "passwordSecret": {
+          "type": "string"
+        },
+        "passwordKey": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "app": {
+      "type": "object",
+      "properties": {
+        "replicas": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object"
+            },
+            "limits": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Container resources"
+        },
+        "probes": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^/"
+            },
+            "startup": {
+              "type": "object",
+              "properties": {
+                "periodSeconds": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "failureThreshold": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "timeoutSeconds": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "initialDelaySeconds": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            },
+            "readiness": {
+              "type": "object",
+              "properties": {
+                "periodSeconds": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "failureThreshold": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "timeoutSeconds": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "initialDelaySeconds": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            },
+            "liveness": {
+              "type": "object",
+              "properties": {
+                "periodSeconds": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "failureThreshold": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "timeoutSeconds": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "initialDelaySeconds": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "autoscaling": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "minReplicas": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxReplicas": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "targetCPUUtilizationPercentage": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "targetMemoryUtilizationPercentage": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          "additionalProperties": false
+        },
+        "pdb": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "minAvailable": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "podAnnotations": {
+          "type": "object"
+        },
+        "podLabels": {
+          "type": "object"
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "tolerations": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "affinity": {
+          "type": "object"
+        },
+        "topologySpreadConstraints": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "priorityClassName": {
+          "type": "string"
+        },
+        "terminationGracePeriodSeconds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "worker": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object"
+            },
+            "limits": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Container resources"
+        },
+        "podAnnotations": {
+          "type": "object"
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "tolerations": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "affinity": {
+          "type": "object"
+        },
+        "terminationGracePeriodSeconds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "tick": {
+      "type": "object",
+      "properties": {
+        "schedule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "http",
+            "worker-once"
+          ]
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object"
+            },
+            "limits": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Container resources"
+        },
+        "successfulJobsHistoryLimit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failedJobsHistoryLimit": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "migrate": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "hook",
+            "job"
+          ]
+        },
+        "storageInit": {
+          "type": "boolean"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "backoffLimit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "activeDeadlineSeconds": {
+          "type": "integer",
+          "minimum": 60
+        },
+        "ttlSecondsAfterFinished": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object"
+            },
+            "limits": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Container resources"
+        }
+      },
+      "additionalProperties": false
+    },
+    "waitForMigrations": {
+      "type": "boolean"
+    },
+    "podSecurityContext": {
+      "type": "object"
+    },
+    "securityContext": {
+      "type": "object"
+    },
+    "serviceAccount": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "annotations": {
+          "type": "object"
+        },
+        "automountServiceAccountToken": {
+          "type": "boolean"
+        },
+        "workloadIdentity": {
+          "type": "object",
+          "properties": {
+            "awsRoleArn": {
+              "type": "string"
+            },
+            "azureClientId": {
+              "type": "string"
+            },
+            "azureTenantId": {
+              "type": "string"
+            },
+            "gcpServiceAccount": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "ClusterIP",
+            "NodePort",
+            "LoadBalancer"
+          ]
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "annotations": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "className": {
+          "type": "string"
+        },
+        "annotations": {
+          "type": "object"
+        },
+        "certManager": {
+          "type": "object",
+          "properties": {
+            "clusterIssuer": {
+              "type": "string"
+            },
+            "issuer": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "host": {
+          "type": "string"
+        },
+        "tls": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "secretName": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "gateway": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "parentRefs": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "hostnames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "annotations": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "networkPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "ingress": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "egress": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "open",
+                "allowlist"
+              ]
+            },
+            "allow": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "cidr": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "except": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ports": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65535
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "kubeApiCidr": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "postgresql": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object"
+            },
+            "limits": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Container resources"
+        },
+        "database": {
+          "type": "string",
+          "minLength": 1
+        },
+        "username": {
+          "type": "string",
+          "minLength": 1
+        },
+        "persistence": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "size": {
+              "type": "string"
+            },
+            "storageClass": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "minio": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object"
+            },
+            "limits": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Container resources"
+        },
+        "persistence": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "size": {
+              "type": "string"
+            },
+            "storageClass": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "valkey": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object"
+            },
+            "limits": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Container resources"
+        }
+      },
+      "additionalProperties": false
+    },
+    "mailpit": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object"
+            },
+            "limits": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Container resources"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

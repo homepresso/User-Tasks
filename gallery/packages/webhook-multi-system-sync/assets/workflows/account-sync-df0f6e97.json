@@ -1,0 +1,683 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "df0f6e97-78df-4f90-8f6c-2d38d36ca4ac",
+  "asset": {
+    "id": "df0f6e97-78df-4f90-8f6c-2d38d36ca4ac",
+    "name": "Account sync",
+    "description": "Receives the CRM \"account updated\" webhook, validates it and upserts the account into the ERP, billing platform and support desk, logging each result.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Account updated",
+        "position": {
+          "x": 660,
+          "y": 60
+        },
+        "config": {}
+      },
+      {
+        "id": "valid",
+        "type": "condition",
+        "label": "Payload valid?",
+        "position": {
+          "x": 660,
+          "y": 220
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Missing ids",
+              "logic": "or",
+              "rules": [
+                {
+                  "field": "{{account_id}}",
+                  "operator": "is_empty",
+                  "value": ""
+                },
+                {
+                  "field": "{{account_name}}",
+                  "operator": "is_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "invalid",
+        "type": "log",
+        "label": "Log invalid payload",
+        "position": {
+          "x": 340,
+          "y": 400
+        },
+        "config": {
+          "message": "Rejected account webhook: account_id or account_name missing ({{=TO_JSON(_raw)}})",
+          "level": "warn"
+        }
+      },
+      {
+        "id": "rejected",
+        "type": "end_workflow",
+        "label": "Rejected",
+        "position": {
+          "x": 340,
+          "y": 560
+        },
+        "config": {
+          "reason": "Invalid payload"
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "position": {
+          "x": 660,
+          "y": 400
+        },
+        "config": {
+          "title": "Account sync: {{account_name}} ({{account_id}})"
+        }
+      },
+      {
+        "id": "erp_payload",
+        "type": "json_build_object",
+        "label": "ERP customer payload",
+        "position": {
+          "x": 660,
+          "y": 560
+        },
+        "config": {
+          "output_var": "erp_payload",
+          "fields": [
+            {
+              "key": "external_id",
+              "value": "{{account_id}}"
+            },
+            {
+              "key": "name",
+              "value": "{{account_name}}"
+            },
+            {
+              "key": "tax_number",
+              "value": "{{tax_id}}"
+            },
+            {
+              "key": "blocked",
+              "value": "{{=IF(CONTAINS(account_status, \"closed\"), true, false)}}"
+            },
+            {
+              "key": "address",
+              "value": "{{=TO_JSON(billing_address)}}"
+            },
+            {
+              "key": "source_updated_at",
+              "value": "{{updated_at}}"
+            }
+          ]
+        }
+      },
+      {
+        "id": "erp",
+        "type": "call_reference",
+        "label": "Upsert ERP customer",
+        "position": {
+          "x": 660,
+          "y": 720
+        },
+        "config": {
+          "reference_id": "1c3487f0-2081-43fa-a4c8-55a164135443",
+          "reference_name": "Upsert ERP customer",
+          "reference_method": "PUT",
+          "input_mappings": {
+            "external_id": "{{account_id}}",
+            "payload": "{{=TO_JSON(erp_payload)}}"
+          }
+        }
+      },
+      {
+        "id": "erp_check",
+        "type": "condition",
+        "label": "ERP failed?",
+        "position": {
+          "x": 660,
+          "y": 880
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Failed",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{status}}",
+                  "operator": "gte",
+                  "value": "400"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "erp_fail",
+        "type": "update_data_table",
+        "label": "Log ERP failure",
+        "position": {
+          "x": 820,
+          "y": 1060
+        },
+        "config": {
+          "table_id": "62b351ed-409a-467c-917a-ab2f867e32ff",
+          "table_name": "Sync log",
+          "operation": "insert",
+          "column_values": {
+            "synced_at": "{{=NOW()}}",
+            "account_id": "{{account_id}}",
+            "target_system": "ERP",
+            "operation": "PUT customer",
+            "status_code": "{{status}}",
+            "result": "failed",
+            "message": "ERP returned HTTP {{status}}: {{=TO_JSON(response)}}"
+          }
+        }
+      },
+      {
+        "id": "erp_ok",
+        "type": "update_data_table",
+        "label": "Log ERP success",
+        "position": {
+          "x": 500,
+          "y": 1060
+        },
+        "config": {
+          "table_id": "62b351ed-409a-467c-917a-ab2f867e32ff",
+          "table_name": "Sync log",
+          "operation": "insert",
+          "column_values": {
+            "synced_at": "{{=NOW()}}",
+            "account_id": "{{account_id}}",
+            "target_system": "ERP",
+            "operation": "PUT customer",
+            "status_code": "{{status}}",
+            "result": "ok",
+            "message": "ERP updated for {{account_name}}"
+          }
+        }
+      },
+      {
+        "id": "billing_payload",
+        "type": "json_build_object",
+        "label": "Billing account payload",
+        "position": {
+          "x": 660,
+          "y": 1220
+        },
+        "config": {
+          "output_var": "billing_payload",
+          "fields": [
+            {
+              "key": "name",
+              "value": "{{account_name}}"
+            },
+            {
+              "key": "tax_id",
+              "value": "{{tax_id}}"
+            },
+            {
+              "key": "status",
+              "value": "{{account_status}}"
+            },
+            {
+              "key": "billing_address",
+              "value": "{{=TO_JSON(billing_address)}}"
+            },
+            {
+              "key": "billing_contact_email",
+              "value": "{{owner_email}}"
+            }
+          ]
+        }
+      },
+      {
+        "id": "billing",
+        "type": "call_reference",
+        "label": "Sync billing account",
+        "position": {
+          "x": 660,
+          "y": 1380
+        },
+        "config": {
+          "reference_id": "7634d545-bf6f-4ad8-80e8-453fdd32cdc6",
+          "reference_name": "Sync billing account",
+          "reference_method": "POST",
+          "input_mappings": {
+            "account_id": "{{account_id}}",
+            "payload": "{{=TO_JSON(billing_payload)}}"
+          }
+        }
+      },
+      {
+        "id": "billing_check",
+        "type": "condition",
+        "label": "Billing failed?",
+        "position": {
+          "x": 660,
+          "y": 1540
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Failed",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{status}}",
+                  "operator": "gte",
+                  "value": "400"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "billing_fail",
+        "type": "update_data_table",
+        "label": "Log billing failure",
+        "position": {
+          "x": 820,
+          "y": 1720
+        },
+        "config": {
+          "table_id": "62b351ed-409a-467c-917a-ab2f867e32ff",
+          "table_name": "Sync log",
+          "operation": "insert",
+          "column_values": {
+            "synced_at": "{{=NOW()}}",
+            "account_id": "{{account_id}}",
+            "target_system": "Billing",
+            "operation": "POST sync",
+            "status_code": "{{status}}",
+            "result": "failed",
+            "message": "Billing returned HTTP {{status}}: {{=TO_JSON(response)}}"
+          }
+        }
+      },
+      {
+        "id": "billing_ok",
+        "type": "update_data_table",
+        "label": "Log billing success",
+        "position": {
+          "x": 500,
+          "y": 1720
+        },
+        "config": {
+          "table_id": "62b351ed-409a-467c-917a-ab2f867e32ff",
+          "table_name": "Sync log",
+          "operation": "insert",
+          "column_values": {
+            "synced_at": "{{=NOW()}}",
+            "account_id": "{{account_id}}",
+            "target_system": "Billing",
+            "operation": "POST sync",
+            "status_code": "{{status}}",
+            "result": "ok",
+            "message": "Billing updated for {{account_name}}"
+          }
+        }
+      },
+      {
+        "id": "support_payload",
+        "type": "json_build_object",
+        "label": "Support organisation payload",
+        "position": {
+          "x": 660,
+          "y": 1880
+        },
+        "config": {
+          "output_var": "support_payload",
+          "fields": [
+            {
+              "key": "name",
+              "value": "{{account_name}}"
+            },
+            {
+              "key": "external_id",
+              "value": "{{account_id}}"
+            },
+            {
+              "key": "notes",
+              "value": "Account owner: {{owner_email}}. Status: {{account_status}}."
+            },
+            {
+              "key": "tags",
+              "value": "[\"{{account_status}}\"]"
+            }
+          ]
+        }
+      },
+      {
+        "id": "support",
+        "type": "call_reference",
+        "label": "Update support organisation",
+        "position": {
+          "x": 660,
+          "y": 2040
+        },
+        "config": {
+          "reference_id": "de52f83b-26a3-443c-a161-b0f182bea88d",
+          "reference_name": "Update support organisation",
+          "reference_method": "PATCH",
+          "input_mappings": {
+            "organization_id": "{{account_id}}",
+            "payload": "{{=TO_JSON(support_payload)}}"
+          }
+        }
+      },
+      {
+        "id": "support_check",
+        "type": "condition",
+        "label": "Support failed?",
+        "position": {
+          "x": 660,
+          "y": 2200
+        },
+        "config": {
+          "branches": [
+            {
+              "label": "Failed",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{status}}",
+                  "operator": "gte",
+                  "value": "400"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        }
+      },
+      {
+        "id": "support_fail",
+        "type": "update_data_table",
+        "label": "Log support failure",
+        "position": {
+          "x": 820,
+          "y": 2380
+        },
+        "config": {
+          "table_id": "62b351ed-409a-467c-917a-ab2f867e32ff",
+          "table_name": "Sync log",
+          "operation": "insert",
+          "column_values": {
+            "synced_at": "{{=NOW()}}",
+            "account_id": "{{account_id}}",
+            "target_system": "Support desk",
+            "operation": "PATCH organisation",
+            "status_code": "{{status}}",
+            "result": "failed",
+            "message": "Support desk returned HTTP {{status}}: {{=TO_JSON(response)}}"
+          }
+        }
+      },
+      {
+        "id": "support_ok",
+        "type": "update_data_table",
+        "label": "Log support success",
+        "position": {
+          "x": 500,
+          "y": 2380
+        },
+        "config": {
+          "table_id": "62b351ed-409a-467c-917a-ab2f867e32ff",
+          "table_name": "Sync log",
+          "operation": "insert",
+          "column_values": {
+            "synced_at": "{{=NOW()}}",
+            "account_id": "{{account_id}}",
+            "target_system": "Support desk",
+            "operation": "PATCH organisation",
+            "status_code": "{{status}}",
+            "result": "ok",
+            "message": "Support desk updated for {{account_name}}"
+          }
+        }
+      },
+      {
+        "id": "summary",
+        "type": "log",
+        "label": "Log summary",
+        "position": {
+          "x": 660,
+          "y": 2540
+        },
+        "config": {
+          "message": "Account {{account_id}} synced to ERP, billing and support desk (see Sync log for results)",
+          "level": "info"
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Synced",
+        "position": {
+          "x": 660,
+          "y": 2700
+        },
+        "config": {
+          "reason": "Account {{account_id}} processed"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-valid",
+        "source": "trigger",
+        "target": "valid"
+      },
+      {
+        "id": "e-valid-invalid-missing-ids",
+        "source": "valid",
+        "target": "invalid",
+        "label": "Missing ids"
+      },
+      {
+        "id": "e-invalid-rejected",
+        "source": "invalid",
+        "target": "rejected"
+      },
+      {
+        "id": "e-valid-title-else",
+        "source": "valid",
+        "target": "title",
+        "label": "Else"
+      },
+      {
+        "id": "e-title-erp_payload",
+        "source": "title",
+        "target": "erp_payload"
+      },
+      {
+        "id": "e-erp_payload-erp",
+        "source": "erp_payload",
+        "target": "erp"
+      },
+      {
+        "id": "e-erp-erp_check",
+        "source": "erp",
+        "target": "erp_check"
+      },
+      {
+        "id": "e-erp_check-erp_fail-failed",
+        "source": "erp_check",
+        "target": "erp_fail",
+        "label": "Failed"
+      },
+      {
+        "id": "e-erp_check-erp_ok-else",
+        "source": "erp_check",
+        "target": "erp_ok",
+        "label": "Else"
+      },
+      {
+        "id": "e-erp_fail-billing_payload",
+        "source": "erp_fail",
+        "target": "billing_payload"
+      },
+      {
+        "id": "e-erp_ok-billing_payload",
+        "source": "erp_ok",
+        "target": "billing_payload"
+      },
+      {
+        "id": "e-billing_payload-billing",
+        "source": "billing_payload",
+        "target": "billing"
+      },
+      {
+        "id": "e-billing-billing_check",
+        "source": "billing",
+        "target": "billing_check"
+      },
+      {
+        "id": "e-billing_check-billing_fail-failed",
+        "source": "billing_check",
+        "target": "billing_fail",
+        "label": "Failed"
+      },
+      {
+        "id": "e-billing_check-billing_ok-else",
+        "source": "billing_check",
+        "target": "billing_ok",
+        "label": "Else"
+      },
+      {
+        "id": "e-billing_fail-support_payload",
+        "source": "billing_fail",
+        "target": "support_payload"
+      },
+      {
+        "id": "e-billing_ok-support_payload",
+        "source": "billing_ok",
+        "target": "support_payload"
+      },
+      {
+        "id": "e-support_payload-support",
+        "source": "support_payload",
+        "target": "support"
+      },
+      {
+        "id": "e-support-support_check",
+        "source": "support",
+        "target": "support_check"
+      },
+      {
+        "id": "e-support_check-support_fail-failed",
+        "source": "support_check",
+        "target": "support_fail",
+        "label": "Failed"
+      },
+      {
+        "id": "e-support_check-support_ok-else",
+        "source": "support_check",
+        "target": "support_ok",
+        "label": "Else"
+      },
+      {
+        "id": "e-support_fail-summary",
+        "source": "support_fail",
+        "target": "summary"
+      },
+      {
+        "id": "e-support_ok-summary",
+        "source": "support_ok",
+        "target": "summary"
+      },
+      {
+        "id": "e-summary-done",
+        "source": "summary",
+        "target": "done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-account_id",
+        "name": "account_id",
+        "type": "string",
+        "description": "CRM account id (required; used as the external id everywhere)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Account id"
+      },
+      {
+        "id": "v-account_name",
+        "name": "account_name",
+        "type": "string",
+        "description": "Legal or trading name",
+        "defaultValue": "",
+        "required": true,
+        "label": "Account name"
+      },
+      {
+        "id": "v-billing_address",
+        "name": "billing_address",
+        "type": "object",
+        "description": "Billing address object: line1, line2, city, region, postcode, country",
+        "defaultValue": "",
+        "label": "Billing address"
+      },
+      {
+        "id": "v-tax_id",
+        "name": "tax_id",
+        "type": "string",
+        "description": "Tax / VAT / GST number",
+        "defaultValue": "",
+        "label": "Tax id"
+      },
+      {
+        "id": "v-account_status",
+        "name": "account_status",
+        "type": "string",
+        "description": "Account status in the CRM: active, on_hold or closed",
+        "defaultValue": "active",
+        "label": "Status",
+        "options": [
+          "active",
+          "on_hold",
+          "closed"
+        ]
+      },
+      {
+        "id": "v-owner_email",
+        "name": "owner_email",
+        "type": "string",
+        "description": "Account owner email in the CRM",
+        "defaultValue": "",
+        "label": "Owner email",
+        "format": "email"
+      },
+      {
+        "id": "v-updated_at",
+        "name": "updated_at",
+        "type": "string",
+        "description": "When the account changed in the CRM (ISO timestamp)",
+        "defaultValue": "",
+        "label": "Updated at"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

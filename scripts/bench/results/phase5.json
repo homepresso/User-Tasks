@@ -1,0 +1,474 @@
+{
+  "label": "phase5",
+  "updatedAt": "2026-10-24T22:39:19.039Z",
+  "environment": {
+    "machine": "Apple M1 Pro",
+    "cpus": 10,
+    "memory_gb": 32,
+    "os": "darwin 27.0.0 arm64",
+    "node": "v20.19.5",
+    "git_commit": "07edfb49",
+    "git_branch": "perf",
+    "supabase_cli": "2.84.4",
+    "postgres_server": "17.6",
+    "docker": "28.3.2"
+  },
+  "suites": {
+    "size": {
+      "data": {
+        "build_seconds": 37.4,
+        "client_chunks": {
+          "count": 119,
+          "bytes": 5878678,
+          "gzip_bytes": 1541989,
+          "largest": [
+            {
+              "file": "0if-x5oj2~_pg.js",
+              "bytes": 540187,
+              "gzip": 138290,
+              "libraries": "recharts"
+            },
+            {
+              "file": "0nh4cb5o-kkxh.js",
+              "bytes": 277513,
+              "gzip": 48270,
+              "libraries": "lucide"
+            },
+            {
+              "file": "0hu8~auz-vcxm.js",
+              "bytes": 277457,
+              "gzip": 49534,
+              "libraries": ""
+            },
+            {
+              "file": "0zgqc.pptxdm2.js",
+              "bytes": 277457,
+              "gzip": 49522,
+              "libraries": ""
+            },
+            {
+              "file": "0xsf6fbo-gt1-.js",
+              "bytes": 265415,
+              "gzip": 65677,
+              "libraries": "react-query"
+            },
+            {
+              "file": "14pofykpskj6v.js",
+              "bytes": 226465,
+              "gzip": 70795,
+              "libraries": "react-dom"
+            },
+            {
+              "file": "177sbmcti1xvy.js",
+              "bytes": 224099,
+              "gzip": 59510,
+              "libraries": "supabase-js"
+            },
+            {
+              "file": "05.kvpg-~bzxy.js",
+              "bytes": 149516,
+              "gzip": 37808,
+              "libraries": "lucide"
+            },
+            {
+              "file": "0yzr_cghy18h_.js",
+              "bytes": 125099,
+              "gzip": 33034,
+              "libraries": "react-query"
+            },
+            {
+              "file": "03~yq9q893hmn.js",
+              "bytes": 112594,
+              "gzip": 39627,
+              "libraries": ""
+            }
+          ]
+        },
+        "client_css_bytes": 133575,
+        "route_first_load_js": [
+          {
+            "route": "/automations/[id]",
+            "bytes": 1602739,
+            "gzip": 424202,
+            "chunks": 21
+          },
+          {
+            "route": "/automations/runs/[id]",
+            "bytes": 1047224,
+            "gzip": 296451,
+            "chunks": 18
+          },
+          {
+            "route": "/reports",
+            "bytes": 1088135,
+            "gzip": 307506,
+            "chunks": 18
+          },
+          {
+            "route": "/reports/workflows",
+            "bytes": 1044582,
+            "gzip": 295466,
+            "chunks": 18
+          },
+          {
+            "route": "/reports/workflows/[id]",
+            "bytes": 1047180,
+            "gzip": 296460,
+            "chunks": 18
+          },
+          {
+            "route": "/reports/[id]",
+            "bytes": 1086214,
+            "gzip": 305595,
+            "chunks": 18
+          },
+          {
+            "route": "/reports/builder",
+            "bytes": 1167485,
+            "gzip": 326451,
+            "chunks": 19
+          },
+          {
+            "route": "/settings/api-keys",
+            "bytes": 1173549,
+            "gzip": 319536,
+            "chunks": 19
+          },
+          {
+            "route": "/docs/api-explorer",
+            "bytes": 740154,
+            "gzip": 202140,
+            "chunks": 13
+          },
+          {
+            "route": "/tasks",
+            "bytes": 1143400,
+            "gzip": 326331,
+            "chunks": 20
+          }
+        ],
+        "server_output_bytes": 201973760,
+        "standalone_bytes": null,
+        "node_modules_bytes": 981966848,
+        "docker_image_bytes": null
+      },
+      "tables": [
+        {
+          "title": "Build & install size",
+          "columns": [
+            "measure",
+            "value"
+          ],
+          "rows": [
+            [
+              "client JS chunks (count)",
+              119
+            ],
+            [
+              "client JS total MB (gzip MB)",
+              "5.6 (1.5)"
+            ],
+            [
+              "client CSS KB",
+              130
+            ],
+            [
+              ".next/server MB",
+              192.6
+            ],
+            [
+              ".next/standalone MB",
+              null
+            ],
+            [
+              "node_modules MB",
+              936.5
+            ],
+            [
+              "Docker image MB",
+              null
+            ],
+            [
+              "next build s",
+              37.4
+            ]
+          ]
+        },
+        {
+          "title": "Largest client chunks",
+          "columns": [
+            "chunk",
+            "KB",
+            "gzip KB",
+            "contains"
+          ],
+          "rows": [
+            [
+              "0if-x5oj2~_pg.js",
+              528,
+              135,
+              "recharts"
+            ],
+            [
+              "0nh4cb5o-kkxh.js",
+              271,
+              47,
+              "lucide"
+            ],
+            [
+              "0hu8~auz-vcxm.js",
+              271,
+              48,
+              null
+            ],
+            [
+              "0zgqc.pptxdm2.js",
+              271,
+              48,
+              null
+            ],
+            [
+              "0xsf6fbo-gt1-.js",
+              259,
+              64,
+              "react-query"
+            ],
+            [
+              "14pofykpskj6v.js",
+              221,
+              69,
+              "react-dom"
+            ],
+            [
+              "177sbmcti1xvy.js",
+              219,
+              58,
+              "supabase-js"
+            ],
+            [
+              "05.kvpg-~bzxy.js",
+              146,
+              37,
+              "lucide"
+            ],
+            [
+              "0yzr_cghy18h_.js",
+              122,
+              32,
+              "react-query"
+            ],
+            [
+              "03~yq9q893hmn.js",
+              110,
+              39,
+              null
+            ]
+          ]
+        },
+        {
+          "title": "First-load JS per route (root + route entry chunks; lazy chunks excluded)",
+          "columns": [
+            "route",
+            "KB",
+            "gzip KB",
+            "chunks"
+          ],
+          "rows": [
+            [
+              "/automations/[id]",
+              1565,
+              414,
+              21
+            ],
+            [
+              "/automations/runs/[id]",
+              1023,
+              290,
+              18
+            ],
+            [
+              "/reports",
+              1063,
+              300,
+              18
+            ],
+            [
+              "/reports/workflows",
+              1020,
+              289,
+              18
+            ],
+            [
+              "/reports/workflows/[id]",
+              1023,
+              290,
+              18
+            ],
+            [
+              "/reports/[id]",
+              1061,
+              298,
+              18
+            ],
+            [
+              "/reports/builder",
+              1140,
+              319,
+              19
+            ],
+            [
+              "/settings/api-keys",
+              1146,
+              312,
+              19
+            ],
+            [
+              "/docs/api-explorer",
+              723,
+              197,
+              13
+            ],
+            [
+              "/tasks",
+              1117,
+              319,
+              20
+            ]
+          ]
+        }
+      ],
+      "notes": [
+        "Docker image not built (pass --docker)."
+      ],
+      "ranAt": "2026-10-24T22:39:15.110Z",
+      "durationMs": 38102
+    },
+    "api": {
+      "data": {
+        "tool_count": 154,
+        "tool_called": "workflows_list",
+        "GET /api/v1/workflows?active=false": {
+          "n": 100,
+          "p50": 5.1,
+          "p95": 7.8,
+          "max": 36,
+          "mean": 5.6,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 6188
+        },
+        "GET /api/v1/tasks": {
+          "n": 100,
+          "p50": 8.2,
+          "p95": 9.5,
+          "max": 13.2,
+          "mean": 8.3,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 32025
+        },
+        "GET /api/v1/me": {
+          "n": 100,
+          "p50": 3.5,
+          "p95": 4.3,
+          "max": 6.3,
+          "mean": 3.6,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 1227
+        },
+        "MCP tools/list": {
+          "n": 100,
+          "p50": 3,
+          "p95": 4,
+          "max": 5.4,
+          "mean": 3.1,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 125796
+        },
+        "MCP tools/call workflows_list": {
+          "n": 100,
+          "p50": 5.2,
+          "p95": 6.2,
+          "max": 7.4,
+          "mean": 5.3,
+          "statuses": {
+            "200": 100
+          },
+          "response_bytes": 10263
+        }
+      },
+      "tables": [
+        {
+          "title": "API latency (100 sequential requests each after 5 warm-ups, tenant API key, ms)",
+          "columns": [
+            "request",
+            "p50",
+            "p95",
+            "max",
+            "mean",
+            "statuses",
+            "response bytes"
+          ],
+          "rows": [
+            [
+              "GET /api/v1/workflows?active=false",
+              5.1,
+              7.8,
+              36,
+              5.6,
+              "200×100",
+              6188
+            ],
+            [
+              "GET /api/v1/tasks",
+              8.2,
+              9.5,
+              13.2,
+              8.3,
+              "200×100",
+              32025
+            ],
+            [
+              "GET /api/v1/me",
+              3.5,
+              4.3,
+              6.3,
+              3.6,
+              "200×100",
+              1227
+            ],
+            [
+              "MCP tools/list",
+              3,
+              4,
+              5.4,
+              3.1,
+              "200×100",
+              125796
+            ],
+            [
+              "MCP tools/call workflows_list",
+              5.2,
+              6.2,
+              7.4,
+              5.3,
+              "200×100",
+              10263
+            ]
+          ]
+        }
+      ],
+      "notes": [
+        "MCP server exposes 154 tools; tools/call used workflows_list with no arguments."
+      ],
+      "ranAt": "2026-10-24T22:39:19.595Z",
+      "durationMs": 3280
+    }
+  }
+}

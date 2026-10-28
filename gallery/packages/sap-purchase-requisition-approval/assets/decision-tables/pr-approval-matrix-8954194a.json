@@ -1,0 +1,147 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "8954194a-c000-5132-af48-7ecc1235ac38",
+  "asset": {
+    "id": "8954194a-c000-5132-af48-7ecc1235ac38",
+    "name": "PR approval matrix",
+    "description": "Approval level for a purchase requisition by total amount, material group and plant. two_step = a second (finance) approval after the first. First matching rule wins.",
+    "inputs": [
+      {
+        "key": "amount",
+        "label": "Total amount (EUR)",
+        "type": "number",
+        "id": "757a9a14-c34f-5ade-9028-76e0c60bb61b"
+      },
+      {
+        "key": "material_group",
+        "label": "Material group",
+        "type": "text",
+        "id": "dbedac61-2726-5622-af4e-c088ff25755b"
+      },
+      {
+        "key": "plant",
+        "label": "Plant",
+        "type": "text",
+        "id": "d1ae22fd-120d-5384-8f02-d98de30ddabe"
+      }
+    ],
+    "outputs": [
+      {
+        "key": "approver_level",
+        "label": "Approver level",
+        "type": "text",
+        "id": "45fbf35b-1193-5d21-9cbb-a6ab89bea4f8"
+      },
+      {
+        "key": "two_step",
+        "label": "Finance approval too",
+        "type": "boolean",
+        "id": "49412977-3365-5a9f-a6ea-fb4e0a887a43"
+      },
+      {
+        "key": "approval_days",
+        "label": "SLA (days)",
+        "type": "number",
+        "id": "6e419a75-09d2-5cb6-af1a-17a34f868d15"
+      }
+    ],
+    "rules": [
+      {
+        "label": "Over 100k",
+        "conditions": [
+          {
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "100000",
+            "id": "4806a228-be49-5181-8593-342d0f55a1ec"
+          }
+        ],
+        "outputs": {
+          "approver_level": "CFO",
+          "two_step": true,
+          "approval_days": 5
+        },
+        "id": "7ea68806-2484-5b2e-8102-41f552866360",
+        "enabled": true
+      },
+      {
+        "label": "IT hardware over 10k",
+        "conditions": [
+          {
+            "inputKey": "material_group",
+            "operator": "starts_with",
+            "value": "L",
+            "id": "32006596-dca4-5952-a1cb-fe96bf08e251"
+          },
+          {
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "10000",
+            "id": "08e6e661-637b-5615-9fec-a4e1a0e6b7ba"
+          }
+        ],
+        "outputs": {
+          "approver_level": "Head of IT",
+          "two_step": true,
+          "approval_days": 3
+        },
+        "id": "71e998e7-bcbf-5302-bc05-ea8cfd2a5a97",
+        "enabled": true
+      },
+      {
+        "label": "Plant 1710 over 25k",
+        "conditions": [
+          {
+            "inputKey": "plant",
+            "operator": "equals",
+            "value": "1710",
+            "id": "4d9d7b30-0def-5661-a691-879eebff32df"
+          },
+          {
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "25000",
+            "id": "04e28656-0a10-5032-bd87-a561f9e1945b"
+          }
+        ],
+        "outputs": {
+          "approver_level": "Plant manager",
+          "two_step": true,
+          "approval_days": 3
+        },
+        "id": "5abc9419-238c-56c0-8229-7a983cdc851f",
+        "enabled": true
+      },
+      {
+        "label": "Over 5k",
+        "conditions": [
+          {
+            "inputKey": "amount",
+            "operator": "greater_than_or_equal",
+            "value": "5000",
+            "id": "bfb9d121-25f9-5433-b8fe-0485263343ce"
+          }
+        ],
+        "outputs": {
+          "approver_level": "Department head",
+          "two_step": false,
+          "approval_days": 2
+        },
+        "id": "61a3a28c-3fad-533f-95b3-9cf23ed3a06a",
+        "enabled": true
+      },
+      {
+        "label": "Everything else",
+        "conditions": [],
+        "outputs": {
+          "approver_level": "Line manager",
+          "two_step": false,
+          "approval_days": 2
+        },
+        "id": "3cbdd471-4f7e-5e9d-8f09-560ce47d5ab2",
+        "enabled": true
+      }
+    ]
+  }
+}
