@@ -78,7 +78,7 @@ export const NODE_DOCS: Record<NodeType, NodeDoc> = {
     example: { field: '{{region}}', cases: [{ value: 'EU' }, { value: 'US' }], has_default: true },
   },
   loop: {
-    settings: '`items` is the collection to iterate (the field suggests every list available at that point); `item_var` (default `item`) and `index_var` (default `index`) name the loop variables. Nodes connected to the loop body run once per item, and the data picker shows the item\'s fields there as Current item.',
+    settings: '`items` is the collection to iterate (the field suggests every list available at that point, including a form\'s Attachments field — `{{task_data.<key>}}` / `{{form.<key>}}`); `item_var` (default `item`) and `index_var` (default `index`) name the loop variables. Nodes connected to the loop body run once per item, and the data picker shows the item\'s fields there as Current item (for files: `{{item.name}}`, `{{item.size}}`, `{{item.mime_type}}`, `{{item.url}}`).',
     outputs: '`{{item}}` and `{{index}}` inside the body.',
     example: { items: '{{vendors}}', item_var: 'vendor' },
   },
@@ -145,12 +145,12 @@ export const NODE_DOCS: Record<NodeType, NodeDoc> = {
   },
   retention_policies: { settings: '`operation`: `list_policies`, `create_policy` (`name`, `policy_mode`, `duration_value`/`duration_unit` or `exact_date`, `applies_to`), `delete_policy`, `list_assets` or `assign_policy` (`target_type` data_table / data_row / role, `target_id`).', outputs: '`policies`, `policy`, `assets`, counts.' },
   call_reference: {
-    settings: '`reference_id` picks an integration reference (a saved REST/OData/database operation). `input_mappings` fill its inputs from variables; `output_mappings` copy response fields into variables and `custom_outputs` (`[{ name, path }]`, added with + in the response model tree) read any path of the response. `_ref_response_schema` is a snapshot of the reference\'s response model for the data picker. Calls are logged with redacted headers and appear in the event stream as `integration.call`. An HTTP error status (4xx/5xx) does not fail the step: the response and status are stored so a Condition can branch on them (for example `{{status}}` `gte` `400`). Only a transport failure (DNS, refused connection, timeout) fails the step, which then follows the node\'s *On error* setting.',
+    settings: '`reference_id` picks an integration reference (a saved REST/OData/database operation). `input_mappings` fill its inputs from variables; `output_mappings` copy response fields into variables and `custom_outputs` (`[{ name, path }]`, added with + in the response model tree) read any path of the response. `_ref_response_schema` is a snapshot of the reference\'s response model for the data picker. A file input (the `content` of a storage connector upload — S3, Azure Blob, SharePoint, OneDrive, Box, Google Drive) takes a file object such as `{{item}}` from a Loop over an Attachments field: its bytes and type are sent (multipart for Box and Google Drive), read for the workflow\'s workspace only. Calls are logged with redacted headers and appear in the event stream as `integration.call`. An HTTP error status (4xx/5xx) does not fail the step: the response and status are stored so a Condition can branch on them (for example `{{status}}` `gte` `400`). Only a transport failure (DNS, refused connection, timeout) fails the step, which then follows the node\'s *On error* setting.',
     outputs: '`response`, `status` (the HTTP status code; also `<prefix>_response` / `<prefix>_status`), mapped outputs, custom outputs, and file fields for binary responses. Pick fields with the data picker — see Reading values from an API response.',
     example: { reference_id: '<reference-id>', reference_name: 'Get vendor', reference_method: 'GET', input_mappings: { vendor_id: '{{vendor_id}}' } },
   },
   http_request: {
-    settings: '`method`, `url`, `headers`, `params`, `body`, `content_type` and `auth_type` (`bearer`, `basic`, `api_key`). `_response_schema` (captured from a pasted sample under Response model) makes the response pickable in later steps. Prefer an integration reference for anything reused: references keep credentials encrypted and calls governed. Like Call API / Reference, an HTTP error status (4xx/5xx) is stored rather than failing the step — branch on `{{<prefix>_status}}`; only a transport failure or timeout fails it.',
+    settings: '`method`, `url`, `headers`, `params`, `body`, `content_type` (`json`, `form`, `text`, `none`, `multipart` — `multipart` parts `[{ key, value, type: "text" | "file" }]`, a file part sends a file object or each file of a list such as `{{item}}` / `{{task_data.<attachments>}}` — or `binary`, the body is one file\'s bytes) and `auth_type` (`bearer`, `basic`, `api_key`). `_response_schema` (captured from a pasted sample under Response model) makes the response pickable in later steps. Prefer an integration reference for anything reused: references keep credentials encrypted and calls governed. Like Call API / Reference, an HTTP error status (4xx/5xx) is stored rather than failing the step — branch on `{{<prefix>_status}}`; only a transport failure or timeout fails it.',
     outputs: '`response` (or `output_var`) and `<prefix>_status` (the HTTP status code), plus `file` / `file_url` for binary responses.',
     example: { method: 'POST', url: 'https://hooks.example.com/notify', body: '{"invoice":"{{invoice_number}}"}' },
   },
@@ -162,8 +162,9 @@ export const NODE_DOCS: Record<NodeType, NodeDoc> = {
   auto_action: { settings: 'Set the task\'s `status`, `outcome` (+ `outcome_notes`), `acceptance_status`, `priority` or `assignee_id` without a person acting; `target_task_id` defaults to the current task.', example: { status: 'completed', outcome: 'Auto-approved' } },
   log: { settings: '`message` (expressions allowed) is written to the run log and the event stream as `workflow.step.log`.', example: { message: 'Vendor {{vendor.id}} risk {{risk}}' } },
   send_email: {
-    settings: '`to` (comma-separated, expressions allowed), `subject` and `body`, or an `email_template_id`; optional `from` and `reply_to`. Needs `RESEND_API_KEY` on the server.',
-    example: { to: '{{requester_email}}', email_template_id: '<template-id>' },
+    settings: '`to` (comma-separated, expressions allowed), `subject` and `body`, or an `email_template_id`; optional `from`, `reply_to` and `attachments` — a file or a list of files: a form\'s Attachments field (`{{task_data.<key>}}` attaches every file), `{{item}}` inside a Loop over them (one), or a generated document; several expressions separated by commas are all attached (up to 20 files, 25 MB). Sent through the configured email provider (Resend by default).',
+    outputs: '`sent`, `email_id`, `to` and, with attachments, their names and sizes (never contents).',
+    example: { to: '{{requester_email}}', email_template_id: '<template-id>', attachments: '{{task_data.receipts}}' },
   },
   call_sub_workflow: {
     settings: '`sub_workflow_id` and `input_mappings` (variables passed to the child). By default the parent waits for the child to finish (`executionMode: "sync"`); set the node to async to fire and forget.',
@@ -176,8 +177,8 @@ export const NODE_DOCS: Record<NodeType, NodeDoc> = {
     example: { decision_table_id: '<table-id>', decision_table_name: 'Invoice approval policy', input_mappings: { amount: '{{amount}}', risk: '{{risk}}' } },
   },
   user_task: {
-    settings: '`task_title`, `task_description`, `outcomes` (each outcome is an outgoing edge label), a form: typed `fields` (text, long text, number, currency, email, phone, URL, date, date-time, checkbox, single and multi-select, person, autocomplete / lookup from a data table or API reference, heading, divider) with validation and `visible_when`, an optional grid `form_layout` and `form_theme`, or a linked reusable form (`form_id`; drafts follow its latest version, publishing pins `form_version`) — see /docs/tasks/forms; assignment (`assignment_type` individual or team, `assignee_id` or `assignee_variable`, `team_id`), `completion_rule` for multi-assignee tasks (first_response, all_complete, consensus, unanimous, custom), due date, `reminders`, escalation and redirect options, and an optional `notification_template_id`.',
-    outputs: 'While waiting: `user_task_id`, `user_task_title`, `user_task_description` (plain text) and `user_task_description_html`. On resume: `outcome`, `outcome_notes`, `actioned_by` / `actioned_by_name` (who submitted it), `actioned_on_behalf_of` / `actioned_on_behalf_of_name` and `on_behalf_note` (set when a manager acted for the assignee — see /docs/tasks/manager-view), `response_count` and `task_data.<field>` for every field (typed: numbers, booleans, ISO dates, multi-select arrays), plus `task_data.<field>_item` (the selected item) for each lookup field.',
+    settings: '`task_title`, `task_description`, `outcomes` (each outcome is an outgoing edge label), a form: typed `fields` (text, long text, number, currency, email, phone, URL, date, date-time, checkbox, single and multi-select, person, autocomplete / lookup from a data table or API reference, attachments, heading, divider) with validation and `visible_when`, an optional grid `form_layout` and `form_theme`, or a linked reusable form (`form_id`; drafts follow its latest version, publishing pins `form_version`) — see /docs/tasks/forms; assignment (`assignment_type` individual or team, `assignee_id` or `assignee_variable`, `team_id`), `completion_rule` for multi-assignee tasks (first_response, all_complete, consensus, unanimous, custom), due date, `reminders`, escalation and redirect options, and an optional `notification_template_id`.',
+    outputs: 'While waiting: `user_task_id`, `user_task_title`, `user_task_description` (plain text) and `user_task_description_html`. On resume: `outcome`, `outcome_notes`, `actioned_by` / `actioned_by_name` (who submitted it), `actioned_on_behalf_of` / `actioned_on_behalf_of_name` and `on_behalf_note` (set when a manager acted for the assignee — see /docs/tasks/manager-view), `response_count` and `task_data.<field>` for every field (typed: numbers, booleans, ISO dates, multi-select arrays, attachments as a list of file objects `{ id, name, size, mime_type, url, storage_ref, uploaded_by, uploaded_at, checksum_sha256 }`), plus `task_data.<field>_item` (the selected item) for each lookup field and `task_data.<field>_count` for each attachments field.',
     example: { task_title: 'Approve invoice {{invoice_number}}', outcomes: ['Approved', 'Rejected'], assignment_type: 'team', team_id: '<team-id>', fields: [{ key: 'cost_centre', label: 'Cost centre', type: 'choice', options: ['OPS', 'FIN'] }] },
   },
   placeholder: { settings: 'A no-op stand-in while you sketch a flow; `note` explains what goes here.', example: { note: 'Post to ERP once the API is ready' } },
@@ -187,9 +188,9 @@ export const NODE_DOCS: Record<NodeType, NodeDoc> = {
     example: { event_name: 'invoice.approved' },
   },
   run_agent: {
-    settings: '`agent_id`, the prompt in `user_message`, optional `max_iterations`, `timeout_ms` and `output_variable`. The agent uses only the tools and references it was granted.',
-    outputs: 'The agent\'s structured output in `output_variable`.',
-    example: { agent_id: '<agent-id>', agent_name: 'Invoice triage', user_message: 'Classify invoice {{invoice_number}}', output_variable: 'triage' },
+    settings: '`agent_id`, the prompt in `user_message`, optional `files` (a file or a list, e.g. `{{form.receipts}}` or `{{item}}`: up to 10; images go to vision models as images, PDFs as documents where the API takes them (OpenAI), other documents — and PDFs elsewhere — as extracted text (PDF, Word, Excel, PowerPoint, text); read for the run\'s workspace only; the agent also gets the `read_attached_file` tool), `max_iterations`, `timeout_ms` and `output_variable`. The agent uses only the tools and references it was granted.',
+    outputs: 'The agent\'s structured output in `output_variable`; with files, `files` lists each file\'s name, size and how it was sent (never contents).',
+    example: { agent_id: '<agent-id>', agent_name: 'Invoice triage', user_message: 'Classify invoice {{invoice_number}}', files: '{{form.invoice_scan}}', output_variable: 'triage' },
   },
   add_user_to_role: { settings: '`user_id` and `role_id` or `role_name`. Audited as a permission change.', outputs: '`success`, `role_id`, `role_name`, `audited`.' },
   remove_user_from_role: { settings: '`user_id` and `role_id` or `role_name`. Audited as a permission change.', outputs: '`success`, `role_id`, `role_name`, `audited`.' },
@@ -201,9 +202,46 @@ export const NODE_DOCS: Record<NodeType, NodeDoc> = {
   read_file: { settings: '`file_url` and `encoding`; reads text content into `output_var`.', example: { file_url: '{{file_url}}' } },
   read_csv: { settings: '`mode` `read` (`file_url`, `delimiter`, `has_headers`) into `output_var`, or `write` (`data_var`, `file_name`) to produce a CSV file.', outputs: 'Rows, or `file` / `file_url` when writing.', example: { mode: 'read', file_url: '{{file_url}}', has_headers: true, output_var: 'rows' } },
   read_excel: { settings: '`mode` `read` (`file_url`, `sheet_name`, `has_headers`) or `write` (`data_var`, `file_name`).', outputs: 'Rows, or `file` / `file_url` when writing.', example: { mode: 'write', data_var: 'rows', file_name: 'payments.xlsx' } },
-  doc_word: { settings: 'Template from a URL or a data-table file (`template_url` or `source_mode: "table"`), `mode` such as `find_replace` with `replacements`, tables, lists or images; `output_var` receives the generated file. In `replacements` the `find` text is literal — `{{VENDOR}}` matches that placeholder as written — and only `replace` is resolved as an expression; an empty `find` is skipped with a warning, and a replacement that would grow a document part past 100 MB fails the node.', example: { template_url: '{{template_url}}', mode: 'find_replace', replacements: [{ find: '{{VENDOR}}', replace: '{{vendor.name}}' }], output_var: 'contract' } },
+  doc_word: { settings: 'Template from a URL, a file object (an uploaded attachment such as `{{item}}` or the first file of `{{task_data.<key>}}`, or a generated file) or a data-table file (`template_url` or `source_mode: "table"`), `mode` such as `find_replace` with `replacements`, tables, lists or images; `output_var` receives the generated file. In `replacements` the `find` text is literal — `{{VENDOR}}` matches that placeholder as written — and only `replace` is resolved as an expression; an empty `find` is skipped with a warning, and a replacement that would grow a document part past 100 MB fails the node.', example: { template_url: '{{template_url}}', mode: 'find_replace', replacements: [{ find: '{{VENDOR}}', replace: '{{vendor.name}}' }], output_var: 'contract' } },
   doc_excel: { settings: 'Template source as for Word; update cells, find/replace or insert rows; `output_var`.', example: { template_url: '{{template_url}}', mode: 'find_replace', replacements: [{ find: '{{TOTAL}}', replace: '{{total}}' }] } },
   doc_powerpoint: { settings: 'Template source as for Word; find/replace, tables, lists and images in slides; `output_var`.', example: { template_url: '{{template_url}}', mode: 'find_replace', replacements: [{ find: '{{QUARTER}}', replace: 'Q3' }] } },
+
+  // ─── Document actions (pages: /docs/workflows/documents) ───
+  doc_read: {
+    settings: '`source` — a file object (form attachment, a file from another step), a list (the first file), a `storage://` reference, a URL or text. Options: `pages` (PDF pages / slides, e.g. `2-5`), `sheet`, `range` (`B2:F40`), `header_row` (`auto`, `first`, `none` or a row number), `max_rows`, `max_chars`, `include_tables`, `include_images`, `tracked_changes` (`accept` or `show`), `ocr` (`off`, `auto` for pages without a text layer, `force`) and `ocr_languages`. See /docs/workflows/documents/read-document.',
+    outputs: '`<output_var>` (default `document`): `text`, `markdown`, `html` (sanitised), `metadata` (title, author, created, modified, pages / slides / sheets, words, characters, reading time), `structure` (headings, links, tables, sheets, slides, pages, comments, tracked changes, front matter, outline, form fields, data) and `rows`; plus `<output_var>_text`, `<output_var>_rows` and `<output_var>_count`.',
+    example: { source: '{{form.invoice}}', ocr: 'auto', output_var: 'invoice' },
+  },
+  doc_compare: {
+    settings: '`original` and `revised` — files, text, lists of rows or JSON. `mode`: `auto`, `lines`, `words`, `characters`, `sentences`, `sheet` (rows matched on `key_columns`; `compare_columns`, `ignore_columns`, `numeric_tolerance`) or `json` (`array_key`). `ignore_whitespace`, `ignore_case`, `ignore_punctuation`; `redline` (`none`, `docx`, `pdf`, `both`; `redline_style` `formatting` or `tracked`) and `report` (`none`, `html`, `pdf`). See /docs/workflows/documents/compare-documents.',
+    outputs: '`<output_var>` (default `comparison`): `identical`, `similarity` (0–100), `stats`, `changes`, `unified` (text diffs), `html` (report) and the files `redline_docx`, `redline_pdf`, `report`; plus `<output_var>_identical`, `_similarity`, `_html` and one variable per file.',
+    example: { original: '{{contract_v1}}', revised: '{{contract_v2}}', mode: 'words', redline: 'docx', report: 'html', output_var: 'contract_diff' },
+  },
+  doc_convert: {
+    settings: '`source` and `target` (`pdf`, `docx`, `html`, `markdown`, `text`, `csv`, `xlsx`, `json`); `engine` `auto` (the external converter for Office → PDF when DOCUMENT_CONVERTER_URL is set), `builtin` or `external`; `sheet`, `delimiter`, `page_size`, `title`, `output_name`. See /docs/workflows/documents/convert-document.',
+    outputs: '`<output_var>` (default `converted_file`): a file object (`name`, `url`, `size`, `mime_type`, `storage_ref`, `checksum_sha256`); also `file` and `file_url`.',
+    example: { source: '{{doc_file}}', target: 'pdf', output_name: 'Contract {{contract_number}}' },
+  },
+  doc_pdf: {
+    settings: '`operation`: `merge` (`sources`: a list of PDFs), `split` (`ranges` such as `1-3; 4-6`, or `every_n`), `extract_pages` (`pages`), `page_count`, `watermark` (`text`, `position`, `font_size`, `opacity`, `angle`, `color`, `pages`), `rotate` (`degrees`, `pages`), `fill_form` (`fields` name/value pairs or `field_values`, `flatten`, `strict`) or `read_form`. See /docs/workflows/documents/pdf-tools.',
+    outputs: '`<output_var>`: the new PDF file object (merge, extract, watermark, rotate, fill), a list of files (`split`), the page count, or `{ fields, values }` (`read_form`).',
+    example: { operation: 'watermark', source: '{{converted_file}}', text: 'APPROVED {{=TODAY()}}', position: 'top-right', output_var: 'stamped' },
+  },
+  doc_extract: {
+    settings: '`source`; `extract_tables` and `table_index` (a number or `all`); `patterns` (`name`, `pattern`, optional `group` and `all`); `finders` (`emails`, `urls`, `phones`, `dates`, `amounts`, `percentages`; `date_order` `DMY` or `MDY`); `to_table` with `table_id` and an optional `column_mapping` (`column` ← `field`) to insert the rows into a data table. See /docs/workflows/documents/extract.',
+    outputs: '`<output_var>` (default `extracted`): `tables`, `rows`, `values` (one per pattern, also `<output_var>_<name>`), `found` and `table_rows_inserted`; plus `<output_var>_rows` and `<output_var>_count`.',
+    example: { source: '{{form.invoice}}', patterns: [{ name: 'invoice_number', pattern: 'Invoice\\s*#?\\s*(\\w+)' }], finders: ['dates', 'amounts'] },
+  },
+  doc_redact: {
+    settings: '`source`; `presets` (`email`, `phone`, `credit_card`, `iban`, `ssn`, `ip_address`, `url`, `date`), `terms`, `patterns`; `replacement` `block` (█), `label` (`[EMAIL]`) or `text` (`replacement_text`); `output` `same` (Word, PowerPoint and Excel redacted in place; text formats kept), `pdf`, `html` or `text`; `clear_author`. See /docs/workflows/documents/redact.',
+    outputs: '`<output_var>` (default `redacted`): `file`, `text`, `counts` per kind and `total`; plus `<output_var>_file`, `_text` and `_count`.',
+    example: { source: '{{form.statement}}', presets: ['email', 'phone', 'credit_card', 'iban'], replacement: 'label' },
+  },
+  doc_inspect: {
+    settings: '`source`; `operation` `all`, `detect` (type from the content, not the name), `checksum` (`algorithms`: sha256, sha1, md5, sha512), `stats` or `search` (`query`, `regex`, `case_sensitive`, `whole_word`, `context_chars`). See /docs/workflows/documents/inspect-document.',
+    outputs: '`<output_var>` (default `inspection`): `type` (format, MIME type, extension mismatch), `checksums`, `stats`, `metadata` and `search` (`count`, `matches` with line, page and context); plus `<output_var>_matches` and `_match_count`.',
+    example: { source: '{{form.upload}}', operation: 'search', query: 'termination', whole_word: true },
+  },
 
   // ─── Canvas tools ───
   section_group: { settings: 'A labelled, collapsible frame (`width`, `height`, `color`) for grouping activities on the canvas. It does not run.' },

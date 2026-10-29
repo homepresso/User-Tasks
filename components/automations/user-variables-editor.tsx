@@ -83,8 +83,12 @@ export function UserVariablesEditor({ variables, onChange }: UserVariablesEditor
                   className="!text-xs !h-7 font-mono flex-1"
                 />
                 <select
-                  value={v.type}
-                  onChange={(e) => updateVariable(v.id, 'type', e.target.value)}
+                  value={v.type === 'array' && v.format === 'attachments' ? 'attachments' : v.type}
+                  onChange={(e) => {
+                    // Files: a list of uploads (its limits are set in the start form designer).
+                    if (e.target.value === 'attachments') onChange(variables.map((x) => (x.id === v.id ? { ...x, type: 'array', format: 'attachments', defaultValue: '' } : x)))
+                    else onChange(variables.map((x) => (x.id === v.id ? { ...x, type: e.target.value as UserVariable['type'], ...(x.format === 'attachments' ? { format: undefined, attachments: undefined } : {}) } : x)))
+                  }}
                   className="text-[10px] h-7 rounded-md border px-1.5"
                   style={{
                     borderColor: 'var(--theme-surface-border)',
@@ -96,6 +100,7 @@ export function UserVariablesEditor({ variables, onChange }: UserVariablesEditor
                   <option value="number">Number</option>
                   <option value="boolean">Boolean</option>
                   <option value="object">Object</option>
+                  <option value="attachments">Files</option>
                 </select>
                 <button
                   onClick={() => removeVariable(v.id)}

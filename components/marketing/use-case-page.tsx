@@ -231,6 +231,13 @@ export function UseCasePage({ useCase }: { useCase: UseCase }) {
           <div className="mt-6 grid gap-5 md:grid-cols-3">
             {related.map((item) => <UseCaseCard key={item.slug} useCase={item} />)}
           </div>
+          <p className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#4A463E]">
+            <span className="font-semibold text-[#1B1916]">Building blocks:</span>
+            <Link href="/forms" className="inline-flex items-center gap-1 font-semibold text-[#8A6D45] hover:underline">Forms and attachments <ArrowRight size={14} aria-hidden="true" /></Link>
+            <Link href="/documents" className="inline-flex items-center gap-1 font-semibold text-[#8A6D45] hover:underline">Document actions <ArrowRight size={14} aria-hidden="true" /></Link>
+            <Link href="/gallery" className="inline-flex items-center gap-1 font-semibold text-[#8A6D45] hover:underline">Package gallery <ArrowRight size={14} aria-hidden="true" /></Link>
+            <Link href="/deploy-anywhere" className="inline-flex items-center gap-1 font-semibold text-[#8A6D45] hover:underline">Deploy anywhere <ArrowRight size={14} aria-hidden="true" /></Link>
+          </p>
           <div className="mt-14 rounded-3xl border border-[#1B1916]/10 bg-gradient-to-br from-[#17150F]/[0.06] via-transparent to-[#B08A54]/[0.12] p-8 text-center sm:p-12">
             <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight">Build it on an engine you control.</h2>
             <p className="mx-auto mt-3 max-w-2xl text-[#4A463E]">Open source under Apache-2.0. Use the cloud, or self-host it next to your own systems.</p>

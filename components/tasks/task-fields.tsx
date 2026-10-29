@@ -7,6 +7,7 @@ import { FormRenderer, formatFieldValue } from '@/components/forms/form-renderer
 import { FormThemeScope } from '@/components/forms/form-theme-scope'
 import { cn } from '@/lib/utils'
 import { lookupItemKey } from '@/lib/forms/lookup'
+import { attachmentsCountKey } from '@/lib/forms/attachments'
 
 interface TaskFieldsProps {
   fields: TaskFieldDef[]
@@ -48,7 +49,7 @@ export function formatTaskValue(value: unknown): string {
  */
 export function TaskFields({ fields, values, onChange, errors, readOnly, data, compact, layout, theme, header, footer, page }: TaskFieldsProps) {
   // A lookup's selected item (`<key>_item`) is shown through its field.
-  const fieldKeys = new Set(fields.flatMap((f) => (f.type === 'lookup' ? [f.key, lookupItemKey(f.key)] : [f.key])))
+  const fieldKeys = new Set(fields.flatMap((f) => (f.type === 'lookup' ? [f.key, lookupItemKey(f.key)] : f.type === 'attachments' ? [f.key, attachmentsCountKey(f.key)] : [f.key])))
   const extraEntries = Object.entries(data ?? {}).filter(([key]) => !fieldKeys.has(key))
   const labelClass = compact ? 'text-[11px]' : 'text-xs'
 

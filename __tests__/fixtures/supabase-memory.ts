@@ -1,7 +1,7 @@
 /**
  * Minimal in-memory Supabase/PostgREST stand-in for service tests.
  * Supports the builder calls the integration services use: select (with
- * count), eq / neq / gt / gte / lte / is / in / contains (arrays) / like / filter('a->>b','eq',v) / ilike / or (ignored),
+ * count), eq / neq / gt / gte / lt / lte / is / in / contains (arrays) / like / filter('a->>b','eq',v) / ilike / or (ignored),
  * order (stable, nulls last), limit, range, single, maybeSingle, insert / update / delete with
  * a trailing select. Embedded selects (`x:table(...)`) are not joined.
  * Every mutation is recorded in `calls` for assertions.
@@ -95,6 +95,7 @@ export function createMemorySupabase(seed: Record<string, Row[]> = {}, options: 
       neq(field: string, value: unknown) { state.filters.push((row) => row[field] !== value); return api },
       gte(field: string, value: any) { state.filters.push((row) => row[field] != null && row[field] >= value); return api },
       lte(field: string, value: any) { state.filters.push((row) => row[field] != null && row[field] <= value); return api },
+      lt(field: string, value: any) { state.filters.push((row) => row[field] != null && row[field] < value); return api },
       // Numeric-aware: bigint cursors arrive as strings.
       gt(field: string, value: any) { state.filters.push((row) => row[field] != null && Number(row[field]) > Number(value)); return api },
       like(field: string, pattern: string) {

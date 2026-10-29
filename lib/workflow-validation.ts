@@ -259,6 +259,29 @@ export function validateNode(node: WorkflowNode): string[] {
       if (!c.template_url && !(c.source_mode === 'table' && c.table_id && c.table_row_id)) errors.push('Template source required')
       if (c.mode === 'find_replace' && !c.replacements?.some((r: any) => r.find?.trim())) errors.push('At least one replacement required')
       break
+    case 'doc_read':
+    case 'doc_convert':
+    case 'doc_extract':
+    case 'doc_redact':
+    case 'doc_inspect':
+      if (!String(c.source ?? '').trim()) errors.push('Source file required')
+      if (node.type === 'doc_convert' && c.target && !['pdf', 'docx', 'html', 'markdown', 'text', 'csv', 'xlsx', 'json'].includes(c.target)) errors.push('Unknown target format')
+      if (node.type === 'doc_extract' && c.to_table && !c.table_id) errors.push('Data table required')
+      if (node.type === 'doc_redact' && !(Array.isArray(c.presets) && c.presets.length) && !String(c.terms ?? '').trim() && !(Array.isArray(c.patterns) && c.patterns.some((p: any) => String(p?.pattern ?? p ?? '').trim()))) errors.push('Choose what to redact')
+      if (node.type === 'doc_inspect' && c.operation === 'search' && !String(c.query ?? '').trim()) errors.push('Search text required')
+      break
+    case 'doc_compare':
+      if (!String(c.original ?? '').trim()) errors.push('Original required')
+      if (!String(c.revised ?? '').trim()) errors.push('Revised required')
+      break
+    case 'doc_pdf': {
+      const op = c.operation ?? 'merge'
+      if (op === 'merge') { if (!String(c.sources ?? '').trim() || (Array.isArray(c.sources) && !c.sources.length)) errors.push('PDFs to merge required') }
+      else if (!String(c.source ?? '').trim()) errors.push('Source PDF required')
+      if (op === 'watermark' && !String(c.text ?? '').trim()) errors.push('Watermark text required')
+      if (op === 'extract_pages' && !String(c.pages ?? '').trim()) errors.push('Pages required')
+      break
+    }
     case 'user_task':
       if (!(c.task_title ?? c.title)) errors.push('Task title required')
       if ((c.assignment_type ?? 'individual') === 'individual' && !c.assignee_id && !c.assignee_variable && !c.assign_to_user_id && !c.assign_to_user_variable) errors.push('Assignee required')

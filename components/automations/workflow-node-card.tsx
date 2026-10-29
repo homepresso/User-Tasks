@@ -20,7 +20,7 @@ import {
   Hash, ListTree, Filter, ArrowUpDown, Fingerprint, Merge, CircleStop, Inbox,
   MessageSquareDashed, Radio, CornerDownRight, GitFork, Users, Braces, Brackets, Search, Tag,
   FileSpreadsheet, Sheet, XCircle, AlertTriangle, Presentation, Scale, Puzzle, Bot, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore, Briefcase, FilePen, Milestone, Gauge,
-  Loader2, CircleSlash, Check,
+  Loader2, CircleSlash, Check, FileSearch, GitCompare, FileOutput, FileStack, ScanText, EyeOff, FileScan,
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { readableFill } from "@/lib/theme/legibility"
@@ -41,6 +41,7 @@ export const NODE_ICON_MAP: Record<string, any> = {
   Puzzle, Bot, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore,
   Gauge,
   Briefcase, FilePen, Milestone, Link: Link2,
+  FileSearch, GitCompare, FileOutput, FileStack, ScanText, EyeOff, FileScan,
 }
 
 /** Everything a card shows, derived from the node alone — identical for the designer and every viewer. */

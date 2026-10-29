@@ -4,7 +4,7 @@ import type pg from 'pg'
 import { PROVIDER_AREAS, type ProviderArea } from '@/lib/config/schema'
 import { resolveInstanceConfig } from '@/lib/config'
 import { AREA_LABELS, areaName, catalogueBadges, catalogueEntry, filterCatalogue, isDefaultProvider, parseArea } from '@/lib/admin/catalogue'
-import { runDoctor, type DoctorReport } from '@/lib/admin/doctor'
+import { API_NOTE, doctorApi, runDoctor, type DoctorReport, type RpcClient } from '@/lib/admin/doctor'
 import { INSTANCE_ADMINS_SETTING, parseAdminEmails } from '@/lib/admin/instance-admins'
 import { ALLOW_UI_SWITCHING_SETTING, switchingGate } from '@/lib/admin/switch-runtime'
 import { ensureStorageBuckets, runBootstrap } from './bootstrap'
@@ -15,7 +15,8 @@ import { runRollback, runSwitch } from './switch/engine'
 import { loadCliKeyring } from './kms'
 import { runKms } from './kms-cli'
 import { housekeepingSummary, resolveHousekeepingOption, runHousekeepingCommand, type HousekeepingAction } from './housekeeping-cli'
-import { housekeepingFindings, sqlHousekeeping } from '@/lib/admin/housekeeping'
+import { housekeepingFindings, rpcHousekeeping, sqlHousekeeping } from '@/lib/admin/housekeeping'
+import type { InstanceConfig } from '@/lib/config'
 import { hasSwitchLog, listRecords } from './switch/log'
 import { SWITCH_PLANS } from './switch/plans'
 import type { SwitchOptions } from './switch/types'
@@ -23,6 +24,8 @@ import type { SwitchOptions } from './switch/types'
 /**
  * usertasks-admin — server-side administration, run where the app runs
  * (same environment: DATABASE_URL, provider variables, ENCRYPTION_KEY).
+ * status and doctor also run without DATABASE_URL on the Supabase provider,
+ * through its API with SUPABASE_SERVICE_ROLE_KEY (see supabaseApi below).
  * `run(argv, io)` returns the exit code (0 ok, 1 failed, 2 usage / refused).
  */
 
@@ -300,7 +303,7 @@ function dbUrlFrom(values: ParsedValues, env: NodeJS.ProcessEnv): string | undef
   return values['db-url'] || env.MIGRATION_DATABASE_URL || env.DATABASE_URL
 }
 
-const STATUS_MARK: Record<string, string> = { ok: 'ok', warn: 'WARN', fail: 'FAIL', skip: '-' }
+const STATUS_MARK: Record<string, string> = { ok: 'ok', warn: 'WARN', fail: 'FAIL', skip: 'info' }
 
 function printDoctor(io: CliIO, report: DoctorReport): void {
   let area: string | null = null
@@ -309,6 +312,26 @@ function printDoctor(io: CliIO, report: DoctorReport): void {
     io.out(`  [${STATUS_MARK[check.status].padEnd(4)}] ${check.name.padEnd(16)} ${check.detail}`)
   }
   io.out(report.ok ? 'All checks passed.' : 'Some checks failed.')
+}
+
+/**
+ * No DATABASE_URL / --db-url: with the Supabase database provider and its
+ * service-role key in the environment, status and doctor read the instance
+ * (settings, data keys, the database checks) through the Supabase API
+ * instead, as the app does. Null otherwise (config from the environment only).
+ */
+async function supabaseApi(io: CliIO): Promise<{ rpc: RpcClient; config: InstanceConfig } | null> {
+  const { activeDbProvider, getServiceDb, hasServiceDb } = await import('@/lib/providers/db')
+  if (activeDbProvider() !== 'supabase' || !hasServiceDb()) return null
+  try {
+    // Data keys first: encrypted settings may need them (as at app startup).
+    const { bootstrapKms } = await import('@/lib/providers/kms/bootstrap')
+    await bootstrapKms({ refresh: false, log: (line) => io.err(`warning: ${line}`) })
+  } catch (error) {
+    io.err(`warning: data keys not loaded: ${(error as Error).message}`)
+  }
+  const { getConfig } = await import('@/lib/config')
+  return { rpc: getServiceDb(), config: await getConfig() }
 }
 
 async function withDb<T>(url: string | undefined, fn: (db: pg.Client | null) => Promise<T>, warn?: (line: string) => void): Promise<T> {
@@ -356,8 +379,9 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
     case 'status':
       return withDb(url, async (db) => {
         const warnings: string[] = []
-        const { config } = db ? await loadInstanceConfig(db, (w) => warnings.push(w)) : { config: resolveInstanceConfig(new Map()) }
-        const report = await runDoctor({ config, sql: db, storageWriteProbe: false, timeoutMs: 8_000 })
+        const api = db ? null : await supabaseApi(io)
+        const { config } = db ? await loadInstanceConfig(db, (w) => warnings.push(w)) : { config: api?.config ?? resolveInstanceConfig(new Map()) }
+        const report = await runDoctor({ config, sql: db, rpc: api?.rpc, storageWriteProbe: false, timeoutMs: 8_000 })
         let pgVersion: string | null = null
         let migration: string | null = null
         let housekeeping: Awaited<ReturnType<ReturnType<typeof sqlHousekeeping>['status']>> | null = null
@@ -367,6 +391,11 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
           const applied = await readApplied(db)
           migration = applied.at(-1)?.version ?? null
           housekeeping = await sqlHousekeeping(db).status().catch(() => null)
+        } else if (api) {
+          const snap = await doctorApi(api.rpc).snapshot().catch(() => null)
+          pgVersion = snap ? `${Math.floor(snap.version_num / 10000)} (Supabase API)` : 'Supabase API'
+          migration = snap?.latest_migration ?? null
+          housekeeping = await rpcHousekeeping(api.rpc).status().catch(() => null)
         }
         const rows = PROVIDER_AREAS.map((area) => {
           const p = config.providers[area]
@@ -377,11 +406,11 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
           io.out(JSON.stringify({ cli: VERSION, postgres: pgVersion, migration, areas: rows, checks: report.checks, housekeeping: housekeeping && { settings: housekeeping.settings, last_run: housekeeping.runs[0] ?? null, findings: housekeepingFindings(housekeeping) } }, null, 2))
           return report.ok ? 0 : 1
         }
-        io.out(`usertasks-admin ${VERSION}${pgVersion ? ` · PostgreSQL ${pgVersion}` : ' · no DATABASE_URL (config from the environment only)'}${migration ? ` · migration ${migration}` : ''}`)
+        io.out(`usertasks-admin ${VERSION}${pgVersion ? ` · ${pgVersion === 'Supabase API' ? pgVersion : `PostgreSQL ${pgVersion}`}` : ' · no database access (no DATABASE_URL or Supabase service-role key): config from the environment only'}${migration ? ` · migration ${migration}` : ''}`)
         for (const row of rows) {
           io.out(`  ${row.area.padEnd(10)} ${row.provider.padEnd(20)} ${row.source.padEnd(9)} ${STATUS_MARK[row.health].padEnd(5)} ${row.badges.join(' ')}`)
         }
-        if (db) io.out(`  ${'housekeeping'.padEnd(10)} ${housekeeping ? housekeepingSummary(housekeeping) : 'not installed (apply migration 20261109500000: usertasks-admin db migrate)'}`)
+        if (db || api) io.out(`  ${'housekeeping'.padEnd(10)} ${housekeeping ? housekeepingSummary(housekeeping) : 'not installed (apply migration 20261109500000: usertasks-admin db migrate)'}`)
         for (const f of housekeeping ? housekeepingFindings(housekeeping) : []) if (f.level === 'warn') io.out(`  WARN ${f.name}: ${f.detail}`)
         for (const w of warnings) io.err(`warning: ${w}`)
         const failing = report.checks.filter((c) => c.status === 'fail')
@@ -392,10 +421,14 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
 
     case 'doctor':
       return withDb(url, async (db) => {
-        const { config } = db ? await loadInstanceConfig(db, io.err) : { config: resolveInstanceConfig(new Map()) }
-        const report = await runDoctor({ config, sql: db, areas: command.areas, storageWriteProbe: !values['read-only'], emailTo: values['email-to'] })
+        const api = db ? null : await supabaseApi(io)
+        const { config } = db ? await loadInstanceConfig(db, io.err) : { config: api?.config ?? resolveInstanceConfig(new Map()) }
+        const report = await runDoctor({ config, sql: db, rpc: api?.rpc, areas: command.areas, storageWriteProbe: !values['read-only'], emailTo: values['email-to'] })
         if (values.json) io.out(JSON.stringify(report, null, 2))
-        else printDoctor(io, report)
+        else {
+          if (api) io.out(`No DATABASE_URL: ${API_NOTE.charAt(0).toLowerCase()}${API_NOTE.slice(1)}`)
+          printDoctor(io, report)
+        }
         return report.ok ? 0 : 1
       }, io.err)
 

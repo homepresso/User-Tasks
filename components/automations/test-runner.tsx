@@ -10,6 +10,7 @@ import { logStepId, RuntimeCanvas, StepChip } from './runtime-canvas'
 import { computeRunOverlay } from '@/lib/workflow-run-overlay'
 import { TaskFields } from '@/components/tasks/task-fields'
 import { FormLookupProvider } from '@/components/forms/lookup-field'
+import { FormAttachmentsProvider } from '@/components/forms/attachments-field'
 import { normalizeFormLayout, type FormLayout } from '@/lib/forms/layout'
 import { parseFormThemeOverrides, type FormThemeOverrides } from '@/lib/forms/form-theme'
 import { coerceTaskFieldValues, normalizeTaskFields, validateTaskFieldValues, type TaskFieldDef } from '@/lib/task-field-schema'
@@ -19,10 +20,11 @@ import { TaskDescription } from '@/components/tasks/task-description'
 import { WorkflowStartFormView } from '@/components/forms/workflow-start-form-view'
 import { rememberTaskValues, runAllPauseDecision, savedTaskValuesFor, type CaseTaskValues, type TestPausePrompt } from '@/lib/automations/test-run-all'
 import { serverRead } from '@/lib/server-read'
+import { formStartGate, NEEDS_FORM_INPUT, rememberSubmission, runAllCaseDecision, runSelectedDecision, TEST_START_LABEL } from '@/lib/automations/test-form-start'
 import type { FormButton } from '@/lib/forms/buttons'
 import {
   caseFormValues as caseFormValuesOf, copyCaseInputs, fieldText, formDefaultValues, parseFieldText, plainFieldKeys, startFormKind, valueChips, withCaseFormValue,
-  type WorkflowStartForm,
+  type StartFormCase, type WorkflowStartForm,
 } from '@/lib/forms/workflow-start-form'
 
 interface TestCase {
@@ -35,9 +37,13 @@ interface TestCase {
   buttonId?: string
   /** What the tester entered the last time they completed each User Task in this case (Run All can reuse it). */
   taskValues?: CaseTaskValues
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'paused' | null
+  /** What this case's form last submitted (accepted by the server): Run All reruns it (lib/automations/test-form-start). */
+  submitted?: StartFormCase
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'paused' | 'skipped' | null
   /** Run All left the case paused here ("Paused at …"). */
   pausedAt?: string
+  /** Run All skipped the case ("Needs form input"). */
+  skippedReason?: string
 }
 
 interface TestRunnerProps {
@@ -87,6 +93,12 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
     },
   })
   const formSpec = startKind && startForm && startForm.kind !== 'none' ? startForm : null
+  // With a form start nothing runs until the form's own button is pressed
+  // (and its checks pass): Run Selected shows the form, Run All reruns each
+  // case's last submission, nothing runs while the form is loading.
+  const gate = useMemo(() => formStartGate(startKind, startKind ? startForm : undefined), [startKind, startForm])
+  const [formPrompt, setFormPrompt] = useState<string | null>(null)
+  const formPanelRef = useRef<HTMLDivElement>(null)
   const [view, setView] = useState<'form' | 'fields'>('form')
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [formFailure, setFormFailure] = useState<string | null>(null)
@@ -267,11 +279,11 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
         body: JSON.stringify(formSubmission ? { workflow_id: workflowId, form_submission: formSubmission } : { workflow_id: workflowId, variables }),
       })
 
-      if (resp.status === 422 && formSubmission) {
+      if (resp.status === 422) {
         const json = await resp.json().catch(() => null) as { error?: string; fields?: Record<string, string> } | null
         setFormErrors(json?.fields ?? {})
         setFormFailure(json?.error ?? 'The form could not be submitted')
-        appendLog({ level: 'error', message: `Form not submitted: ${json?.error ?? resp.status}`, ...(json?.fields ? { metadata: json.fields } : {}) })
+        appendLog({ level: 'error', message: `${gate.kind === 'none' ? 'Not started' : 'Form not submitted'}: ${json?.error ?? resp.status}`, ...(json?.fields ? { metadata: json.fields } : {}) })
         setTestCases(prev => prev.map(c => c.id === tc.id ? { ...c, status: 'failed' } : c))
         setShowInputs(true)
         setDone(true); doneRef.current = true
@@ -280,6 +292,11 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
         return null
       }
       if (formSpec && view === 'form' && !runningAll) setShowInputs(false)
+      // The server accepted the form's values: Run All reruns this submission.
+      if (resp.ok && (gate.kind === 'form' || gate.kind === 'start_form')) {
+        const submitted = rememberSubmission({ values: tc.values, ...(formSubmission ? { formValues: formSubmission.values } : {}), ...(formSubmission?.button_id ? { buttonId: formSubmission.button_id } : {}) })
+        setTestCases(prev => prev.map(c => c.id === tc.id ? { ...c, submitted } : c))
+      }
 
       if (!resp.ok) {
         const errText = await resp.text().catch(() => '')
@@ -478,12 +495,30 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
   }
 
   async function runSingle(buttonId?: string) {
+    setFormPrompt(null)
     setRunning(true)
     // Cleanup previous runs
     await cleanupAllRuns()
     setTestCases(prev => prev.map(c => ({ ...c, status: null })))
     await executeSingleCase(selectedCase, buttonId)
     setRunning(false)
+  }
+
+  /**
+   * Run Selected. With a form start (form view) it never runs: it shows and
+   * focuses the case's form, which starts the test from its own button.
+   */
+  function onRunSelected() {
+    const decision = runSelectedDecision(gate, view)
+    if (decision.action === 'run') { void runSingle(); return }
+    setFormPrompt(decision.message)
+    if (decision.action === 'blocked') return
+    setShowInputs(true)
+    requestAnimationFrame(() => {
+      const panel = formPanelRef.current
+      panel?.scrollIntoView({ block: 'nearest' })
+      panel?.querySelector<HTMLElement>('input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled])')?.focus()
+    })
   }
 
   /** A button of the start form: validate as the form does, then start the test with it. */
@@ -513,11 +548,20 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
     abortRef.current = false
     // Cleanup previous runs
     await cleanupAllRuns()
-    setTestCases(prev => prev.map(c => ({ ...c, status: null })))
+    setTestCases(prev => prev.map(c => ({ ...c, status: null, skippedReason: undefined })))
+    setFormPrompt(null)
 
-    for (const tc of testCases) {
+    for (const tc of testCasesRef.current) {
       if (abortRef.current) break
-      await executeSingleCase(tc)
+      // A form start reruns the case's last submission; never submitted → skipped.
+      const decision = runAllCaseDecision(gate, tc)
+      if (decision.action === 'skip') {
+        const log = { level: 'warn', message: `── Test Case: ${tc.name} ── ${decision.label}${decision.label === NEEDS_FORM_INPUT ? ': select the case, fill in the form and press its button (Run All then reruns that submission)' : ''}` }
+        setTestCases(prev => prev.map(c => c.id === tc.id ? { ...c, status: 'skipped', skippedReason: decision.label } : c))
+        caseSnapshotsRef.current[tc.id] = { nodeResults: {}, logs: [log], finalStatus: null, pausedNodeId: null, pausedEventId: null, pausedRunId: null, done: true }
+        continue
+      }
+      await executeSingleCase({ ...tc, ...decision.inputs })
       // Brief pause between cases for visual clarity
       await new Promise(r => setTimeout(r, 600))
     }
@@ -736,6 +780,9 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
   const completedCount = testCases.filter(c => c.status === 'completed').length
   const failedCount = testCases.filter(c => c.status === 'failed').length
   const pausedCount = testCases.filter(c => c.status === 'paused').length
+  const skippedCount = testCases.filter(c => c.status === 'skipped').length
+  const formStart = gate.kind === 'form' || gate.kind === 'start_form'
+  const startBlocked = runsBlocked || gate.kind === 'loading'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'var(--theme-overlay)' }}>
@@ -764,6 +811,12 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                 style={{ backgroundColor: 'color-mix(in srgb, var(--status-info) 8%, transparent)', color: 'var(--status-info)' }}>
                 <Loader2 size={10} className="animate-spin" />
                 {runningAll ? `Running ${testCases.findIndex(c => c.status === 'running') + 1}/${testCases.length}` : 'Running'}
+              </span>
+            )}
+            {!running && skippedCount > 0 && (
+              <span className="flex items-center gap-0.5 text-[10px] font-medium px-2 py-0.5 rounded-full" data-test-skipped-count
+                style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 8%, transparent)', color: 'var(--theme-warning)' }}>
+                <TriangleAlert size={10} /> {skippedCount} need{skippedCount === 1 ? 's' : ''} form input
               </span>
             )}
             {done && !running && (completedCount > 0 || failedCount > 0 || pausedCount > 0 || finalStatus === 'waiting_for_event') && (
@@ -838,7 +891,7 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                       caseSnapshotsRef.current[selectedCaseId] = { nodeResults: { ...nodeResultsRef.current }, logs: [...logsRef.current], finalStatus: finalStatusRef.current, pausedNodeId: pausedNodeIdRef.current, pausedEventId: pausedEventIdRef.current, pausedRunId: pausedRunIdRef.current, done: true }
                     }
                     setSelectedCaseId(tc.id)
-                    setFormErrors({}); setFormFailure(null)
+                    setFormErrors({}); setFormFailure(null); setFormPrompt(null)
                     // Restore snapshot if available
                     const snap = caseSnapshotsRef.current[tc.id]
                     if (snap) {
@@ -870,6 +923,8 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                       <XCircle size={12} className="shrink-0" style={{ color: 'var(--theme-danger)' }} />
                     ) : tc.status === 'paused' ? (
                       <PauseCircle size={12} className="shrink-0" style={{ color: 'var(--theme-warning)' }} aria-label={tc.pausedAt ?? 'Paused'} />
+                    ) : tc.status === 'skipped' ? (
+                      <TriangleAlert size={12} className="shrink-0" style={{ color: 'var(--theme-warning)' }} aria-label={tc.skippedReason ?? 'Skipped'} />
                     ) : (
                       <Clock size={12} className="shrink-0" style={{ color: 'var(--theme-muted-text)', opacity: 0.4 }} />
                     )}
@@ -894,6 +949,9 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                     )}
                   </div>
 
+                  {tc.status === 'skipped' && tc.skippedReason && (
+                    <p className="mt-0.5 text-[10px] truncate" style={{ color: 'var(--theme-warning)' }} title={tc.skippedReason} data-test-case-skipped>{tc.skippedReason}</p>
+                  )}
                   {tc.status === 'paused' && tc.pausedAt && (
                     <p className="mt-0.5 text-[10px] truncate" style={{ color: 'var(--theme-warning)' }} title={tc.pausedAt}>{tc.pausedAt}</p>
                   )}
@@ -947,7 +1005,7 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             {/* The start form, as its users see it */}
             {formSpec && view === 'form' && showInputs && (
-              <div className={`px-4 py-3 ${showCanvas ? 'shrink-0 max-h-[55%]' : 'flex-1 min-h-0'} overflow-auto`} data-test-start-form={formSpec.kind}
+              <div ref={formPanelRef} className={`px-4 py-3 ${showCanvas ? 'shrink-0 max-h-[55%]' : 'flex-1 min-h-0'} overflow-auto`} data-test-start-form={formSpec.kind}
                 style={{ borderBottom: '1px solid var(--theme-surface-border)', backgroundColor: 'var(--theme-surface)' }}>
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-muted-text)' }}>
@@ -956,6 +1014,7 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                   <ViewToggle view={view} onChange={setView} />
                 </div>
                 <div className="mx-auto max-w-3xl">
+                  <FormAttachmentsProvider source={formSpec.kind === 'start_form' ? { kind: 'test', workflowId } : null}>
                   <WorkflowStartFormView
                     spec={formSpec}
                     idPrefix={`test-form-${selectedCase.id.slice(0, 8)}-`}
@@ -966,16 +1025,22 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                     busy={formBusy}
                     disabled={running}
                     failure={formFailure}
-                    startLabel="Start test run"
+                    startLabel={TEST_START_LABEL}
                     note={
+                      <>
+                      {formPrompt && (
+                        <p className="mt-3 text-xs font-medium" role="status" style={{ color: 'var(--theme-primary-text)' }} data-test-form-prompt>{formPrompt}</p>
+                      )}
                       <p className="mt-3 text-[11px]" style={{ color: 'var(--theme-muted-text)' }} data-test-submission-note>
                         {formSpec.kind === 'form'
                           ? 'Test submission: the run starts with what this form would send. Nothing is stored, no other workflow is triggered and the button’s actions only show in the Logs.'
                           : 'Test run: starts this workflow’s draft with these inputs.'}
                         {runsBlocked ? ' Fix the configuration issues (or choose Run anyway) first.' : ''}
                       </p>
+                      </>
                     }
                   />
+                  </FormAttachmentsProvider>
                 </div>
               </div>
             )}
@@ -1071,7 +1136,8 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
 
             {/* Action bar */}
             <div className="flex items-center gap-2 px-5 py-2 shrink-0" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
-              <Button size="sm" onClick={() => void runSingle()} disabled={running || runsBlocked} className="gap-1.5" title={runsBlocked ? 'Fix the configuration issues above (or choose Run anyway)' : undefined}>
+              <Button size="sm" onClick={onRunSelected} disabled={running || startBlocked} className="gap-1.5" data-test-run-selected
+                title={runsBlocked ? 'Fix the configuration issues above (or choose Run anyway)' : gate.kind === 'loading' ? 'Loading the start form…' : formStart && view === 'form' ? 'Opens this case’s form: the test starts when you press its button' : undefined}>
                 {running && !runningAll ? <Loader2 size={14} className="animate-spin" /> : <PlayCircle size={14} />}
                 {running && !runningAll ? 'Running...' : 'Run Selected'}
               </Button>
@@ -1086,9 +1152,10 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
               )}
 
               {testCases.length > 1 && (
-                <Button size="sm" variant="outline" onClick={runAll} disabled={running || runsBlocked} className="gap-1.5" title={runsBlocked ? 'Fix the configuration issues above (or choose Run anyway)' : undefined}>
+                <Button size="sm" variant="outline" onClick={runAll} disabled={running || startBlocked} className="gap-1.5" data-test-run-all
+                  title={runsBlocked ? 'Fix the configuration issues above (or choose Run anyway)' : formStart ? 'Reruns each case with the values its form last submitted; cases never submitted are skipped (needs form input)' : undefined}>
                   {runningAll ? <Loader2 size={14} className="animate-spin" /> : <ListChecks size={14} />}
-                  {runningAll ? `Running ${testCases.findIndex(c => c.status === 'running') + 1}/${testCases.length}...` : 'Run All'}
+                  {runningAll ? `Running ${testCases.findIndex(c => c.status === 'running') + 1}/${testCases.length}...` : formStart ? 'Run All (saved values)' : 'Run All'}
                 </Button>
               )}
 
@@ -1115,6 +1182,10 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
               )}
             </div>
 
+            {formPrompt && !(formSpec && view === 'form' && showInputs) && (
+              <p className="px-5 py-2 text-xs font-medium shrink-0" role="status" style={{ color: 'var(--theme-warning)', borderBottom: '1px solid var(--theme-surface-border)' }} data-test-form-prompt>{formPrompt}</p>
+            )}
+
             {/* Test-mode User Task Action Panel */}
             {testTaskPrompt && !resuming && (
               <div className="mx-4 mb-2 rounded-lg border-2 p-4 animate-in fade-in"
@@ -1135,6 +1206,7 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                     {testTaskPrompt.fields.length > 0 && (
                       <div className="mt-3">
                         <FormLookupProvider source={{ kind: 'preview' }}>
+                        <FormAttachmentsProvider source={{ kind: 'test', workflowId }}>
                         <TaskFields
                           compact
                           fields={testTaskPrompt.fields}
@@ -1144,6 +1216,7 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                           errors={testTaskErrors}
                           onChange={(key, value) => setTestTaskValues(prev => ({ ...prev, [key]: value }))}
                         />
+                        </FormAttachmentsProvider>
                         </FormLookupProvider>
                       </div>
                     )}
@@ -1243,8 +1316,10 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                 <div className="flex flex-col items-center justify-center h-full py-16">
                   <Zap size={40} style={{ color: 'var(--theme-muted-text)', opacity: 0.3 }} />
                   <p className="text-sm mt-3" style={{ color: 'var(--theme-muted-text)' }}>
-                    {formSpec
-                      ? 'Fill in the form and press its button (or Run Selected / Run All) to start the test'
+                    {gate.kind === 'unavailable'
+                      ? gate.reason
+                      : formSpec
+                      ? 'Fill in the form and press its button to start the test (Run All reruns each case’s last submission)'
                       : userVariables.length > 0
                       ? 'Configure test cases on the left, then Run Selected or Run All'
                       : 'Click Run Selected to execute the workflow'}

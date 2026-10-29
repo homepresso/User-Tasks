@@ -216,7 +216,7 @@ describe('submitForm', () => {
     expect(started[0].input).toMatchObject({ workflow_id: WORKFLOW, async: true, variables: { employee: 'Nancy', amount: 245.5, form_submission_id: row.id } })
     // The submitter (ctx.actorId) starts the run, via form — signed by startWorkflow, not a start variable.
     expect(started[0].input.variables.workflow_started_by).toBeUndefined()
-    expect(started[0].options).toEqual({ via: 'form' })
+    expect(started[0].options).toEqual({ via: 'form', filesVerified: true })
     expect(audits.some((a) => a.objectType === 'form' && a.action === 'execute' && /started workflow "Reimburse"/.test(a.summary))).toBe(true)
     expect(result.runs).toEqual([{ workflow_id: WORKFLOW, workflow_name: 'Reimburse', job_id: 'job-1-0000-0000', status: 'queued' }])
     expect(result.effects.success_screen).toEqual({ title: 'Thanks Nancy', text: 'Reference job-1-00', button: 'submit_another' })

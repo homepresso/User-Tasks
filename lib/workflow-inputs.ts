@@ -9,6 +9,10 @@
  *   { id, name, type: 'string'|'number'|'boolean'|'object', defaultValue, description,
  *     // optional, set in the designer's variable editor:
  *     label?, required?, format?: 'text'|'date'|'datetime'|'email'|'url'|'select', options? }
+ *   Attachments: `{ type: 'array', format: 'attachments', attachments?: { max_files, … } }`
+ *   — a list of uploaded files (the start form uploads them; API callers
+ *   pass file ids from POST /api/v1/files/uploads). The start service
+ *   rebuilds the list from the upload records (lib/services/form-files.ts).
  *
  * `validateWorkflowInputs` checks a submitted `variables` object against the
  * fields: required fields need a value (a default counts), values are coerced
@@ -21,7 +25,9 @@
  * dialog and its tests.
  */
 
-export const WORKFLOW_INPUT_TYPES = ['text', 'number', 'boolean', 'date', 'datetime', 'json', 'select', 'email', 'url'] as const
+import { normalizeAttachmentsConfig, normalizeAttachmentValue, type AttachmentsConfig } from '@/lib/forms/attachments'
+
+export const WORKFLOW_INPUT_TYPES = ['text', 'number', 'boolean', 'date', 'datetime', 'json', 'select', 'email', 'url', 'attachments'] as const
 export type WorkflowInputType = (typeof WORKFLOW_INPUT_TYPES)[number]
 
 export interface WorkflowInputOption {
@@ -39,6 +45,8 @@ export interface WorkflowInputField {
   description: string | null
   /** Choices of a `select` field. */
   options: WorkflowInputOption[] | null
+  /** `attachments` fields: counts, sizes and types (lib/forms/attachments.ts). */
+  attachments?: AttachmentsConfig
 }
 
 export interface WorkflowInputSchema {
@@ -83,6 +91,7 @@ export function inputTypeOf(variable: { type?: unknown; format?: unknown; option
   const format = typeof variable.format === 'string' ? variable.format.toLowerCase() : ''
   if (type === 'number' || type === 'integer' || type === 'float') return 'number'
   if (type === 'boolean' || type === 'bool') return 'boolean'
+  if ((type === 'array' || type === 'attachments') && format === 'attachments') return 'attachments'
   if (type === 'object' || type === 'array' || type === 'json') return 'json'
   if ((WORKFLOW_INPUT_TYPES as readonly string[]).includes(type) && type !== 'text') return type as WorkflowInputType
   // string / text / anything unknown: a text field, refined by `format`, or a select when it lists options.
@@ -138,7 +147,10 @@ export function deriveInputFields(userVariables: unknown): WorkflowInputField[] 
     const options = type === 'select' ? normalizeOptions((variable as any).options) ?? [] : null
     const label = typeof (variable as any).label === 'string' && (variable as any).label.trim() ? (variable as any).label.trim() : humanizeKey(key)
     const description = typeof (variable as any).description === 'string' && (variable as any).description.trim() ? (variable as any).description.trim() : null
-    fields.push({ key, label, type, required: isTrue((variable as any).required), default: defaultOf(variable, type), description, options })
+    fields.push({
+      key, label, type, required: isTrue((variable as any).required), default: type === 'attachments' ? null : defaultOf(variable, type), description, options,
+      ...(type === 'attachments' ? { attachments: normalizeAttachmentsConfig((variable as any).attachments) } : {}),
+    })
   }
   return fields
 }
@@ -148,7 +160,7 @@ const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/
 
 /** True when a submitted value counts as "not provided". */
 export function isEmptyInput(value: unknown): boolean {
-  return value === undefined || value === null || (typeof value === 'string' && value.trim() === '')
+  return value === undefined || value === null || (typeof value === 'string' && (value.trim() === '' || value.trim() === '[]')) || (Array.isArray(value) && value.length === 0)
 }
 
 type Coerced = { ok: true; value: unknown } | { ok: false; message: string }
@@ -200,6 +212,18 @@ export function coerceValue(type: WorkflowInputType, value: unknown, options: Wo
         if (url.protocol === 'http:' || url.protocol === 'https:') return { ok: true, value: text }
       } catch { /* fall through */ }
       return { ok: false, message: 'must be an http(s) URL' }
+    }
+    case 'attachments': {
+      // File objects, or file ids (API callers); the server re-reads them from the upload records.
+      let list: unknown = value
+      if (typeof value === 'string') {
+        const text = value.trim()
+        if (text.startsWith('[') || text.startsWith('{')) { try { list = JSON.parse(text) } catch { return { ok: false, message: 'must be a list of files' } } }
+        else list = text.split(',').map((s) => s.trim()).filter(Boolean)
+      }
+      const raw = Array.isArray(list) ? list : [list]
+      const files = normalizeAttachmentValue(raw)
+      return files.length === raw.length ? { ok: true, value: files } : { ok: false, message: 'must be a list of uploaded files' }
     }
     case 'select': {
       const text = typeof value === 'string' ? value : String(value)

@@ -141,6 +141,18 @@ export function createGcsStorageProvider(options: StorageOptions): StorageProvid
       return url
     },
 
+    /** V4 signed PUT URL (the bucket's CORS must allow PUT from the app's origin). */
+    async createUploadUrl(bucket, key, opts) {
+      const contentType = opts.contentType || 'application/octet-stream'
+      const [url] = await (await file(bucket, key)).getSignedUrl({
+        version: 'v4',
+        action: 'write',
+        contentType,
+        expires: Date.now() + Math.max(1, Math.min(Math.floor(opts.ttlSeconds), 7 * 24 * 3600)) * 1000,
+      })
+      return { url, method: 'PUT' as const, headers: { 'Content-Type': contentType } }
+    },
+
     async copy(bucket, fromKey, toKey, opts = {}) {
       const toBucket = opts.toBucket ?? bucket
       if (!opts.upsert && await provider.head(toBucket, toKey)) throw new StorageObjectExistsError(toBucket, toKey)

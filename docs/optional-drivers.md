@@ -2,7 +2,8 @@
 
 Some features need a package that not every install wants: the Snowflake,
 Oracle and MongoDB drivers, the cloud SDKs behind the storage, email, secrets
-and KMS providers, and the SAML library. They are `optionalDependencies` in
+and KMS providers, the SAML library, and tesseract.js for OCR in the
+document actions. They are `optionalDependencies` in
 `package.json`. A feature whose package is missing fails with a message that
 says how to add it, and nothing else is affected.
 
@@ -42,6 +43,7 @@ with.
 | `@aws-sdk/client-kms` | `KMS_PROVIDER=aws_kms` | `^3.1156.0` | None | Apache-2.0 |
 | `@azure/keyvault-keys` | `KMS_PROVIDER=azure_key_vault` | `^4.10.2` | None | MIT. The SQL Server driver depends on it too, so it is effectively always installed |
 | `@node-saml/node-saml` | SAML sign-in with built-in auth ([Auth](services/auth.md)) | `^5.1.0` | None | MIT |
+| `tesseract.js` | [OCR](#ocr-tesseractjs) of scanned PDFs and images in the document actions (`DOCUMENT_OCR_PROVIDER=tesseract`, the default) | `7.0.0` | None: WebAssembly. Language data is downloaded on first use, or provided locally | Apache-2.0. About 45 MB with its core |
 
 None of them needs a compiler, a system library or a licence key.
 
@@ -53,6 +55,7 @@ None of them needs a compiler, a system library or a licence key.
 | Storage SDKs (S3, Azure Blob, Cloud Storage) | Yes | Yes: `INCLUDE_STORAGE_SDKS=false` drops them | Yes |
 | Email, secrets and KMS SDKs (except Key Vault keys) | Yes | Yes: `INCLUDE_PROVIDER_SDKS=false` drops them | Yes |
 | `@azure/keyvault-keys`, `@node-saml/node-saml` | Yes | Always | Yes |
+| `tesseract.js` (OCR) | Yes | **No**: build with `INCLUDE_OCR=true` (about 45 MB more) | Yes |
 
 There is no prebuilt public image: you build the image from this
 repository's `Dockerfile`, so the build args above are how you choose.
@@ -109,8 +112,9 @@ docker build \
 ```
 
 With Docker Compose, put the same names in `.env` (`docker-compose.yml`
-passes `INCLUDE_OPTIONAL_DB_DRIVERS`, `INCLUDE_STORAGE_SDKS` and
-`INCLUDE_PROVIDER_SDKS` to the build), then `docker compose up --build`.
+passes `INCLUDE_OPTIONAL_DB_DRIVERS`, `INCLUDE_STORAGE_SDKS`,
+`INCLUDE_PROVIDER_SDKS` and `INCLUDE_OCR` to the build), then
+`docker compose up --build`.
 
 Check what an image contains. Database drivers are bundled into the server
 chunks (their `node_modules` folders only hold a few traced files), so look
@@ -118,7 +122,7 @@ for the stub instead: a package listed here was **not** included.
 
 ```bash
 docker run --rm --entrypoint sh usertasks:with-drivers -c \
-  'grep -rhoE "Cannot find module .(snowflake-sdk|oracledb|mongodb|nodemailer|@(aws-sdk|azure|google-cloud|node-saml)/[a-z0-9-]+)." .next/server | sort -u'
+  'grep -rhoE "Cannot find module .(snowflake-sdk|oracledb|mongodb|nodemailer|tesseract\.js|@(aws-sdk|azure|google-cloud|node-saml)/[a-z0-9-]+)." .next/server | sort -u'
 ```
 
 > [!WARNING]
@@ -194,6 +198,7 @@ version to install, the rebuild, the Docker build arg and this page:
 | Resolving `secret://` references | SECRETS_PROVIDER=gcp_secret_manager needs the optional package @google-cloud/secret-manager: … |
 | Envelope encryption | KMS_PROVIDER=aws_kms needs the optional package @aws-sdk/client-kms: … |
 | SAML sign-in | SAML sign-in needs the optional package @node-saml/node-saml: … |
+| A document step with OCR on, when a page needs it | OCR needs the optional package tesseract.js: install it with `npm install tesseract.js@7.0.0`, then rebuild … |
 
 `usertasks-admin doctor` checks storage, secrets and KMS by using the
 configured provider (email too with `--email-to <address>`), so a missing
@@ -250,6 +255,34 @@ too.
   CA with `NODE_EXTRA_CA_CERTS`.
 - **Network.** A host that resolves to a private address (on-premises,
   Atlas private endpoints) needs `ALLOW_PRIVATE_EGRESS=true`.
+
+## OCR (tesseract.js)
+
+The document actions (Read, Extract, Convert, Redact and Inspect Document)
+can recognise text in scanned PDFs and images. OCR is off in every step
+until turned on there, and `DOCUMENT_OCR_PROVIDER` chooses the engine:
+`tesseract` (the default, this package), `azure_document_intelligence`
+(Azure AI Document Intelligence; needs no package) or `none`.
+
+- **Install.** From source and on Vercel, `npm ci` installs it. The Docker
+  image needs `--build-arg INCLUDE_OCR=true` (or `INCLUDE_OCR=true` in
+  `.env` for Compose). Text PDFs never need it: the package is loaded only
+  when a page has to be recognised.
+- **Language data.** Each OCR language needs `<lang>.traineddata.gz`. By
+  default it is downloaded on first use from the tesseract.js language data
+  on the jsDelivr CDN (`https://cdn.jsdelivr.net/npm/@tesseract.js-data/<lang>/4.0.0_best_int/`)
+  and cached in `DOCUMENT_OCR_CACHE_DIR` (default
+  `<system temp folder>/usertasks-ocr`; use a volume in containers).
+- **Air-gapped.** Download the files you need on a connected machine
+  (for example `curl -fLO https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz`),
+  put them in a folder on the server or on an internal web server, and set
+  `DOCUMENT_OCR_LANG_PATH` to that folder or URL. Nothing is then fetched
+  from the internet. Build the image with `INCLUDE_OCR=true` before you
+  carry it across.
+- **Limits.** `DOCUMENT_OCR_MAX_PAGES` (20 pages per step) and
+  `DOCUMENT_OCR_TIMEOUT_SECONDS` (120).
+
+Details: [Scanned PDFs and OCR](/docs/workflows/documents/ocr).
 
 ## Providers
 

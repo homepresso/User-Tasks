@@ -13,9 +13,11 @@ import { getWorkflowRunInputs, runWorkflowNow } from "@/app/actions/workflow-sta
 import { submitStandaloneForm } from "@/app/actions/forms"
 import { serverRead } from "@/lib/server-read"
 import { WorkflowStartFormView } from "@/components/forms/workflow-start-form-view"
+import { AttachmentsField, FormAttachmentsProvider } from "@/components/forms/attachments-field"
 import { planButtonEffects, type ButtonEffects, type FormButton } from "@/lib/forms/buttons"
 import { formDefaultValues, formPagePath, startFormVariable, type WorkflowStartForm } from "@/lib/forms/workflow-start-form"
 import { validateTaskFieldValues } from "@/lib/task-field-schema"
+import { isImplicitSubmitKey } from "@/lib/automations/test-form-start"
 import type { StartWorkflowResult } from "@/lib/services/workflow-start"
 import {
   initialFormValues,
@@ -112,6 +114,18 @@ export function WorkflowInputFields({ fields, values, errors, onChange, idPrefix
               <option value="">{field.required ? "Choose…" : "(none)"}</option>
               {(field.options ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
+          )
+        } else if (field.type === "attachments") {
+          // Uploaded into the workflow's start context; the value is the file list (JSON text in the form state).
+          control = (
+            <AttachmentsField
+              field={{ key: field.key, label: field.label, type: "attachments", ...(field.required ? { required: true } : {}), ...(field.attachments ? { attachments: field.attachments } : {}) }}
+              value={value}
+              onChange={(files) => onChange(field.key, files.length ? JSON.stringify(files) : "")}
+              id={id}
+              describedBy={describedBy}
+              invalid={Boolean(error)}
+            />
           )
         } else if (field.type === "json") {
           control = (
@@ -433,7 +447,10 @@ export function RunWorkflowDialog({ workflow, open, onOpenChange }: {
                 onPress={(b) => void pressFormButton(b)} busy={formBusy} failure={submitError} />
             </div>
           ) : (
-            <form onSubmit={submit} noValidate className="flex min-h-0 flex-col">
+            <form onSubmit={submit} noValidate className="flex min-h-0 flex-col"
+              // A workflow that starts from a form runs from the Run button only:
+              // Enter while filling the form in never starts it.
+              onKeyDown={(e) => { if (startForm && isImplicitSubmitKey({ key: e.key, isComposing: e.nativeEvent.isComposing, target: e.target as HTMLInputElement })) e.preventDefault() }}>
               <div className="space-y-4 overflow-y-auto px-5 py-4">
                 {!schema.published && (
                   <p className="text-xs" style={{ color: "var(--theme-warning)" }}>This workflow has not been published: the run uses the draft.</p>
@@ -443,6 +460,7 @@ export function RunWorkflowDialog({ workflow, open, onOpenChange }: {
                     <legend className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--theme-muted-text)" }}>Inputs</legend>
                     {startForm && <RunViewToggle view={view} onChange={setView} />}
                   </div>
+                  <FormAttachmentsProvider source={workflowId ? { kind: "start", workflowId } : null}>
                   {showForm && startForm?.kind === "start_form" ? (
                     <WorkflowStartFormView spec={startForm} idPrefix={`${idPrefix}-sf-`} values={startFormShown()} hideButtons
                       errors={{ ...Object.fromEntries(errors.map((e) => [Object.entries(startForm.name_by_key).find(([, n]) => n === e.field)?.[0] ?? e.field, e.message])), ...formErrors }}
@@ -458,6 +476,7 @@ export function RunWorkflowDialog({ workflow, open, onOpenChange }: {
                         onChange={(key, value) => setValues((prev) => ({ ...prev, [key]: value }))} />
                     </FormThemeScope>
                   )}
+                  </FormAttachmentsProvider>
                 </fieldset>
 
                 <fieldset className="space-y-2">

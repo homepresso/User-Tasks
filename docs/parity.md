@@ -141,6 +141,18 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | export | `GET /config/export` | `config_export` | `config export` | one form (with_dependencies adds its saved theme): config export with ids=<id> |
 | import | `POST /config/apply` | `config_apply` | `config apply` | config apply of the exported form (dry run first) |
 
+## Files
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | — | — | — | uploads are reached through the field value that holds them (task data, submission values, run variables) |
+| get | — | — | — | downloads go through the file object's url (/attachments/<id>), authorised per signed-in user |
+| create | `POST /files/uploads` | `files_upload` | `files upload-init` | upload into a task / form / workflow start context; `usertasks files upload <path>` and `--file field=path` wrap it |
+| update | — | — | — | files are immutable; upload a new one |
+| delete | — | — | — | unused uploads expire after 24 h; submitted files go with their task / submission / run |
+| start direct upload | `POST /files/uploads` | `files_upload_init` | `files upload-init` |  |
+| complete direct upload | `POST /files/uploads/{id}/complete` | `files_upload_complete` | `files upload-complete` |  |
+
 ## Form themes
 
 | Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |

@@ -456,6 +456,7 @@ async function executeReferenceInner({
       queryParams,
       inputHeaders,
       timeout,
+      integrationTenantId,
     );
   }
 
@@ -511,7 +512,13 @@ async function executeReferenceInner({
       method !== "GET" && method !== "HEAD" && body ? body : undefined;
     if (fetchBody && (method === "PUT" || method === "POST")) {
       const bodyStr = String(fetchBody);
-      if (bodyStr.startsWith("http://") || bodyStr.startsWith("https://")) {
+      // A form attachment (file input): its bytes, for this reference's tenant only.
+      const { readFormFileBody } = await import("@/lib/services/form-files");
+      const formFile = await readFormFileBody(bodyStr, integrationTenantId);
+      if (formFile) {
+        fetchBody = Buffer.from(formFile.bytes);
+        headers["Content-Type"] = formFile.mime_type;
+      } else if (bodyStr.startsWith("http://") || bodyStr.startsWith("https://")) {
         try {
           await assertSafeEgressUrl(bodyStr);
           const fileResp = await fetch(bodyStr, {
@@ -753,11 +760,27 @@ async function executeReferenceInner({
   });
 
   // Resolve file content for uploads — download URLs or decode base64 to binary
-  let fetchBody: string | Buffer | undefined =
+  let fetchBody: string | Buffer | FormData | Uint8Array | undefined =
     method !== "GET" && method !== "HEAD" && body ? body : undefined;
-  if (fetchBody && (method === "PUT" || method === "POST")) {
+  // Multipart uploads (Box, Google Drive) whose JSON template names a form
+  // attachment: the real multipart body with the file's bytes.
+  const contentTypeKey = Object.keys(headers).find((k) => k.toLowerCase() === "content-type");
+  const multipart = fetchBody && contentTypeKey && /^multipart\/(form-data|related)/i.test(headers[contentTypeKey])
+    ? await (await import("@/lib/services/form-files")).buildFormFileMultipart(String(fetchBody), headers[contentTypeKey], integrationTenantId)
+    : null;
+  if (multipart) {
+    fetchBody = multipart.body;
+    if (multipart.contentType) headers[contentTypeKey!] = multipart.contentType;
+    else delete headers[contentTypeKey!];
+  } else if (fetchBody && (method === "PUT" || method === "POST")) {
     const bodyStr = String(fetchBody);
-    if (bodyStr.startsWith("http://") || bodyStr.startsWith("https://")) {
+    // A form attachment (file input): its bytes, for this reference's tenant only.
+    const { readFormFileBody } = await import("@/lib/services/form-files");
+    const formFile = await readFormFileBody(bodyStr, integrationTenantId);
+    if (formFile) {
+      fetchBody = Buffer.from(formFile.bytes);
+      headers["Content-Type"] = formFile.mime_type;
+    } else if (bodyStr.startsWith("http://") || bodyStr.startsWith("https://")) {
       try {
         await assertSafeEgressUrl(bodyStr);
         const fileResp = await fetch(bodyStr, {
@@ -791,7 +814,7 @@ async function executeReferenceInner({
     body: fetchBody
       ? Buffer.isBuffer(fetchBody)
         ? new Uint8Array(fetchBody)
-        : fetchBody
+        : (fetchBody as BodyInit)
       : undefined,
     signal: AbortSignal.timeout(timeout),
   });

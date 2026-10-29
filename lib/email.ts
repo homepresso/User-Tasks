@@ -1,5 +1,5 @@
 import { getEmailProviderWithOptions } from '@/lib/providers/email'
-import { emailOption } from '@/lib/providers/email/types'
+import { emailOption, type EmailAttachment } from '@/lib/providers/email/types'
 
 /**
  * Sends one email through the configured EmailProvider (lib/providers/email:
@@ -21,6 +21,8 @@ export interface SendEmailParams {
   body: string
   from?: string
   replyTo?: string
+  /** Attached files (the workflow Send Email step). */
+  attachments?: EmailAttachment[]
 }
 
 const RESEND_SANDBOX_FROM = 'UserTasks <onboarding@resend.dev>'
@@ -41,7 +43,9 @@ export async function sendEmail(params: SendEmailParams): Promise<{ success: boo
     const replyTo = params.replyTo || emailOption(options, 'reply_to') || undefined
 
     console.log(`[email] Sending via ${provider.id} to ${toAddresses.join(', ')} from ${fromAddress} — subject: ${params.subject}`)
-    const result = await provider.send({ from: fromAddress, to: toAddresses, subject: params.subject, html: params.body, replyTo })
+    const attachments = params.attachments?.length ? params.attachments : undefined
+    if (attachments) console.log(`[email] ${attachments.length} attachment(s): ${attachments.map((a) => a.filename).join(', ')}`)
+    const result = await provider.send({ from: fromAddress, to: toAddresses, subject: params.subject, html: params.body, replyTo, ...(attachments ? { attachments } : {}) })
     console.log(`[email] Sent successfully — id: ${result.id}`)
     return { success: true, id: result.id }
   } catch (err) {

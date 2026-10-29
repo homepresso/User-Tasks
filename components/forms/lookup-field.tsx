@@ -22,6 +22,11 @@ export function FormLookupProvider({ source, children }: { source: FormLookupSou
   return <LookupSourceContext.Provider value={source}>{children}</LookupSourceContext.Provider>
 }
 
+/** Where the surrounding form is filled in (also where its attachments upload to). */
+export function useFormLookupSource(): FormLookupSource | null {
+  return useContext(LookupSourceContext)
+}
+
 interface LookupResponse { items: LookupItem[]; truncated?: boolean; too_short?: boolean; error?: string }
 
 async function fetchSuggestions(source: FormLookupSource, field: TaskFieldDef, query: string, values: Record<string, unknown>, signal: AbortSignal): Promise<LookupResponse> {

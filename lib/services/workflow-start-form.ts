@@ -11,6 +11,10 @@
  *  - prepareTestFormRun: the tested workflow's own trigger config decides
  *    the form and the button filter (never the request); the values are
  *    checked like a real submission and nothing is stored or triggered.
+ *  - prepareTestStart: every designer test START goes through it — a
+ *    "Form submitted" workflow only starts from a test submission of its
+ *    form (never from plain variables: "needs form input"), a start-form
+ *    workflow only with values that pass its form's checks.
  *  - getWorkflowFormEntries: the trigger's form, every form whose button
  *    "Start workflow" action starts this workflow (forms.view for those) and
  *    the start form's form page ("Publish as form page", ./form-pages).
@@ -24,6 +28,7 @@ import { startFormFromVariables } from '@/lib/forms/start-form'
 import { formPagePath, formSubmittedTrigger, startFormKind, type WorkflowStartForm } from '@/lib/forms/workflow-start-form'
 import { readFormSubmittedConfig } from '@/lib/forms/submitted-trigger'
 import { normalizeFormButtons } from '@/lib/forms/buttons'
+import { validateTaskFieldValues } from '@/lib/task-field-schema'
 import type { TestSubmissionLog } from './form-submissions'
 import type { StartFormPageInfo } from './form-pages'
 import { findFormPageAction } from '@/lib/forms/form-page'
@@ -93,6 +98,49 @@ export async function prepareTestFormRun(ctx: ServiceContext, workflowId: string
   const buttonId = typeof input.button_id === 'string' && input.button_id ? input.button_id.slice(0, 40) : null
   const { payload, logs } = await planTestSubmission(ctx, config.form_id, { values, button_id: buttonId }, config)
   return { variables: payload, logs }
+}
+
+/**
+ * The variables a designer TEST run starts with, checked against the form
+ * the workflow starts from (the draft being tested). Throws a validation
+ * error (422) instead of starting: a "Form submitted" workflow without a
+ * test submission (`details.needs_form_input`), or values that fail the
+ * form's checks (`details.fields`, keyed by field key).
+ */
+export async function prepareTestStart(ctx: ServiceContext, workflowId: string, input: { variables?: unknown; form_submission?: unknown }): Promise<{ variables: Record<string, unknown> | undefined; logs: TestSubmissionLog[] }> {
+  const def = await loadDefinition(ctx, workflowId, true)
+  const kind = startFormKind(def.nodes)
+  const variables = input.variables && typeof input.variables === 'object' && !Array.isArray(input.variables) ? input.variables as Record<string, unknown> : undefined
+  if (kind === 'form') {
+    if (!input.form_submission || typeof input.form_submission !== 'object' || Array.isArray(input.form_submission)) {
+      throw ServiceError.validation('This workflow starts when its form is submitted: fill in the form and press its button to start a test run', { needs_form_input: true })
+    }
+    return prepareTestFormRun(ctx, workflowId, input.form_submission as { values?: unknown; button_id?: unknown })
+  }
+  if (kind === 'start_form') {
+    const trigger = (Array.isArray(def.nodes) ? def.nodes : []).find((n: any) => n?.config?.start_form)
+    const model = startFormFromVariables(Array.isArray(def.user_variables) ? def.user_variables as any[] : [], (trigger as any)?.config)
+    if (model.def.fields.length) {
+      const values: Record<string, unknown> = {}
+      for (const field of model.def.fields) {
+        const value = variables?.[model.nameByKey.get(field.key) ?? field.key]
+        if (value !== undefined) values[field.key] = value
+      }
+      const fields = validateTaskFieldValues(model.def.fields, values)
+      if (Object.keys(fields).length) throw ServiceError.validation('Some start form fields need attention', { fields })
+    }
+    // Attachments inputs of a test run: only the tester's own uploads (test context, cleaned up after 24 h).
+    if (variables && model.def.fields.some((f) => f.type === 'attachments')) {
+      const [{ sanitizeTestTaskFiles }, { createServiceClient }, { normalizeAttachmentValue }] = await Promise.all([import('./form-files'), import('@/lib/cron-auth'), import('@/lib/forms/attachments')])
+      const typed = { ...variables }
+      for (const field of model.def.fields) {
+        const name = model.nameByKey.get(field.key) ?? field.key
+        if (field.type === 'attachments' && typed[name] !== undefined) typed[name] = normalizeAttachmentValue(typed[name])
+      }
+      return { variables: await sanitizeTestTaskFiles(createServiceClient() as any, ctx.tenantId, ctx.actorId, typed), logs: [] }
+    }
+  }
+  return { variables, logs: [] }
 }
 
 export interface WorkflowFormEntries {

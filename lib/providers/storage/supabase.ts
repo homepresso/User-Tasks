@@ -147,6 +147,16 @@ export function createSupabaseStorageProvider(client: () => SupabaseStorageClien
       return (data as any).signedUrl as string
     },
 
+    /** Supabase signed upload URL (valid for two hours; the caller enforces its own, shorter window). */
+    async createUploadUrl(bucket, key, options) {
+      assertSafeKey(key)
+      const { data, error } = await bucketApi(bucket).createSignedUploadUrl(key)
+      if (error) fail(error)
+      // The app's Supabase URL is the one browsers use too (lib/config/public).
+      const url = String((data as any).signedUrl)
+      return { url, method: 'PUT' as const, headers: { 'Content-Type': options.contentType || 'application/octet-stream', 'x-upsert': 'false' } }
+    },
+
     async copy(bucket, fromKey, toKey, options = {}) {
       assertSafeKey(fromKey)
       assertSafeKey(toKey)

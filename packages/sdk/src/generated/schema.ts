@@ -1395,6 +1395,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/files/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload a file for an Attachments field (or start a direct upload)
+         * @description With content_base64: the file is checked (size, type by content, blocked types, SVG sanitising, optional virus scan) and stored; returns `{ mode: "uploaded", file }`. With size only: returns `{ mode: "direct", file_id, upload: { url, method, headers }, expires_at }` — PUT the bytes to the URL with exactly those headers, then POST /files/uploads/{file_id}/complete — or `{ mode: "server", max_bytes }` when the storage can't sign uploads (send content_base64 instead). The file is pending until its id is used in a task completion, form submission or workflow start by the same user; unused uploads are deleted after 24 hours. Needs a user-bound credential.
+         */
+        post: operations["uploadFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/files/uploads/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finish a direct upload (the server verifies the stored file)
+         * @description The uploader only, within the upload window (15 minutes by default). The object is read back and verified; a file that fails (wrong type or size, blocked content) is deleted and the reason returned.
+         */
+        post: operations["completeFileUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workflow-activities": {
         parameters: {
             query?: never;
@@ -3927,7 +3967,7 @@ export interface operations {
                                 key: string;
                                 label: string;
                                 /** @enum {string} */
-                                type: "text" | "number" | "boolean" | "date" | "datetime" | "json" | "select" | "email" | "url";
+                                type: "text" | "number" | "boolean" | "date" | "datetime" | "json" | "select" | "email" | "url" | "attachments";
                                 required: boolean;
                                 /** @description Typed default, or null */
                                 default: unknown;
@@ -11955,6 +11995,193 @@ export interface operations {
                             truncated?: boolean;
                             cached?: boolean;
                             too_short?: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    uploadFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Upload into this open task's form (you must be able to act on it) */
+                    task_id?: string;
+                    /** @description Upload for a submission of this reusable form (forms.submit) */
+                    form_id?: string;
+                    /** @description Upload for this workflow's start-form attachments input (workflows.activate) */
+                    workflow_id?: string;
+                    /** @description The Attachments field (or start-form input) key */
+                    field_key: string;
+                    /** @description File name (its extension must be an allowed type) */
+                    name: string;
+                    /** @description Size in bytes: without content_base64, starts a direct upload to storage */
+                    size?: number;
+                    /** @description The file itself, base64 (small files; the request body limit applies). Omit to get a signed upload URL */
+                    content_base64?: string;
+                };
+                "multipart/form-data": {
+                    /** @description Upload into this open task's form (you must be able to act on it) */
+                    task_id?: string;
+                    /** @description Upload for a submission of this reusable form (forms.submit) */
+                    form_id?: string;
+                    /** @description Upload for this workflow's start-form attachments input (workflows.activate) */
+                    workflow_id?: string;
+                    /** @description The Attachments field (or start-form input) key */
+                    field_key?: string;
+                    /** @description Size in bytes: without content_base64, starts a direct upload to storage */
+                    size?: number;
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @enum {string} */
+                            mode: "uploaded" | "direct" | "server";
+                            file?: {
+                                id: string;
+                                name: string;
+                                size: number;
+                                mime_type: string;
+                                url: string;
+                                storage_ref: string;
+                                uploaded_by: string | null;
+                                uploaded_at: string;
+                                checksum_sha256: string;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            file_id?: string;
+                            upload?: {
+                                [key: string]: unknown;
+                            };
+                            expires_at?: string;
+                            max_bytes?: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    completeFileUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            file: {
+                                id: string;
+                                name: string;
+                                size: number;
+                                mime_type: string;
+                                url: string;
+                                storage_ref: string;
+                                uploaded_by: string | null;
+                                uploaded_at: string;
+                                checksum_sha256: string;
+                            } & {
+                                [key: string]: unknown;
+                            };
                         } & {
                             [key: string]: unknown;
                         };

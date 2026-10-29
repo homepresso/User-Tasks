@@ -7,6 +7,8 @@ import {
   Braces,
   Check,
   Cloud,
+  FileInput,
+  Files,
   GitBranch,
   ListChecks,
   Palette,
@@ -97,6 +99,8 @@ const DESTINATIONS = [
 
 const FEATURES: Array<{ icon: typeof Workflow; title: string; body: string; href: string; shot?: ScreenshotName }> = [
   { icon: Workflow, title: "Workflows", body: "72 node types: triggers, branches, loops, parallel paths, waits, sub-workflows, documents and error handling. Durable runs with a full step history.", href: "/docs/workflows", shot: "run-detail" },
+  { icon: FileInput, title: "Forms", body: "Grid forms with lookups, file uploads, buttons and themes — on tasks, workflow starts and their own pages with QR codes. Every submission validated on the server.", href: "/forms", shot: "forms-designer" },
+  { icon: Files, title: "Documents", body: "Read Word, Excel, PowerPoint, PDF and Markdown, redline two versions, convert, extract to tables and redact personal data — inside the run.", href: "/documents", shot: "documents-compare" },
   { icon: ListChecks, title: "Human tasks", body: "User Tasks with typed fields and outcomes, queues, SLAs, reminders, escalation and multi-assignee rules — in our task list or your own UI.", href: "/docs/tasks", shot: "task-detail" },
   { icon: Plug, title: "Integrations", body: "REST, OData, webhooks and databases with encrypted credentials, OAuth, OpenAPI import and pre-built connectors.", href: "/docs/integrations", shot: "integrations" },
   { icon: Scale, title: "Decision tables", body: "Ordered, typed business rules your analysts can change without touching a workflow. Testable from the API.", href: "/docs/decision-tables", shot: "decision-table" },
@@ -133,10 +137,12 @@ export function LandingPage() {
           <Link href="/" aria-label="UserTasks home"><Wordmark size={34} /></Link>
           <div className="flex items-center gap-1 sm:gap-2">
             <Link href="/use-cases" className="hidden whitespace-nowrap rounded-lg px-1.5 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] min-[420px]:inline sm:px-3">Use cases</Link>
+            <Link href="/forms" className="hidden whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] sm:px-3 lg:inline">Forms</Link>
+            <Link href="/documents" className="hidden whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] sm:px-3 lg:inline">Documents</Link>
             <Link href="/gallery" className="whitespace-nowrap rounded-lg px-1.5 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] sm:px-3">Gallery</Link>
             <Link href="/deploy-anywhere" className="hidden whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] sm:inline sm:px-3">Deploy</Link>
-            <a href="#cli" className="hidden whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] sm:px-3 md:inline">CLI</a>
-            <a href="#logs" className="hidden whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] sm:px-3 md:inline">Log export</a>
+            <a href="#cli" className="hidden whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] sm:px-3 md:inline lg:hidden xl:inline">CLI</a>
+            <a href="#logs" className="hidden whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] sm:px-3 md:inline lg:hidden xl:inline">Log export</a>
             <Link href="/docs" className="whitespace-nowrap rounded-lg px-1.5 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] sm:px-3">Docs</Link>
             {repoUrl && <a href={repoUrl} className="hidden whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] sm:px-3 sm:inline">GitHub</a>}
             <Link href="/login" className="ml-1 whitespace-nowrap rounded-lg bg-[#17150F] px-3 py-2 sm:px-4 text-sm font-semibold text-[#FAF8F3] hover:bg-[#2E2A24]">Sign in</Link>
@@ -184,6 +190,35 @@ export function LandingPage() {
               )
             })}
           </ul>
+        </section>
+
+        {/* Forms and documents */}
+        <section id="forms-and-documents" className="scroll-mt-8 border-t border-[#1B1916]/[0.07] bg-[#FFFFFF]/40">
+          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+            <SectionHeading eyebrow="New: forms and documents" title="People fill in the form. The workflow reads the files.">
+              Collect what a process needs on a form — fields on a grid, lookups into your data, photos and PDFs — then read, compare and transform those documents in the steps that follow.
+            </SectionHeading>
+            <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {[
+                { href: "/forms", icon: FileInput, eyebrow: "Forms", title: "Forms that start and drive your workflows", shot: "forms-page" as ScreenshotName, alt: "A form page with a header, three-column rows, a customer lookup and three uploaded files", points: ["Grid designer with 17 field types, lookups and attachments", "Buttons that start workflows; headers and themes", "Form pages with QR codes and a Form submitted trigger"] },
+                { href: "/documents", icon: Files, eyebrow: "Documents", title: "Read, compare and transform documents", shot: "documents-compare-report" as ScreenshotName, alt: "A side-by-side comparison report with deleted words in red and inserted words in green", points: ["Word, Excel, PowerPoint, PDF with OCR, Markdown and HTML", "Redlines with Word tracked changes and side-by-side reports", "Convert, split, extract to tables, redact personal data"] },
+              ].map(({ href, icon: Icon, eyebrow, title, shot, alt, points }) => (
+                <Link key={href} href={href} className="group flex flex-col overflow-hidden rounded-2xl border border-[#1B1916]/[0.08] bg-[#FAF8F3] transition hover:border-[#8A6D45]/40 hover:shadow-md">
+                  <div className="aspect-[16/9] overflow-hidden border-b border-[#1B1916]/[0.06] bg-[#FFFFFF]">
+                    <Image src={SCREENSHOTS[shot]} alt={alt} sizes="(min-width: 1024px) 540px, 100vw" placeholder="blur" className="h-full w-full object-cover object-top" />
+                  </div>
+                  <div className="flex flex-1 flex-col p-6">
+                    <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8A6D45]"><Icon size={14} aria-hidden="true" />{eyebrow}</p>
+                    <h3 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight">{title}</h3>
+                    <ul className="mt-4 flex-1 space-y-2 text-sm text-[#4A463E]">
+                      {points.map((point) => <li key={point} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-[#4F7A5B]" aria-hidden="true" />{point}</li>)}
+                    </ul>
+                    <span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[#8A6D45] group-hover:underline">Explore {eyebrow.toLowerCase()} <ArrowRight size={14} aria-hidden="true" /></span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* Use cases */}
@@ -379,6 +414,8 @@ usertasks --profile prod config apply ./config`} />
           <p className="text-xs text-[#857D6D]">Open-source headless workflow engine · Apache-2.0 · © {new Date().getFullYear()} UserTasks</p>
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-[#6E6759]">
             <Link href="/use-cases" className="hover:text-[#1B1916]">Use cases</Link>
+            <Link href="/forms" className="hover:text-[#1B1916]">Forms</Link>
+            <Link href="/documents" className="hover:text-[#1B1916]">Documents</Link>
             <Link href="/gallery" className="hover:text-[#1B1916]">Package gallery</Link>
             <Link href="/deploy-anywhere" className="hover:text-[#1B1916]">Deploy anywhere</Link>
             <Link href="/docs" className="hover:text-[#1B1916]">Docs</Link>

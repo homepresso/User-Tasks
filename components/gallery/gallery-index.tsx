@@ -87,6 +87,7 @@ export function GalleryIndexPage({ communityCards = [] }: { communityCards?: Gal
                   </Link>
                 )
               })}
+              <Link href="/forms" className="inline-flex items-center gap-1 px-2 py-2 text-sm font-semibold text-[#8A6D45] hover:underline">How forms work <ArrowRight size={14} aria-hidden="true" /></Link>
             </div>
           </div>
         </section>

@@ -1,6 +1,7 @@
 import type { DocPageDef, DocSectionDef } from './types'
 import { GETTING_STARTED_PAGES } from './content/getting-started'
 import { WORKFLOW_PAGES } from './content/workflows'
+import { DOCUMENT_PAGES } from './content/documents'
 import { TASK_PAGES } from './content/tasks'
 import { INTEGRATION_PAGES } from './content/integrations'
 import { BUILDING_BLOCK_PAGES } from './content/building-blocks'
@@ -13,6 +14,7 @@ import { SERVICE_PAGES, TOPOLOGY_PAGES } from './content/deploy'
 export const DOC_SECTIONS: DocSectionDef[] = [
   { title: 'Getting started', pages: GETTING_STARTED_PAGES },
   { title: 'Workflows', pages: WORKFLOW_PAGES },
+  { title: 'Documents', pages: DOCUMENT_PAGES },
   { title: 'Tasks', pages: TASK_PAGES },
   { title: 'Integrations', pages: INTEGRATION_PAGES },
   { title: 'Building blocks', pages: BUILDING_BLOCK_PAGES },

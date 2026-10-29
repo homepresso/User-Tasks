@@ -11,6 +11,7 @@ import { serverRead } from '@/lib/server-read'
 import { normalizeTaskFields, valueFields } from '@/lib/task-field-schema'
 import { formatFieldValue } from './form-renderer'
 import { lookupDisplayValue } from './lookup-field'
+import { AttachmentList } from './attachments-field'
 import { lookupItemKey } from '@/lib/forms/lookup'
 import { formatRelativeDate } from '@/lib/utils'
 
@@ -83,7 +84,7 @@ export function FormSubmissionsPanel({ form, onClose }: { form: { id: string; na
                 {fields.map((f) => (
                   <div key={f.key} className="contents">
                     <dt style={{ color: 'var(--theme-muted-text)' }}>{f.label}</dt>
-                    <dd className="break-words">{f.type === 'lookup' ? lookupDisplayValue(f, selected.values?.[f.key], selected.values?.[lookupItemKey(f.key)]) : formatFieldValue(f, selected.values?.[f.key])}</dd>
+                    <dd className="break-words">{f.type === 'attachments' ? <AttachmentList value={selected.values?.[f.key]} /> : f.type === 'lookup' ? lookupDisplayValue(f, selected.values?.[f.key], selected.values?.[lookupItemKey(f.key)]) : formatFieldValue(f, selected.values?.[f.key])}</dd>
                   </div>
                 ))}
                 {Array.isArray(selected.result?.runs) && selected.result.runs.length > 0 && (

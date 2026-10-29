@@ -21,7 +21,7 @@ const securityHeaders = [
 ];
 
 // The optionalDependencies (Snowflake, Oracle and MongoDB drivers; storage,
-// email, secrets and KMS provider SDKs; the SAML library) are listed in
+// email, secrets and KMS provider SDKs; the SAML library; tesseract.js for OCR) are listed in
 // lib/optional-drivers. When one is not installed, alias it to a stub that
 // fails like a missing module so the build still succeeds and the feature
 // reports how to install it. The choice is made here, at build time: adding a
@@ -32,7 +32,7 @@ const isInstalled = (pkg: string) => existsSync(path.join(process.cwd(), "node_m
 const missingDriverAliases = Object.fromEntries(
   optionalPackageNames().filter((pkg) => !isInstalled(pkg)).map((pkg) => [pkg, missingStubPath(pkg)]),
 );
-const OPTIONAL_EXTERNALS = [...optionalPackageNames("storage"), ...optionalPackageNames("provider")].filter(isInstalled);
+const OPTIONAL_EXTERNALS = [...optionalPackageNames("storage"), ...optionalPackageNames("provider"), ...optionalPackageNames("document")].filter(isInstalled);
 
 const nextConfig: NextConfig = {
   // Self-contained server bundle for the Docker image (see Dockerfile). Opt-in
@@ -45,6 +45,14 @@ const nextConfig: NextConfig = {
       // deliberately if a real payload exceeds it.
       bodySizeLimit: "50mb",
     },
+    // proxy.ts buffers request bodies for the route handlers behind it and
+    // silently cuts them at this size (Next's default is 10 MB). Form
+    // attachments go straight to storage when the provider signs uploads;
+    // the streamed path (local-disk storage) takes bodies up to
+    // FORM_UPLOAD_MAX_BODY_MB (default 50, read at build time; Vercel caps
+    // function bodies at ~4.5 MB whatever this says). The upload route
+    // refuses a body shorter than the size the browser declared.
+    proxyClientMaxBodySize: `${Math.max(1, Math.min(Number(process.env.FORM_UPLOAD_MAX_BODY_MB) || 50, 1024))}mb`,
   },
   turbopack: { resolveAlias: missingDriverAliases },
   // Workspace package shipped as TypeScript source (the postgres db provider).

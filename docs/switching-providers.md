@@ -36,7 +36,13 @@ each area whenever you're ready.
      the worker's leader lock and the last scheduler tick; a LISTEN/NOTIFY
      round trip for the SSE realtime provider; resolution of every
      `secret://` reference. Secret values are never printed. Exit code 1
-     when a check fails.
+     when a check fails. With the Supabase database provider and no
+     `DATABASE_URL` (Vercel and similar), `status` and `doctor` read the
+     settings and run the database, scheduler, realtime, secrets and KMS
+     checks through the Supabase API with `SUPABASE_SERVICE_ROLE_KEY`
+     (service-role-only functions such as `instance_doctor_snapshot()`,
+     migration `20261121000000`). `DATABASE_URL` is only required by the
+     `postgres` database provider, where its absence fails the check.
    - `usertasks-admin providers list [--on-prem] [--aws] [--azure] [--gcp]`: the
      catalogue, with capability flags and what `switch` does for each
      provider (`switch:data` copies or converts data, `switch:config` only
@@ -374,6 +380,16 @@ and the **Housekeeping** card ([Infrastructure: Housekeeping](infrastructure.md#
 Changing a provider there is the same as `usertasks-admin switch`: the page
 calls the same engine, with the same pre-flight checks, backups, switch log
 and rollback. It needs `DATABASE_URL` (a direct connection, like the CLI).
+
+`DATABASE_URL` is optional for the health checks: with the Supabase
+database provider and no `DATABASE_URL` (Vercel, or any host that only has
+the Supabase URL and keys) every database-backed check runs through the
+Supabase API with the service-role key, marked with an info tooltip, and
+the page says that provider changes run with `usertasks-admin switch`
+instead. The same page on Docker, Kubernetes or a VM uses `DATABASE_URL`
+when it is set (and falls back to the Supabase API, with a warning, when
+the connection fails). With the `postgres` provider a missing `DATABASE_URL`
+is a failure.
 
 ### Change a provider
 

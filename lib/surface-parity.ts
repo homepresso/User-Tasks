@@ -177,6 +177,18 @@ export const SURFACE_PARITY: SurfaceResource[] = [
     ],
   },
   {
+    resource: 'files',
+    ops: [
+      op('list', null, null, null, 'uploads are reached through the field value that holds them (task data, submission values, run variables)'),
+      op('get', null, null, null, 'downloads go through the file object\'s url (/attachments/<id>), authorised per signed-in user'),
+      op('create', 'POST /files/uploads', 'files_upload', 'files upload-init', 'upload into a task / form / workflow start context; `usertasks files upload <path>` and `--file field=path` wrap it'),
+      op('update', null, null, null, 'files are immutable; upload a new one'),
+      op('delete', null, null, null, 'unused uploads expire after 24 h; submitted files go with their task / submission / run'),
+      op('start direct upload', 'POST /files/uploads', 'files_upload_init', 'files upload-init'),
+      op('complete direct upload', 'POST /files/uploads/{id}/complete', 'files_upload_complete', 'files upload-complete'),
+    ],
+  },
+  {
     resource: 'form themes',
     ops: [
       op('list', 'GET /form-themes', 'form_themes_list', 'form-themes list'),

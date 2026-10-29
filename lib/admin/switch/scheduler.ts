@@ -41,7 +41,7 @@ export const schedulerSwitch: AreaSwitch = {
     } else if (ctx.to === 'worker') {
       checks.push(ctx.config.bootstrap.databaseUrl || schedulerOption(ctx.targetConfig.providers.scheduler.options, 'database_url')
         ? { name: 'leader election', severity: 'ok', detail: 'advisory lock over DATABASE_URL / SCHEDULER_DATABASE_URL' }
-        : { name: 'leader election', severity: 'warn', detail: 'no DATABASE_URL: replicas elect through the tick lease (fine for one replica)' })
+        : { name: 'leader election', severity: 'ok', detail: 'replicas elect through the tick lease, which needs no direct connection (with DATABASE_URL / SCHEDULER_DATABASE_URL they would use an advisory lock)' })
     }
     return checks
   },

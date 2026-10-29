@@ -6,6 +6,7 @@
 export type { AgentTool } from './agent-tool-defs'
 import type { AgentTool } from './agent-tool-defs'
 import { processorSecret } from '@/lib/config/bootstrap'
+import { withoutFileContents, type AgentContentPart } from './agent-files'
 
 export interface AgentConfig {
   baseUrl: string              // e.g. https://api.openai.com/v1
@@ -20,7 +21,8 @@ export interface AgentConfig {
 
 export interface AgentMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
-  content: string | null
+  /** Text, or content parts (a user message carrying files: lib/agent-files.ts). */
+  content: string | AgentContentPart[] | null
   tool_calls?: { id: string; type: 'function'; function: { name: string; arguments: string } }[]
   tool_call_id?: string
   name?: string
@@ -272,6 +274,18 @@ const BUILTIN_TOOLS: Record<string, (args: Record<string, any>, context?: Record
       return { status: resp.status, content_type: resp.headers.get('content-type'), size: text.length, preview: text }
     } catch (e: any) { return { error: e.message } }
   },
+  /** A file given to this run (Run Agent's Files), as text — by file id or name. */
+  read_attached_file: async (args, context) => {
+    const files = (context?._attachments ?? []) as Array<{ id?: string; name: string; mime_type: string; bytes: Uint8Array }>
+    const key = String(args.file_id ?? args.name ?? '').trim()
+    const file = files.find((f) => (f.id && f.id === key.toLowerCase()) || f.name === key)
+    if (!file) return { error: `No file "${key}" was given to this agent step`, files: files.map((f) => ({ id: f.id ?? null, name: f.name })) }
+    try {
+      const { extractFileText } = await import('./agent-files')
+      const text = await extractFileText(file)
+      return { name: file.name, mime_type: file.mime_type, text: text.slice(0, 50_000), truncated: text.length > 50_000 }
+    } catch (e: any) { return { error: e.message } }
+  },
   read_file_content: async (args) => {
     if (!isUrlSafe(args.file_path)) return { error: 'URL blocked' }
     try {
@@ -315,9 +329,15 @@ export async function executeAgent(
     outputVariables?: AgentOutputVariable[]
     /** Overall wall-clock budget in ms (default 5 min). Exceeding → status 'failed'. */
     maxDurationMs?: number
+    /**
+     * Files for this run (Run Agent's "Files"): `parts` go into the user
+     * message (images / documents / extracted text, lib/agent-files.ts);
+     * `files` back the read_attached_file tool (by id or name). Never logged.
+     */
+    attachments?: { parts: AgentContentPart[]; files: Array<{ id?: string; name: string; mime_type: string; bytes: Uint8Array }> }
   } = {}
 ): Promise<AgentResult> {
-  const { onEvent, sharedContext, appBaseUrl = '', _tenantId, _agentId, _actingUserId = null, _agentOutputConfig, outputVariables = [], maxDurationMs = 300_000 } = options
+  const { onEvent, sharedContext, appBaseUrl = '', _tenantId, _agentId, _actingUserId = null, _agentOutputConfig, outputVariables = [], maxDurationMs = 300_000, attachments } = options
   const startTime = Date.now()
   const allToolCalls: AgentToolCall[] = []
   const totalUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
@@ -325,8 +345,8 @@ export async function executeAgent(
 
   // Inject appBaseUrl into context so data/doc tools can call back to the app
   const toolContext = sharedContext
-    ? { ...sharedContext, _appBaseUrl: appBaseUrl, _tenantId, _agentId, _actingUserId, _agentOutputConfig }
-    : { facts: {}, messages: [], _appBaseUrl: appBaseUrl, _tenantId, _agentId, _actingUserId, _agentOutputConfig }
+    ? { ...sharedContext, _appBaseUrl: appBaseUrl, _tenantId, _agentId, _actingUserId, _agentOutputConfig, _attachments: attachments?.files ?? [] }
+    : { facts: {}, messages: [], _appBaseUrl: appBaseUrl, _tenantId, _agentId, _actingUserId, _agentOutputConfig, _attachments: attachments?.files ?? [] }
 
   const failed = (error: string): AgentResult => {
     onEvent?.({ type: 'error', error })
@@ -337,11 +357,13 @@ export async function executeAgent(
       response: `Agent error: ${error}`,
       iterations: iterationCount,
       toolCalls: allToolCalls,
-      messages,
+      messages: scrubbed(),
       usage: totalUsage,
       duration_ms: Date.now() - startTime,
     }
   }
+  // What callers get back: file parts replaced by their names (no contents).
+  const scrubbed = (): AgentMessage[] => messages.map((m) => (Array.isArray(m.content) ? { ...m, content: withoutFileContents(m.content) as string } : m))
 
   // Build messages
   const messages: AgentMessage[] = []
@@ -361,7 +383,7 @@ export async function executeAgent(
       }
     }
   }
-  messages.push({ role: 'user', content: userMessage })
+  messages.push({ role: 'user', content: attachments?.parts.length ? [{ type: 'text', text: userMessage }, ...attachments.parts] : userMessage })
 
   // Convert tools to OpenAI format
   const openaiTools = config.tools.length > 0 ? toolsToOpenAIFormat(config.tools) : undefined
@@ -512,7 +534,7 @@ export async function executeAgent(
     response: finalResponse,
     iterations: iterationCount,
     toolCalls: allToolCalls,
-    messages,
+    messages: scrubbed(),
     usage: totalUsage,
     duration_ms: Date.now() - startTime,
     ...(outputs !== undefined ? { outputs } : {}),

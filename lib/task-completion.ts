@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolveExpression } from "@/lib/expression-resolver";
 import { writeLifecycleEvent } from "@/lib/lifecycle-events";
 import { mergeTaskFieldValuesChecked } from "@/lib/forms/task-values";
+import { normalizeTaskFields } from "@/lib/task-field-schema";
 import { toKeySlug } from "@/lib/utils/slug";
 
 /**
@@ -243,6 +244,14 @@ export async function recordTaskResponse(params: {
     ...taskMeta,
     template_values: templateValues,
   };
+  // Attachments the values now hold belong to the task (no longer pending).
+  const bindTaskFiles = async () => {
+    const { attachmentIdsIn, bindFormFiles } = await import("@/lib/services/form-files");
+    const ids = attachmentIdsIn(normalizeTaskFields(taskMeta.fields), templateValues);
+    if (!ids.length) return;
+    const { createServiceClient } = await import("@/lib/cron-auth");
+    await bindFormFiles(createServiceClient() as any, tenantId, ids, { taskId });
+  };
 
   // Record this response. Userless API keys can't vote per-user — treat as
   // first_response-style completion under the synthetic (null) responder.
@@ -338,6 +347,7 @@ export async function recordTaskResponse(params: {
       })
       .eq("id", taskId)
       .eq("tenant_id", tenantId);
+    await bindTaskFiles();
     return {
       status: "waiting",
       responses: evaluation.responseCount,
@@ -365,6 +375,7 @@ export async function recordTaskResponse(params: {
     })
     .eq("id", taskId)
     .eq("tenant_id", tenantId);
+  await bindTaskFiles();
 
   // A task form linked to a reusable form: a form submission (and the
   // "Form submitted" trigger), whichever surface completed it.

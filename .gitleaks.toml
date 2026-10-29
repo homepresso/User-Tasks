@@ -24,6 +24,7 @@ regexes = [
   '''BEGIN (OPENSSH )?PRIVATE KEY-----\\n(x|\.\.\.|MC4CAQAwBQYDK2VwBCIEI…)\\n''',
   # LocalStack test credentials in tests.
   '''AKIALOCALSTACKTEST01''',
+  '''test-signing-key-for-attachments-0123456789''',
   # Placeholders in docs and UI snippets.
   '''Bearer YOUR_API_KEY''',
   '''idempotency_key=legacy-po-\d+''',

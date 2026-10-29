@@ -9,7 +9,9 @@
  *
  * Run variables:
  *   {{form.<key>}}             every field, typed (numbers, booleans, ISO
- *                              dates, arrays); {{form.<key>_item}} for lookups
+ *                              dates, arrays); {{form.<key>_item}} for lookups;
+ *                              attachments: a list of file objects and
+ *                              {{form.<key>_count}}
  *   {{form_id}} {{form_name}} {{form_version}}
  *   {{form_submission_id}} {{form_button}} {{form_outcome}} {{form_source}}
  *   {{submitted_by}} {{submitted_by_name}} {{submitted_by_email}}
@@ -23,6 +25,7 @@
 
 import { isPlainObject } from '@/lib/utils/guards'
 import { lookupItemKey } from './lookup'
+import { attachmentsCountKey } from './attachments'
 import { valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
 
 export const FORM_SUBMITTED_TRIGGER = 'form_submitted'
@@ -65,6 +68,11 @@ export function buildFormSubmittedPayload(input: FormSubmittedPayloadInput): Rec
   for (const field of valueFields(input.fields)) {
     form[field.key] = input.values[field.key] ?? null
     if (field.type === 'lookup') form[lookupItemKey(field.key)] = input.values[lookupItemKey(field.key)] ?? (field.lookup?.multiple ? [] : null)
+    if (field.type === 'attachments') {
+      const files = Array.isArray(input.values[field.key]) ? input.values[field.key] as unknown[] : []
+      form[field.key] = files
+      form[attachmentsCountKey(field.key)] = files.length
+    }
   }
   return {
     form,

@@ -44,6 +44,19 @@ export const SCREENSHOT_NAMES = [
   'infrastructure-switch-plan',
   'infrastructure-switch-progress',
   'infrastructure-database-test',
+  'documents-read',
+  'documents-data-picker',
+  'documents-test-run',
+  'documents-compare',
+  'documents-compare-report',
+  'forms-designer',
+  'forms-lookup',
+  'forms-buttons',
+  'forms-theme',
+  'forms-page',
+  'forms-trigger',
+  'forms-data-picker',
+  'forms-phone',
 ] as const
 
 export type ScreenshotName = (typeof SCREENSHOT_NAMES)[number]

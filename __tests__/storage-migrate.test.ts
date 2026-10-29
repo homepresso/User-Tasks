@@ -45,7 +45,7 @@ describe('copyStorageObjects', () => {
     await from.put('task-files', 'workflow-files/t1/deep/b.bin', new Uint8Array(70_000).fill(7))
 
     const dry = await copyStorageObjects(from, to, { dryRun: true })
-    expect(dry.buckets.map((b) => [b.bucket, b.objects, b.copied])).toEqual([['task-files', 2, 0], ['logos', 1, 0], ['brand-fonts', 0, 0]])
+    expect(dry.buckets.map((b) => [b.bucket, b.objects, b.copied])).toEqual([['task-files', 2, 0], ['logos', 1, 0], ['brand-fonts', 0, 0], ['form-files', 0, 0]])
     expect((await to.list('logos', '')).objects).toEqual([])
 
     const events: string[] = []

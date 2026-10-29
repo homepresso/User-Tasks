@@ -100,3 +100,12 @@ PKG_REQUIREMENT_VALUES='{"integration_auth:integrations:<id>":{"config.auth_conf
 PKG_FILE=invoice-approval-1.1.0.utpkg npx tsx scripts/screenshots/packages.ts upgrade   # wizard steps, not applied
 npx tsx scripts/screenshots/packages.ts authored    # Authored tab and editor in the demo workspace
 ```
+
+## Forms screenshots
+
+`forms-*.webp` (the /forms page and /docs/tasks/forms) were captured by hand from the same demo workspace,
+at 1440×900 CSS px, deviceScaleFactor 2 (the phone shot at 390×844, factor 3, resized to 780 px wide), light
+theme, WebP quality 80. They use a reusable form "Customer return" (lookup on the Customers table, three-column
+rows, an Attachments field, a header with the workspace logo, a custom mini theme and a success screen) and a
+workflow "Customer return" with a Form submitted trigger, a loop over the files, a condition and a User Task.
+The form page link in `forms-trigger.webp` shows a placeholder public URL (`https://tasks.northwind.example`).

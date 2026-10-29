@@ -59,7 +59,7 @@ import {
 } from "./workflow-initiator";
 import { userVariableDefaults } from "./workflow-migration";
 import { appUrlOrLocalhost, configuredAppUrl } from "@/lib/config/bootstrap";
-import { fetchFile, storeWorkflowFile, type StoredWorkflowFile } from "@/lib/storage/files";
+import { fetchFile, fileSource, storeWorkflowFile, type StoredWorkflowFile } from "@/lib/storage/files";
 import { dataTableIdOf } from "./workflow-table-refs";
 import { referenceInputText, substituteInputPlaceholder } from "./reference-input-utils";
 
@@ -996,6 +996,11 @@ export async function executeWorkflow(
   ) as Record<string, any>;
 
   const [task, runId] = await Promise.all([taskPromise, runPromise]);
+  // Files uploaded with a start form now belong to this run.
+  if (runId && startVariables && !test) {
+    const { bindStartRunFiles } = await import("@/lib/services/form-files");
+    await bindStartRunFiles(supabase, workflow.tenant_id, workflowId, runId, startVariables);
+  }
 
   const ctx: ExecutionContext = {
     supabase,
@@ -5369,11 +5374,11 @@ async function runNodeAction(
           method !== "GET" && body ? body : undefined;
         if (fetchBody && (method === "PUT" || method === "POST")) {
           const bodyStr = String(fetchBody);
-          if (bodyStr.startsWith("http://") || bodyStr.startsWith("https://")) {
+          if (bodyStr.startsWith("http://") || bodyStr.startsWith("https://") || bodyStr.startsWith("/attachments/") || bodyStr.startsWith("storage://form-files/")) {
             try {
               const fileResp = await fetchFile(bodyStr, {
                 signal: AbortSignal.timeout(TIMEOUTS.STANDARD),
-              });
+              }, { tenantId });
               if (fileResp.ok) {
                 fetchBody = Buffer.from(await fileResp.arrayBuffer());
                 const fileContentType = fileResp.headers.get("content-type");
@@ -6045,6 +6050,27 @@ async function runNodeAction(
         ],
       };
 
+      // Files (Run Agent → Files): read for this run's tenant, shaped for the
+      // model's API (images / PDFs / extracted text); names only in logs.
+      let agentAttachments: { parts: import("./agent-files").AgentContentPart[]; files: Array<{ id?: string; name: string; mime_type: string; bytes: Uint8Array }> } | undefined;
+      let agentFileSummary: Array<{ name: string; size: number; mime_type: string; sent_as: string }> = [];
+      const filesSpec = typeof config.files === "string" ? config.files.trim() : "";
+      if (filesSpec) {
+        const { loadStepFiles, fileValues } = await import("@/lib/workflow-files");
+        const { buildAgentFileParts, AGENT_FILE_LIMITS } = await import("./agent-files");
+        const values = fileValues(resolveExpression(filesSpec, ctx));
+        const loaded = await loadStepFiles(values, { tenantId, maxFiles: AGENT_FILE_LIMITS.maxFiles, maxTotalBytes: AGENT_FILE_LIMITS.maxTotalBytes });
+        const shaped = await buildAgentFileParts(loaded, baseUrl);
+        const ids = values.map((v: any) => (v && typeof v === "object" && typeof v.id === "string" ? v.id.toLowerCase() : undefined));
+        agentAttachments = { parts: shaped.parts, files: loaded.map((f, i) => ({ id: ids[i], name: f.name, mime_type: f.mime_type, bytes: f.bytes })) };
+        agentFileSummary = shaped.summary;
+        if (!agentConfig.tools.some((t: any) => t.name === "read_attached_file")) {
+          const readTool = BUILTIN_TOOL_DEFS.find((t: any) => t.name === "read_attached_file");
+          if (readTool) agentConfig.tools.push(readTool);
+        }
+        ctx.onEvent?.({ type: "log", node_id: node.id, data: { level: "info", message: `Files for the agent: ${shaped.summary.map((f) => `${f.name} (${f.sent_as})`).join(", ")}` } });
+      }
+
       const sharedContext =
         config.share_context !== false
           ? (ctx.variables.agent_context ?? { messages: [], facts: {} })
@@ -6068,6 +6094,7 @@ async function runNodeAction(
           outputVariables: normalizedOutputConfig.variables,
           maxDurationMs:
             Number(config.timeout_ms) > 0 ? Number(config.timeout_ms) : 300_000,
+          ...(agentAttachments ? { attachments: agentAttachments } : {}),
         });
 
         // Surface real failures as node failures (continue-on-error / fail run).
@@ -6164,6 +6191,7 @@ async function runNodeAction(
           ...(result.parse_warning
             ? { parse_warning: result.parse_warning }
             : {}),
+          ...(agentFileSummary.length ? { files: agentFileSummary } : {}),
         };
       } catch (err: any) {
         // Record the failed run so operators can see it
@@ -6215,6 +6243,7 @@ async function runNodeAction(
       // Build headers
       const contentType = config.content_type ?? "json";
       const headers: Record<string, string> = {};
+      // multipart: fetch sets multipart/form-data with its boundary.
       if (contentType === "json") headers["Content-Type"] = "application/json";
       else if (contentType === "form")
         headers["Content-Type"] = "application/x-www-form-urlencoded";
@@ -6245,8 +6274,36 @@ async function runNodeAction(
       }
 
       // Body
-      let body: string | undefined;
-      if (method !== "GET" && config.body && contentType !== "none") {
+      let body: string | FormData | Uint8Array | undefined;
+      let sentFiles: Array<{ name: string; size: number; mime_type: string }> = [];
+      if (method !== "GET" && contentType === "multipart") {
+        // Form parts: text values, and files (a form attachment, a list of
+        // them — each a part with the same name — or another step's file).
+        const { loadStepFiles, describeStepFiles } = await import("@/lib/workflow-files");
+        const form = new FormData();
+        const parts = (Array.isArray(config.multipart) ? config.multipart : []) as Array<{ key?: string; value?: string; type?: string }>;
+        for (const part of parts) {
+          const key = String(part?.key ?? "").trim();
+          if (!key) continue;
+          if (part.type === "file") {
+            const files = await loadStepFiles(resolveExpression(part.value ?? "", ctx), { tenantId, maxFiles: 20, maxTotalBytes: 50 * 1024 * 1024 });
+            for (const file of files) form.append(key, new Blob([file.bytes as unknown as BlobPart], { type: file.mime_type }), file.name);
+            sentFiles = [...sentFiles, ...describeStepFiles(files)];
+          } else {
+            const value = resolveExpression(part.value ?? "", ctx);
+            form.append(key, value !== null && typeof value === "object" ? JSON.stringify(value) : String(value ?? ""));
+          }
+        }
+        body = form;
+      } else if (method !== "GET" && contentType === "binary") {
+        // The body is one file's bytes (its type as Content-Type unless a header sets it).
+        const { loadStepFiles, describeStepFiles } = await import("@/lib/workflow-files");
+        const [file] = await loadStepFiles(resolveExpression(config.body ?? "", ctx), { tenantId, maxFiles: 1, maxTotalBytes: 50 * 1024 * 1024 });
+        if (!file) throw new Error("HTTP Request: the binary body names no file");
+        body = file.bytes;
+        if (!Object.keys(headers).some((h) => h.toLowerCase() === "content-type")) headers["Content-Type"] = file.mime_type;
+        sentFiles = describeStepFiles([file]);
+      } else if (method !== "GET" && config.body && contentType !== "none") {
         body = String(resolveExpression(config.body, ctx) ?? "");
       }
 
@@ -6255,8 +6312,8 @@ async function runNodeAction(
         resp = await fetch(baseUrl, {
           method,
           headers,
-          body,
-          signal: AbortSignal.timeout(TIMEOUTS.DEFAULT),
+          body: body as BodyInit | undefined,
+          signal: AbortSignal.timeout(sentFiles.length ? TIMEOUTS.LARGE_FILE : TIMEOUTS.DEFAULT),
         });
       } catch (e: unknown) {
         throw new Error(
@@ -6318,7 +6375,7 @@ async function runNodeAction(
       setVar("response", data);
       if (outputVar) ctx.variables[outputVar] = data;
       ctx.variables[`${_prefix}_status`] = resp.status;
-      return { status: resp.status, data };
+      return { status: resp.status, data, ...(sentFiles.length ? { files_sent: sentFiles } : {}) };
     }
 
     // ─── Log ───
@@ -6368,6 +6425,20 @@ async function runNodeAction(
       if (!to) return { skipped: true, reason: "No recipient" };
       if (!subject) return { skipped: true, reason: "No subject" };
 
+      // Attachments: one file or a list (form attachments, generated files,
+      // URLs); several {{…}} separated by commas are all attached.
+      const { loadStepFiles, describeStepFiles, fileValues } = await import("@/lib/workflow-files");
+      const attachmentSpec = typeof config.attachments === "string" ? config.attachments.trim() : "";
+      let emailFiles: Awaited<ReturnType<typeof loadStepFiles>> = [];
+      if (attachmentSpec) {
+        const parts = attachmentSpec.match(/\{\{[\s\S]*?\}\}/g) ?? [];
+        const separated = parts.length > 1 && attachmentSpec.replace(/\{\{[\s\S]*?\}\}/g, "").trim().replace(/[,;\s]/g, "") === "";
+        const values = separated
+          ? parts.flatMap((part: string) => fileValues(resolveExpression(part, ctx)))
+          : fileValues(resolveExpression(attachmentSpec, ctx));
+        emailFiles = await loadStepFiles(values, { tenantId, maxFiles: 20, maxTotalBytes: 25 * 1024 * 1024 });
+      }
+
       const result = await sendEmail({
         to: String(to).includes(",")
           ? String(to)
@@ -6378,10 +6449,18 @@ async function runNodeAction(
         body: String(body ?? ""),
         from: from ? String(from) : undefined,
         replyTo: replyTo ? String(replyTo) : undefined,
+        ...(emailFiles.length
+          ? { attachments: emailFiles.map((f) => ({ filename: f.name, contentType: f.mime_type, content: f.bytes })) }
+          : {}),
       });
 
       if (!result.success) throw new Error(`Email failed: ${result.error}`);
-      return { sent: true, email_id: result.id, to };
+      return {
+        sent: true,
+        email_id: result.id,
+        to,
+        ...(emailFiles.length ? { attachments: describeStepFiles(emailFiles) } : {}),
+      };
     }
 
     // ─── File to Base64 ───
@@ -6391,9 +6470,9 @@ async function runNodeAction(
       const outputVar = config.output_var ?? "file_base64";
 
       try {
-        const resp = await fetchFile(String(fileUrl), {
+        const resp = await fetchFile(fileSource(fileUrl), {
           signal: AbortSignal.timeout(TIMEOUTS.STANDARD),
-        });
+        }, { tenantId });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const fileBuffer = await resp.arrayBuffer();
         const base64 = Buffer.from(fileBuffer).toString("base64");
@@ -6452,9 +6531,9 @@ async function runNodeAction(
       const outputVar = config.output_var ?? "downloaded_file";
 
       try {
-        const resp = await fetchFile(String(url), {
+        const resp = await fetchFile(fileSource(url), {
           signal: AbortSignal.timeout(TIMEOUTS.LARGE_FILE),
-        });
+        }, { tenantId });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
         const buffer = Buffer.from(await resp.arrayBuffer());
@@ -6507,9 +6586,9 @@ async function runNodeAction(
       const encoding = config.encoding ?? "utf-8";
 
       try {
-        const resp = await fetchFile(String(fileUrl), {
+        const resp = await fetchFile(fileSource(fileUrl), {
           signal: AbortSignal.timeout(TIMEOUTS.STANDARD),
-        });
+        }, { tenantId });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
         if (encoding === "base64") {
@@ -6599,9 +6678,9 @@ async function runNodeAction(
       const delimiter = config.delimiter ?? ",";
 
       try {
-        const resp = await fetchFile(String(fileUrl), {
+        const resp = await fetchFile(fileSource(fileUrl), {
           signal: AbortSignal.timeout(TIMEOUTS.STANDARD),
-        });
+        }, { tenantId });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const text = await resp.text();
 
@@ -6731,9 +6810,9 @@ async function runNodeAction(
       const hasHeaders = config.has_headers !== false;
 
       try {
-        const resp = await fetchFile(String(fileUrl), {
+        const resp = await fetchFile(fileSource(fileUrl), {
           signal: AbortSignal.timeout(TIMEOUTS.LARGE_FILE),
-        });
+        }, { tenantId });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const buffer = await resp.arrayBuffer();
 
@@ -6808,6 +6887,28 @@ async function runNodeAction(
       if (result.fileRef)
         ctx.variables[config.output_var || "doc_file"] = result.fileRef;
       return result;
+    }
+
+    // ─── Document actions (read / compare / convert / PDF / extract / redact / inspect) ───
+    case "doc_read":
+    case "doc_compare":
+    case "doc_convert":
+    case "doc_pdf":
+    case "doc_extract":
+    case "doc_redact":
+    case "doc_inspect": {
+      const { runDocumentNode } = await import("./documents/handlers");
+      return runDocumentNode({
+        type: node.type,
+        config,
+        resolve: (e: unknown) => resolveExpression(e, ctx),
+        supabase,
+        tenantId,
+        variables: ctx.variables,
+        setVar,
+        warn: docLog,
+        initiator: initiatorFromRunVariables(ctx.variables, "data_table"),
+      });
     }
 
     default:
@@ -6896,7 +6997,9 @@ function summarizeOutput(nodeType: string, output: any): any {
     case "http_request":
       return output.file
         ? { status: output.status, file: output.file.name }
-        : { status: output.status };
+        : Array.isArray(output.files_sent)
+          ? { status: output.status, files_sent: output.files_sent.map((f: any) => ({ name: f.name, size: f.size })) }
+          : { status: output.status };
     case "loop":
       return { count: output.count };
     case "loop_n_times":
@@ -6906,7 +7009,10 @@ function summarizeOutput(nodeType: string, output: any): any {
     case "auto_action":
       return { updates: output.updates };
     case "send_email":
-      return { sent: output.sent, to: output.to };
+      // Attachments: names and sizes only, never contents.
+      return Array.isArray(output.attachments)
+        ? { sent: output.sent, to: output.to, attachments: output.attachments.map((f: any) => ({ name: f.name, size: f.size })) }
+        : { sent: output.sent, to: output.to };
     case "math":
       return { result: output.result, variable: output.variable };
     case "set_title":
@@ -7041,6 +7147,17 @@ function summarizeOutput(nodeType: string, output: any): any {
     case "doc_excel":
     case "doc_powerpoint":
       return { mode: output.mode, file: output.fileName, size: output.size };
+    case "doc_read":
+    case "doc_compare":
+    case "doc_convert":
+    case "doc_pdf":
+    case "doc_extract":
+    case "doc_redact":
+    case "doc_inspect": {
+      // Already compact (no document text beyond a short preview).
+      const { text_preview: _preview, ...rest } = output;
+      return rest;
+    }
     default:
       return { ok: true };
   }

@@ -151,6 +151,10 @@ else
   echo "==> WARNING: no denylist (pass --denylist or create ~/.config/usertasks/public-denylist)"
 fi
 
+# Coding-assistant notes and settings never go public, whatever .public-exclude says.
+assistant=$(find "$OUT" -not -path "$OUT/.git/*" \( -name CLAUDE.md -o -name CLAUDE.local.md -o -name AGENTS.md -o -name .claude -o -name .cursor -o -name .cursorrules -o -name .windsurfrules -o -name copilot-instructions.md \) | sed "s|^$OUT/||")
+[[ -z "$assistant" ]] || die "coding-assistant files in the export (add them to .public-exclude): $assistant"
+
 # GitHub rejects files over 100 MB and warns above 50 MB.
 big=$(find "$OUT" -type f -size +50M -not -path "$OUT/.git/*" | sed "s|^$OUT/||")
 [[ -z "$big" ]] || die "files over 50 MB (GitHub limit is 100 MB): $big"

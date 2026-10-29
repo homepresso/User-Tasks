@@ -110,6 +110,7 @@ describe('JOBS registry', () => {
       'oauth-refresh': 'every 10 min',
       'cache-sweep': 'every 10 min',
       'user-jobs-cleanup': 'every 15 min',
+      'form-files-cleanup': 'every 15 min',
       'housekeeping': 'every 15 min',
       'process-retention': 'daily 03:00 UTC',
       'cleanup-logs': 'daily 04:00 UTC',

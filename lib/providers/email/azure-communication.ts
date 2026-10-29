@@ -1,5 +1,5 @@
 import { DefaultAzureCredential } from '@azure/identity'
-import { EmailConfigError, emailOption, loadEmailSdk, parseAddress, type EmailOptions, type EmailTransport } from './types'
+import { attachmentBase64, EmailConfigError, emailOption, loadEmailSdk, parseAddress, type EmailOptions, type EmailTransport } from './types'
 
 /**
  * Azure Communication Services Email (@azure/communication-email, an
@@ -36,6 +36,9 @@ export function createAzureCommunicationTransport(options: EmailOptions): EmailT
         content: { subject: message.subject, html: message.html, ...(message.text ? { plainText: message.text } : {}) },
         recipients: { to: message.to.map((to) => ({ address: parseAddress(to).address, ...(parseAddress(to).name ? { displayName: parseAddress(to).name } : {}) })) },
         ...(message.replyTo ? { replyTo: [{ address: parseAddress(message.replyTo).address }] } : {}),
+        ...(message.attachments?.length
+          ? { attachments: message.attachments.map((a) => ({ name: a.filename, contentType: a.contentType, contentInBase64: attachmentBase64(a) })) }
+          : {}),
       })
       const result = await poller.pollUntilDone()
       if (result.status && result.status !== 'Succeeded') throw new Error(result.error?.message ?? `ACS email ${result.status}`)

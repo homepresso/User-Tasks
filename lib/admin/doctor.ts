@@ -12,7 +12,7 @@ import { SCHEDULER_LOCK_KEY } from '@/lib/scheduler/leader'
 import { pgCronStatus, PG_CRON_JOBS } from '@/lib/providers/scheduler/pg-cron'
 import { STORAGE_BUCKET_NAMES } from '@/lib/storage/buckets'
 import { NOTIFY_CHANNEL } from '@/lib/realtime/events'
-import { housekeepingFindings, HousekeepingUnavailableError, sqlHousekeeping } from './housekeeping'
+import { housekeepingFindings, HousekeepingUnavailableError, rpcHousekeeping, sqlHousekeeping, type HousekeepingClient } from './housekeeping'
 
 /**
  * `usertasks-admin doctor` and the health column of Settings → Infrastructure:
@@ -23,8 +23,14 @@ import { housekeepingFindings, HousekeepingUnavailableError, sqlHousekeeping } f
  * Inputs are explicit so the CLI can point the checks at any database:
  *  - config  the resolved instance config (lib/config resolveInstanceConfig)
  *  - sql     a direct Postgres connection to the app database, when there
- *            is one (DATABASE_URL). Without it the database / scheduler /
- *            built-in auth checks are skipped.
+ *            is one (DATABASE_URL).
+ *  - rpc     the service-role client, for the Supabase database provider
+ *            without DATABASE_URL (Vercel and the like): the database,
+ *            scheduler, realtime, secrets and KMS checks then read the same
+ *            facts through service-role-only RPCs (instance_doctor_snapshot,
+ *            instance_housekeeping_status, app_kms_data_keys). DATABASE_URL
+ *            is required only by the postgres provider (and the built-in
+ *            auth / supabase_vault stores); without it there a check fails.
  *  - listenUrl  session connection for the realtime LISTEN round trip.
  */
 
@@ -35,6 +41,10 @@ export interface DoctorCheck {
   name: string
   status: CheckStatus
   detail: string
+  /** How the check reached the database: a direct connection or the Supabase API (service role). */
+  via?: 'direct' | 'api'
+  /** Background for the reader (the page's info tooltip), e.g. why DATABASE_URL isn't needed. */
+  note?: string
 }
 
 export interface DoctorReport {
@@ -49,9 +59,41 @@ export interface SqlClient {
   query<R extends Record<string, unknown> = Record<string, unknown>>(text: string, values?: unknown[]): Promise<{ rows: R[] }>
 }
 
+/** The service-role client surface the doctor uses (supabase-js, or ./service-rpc for the CLI). */
+export interface RpcClient {
+  rpc(fn: string, args?: Record<string, unknown>): PromiseLike<{ data: unknown; error: { message: string; code?: string } | null }>
+}
+
+/** What instance_doctor_snapshot() returns (migration 20261121000000). */
+export interface DoctorSnapshot {
+  version_num: number
+  database: string
+  roles: string[]
+  extensions: string[]
+  auth_uid: boolean
+  notify_triggers: boolean
+  latest_migration: string | null
+  /** null: no supabase_realtime publication. */
+  publication_tables: number | null
+  pg_cron: { installed: boolean; jobs: Array<{ jobname: string; schedule: string; active: boolean }> }
+  vault: { app_base_url: boolean; cron_secret: boolean } | null
+  leader_pid: number | null
+  tick_acquired_at: string | null
+  failing_jobs: string | null
+  secret_settings: number
+}
+
+/** Tooltip text wherever a check runs through the Supabase API instead of DATABASE_URL. */
+export const API_NOTE = 'Checked through the Supabase API with the service-role key. DATABASE_URL (a direct PostgreSQL connection) is only needed by the postgres database provider and by usertasks-admin in direct mode; with the Supabase provider it is optional.'
+const MIGRATION_NOTE = 'Apply migration 20261121000000_instance_doctor_snapshot to run these checks through the Supabase API (or set DATABASE_URL to check over a direct connection).'
+
 export interface DoctorOptions {
   config: InstanceConfig
   sql?: SqlClient | null
+  /** Service-role client (see above): used when there is no `sql` and the database provider is supabase. */
+  rpc?: RpcClient | null
+  /** DATABASE_URL is set but the connection failed (reported, then the checks fall back to `rpc`). */
+  sqlError?: string | null
   /** Only these areas (default: all). */
   areas?: ProviderArea[]
   /** Write, read back and delete a probe object (default true; the page passes true too — the object is tiny and removed). */
@@ -89,7 +131,72 @@ async function timed<T>(promise: Promise<T>, ms: number, label: string): Promise
   }
 }
 
-type Add = (name: string, status: CheckStatus, detail: string) => void
+type Add = (name: string, status: CheckStatus, detail: string, extra?: Pick<DoctorCheck, 'via' | 'note'>) => void
+
+class SnapshotUnavailableError extends Error {
+  constructor() {
+    super('instance_doctor_snapshot() is not installed (migration 20261121000000)')
+    this.name = 'SnapshotUnavailableError'
+  }
+}
+
+const MISSING_FUNCTION = new Set(['PGRST202', '42883'])
+
+/** The Supabase-API side of the checks: one snapshot per run, the housekeeping and data-key RPCs. */
+export interface DoctorApi {
+  snapshot(): Promise<DoctorSnapshot>
+  dataKeys(): Promise<Array<{ id: number; provider: string; kek_ref: string; wrapped_key: string; check_value: string; created_at: string | Date; activates_at: string | Date }>>
+  rpc: RpcClient
+}
+
+export function doctorApi(rpc: RpcClient): DoctorApi {
+  let snapshot: Promise<DoctorSnapshot> | null = null
+  return {
+    rpc,
+    snapshot() {
+      snapshot ??= (async () => {
+        const { data, error } = await rpc.rpc('instance_doctor_snapshot', { p_scheduler_lock_key: SCHEDULER_LOCK_KEY })
+        if (error) {
+          if (error.code && MISSING_FUNCTION.has(error.code)) throw new SnapshotUnavailableError()
+          throw new Error(error.message)
+        }
+        return data as DoctorSnapshot
+      })()
+      return snapshot
+    },
+    async dataKeys() {
+      const { data, error } = await rpc.rpc('app_kms_data_keys')
+      if (error) throw new Error(error.message)
+      return ((Array.isArray(data) ? data : []) as Array<{ id: number; provider: string; kek_ref: string; wrapped_key: string; check_value: string; created_at: string; activates_at: string }>)
+        .map((r) => ({ ...r, id: Number(r.id) }))
+    },
+  }
+}
+
+interface Ctx extends DoctorOptions {
+  /** Set when there is no direct connection and the database provider is supabase with a service-role client. */
+  api: DoctorApi | null
+}
+
+/**
+ * The snapshot for an API-backed check, or null after reporting why it
+ * couldn't be read (neutrally when the migration isn't applied yet).
+ */
+async function apiSnapshot(ctx: Ctx, add: Add, name: string): Promise<DoctorSnapshot | null> {
+  if (!ctx.api) return null
+  try {
+    return await ctx.api.snapshot()
+  } catch (error) {
+    if (error instanceof SnapshotUnavailableError) add(name, 'skip', 'Checked through the Supabase API once migration 20261121000000 is applied', { via: 'api', note: MIGRATION_NOTE })
+    else add(name, 'warn', `Supabase API check failed: ${message(error)}`, { via: 'api', note: API_NOTE })
+    return null
+  }
+}
+
+/** No direct connection and no service-role client either (supabase provider without SUPABASE_SERVICE_ROLE_KEY). */
+function noServiceClient(add: Add, name: string, what: string): void {
+  add(name, 'skip', `Not checked: ${what} is checked through the Supabase API, which needs SUPABASE_SERVICE_ROLE_KEY`, { note: API_NOTE })
+}
 
 // ── database ────────────────────────────────────────────────────────────────
 
@@ -128,11 +235,54 @@ async function checkDatabaseAuth(sql: SqlClient, add: Add): Promise<void> {
   else add('auth', 'ok', `${detail}${info?.has_role ? '; user granted rds_iam' : ''}`)
 }
 
-async function checkDatabase(opts: DoctorOptions, add: Add): Promise<void> {
-  const { sql, config } = opts
+function migrationsDir(opts: DoctorOptions): string {
+  // Runtime path (the Docker image ships /app/supabase/migrations): not something to trace into the build.
+  return path.resolve(/*turbopackIgnore: true*/ opts.migrationsDir || readEnv('MIGRATIONS_DIR') || 'supabase/migrations')
+}
+
+function addExtensions(add: Add, installed: string[], extra?: Pick<DoctorCheck, 'via' | 'note'>): void {
+  const extensions = new Set(installed)
+  const wanted = ['pgcrypto', 'pg_trgm']
+  const absent = wanted.filter((e) => !extensions.has(e))
+  const optional = ['pg_cron', 'pg_net', 'supabase_vault'].filter((e) => extensions.has(e))
+  add('extensions', absent.length ? 'warn' : 'ok', `${absent.length ? `missing ${absent.join(', ')}; ` : ''}installed: ${wanted.filter((e) => extensions.has(e)).join(', ') || 'none'}${optional.length ? `; optional: ${optional.join(', ')}` : ''}`, extra)
+}
+
+function addMigrations(opts: DoctorOptions, add: Add, latest: string | null, extra?: Pick<DoctorCheck, 'via' | 'note'>): void {
+  const newest = newestMigrationFile(migrationsDir(opts))
+  if (!latest) add('migrations', 'warn', 'No migration history found', extra)
+  else if (!newest) add('migrations', 'ok', `latest applied ${latest}`, extra)
+  else if (latest >= newest) add('migrations', 'ok', `up to date (${latest})`, extra)
+  else add('migrations', 'warn', `latest applied ${latest}, newest available ${newest}: run usertasks-admin db migrate`, extra)
+}
+
+/** The database checks through instance_doctor_snapshot() (Supabase provider, no DATABASE_URL). */
+async function checkDatabaseApi(ctx: Ctx, add: Add): Promise<void> {
+  const snap = await apiSnapshot(ctx, add, 'connection')
+  if (!snap) return
+  const extra = { via: 'api' as const, note: API_NOTE }
+  const major = Math.floor(snap.version_num / 10000)
+  add('connection', 'ok', `PostgreSQL ${major} — database ${snap.database}, checked through the Supabase API`, extra)
+  add('version', major >= 15 ? 'ok' : 'fail', major >= 15 ? `PostgreSQL ${major} (15+ required)` : `PostgreSQL ${major} is too old: 15 or later is required`, extra)
+  const missing = ['anon', 'authenticated', 'service_role'].filter((r) => !snap.roles.includes(r))
+  add('roles', missing.length ? 'fail' : 'ok', missing.length ? `Missing roles: ${missing.join(', ')} (apply the migrations: usertasks-admin db migrate)` : 'anon, authenticated, service_role present', extra)
+  addExtensions(add, snap.extensions, extra)
+  add('auth.uid()', snap.auth_uid ? 'ok' : 'fail', snap.auth_uid ? 'auth.uid() available for RLS policies' : 'auth.uid() missing: apply the compat migration (usertasks-admin db migrate)', extra)
+  addMigrations(ctx, add, snap.latest_migration, extra)
+}
+
+async function checkDatabase(ctx: Ctx, add: Add): Promise<void> {
+  const { sql, config } = ctx
+  if (ctx.sqlError) {
+    add('direct connection', config.providers.db.id === 'postgres' ? 'fail' : 'warn', `DATABASE_URL is set but the connection failed: ${ctx.sqlError}${ctx.api ? ' (the other checks ran through the Supabase API)' : ''}`, { via: 'direct' })
+  }
   if (!sql) {
-    add('connection', config.providers.db.id === 'postgres' ? 'fail' : 'skip', 'No direct connection: set DATABASE_URL to run the database checks')
-    return
+    if (config.providers.db.id === 'postgres') {
+      if (!ctx.sqlError) add('connection', 'fail', 'The postgres database provider needs DATABASE_URL (a direct PostgreSQL connection), and it is not set')
+      return
+    }
+    if (ctx.api) return checkDatabaseApi(ctx, add)
+    return noServiceClient(add, 'connection', 'the database')
   }
   const { rows } = await sql.query<{ version: number; user: string; db: string; superuser: boolean }>(
     `SELECT current_setting('server_version_num')::int AS version, current_user AS user, current_database() AS db,
@@ -160,11 +310,7 @@ async function checkDatabase(opts: DoctorOptions, add: Add): Promise<void> {
   }
 
   const { rows: ext } = await sql.query<{ extname: string }>('SELECT extname FROM pg_extension ORDER BY extname')
-  const extensions = new Set(ext.map((r) => r.extname))
-  const wanted = ['pgcrypto', 'pg_trgm']
-  const absent = wanted.filter((e) => !extensions.has(e))
-  const optional = ['pg_cron', 'pg_net', 'supabase_vault'].filter((e) => extensions.has(e))
-  add('extensions', absent.length ? 'warn' : 'ok', `${absent.length ? `missing ${absent.join(', ')}; ` : ''}installed: ${wanted.filter((e) => extensions.has(e)).join(', ') || 'none'}${optional.length ? `; optional: ${optional.join(', ')}` : ''}`)
+  addExtensions(add, ext.map((r) => r.extname))
 
   const { rows: shim } = await sql.query<{ uid: boolean }>(`SELECT to_regprocedure('auth.uid()') IS NOT NULL AS uid`)
   add('auth.uid()', shim[0]?.uid ? 'ok' : 'fail', shim[0]?.uid ? 'auth.uid() available for RLS policies' : 'auth.uid() missing: apply the compat migration (usertasks-admin db migrate)')
@@ -173,14 +319,7 @@ async function checkDatabase(opts: DoctorOptions, add: Add): Promise<void> {
     `SELECT CASE WHEN to_regclass('supabase_migrations.schema_migrations') IS NULL THEN NULL
                  ELSE (SELECT max(version) FROM supabase_migrations.schema_migrations) END AS latest`,
   )
-  const latest = hist[0]?.latest ?? null
-  // Runtime path (the Docker image ships /app/supabase/migrations): not something to trace into the build.
-  const dir = path.resolve(/*turbopackIgnore: true*/ opts.migrationsDir || readEnv('MIGRATIONS_DIR') || 'supabase/migrations')
-  const newest = newestMigrationFile(dir)
-  if (!latest) add('migrations', 'warn', 'No migration history found')
-  else if (!newest) add('migrations', 'ok', `latest applied ${latest}`)
-  else if (latest >= newest) add('migrations', 'ok', `up to date (${latest})`)
-  else add('migrations', 'warn', `latest applied ${latest}, newest available ${newest}: run usertasks-admin db migrate`)
+  addMigrations(ctx, add, hist[0]?.latest ?? null)
 }
 
 // ── storage ─────────────────────────────────────────────────────────────────
@@ -233,7 +372,7 @@ async function checkAuth(opts: DoctorOptions, add: Add): Promise<void> {
     )
     add('store', rows[0]?.ok ? 'ok' : 'fail', rows[0]?.ok ? `app_auth store present (${rows[0].users} accounts)` : 'app_auth.credentials missing: apply migration 20261106100000_builtin_auth')
   } else {
-    add('store', 'fail', `The ${config.id} auth provider needs DATABASE_URL`)
+    add('store', 'fail', `The ${config.id} auth provider stores accounts in PostgreSQL and needs DATABASE_URL (or AUTH_DATABASE_URL), which is not set`)
   }
 
   const { parseSsoProviders, oidcIssuer } = await import('@/lib/providers/auth/sso/config')
@@ -288,51 +427,96 @@ async function checkEmail(opts: DoctorOptions, add: Add): Promise<void> {
 
 // ── scheduler ───────────────────────────────────────────────────────────────
 
-async function checkScheduler(opts: DoctorOptions, add: Add): Promise<void> {
-  const { id } = opts.config.providers.scheduler
-  const { sql } = opts
+/**
+ * Where a database-backed check reads from: the direct connection, else the
+ * snapshot through the Supabase API. Null after a neutral row explaining why
+ * it can't run (the postgres provider without DATABASE_URL is reported as a
+ * failure by the database area itself).
+ */
+async function databaseFacts(ctx: Ctx, add: Add, name: string, what: string): Promise<{ sql: SqlClient } | { snap: DoctorSnapshot } | null> {
+  if (ctx.sql) return { sql: ctx.sql }
+  if (ctx.config.providers.db.id === 'postgres') {
+    add(name, 'skip', `Not checked: ${what} needs the database connection (see Database)`)
+    return null
+  }
+  if (!ctx.api) { noServiceClient(add, name, what); return null }
+  const snap = await apiSnapshot(ctx, add, name)
+  return snap ? { snap } : null
+}
+
+async function checkScheduler(ctx: Ctx, add: Add): Promise<void> {
+  const { id } = ctx.config.providers.scheduler
   if (id === 'external' || id === 'pg_cron') {
     add('secret', processorSecret() ? 'ok' : 'fail', processorSecret() ? 'CRON_SECRET set' : 'CRON_SECRET (or WORKFLOW_PROCESSOR_SECRET) is required to call /api/cron/tick')
   }
-  if (!sql) {
-    add('database', 'skip', 'No direct connection: set DATABASE_URL to check jobs and the leader')
+  const facts = await databaseFacts(ctx, add, 'database', 'the scheduled jobs and the leader')
+  if (!facts) {
+    // Housekeeping has its own RPC (migration 20261109500000): still report it.
+    if (ctx.api) await checkHousekeeping(rpcHousekeeping(ctx.api.rpc), (name, status, detail) => add(name, status, detail, { via: 'api', note: API_NOTE }))
     return
   }
-  const cron = await pgCronStatus(sql)
+  const extra = 'snap' in facts ? { via: 'api' as const, note: API_NOTE } : undefined
+  const add2: Add = (name, status, detail) => add(name, status, detail, extra)
+
+  let cron: { installed: boolean; jobs: Array<{ jobname: string; active: boolean }>; vault: { app_base_url: boolean; cron_secret: boolean } | null }
+  let leaderPid: number | null = null
+  let tickAt: Date | string | null
+  let failing: string | null
+  if ('sql' in facts) {
+    const { sql } = facts
+    cron = await pgCronStatus(sql)
+    if (id === 'worker') {
+      const { rows } = await sql.query<{ pid: number | null }>(
+        `SELECT pid FROM pg_locks
+          WHERE locktype = 'advisory' AND granted AND objsubid = 1
+            AND ((classid::bigint << 32) | objid::bigint) = $1::bigint LIMIT 1`,
+        [SCHEDULER_LOCK_KEY],
+      )
+      leaderPid = rows[0]?.pid ?? null
+    }
+    const { rows: ticks } = await sql.query<{ acquired_at: Date | null; failing: string | null }>(
+      `SELECT CASE WHEN to_regclass('app_cron.tick_lock') IS NULL THEN NULL ELSE (SELECT acquired_at FROM app_cron.tick_lock LIMIT 1) END AS acquired_at,
+              CASE WHEN to_regclass('app_cron.tick_runs') IS NULL THEN NULL
+                   ELSE (SELECT string_agg(job_name, ', ' ORDER BY job_name) FROM app_cron.tick_runs WHERE last_status = 'error') END AS failing`,
+    )
+    tickAt = ticks[0]?.acquired_at ?? null
+    failing = ticks[0]?.failing ?? null
+  } else {
+    const { snap } = facts
+    // pgCronStatus semantics: installed = usertasks-* jobs exist; no Vault info without pg_cron.
+    cron = { installed: snap.pg_cron.jobs.length > 0, jobs: snap.pg_cron.jobs, vault: snap.pg_cron.installed ? snap.vault : null }
+    leaderPid = snap.leader_pid
+    tickAt = snap.tick_acquired_at
+    failing = snap.failing_jobs
+  }
+
   if (id === 'pg_cron') {
     const names = new Set(cron.jobs.filter((j) => j.active).map((j) => j.jobname))
     const missing = PG_CRON_JOBS.map((j) => j.name).filter((n) => !names.has(n))
-    add('pg_cron jobs', missing.length ? 'fail' : 'ok', missing.length
+    add2('pg_cron jobs', missing.length ? 'fail' : 'ok', missing.length
       ? `${cron.installed || cron.jobs.length ? 'missing' : 'not installed'}: ${missing.join(', ')} (usertasks-admin switch scheduler --to pg_cron)`
       : `${[...names].join(', ')} scheduled`)
     if (cron.vault) {
       const lacking = Object.entries(cron.vault).filter(([, set]) => !set).map(([name]) => name)
-      add('vault', lacking.length ? 'warn' : 'ok', lacking.length ? `Vault secret(s) missing: ${lacking.join(', ')}` : 'app_base_url and cron_secret present')
+      add2('vault', lacking.length ? 'warn' : 'ok', lacking.length ? `Vault secret(s) missing: ${lacking.join(', ')}` : 'app_base_url and cron_secret present')
     }
   } else if (cron.installed) {
-    add('pg_cron jobs', 'warn', `provider is ${id} but pg_cron still schedules ${cron.jobs.map((j) => j.jobname).join(', ')}`)
+    add2('pg_cron jobs', 'warn', `provider is ${id} but pg_cron still schedules ${cron.jobs.map((j) => j.jobname).join(', ')}`)
   }
   if (id === 'worker') {
-    const { rows } = await sql.query<{ pid: number | null }>(
-      `SELECT pid FROM pg_locks
-        WHERE locktype = 'advisory' AND granted AND objsubid = 1
-          AND ((classid::bigint << 32) | objid::bigint) = $1::bigint LIMIT 1`,
-      [SCHEDULER_LOCK_KEY],
-    )
-    add('leader', rows[0] ? 'ok' : 'warn', rows[0] ? `a worker holds the leader lock (backend pid ${rows[0].pid})` : 'no worker holds the leader lock (is the app or `usertasks worker` running? lease mode shows no lock)')
+    add2('leader', leaderPid ? 'ok' : 'warn', leaderPid ? `a worker holds the leader lock (backend pid ${leaderPid})` : 'no worker holds the leader lock (is the app or `usertasks worker` running? lease mode shows no lock)')
   }
-  const { rows: ticks } = await sql.query<{ acquired_at: Date | null; failing: string | null }>(
-    `SELECT CASE WHEN to_regclass('app_cron.tick_lock') IS NULL THEN NULL ELSE (SELECT acquired_at FROM app_cron.tick_lock LIMIT 1) END AS acquired_at,
-            CASE WHEN to_regclass('app_cron.tick_runs') IS NULL THEN NULL
-                 ELSE (SELECT string_agg(job_name, ', ' ORDER BY job_name) FROM app_cron.tick_runs WHERE last_status = 'error') END AS failing`,
-  )
-  const last = ticks[0]?.acquired_at ? new Date(ticks[0].acquired_at) : null
+  const last = tickAt ? new Date(tickAt) : null
   const ageMin = last ? (Date.now() - last.getTime()) / 60_000 : null
-  add('last tick', !last ? 'warn' : ageMin! > 5 ? 'warn' : 'ok', !last ? 'no tick recorded yet' : `${last.toISOString()} (${Math.round(ageMin!)} min ago)`)
-  if (ticks[0]?.failing) add('jobs', 'warn', `last run failed: ${ticks[0].failing}`)
-  // System-table purge (any scheduler): last pass, and tables that grew or bloated.
+  add2('last tick', !last ? 'warn' : ageMin! > 5 ? 'warn' : 'ok', !last ? 'no tick recorded yet' : `${last.toISOString()} (${Math.round(ageMin!)} min ago)`)
+  if (failing) add2('jobs', 'warn', `last run failed: ${failing}`)
+  await checkHousekeeping('sql' in facts ? sqlHousekeeping(facts.sql) : rpcHousekeeping(ctx.api!.rpc), add2)
+}
+
+/** System-table purge (any scheduler): last pass, and tables that grew or bloated. */
+async function checkHousekeeping(hk: HousekeepingClient, add: Add): Promise<void> {
   try {
-    for (const finding of housekeepingFindings(await sqlHousekeeping(sql).status())) add(finding.name, finding.level, finding.detail)
+    for (const finding of housekeepingFindings(await hk.status())) add(finding.name, finding.level, finding.detail)
   } catch (error) {
     add('housekeeping', 'warn', error instanceof HousekeepingUnavailableError ? error.message : `status unavailable: ${message(error)}`)
   }
@@ -340,23 +524,34 @@ async function checkScheduler(opts: DoctorOptions, add: Add): Promise<void> {
 
 // ── realtime ────────────────────────────────────────────────────────────────
 
-async function checkRealtime(opts: DoctorOptions, add: Add): Promise<void> {
+async function checkRealtime(ctx: Ctx, add: Add): Promise<void> {
+  const opts = ctx
   const { id } = opts.config.providers.realtime
   const { sql } = opts
   if (id === 'supabase') {
-    if (!sql) { add('publication', 'skip', 'No direct connection: set DATABASE_URL to check the supabase_realtime publication'); return }
-    const { rows } = await sql.query<{ tables: string }>(
-      `SELECT count(*)::text AS tables FROM pg_publication_tables WHERE pubname = 'supabase_realtime'`,
-    )
-    const n = Number(rows[0]?.tables ?? 0)
-    add('publication', n > 0 ? 'ok' : 'warn', n > 0 ? `supabase_realtime publishes ${n} tables` : 'supabase_realtime publication has no tables')
+    const facts = await databaseFacts(ctx, add, 'publication', 'the supabase_realtime publication')
+    if (!facts) return
+    let n: number
+    if ('sql' in facts) {
+      const { rows } = await facts.sql.query<{ tables: string }>(
+        `SELECT count(*)::text AS tables FROM pg_publication_tables WHERE pubname = 'supabase_realtime'`,
+      )
+      n = Number(rows[0]?.tables ?? 0)
+    } else {
+      n = facts.snap.publication_tables ?? 0
+    }
+    add('publication', n > 0 ? 'ok' : 'warn', n > 0 ? `supabase_realtime publishes ${n} tables` : 'supabase_realtime publication has no tables',
+      'snap' in facts ? { via: 'api', note: API_NOTE } : undefined)
     return
   }
   const url = opts.listenUrl === undefined ? (readEnv('REALTIME_DATABASE_URL') || opts.config.bootstrap.databaseUrl) : opts.listenUrl
   if (!url) { add('listen', 'warn', 'No LISTEN connection (REALTIME_DATABASE_URL / DATABASE_URL): the SSE provider falls back to polling'); return }
-  if (sql) {
-    const { rows } = await sql.query<{ ok: boolean }>(`SELECT to_regprocedure('app_realtime.notify_changes()') IS NOT NULL AS ok`)
-    add('triggers', rows[0]?.ok ? 'ok' : 'warn', rows[0]?.ok ? 'change NOTIFY triggers installed' : 'app_realtime.notify_changes() missing: polling only (apply 20261105000000)')
+  const snap = !sql && ctx.api ? await ctx.api.snapshot().catch(() => null) : null
+  if (sql || snap) {
+    const ok = sql
+      ? (await sql.query<{ ok: boolean }>(`SELECT to_regprocedure('app_realtime.notify_changes()') IS NOT NULL AS ok`)).rows[0]?.ok
+      : snap!.notify_triggers
+    add('triggers', ok ? 'ok' : 'warn', ok ? 'change NOTIFY triggers installed' : 'app_realtime.notify_changes() missing: polling only (apply 20261105000000)', snap ? { via: 'api', note: API_NOTE } : undefined)
   }
   const listener = new pg.Client(pgConnectionConfig(url, { application_name: 'usertasks-doctor', connectionTimeoutMillis: opts.timeoutMs ?? 10_000 }))
   listener.on('error', () => undefined)
@@ -377,7 +572,7 @@ async function checkRealtime(opts: DoctorOptions, add: Add): Promise<void> {
 
 // ── secrets ─────────────────────────────────────────────────────────────────
 
-async function checkSecrets(opts: DoctorOptions, add: Add): Promise<void> {
+async function checkSecrets(opts: Ctx, add: Add): Promise<void> {
   const secrets = opts.config.providers.secrets
   const { resolveSecretStore } = await import('@/lib/providers/secrets')
   resolveSecretStore(secrets.id, secrets.options)
@@ -394,14 +589,21 @@ async function checkSecrets(opts: DoctorOptions, add: Add): Promise<void> {
     }
   }
   if (!refs) add('references', 'ok', 'no secret:// references in provider options')
+  let n: number | null = null
+  let extra: Pick<DoctorCheck, 'via' | 'note'> | undefined
   if (opts.sql) {
     const { rows } = await opts.sql.query<{ n: string }>(
       `SELECT CASE WHEN to_regclass('public.instance_settings') IS NULL THEN '0'
                    ELSE (SELECT count(*)::text FROM public.instance_settings WHERE secret) END AS n`,
     )
-    const n = Number(rows[0]?.n ?? 0)
-    if (n > 0 && !hasEncryptionKey()) add('encryption key', 'fail', `${n} encrypted instance setting(s) but ENCRYPTION_KEY is not set`)
-    else add('encryption key', hasEncryptionKey() ? 'ok' : 'warn', hasEncryptionKey() ? 'ENCRYPTION_KEY set' : 'ENCRYPTION_KEY not set (needed to store secrets)')
+    n = Number(rows[0]?.n ?? 0)
+  } else if (opts.api) {
+    const snap = await opts.api.snapshot().catch(() => null)
+    if (snap) { n = snap.secret_settings; extra = { via: 'api', note: API_NOTE } }
+  }
+  if (n !== null) {
+    if (n > 0 && !hasEncryptionKey()) add('encryption key', 'fail', `${n} encrypted instance setting(s) but ENCRYPTION_KEY is not set`, extra)
+    else add('encryption key', hasEncryptionKey() ? 'ok' : 'warn', hasEncryptionKey() ? 'ENCRYPTION_KEY set' : 'ENCRYPTION_KEY not set (needed to store secrets)', extra)
   }
 }
 
@@ -436,14 +638,25 @@ async function checkCache(opts: DoctorOptions, add: Add): Promise<void> {
 
 // ── kms ─────────────────────────────────────────────────────────────────────
 
-async function checkKms(opts: DoctorOptions, add: Add): Promise<void> {
+async function checkKms(opts: Ctx, add: Add): Promise<void> {
   const config = await resolveProviderSecretRefs(opts.config, 'kms')
   const { resolveKmsProvider, dataKeyContext } = await import('@/lib/providers/kms')
-  const { resolverFor, unwrapDataKey, activeRow } = await import('@/lib/providers/kms/keyring')
+  const { resolverFor, unwrapDataKey, activeRow, isMissingKmsSchema } = await import('@/lib/providers/kms/keyring')
   const provider = resolveKmsProvider(config.id, config.options)
   const timeout = opts.timeoutMs ?? 10_000
   let rows: Array<{ id: number; provider: string; kek_ref: string; wrapped_key: string; check_value: string; created_at: Date; activates_at: Date }> | null = null
-  if (opts.sql) {
+  let extra: Pick<DoctorCheck, 'via' | 'note'> | undefined
+  let unavailable: string | null = null
+  if (!opts.sql && opts.api) {
+    try {
+      rows = (await opts.api.dataKeys()).map((r) => ({ ...r, created_at: new Date(r.created_at), activates_at: new Date(r.activates_at) }))
+      extra = { via: 'api', note: API_NOTE }
+    } catch (error) {
+      // Table / function not there yet (migration 20261108100000): same as no data keys.
+      if (isMissingKmsSchema(error) || /app_kms_data_keys/.test(message(error))) { rows = []; extra = { via: 'api', note: API_NOTE } }
+      else unavailable = `Supabase API check failed: ${message(error)}`
+    }
+  } else if (opts.sql) {
     const { rows: exists } = await opts.sql.query<{ ok: boolean }>(`SELECT to_regclass('app_kms.data_keys') IS NOT NULL AS ok`)
     rows = exists[0]?.ok
       ? (await opts.sql.query<{ id: number; provider: string; kek_ref: string; wrapped_key: string; check_value: string; created_at: Date; activates_at: Date }>(
@@ -454,7 +667,7 @@ async function checkKms(opts: DoctorOptions, add: Add): Promise<void> {
   if (config.id === 'env' && rows !== null && !rows.length) {
     add('provider', hasEncryptionKey() ? 'ok' : 'warn', hasEncryptionKey()
       ? 'env: secrets are encrypted with ENCRYPTION_KEY (enc:v1); no data keys'
-      : 'env: ENCRYPTION_KEY not set (stored secrets stay unencrypted)')
+      : 'env: ENCRYPTION_KEY not set (stored secrets stay unencrypted)', extra)
     return
   }
   // A probe key round trip through the KMS (never stored).
@@ -467,9 +680,14 @@ async function checkKms(opts: DoctorOptions, add: Add): Promise<void> {
   } finally {
     probe.fill(0)
   }
-  if (rows === null) { add('data keys', 'skip', 'No direct connection: set DATABASE_URL to check the data keys'); return }
+  if (rows === null) {
+    if (unavailable) add('data keys', 'warn', unavailable, { via: 'api', note: API_NOTE })
+    else if (opts.config.providers.db.id === 'postgres') add('data keys', 'skip', 'Not checked: the data keys need the database connection (see Database)')
+    else noServiceClient(add, 'data keys', 'the data keys')
+    return
+  }
   if (!rows.length) {
-    add('data keys', hasEncryptionKey() ? 'warn' : 'fail', `no data key yet: run usertasks-admin kms rotate${hasEncryptionKey() ? ' (until then secrets use ENCRYPTION_KEY)' : ''}`)
+    add('data keys', hasEncryptionKey() ? 'warn' : 'fail', `no data key yet: run usertasks-admin kms rotate${hasEncryptionKey() ? ' (until then secrets use ENCRYPTION_KEY)' : ''}`, extra)
     return
   }
   const resolve = resolverFor(provider)
@@ -484,12 +702,12 @@ async function checkKms(opts: DoctorOptions, add: Add): Promise<void> {
   const active = activeRow(rows)
   add('data keys', failed.length ? 'fail' : 'ok', failed.length
     ? `${failed.length} of ${rows.length} data key(s) don't unwrap — ${failed.join('; ')}`
-    : `${rows.length} data key(s) unwrap and verify; #${active?.id ?? rows[rows.length - 1].id} ${active ? 'encrypts new values' : 'activates soon'}`)
+    : `${rows.length} data key(s) unwrap and verify; #${active?.id ?? rows[rows.length - 1].id} ${active ? 'encrypts new values' : 'activates soon'}`, extra)
   const foreign = rows.filter((r) => r.provider !== config.id).map((r) => `#${r.id} (${r.provider})`)
-  if (foreign.length) add('wrapping', 'warn', `wrapped by another provider: ${foreign.join(', ')} — run usertasks-admin kms rewrap-keys`)
+  if (foreign.length) add('wrapping', 'warn', `wrapped by another provider: ${foreign.join(', ')} — run usertasks-admin kms rewrap-keys`, extra)
 }
 
-const CHECKS: Record<ProviderArea, (opts: DoctorOptions, add: Add) => Promise<void>> = {
+const CHECKS: Record<ProviderArea, (ctx: Ctx, add: Add) => Promise<void>> = {
   db: checkDatabase,
   auth: checkAuth,
   storage: checkStorage,
@@ -504,11 +722,13 @@ const CHECKS: Record<ProviderArea, (opts: DoctorOptions, add: Add) => Promise<vo
 export async function runDoctor(opts: DoctorOptions): Promise<DoctorReport> {
   const areas = opts.areas?.length ? opts.areas : [...PROVIDER_AREAS]
   const checks: DoctorCheck[] = []
+  // Without a direct connection, the Supabase provider's checks go through its API (one snapshot per run).
+  const ctx: Ctx = { ...opts, api: !opts.sql && opts.rpc && opts.config.providers.db.id === 'supabase' ? doctorApi(opts.rpc) : null }
   // One area at a time: the checks share one connection.
   for (const area of areas) {
-    const add: Add = (name, status, detail) => checks.push({ area, name, status, detail })
+    const add: Add = (name, status, detail, extra) => checks.push({ area, name, status, detail, ...(extra?.via ? { via: extra.via } : {}), ...(extra?.note ? { note: extra.note } : {}) })
     try {
-      await CHECKS[area](opts, add)
+      await CHECKS[area](ctx, add)
     } catch (error) {
       add('error', 'fail', message(error))
     }

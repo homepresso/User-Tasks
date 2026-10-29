@@ -18,6 +18,7 @@ import { sweepCacheStore } from '@/lib/jobs/cache-sweep'
 import { runHousekeepingJob } from '@/lib/jobs/housekeeping'
 import { hasDueUserJobs, processUserJobs, purgeExpiredUserJobs } from '@/lib/user-jobs/runner'
 import { runProviderSwitchesJob } from '@/lib/jobs/provider-switches'
+import { purgeFormFiles } from '@/lib/services/form-files'
 import { getProviderConfig } from '@/lib/config'
 
 /**
@@ -252,6 +253,17 @@ export const JOBS: JobDefinition[] = [
     budgetMs: 20_000,
     isEnabled: always,
     run: (ctx) => purgeExpiredUserJobs({ supabase: ctx.supabase, deadline: ctx.deadline }),
+  },
+  {
+    // Form attachments: uploads never submitted (pending past
+    // FORM_ATTACHMENT_PENDING_HOURS) and files whose task and submission are
+    // gone — rows and stored objects (lib/services/form-files.ts).
+    name: 'form-files-cleanup',
+    cadence: { every: 15 },
+    endpoint: '/api/cron/form-files-cleanup',
+    budgetMs: 20_000,
+    isEnabled: always,
+    run: (ctx) => purgeFormFiles({ supabase: ctx.supabase, deadline: ctx.deadline }),
   },
   {
     // System-table purge (lib/jobs/housekeeping.ts). The database decides

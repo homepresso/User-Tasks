@@ -2352,6 +2352,10 @@
             }
           },
           "additionalProperties": false
+        },
+        "maxBodySize": {
+          "type": "string",
+          "pattern": "^$|^[0-9]+[kKmMgG]?$"
         }
       },
       "additionalProperties": false

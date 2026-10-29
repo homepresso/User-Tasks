@@ -8,6 +8,8 @@ import { serverRead } from '@/lib/server-read'
 import { renderableRows, type FormLayout } from '@/lib/forms/layout'
 import { lookupItemKey } from '@/lib/forms/lookup'
 import { LookupField, lookupDisplayValue } from './lookup-field'
+import { AttachmentList, AttachmentsField } from './attachments-field'
+import { attachmentNames } from '@/lib/forms/attachments'
 import { isDisplayField, isFieldVisible, optionLabel, type TaskFieldDef } from '@/lib/task-field-schema'
 import { cn } from '@/lib/utils'
 
@@ -43,6 +45,7 @@ const SM_SPAN = ['', 'sm:col-span-1', 'sm:col-span-2', 'sm:col-span-3', 'sm:col-
 
 export function formatFieldValue(field: TaskFieldDef | undefined, value: unknown, people?: Map<string, string>): string {
   if (value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)) return '—'
+  if (field?.type === 'attachments') return attachmentNames(value) || '—'
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
   if (Array.isArray(value)) return value.map((v) => (field ? optionLabel(field, String(v)) : String(v))).join(', ')
   if (field?.type === 'currency' && typeof value === 'number') {
@@ -127,6 +130,18 @@ function FieldControl({ field, value, onChange, error, id, people, values, setVa
     style: invalid ? { borderColor: 'var(--status-blocked)' } : undefined,
   }
   switch (field.type) {
+    case 'attachments':
+      return (
+        <AttachmentsField
+          field={field}
+          value={value}
+          onChange={onChange}
+          id={id}
+          describedBy={describedBy}
+          invalid={invalid}
+          disabled={field.read_only}
+        />
+      )
     case 'lookup':
       return (
         <LookupField
@@ -317,7 +332,9 @@ function FieldCell({ field, value, onChange, error, readOnly, labelClass, labelL
     return (
       <div className={cn(labelLeft && 'sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] sm:gap-3')}>
         {label}
-        <p className="text-sm break-words whitespace-pre-wrap" style={{ color: 'var(--theme-card-text)' }}>{field.type === 'lookup' ? lookupDisplayValue(field, value, values[lookupItemKey(field.key)]) : formatFieldValue(field, value, peopleMap)}</p>
+        {field.type === 'attachments'
+          ? <div className="text-sm" style={{ color: 'var(--theme-card-text)' }}><AttachmentList value={value} /></div>
+          : <p className="text-sm break-words whitespace-pre-wrap" style={{ color: 'var(--theme-card-text)' }}>{field.type === 'lookup' ? lookupDisplayValue(field, value, values[lookupItemKey(field.key)]) : formatFieldValue(field, value, peopleMap)}</p>}
       </div>
     )
   }
@@ -390,7 +407,7 @@ export function FormRenderer({ fields, layout, values, onChange, errors, readOnl
   return (
     <div className={cn('grid', gap, compact || singleColumn ? 'grid-cols-1' : 'sm:grid-cols-2')}>
       {fields.filter(visible).map((field) => {
-        const wide = !compact && !singleColumn && (field.type === 'text' || field.type === 'textarea' || isDisplayField(field) || field.type === 'multi_choice')
+        const wide = !compact && !singleColumn && (field.type === 'text' || field.type === 'textarea' || isDisplayField(field) || field.type === 'multi_choice' || field.type === 'attachments')
         return (
           <div key={field.key} className={cn('min-w-0', wide && !disabled && 'sm:col-span-2', wide && disabled && isDisplayField(field) && 'sm:col-span-2')}>
             {cell(field)}

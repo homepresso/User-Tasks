@@ -5,6 +5,22 @@
 # Production runbooks for the hosted edition (usertasks.com).
 docs/deploy/providers-go-live.md
 
+# Coding-assistant notes and settings (Claude Code, Cursor, Copilot, etc.)
+# stay in the private repository only.
+CLAUDE.md
+**/CLAUDE.md
+CLAUDE.local.md
+**/CLAUDE.local.md
+AGENTS.md
+**/AGENTS.md
+.claude
+**/.claude
+.cursor
+.cursorrules
+.windsurfrules
+.github/copilot-instructions.md
+.aider*
+
 # Local state that is gitignored today; listed so an accidental commit can
 # never reach the export.
 .env

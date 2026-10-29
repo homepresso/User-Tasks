@@ -12,6 +12,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: baseUrl, lastModified: now, changeFrequency: 'weekly', priority: 1 },
     ...SEO_PAGES.map((page) => ({ url: `${baseUrl}/${page.slug}`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.9 })),
+    { url: `${baseUrl}/forms`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${baseUrl}/documents`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${baseUrl}/deploy-anywhere`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${baseUrl}/use-cases`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     ...USE_CASES.map((useCase) => ({ url: `${baseUrl}/use-cases/${useCase.slug}`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.85 })),

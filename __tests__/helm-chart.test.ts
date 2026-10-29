@@ -108,7 +108,7 @@ describe('air-gapped bundle signing', () => {
 describe('air-gapped bundle build args', () => {
   it('accepts only the Dockerfile’s optional-driver args', async () => {
     const { driverBuildArgs, DRIVER_BUILD_ARGS } = await import('../scripts/bundle')
-    expect(DRIVER_BUILD_ARGS.sort()).toEqual(['INCLUDE_OPTIONAL_DB_DRIVERS', 'INCLUDE_PROVIDER_SDKS', 'INCLUDE_STORAGE_SDKS'])
+    expect(DRIVER_BUILD_ARGS.sort()).toEqual(['INCLUDE_OCR', 'INCLUDE_OPTIONAL_DB_DRIVERS', 'INCLUDE_PROVIDER_SDKS', 'INCLUDE_STORAGE_SDKS'])
     const dockerfile = readFileSync(path.resolve(__dirname, '../Dockerfile'), 'utf8')
     for (const arg of DRIVER_BUILD_ARGS) expect(dockerfile).toContain(`ARG ${arg}=`)
     expect(driverBuildArgs(['INCLUDE_OPTIONAL_DB_DRIVERS=true'])).toEqual({ INCLUDE_OPTIONAL_DB_DRIVERS: 'true' })

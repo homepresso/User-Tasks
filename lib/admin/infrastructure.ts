@@ -3,7 +3,7 @@ import { getConfig, type ProviderSource } from '@/lib/config'
 import { databaseUrl } from '@/lib/config/bootstrap'
 import { getInstanceSetting } from '@/lib/config/instance-settings'
 import { PROVIDER_AREAS, type ProviderArea } from '@/lib/config/schema'
-import { getServiceDb, hasServiceDb } from '@/lib/providers/db'
+import { activeDbProvider, getServiceDb, hasServiceDb } from '@/lib/providers/db'
 import { pgConnectionConfig } from '@/lib/providers/db/pg-auth'
 import { AREA_LABELS, areaName, catalogueBadges, catalogueEntry } from './catalogue'
 import { runDoctor, type CheckStatus, type DoctorCheck, type DoctorReport } from './doctor'
@@ -89,6 +89,21 @@ export async function viewerCanSeeInfrastructure(user: InfrastructureViewer | nu
   })
 }
 
+/**
+ * Why Change… / Settings are off without DATABASE_URL. Not a fault: the
+ * health checks above run through the Supabase API; only switching (backups,
+ * the switch lock, transactional config changes) needs a direct connection.
+ */
+export const NO_DIRECT_CONNECTION_REASON =
+  'Provider changes run with usertasks-admin switch on this deployment: changing them from this page uses a direct PostgreSQL connection (DATABASE_URL), which the Supabase provider does not otherwise need. The health checks run through the Supabase API.'
+
+/** Why there is no service database client: the postgres provider needs DATABASE_URL, Supabase its service-role key. */
+function noServiceDbReason(): string {
+  return activeDbProvider() === 'postgres'
+    ? 'the postgres database provider needs DATABASE_URL, which is not set'
+    : 'SUPABASE_SERVICE_ROLE_KEY is not set'
+}
+
 // Health is cached per process: the checks touch every backend.
 const HEALTH_TTL_MS = 5 * 60_000
 let cachedHealth: { at: number; report: DoctorReport } | null = null
@@ -98,13 +113,23 @@ async function health(refresh: boolean): Promise<DoctorReport> {
   const config = await getConfig()
   const url = databaseUrl()
   let client: pg.Client | null = null
+  let sqlError: string | null = null
   try {
     if (url) {
-      client = new pg.Client(pgConnectionConfig(url, { application_name: 'usertasks-infrastructure', connectionTimeoutMillis: 10_000 }))
-      client.on('error', () => undefined)
-      await client.connect()
+      const direct = new pg.Client(pgConnectionConfig(url, { application_name: 'usertasks-infrastructure', connectionTimeoutMillis: 10_000 }))
+      direct.on('error', () => undefined)
+      try {
+        await direct.connect()
+        client = direct
+      } catch (error) {
+        // Reported by the database checks; the Supabase provider's checks then use its API.
+        sqlError = (error as Error).message
+        await direct.end().catch(() => undefined)
+      }
     }
-    const report = await runDoctor({ config, sql: client, timeoutMs: 8_000 })
+    // Supabase provider without (a working) DATABASE_URL: the checks go through the service-role API.
+    const rpc = !client && activeDbProvider() === 'supabase' && hasServiceDb() ? getServiceDb() : null
+    const report = await runDoctor({ config, sql: client, rpc, sqlError, timeoutMs: 8_000 })
     cachedHealth = { at: Date.now(), report }
     return report
   } finally {
@@ -118,26 +143,31 @@ export function clearInfrastructureHealthCache(): void {
 
 async function recentSwitches(): Promise<{ rows: SwitchRecordView[]; error: string | null; busy: boolean; gate: SwitchingGate }> {
   const url = databaseUrl()
+  let gate: SwitchingGate = { enabled: false, reason: NO_DIRECT_CONNECTION_REASON }
   if (url) {
     // A direct connection also tells whether a switch is running (the switch lock).
     let client: pg.Client | null = null
+    let connected = false
     try {
       client = new pg.Client(pgConnectionConfig(url, { application_name: 'usertasks-infrastructure', connectionTimeoutMillis: 10_000 }))
       client.on('error', () => undefined)
       await client.connect()
+      connected = true
       const gate = await uiSwitchingGateFor(client)
       if (!(await hasSwitchLog(client))) return { rows: [], error: 'migration 20261107000000 not applied', busy: false, gate }
       const running = await switchRunning(client)
       const rows = (await listRecords(client, 10)).map((r) => recordView(r, running))
       return { rows, error: null, busy: running || rows.some((r) => r.status === 'queued'), gate }
     } catch (error) {
-      return { rows: [], error: (error as Error).message, busy: false, gate: { enabled: false, reason: (error as Error).message } }
+      const failure = (error as Error).message
+      if (connected || activeDbProvider() === 'postgres') return { rows: [], error: failure, busy: false, gate: { enabled: false, reason: failure } }
+      // DATABASE_URL set but unreachable: say so, and read the log through the Supabase API below.
+      gate = { enabled: false, reason: `Changing providers from this page uses the direct connection (DATABASE_URL), which failed: ${failure}` }
     } finally {
       await client?.end().catch(() => undefined)
     }
   }
-  const gate: SwitchingGate = { enabled: false, reason: 'Changing providers from this page needs a direct database connection (DATABASE_URL).' }
-  if (!hasServiceDb()) return { rows: [], error: 'no service database client', busy: false, gate }
+  if (!hasServiceDb()) return { rows: [], error: noServiceDbReason(), busy: false, gate }
   const { data, error } = await getServiceDb()
     .from('instance_provider_switches')
     .select('id, kind, area, from_provider, to_provider, status, steps, actor, error, started_at, finished_at, env_changes, config_before, config_after')
@@ -149,7 +179,7 @@ async function recentSwitches(): Promise<{ rows: SwitchRecordView[]; error: stri
 }
 
 async function housekeepingStatus(): Promise<{ status: HousekeepingStatus | null; error: string | null }> {
-  if (!hasServiceDb()) return { status: null, error: 'no service database client' }
+  if (!hasServiceDb()) return { status: null, error: noServiceDbReason() }
   try {
     return { status: await rpcHousekeeping(getServiceDb()).status(), error: null }
   } catch (error) {

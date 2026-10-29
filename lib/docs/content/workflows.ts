@@ -106,7 +106,7 @@ Declare **user variables** with defaults; they are available to every node and c
   {
     slug: 'workflows/triggers',
     title: 'Triggers',
-    description: 'How runs start: task, data, webhook, middleware, schedule, SLA, error and retention triggers, plus API, MCP and CLI starts.',
+    description: 'How runs start: form, task, data, webhook, middleware, schedule, SLA, error and retention triggers, plus API, MCP and CLI starts.',
     body: `
 Every workflow has exactly one trigger node. Its type is also stored as the workflow's \`trigger_type\`.
 
@@ -114,6 +114,7 @@ Every workflow has exactly one trigger node. Its type is also stored as the work
 |---|---|---|
 | Task Created / Received / Submitted / Updated / Completed / Rejected | a task changes state (optionally filtered) | Route, enrich or follow up on work |
 | Data Table Event | a row is created, updated or deleted | React to data changes |
+| Form Submitted | someone submits a reusable form — its page (\`/f/<id>\`), the API, MCP or a User Task linked to it | Requests, intake, sign-ups — see [Forms](/docs/tasks/forms#the-form-submitted-trigger) |
 | Webhook | an external system POSTs to the workflow's inbound webhook | Integrations, forms, other apps |
 | Middleware | a webhook arrives and the caller waits for the workflow's answer | Synchronous validation or enrichment |
 | Schedule | a schedule occurrence is due | Nightly syncs, reminders, reports |
@@ -295,6 +296,8 @@ Every expression field in the node settings has an **Insert data** button (\`[ ]
 
 Search by name, move with the arrow keys (→ opens a level, ← closes it) and press **Enter** to insert. A plain value inserts its path, e.g. \`{{get_customers_response.total}}\`.
 
+The same tree docks beside the settings panel as the **Data** panel (**Data** in the panel header, or **Alt+D**), and any row can be dragged onto a setting — form fields come first. See [Use the values downstream](/docs/tasks/forms#use-the-values-downstream-the-data-panel-and-drag-and-drop).
+
 ## Single value or collection
 
 A list (shown as \`data[]\`), or any field inside one, asks how you want it:
@@ -321,7 +324,28 @@ Paths index lists with a number segment (\`data.0.email\`); \`data[0].email\` wo
 
 **Loop through each item** inserts a **Loop For Each** before the step: the step becomes the loop body (**Each Item**), the steps after it continue from **Done**, and \`{{item.<field>}}\` is inserted. Inside the body the picker shows **Current item** with the item's fields.
 
-On a Loop node, **Items to loop through** suggests every list available at that point — lists inside responses, data-table rows, set-variable and split results, workflow variables holding lists, agent and custom-step list outputs, and the current item's lists for a nested loop — grouped by step, with an example item. Type to filter, ↑↓ and **Enter** to choose. Free text still works; a value that is known not to be a list shows a warning.
+On a Loop node, **Items to loop through** suggests every list available at that point — lists inside responses, data-table rows, set-variable and split results, workflow variables holding lists, form Attachments fields, agent and custom-step list outputs, and the current item's lists for a nested loop — grouped by step, with an example item. Type to filter, ↑↓ and **Enter** to choose. Free text still works; a value that is known not to be a list shows a warning.
+
+## Loops over files
+
+A form's **Attachments** field is a list of files (\`{{task_data.<key>}}\` after a User Task, \`{{form.<key>}}\` in a Form submitted workflow), so a Loop handles each file: choose it under **Items to loop through**, or drag it from the Data sidebar onto that box. Inside the loop the picker's **Current item** has the file's fields — \`{{item.name}}\`, \`{{item.size}}\`, \`{{item.mime_type}}\`, \`{{item.url}}\` — and steps that take files accept \`{{item}}\` itself:
+
+- **Send Email → Attachments:** \`{{item}}\` attaches one file; \`{{task_data.<key>}}\` (outside a loop) attaches them all; several expressions separated by commas attach everything they name (up to 20 files, 25 MB).
+- **HTTP Request:** body **Multipart form (files)** with a **File(s)** part (\`{{item}}\`, or the whole list — one part per file, with its name and type), or **Binary (one file)** to send the file as the body.
+- **Call Reference** file inputs, such as the content of a storage connector's upload (S3, Azure Blob, SharePoint, OneDrive, Box, Google Drive): \`{{item}}\` sends the file's bytes and type (multipart for Box and Google Drive).
+- **Word / Excel / PowerPoint** steps: \`{{item}}\` (or a list — its first file) as the template.
+- **Read File / Read CSV / Read Excel / Download File / File to Base64:** \`{{item}}\` as the file.
+- **Run Agent → Files:** the files go to the model (images to vision models, PDFs as documents on OpenAI, other documents as extracted text), and the agent's \`read_attached_file\` tool reads them by id.
+
+Files are read for the workflow's own workspace only, and run details show their names and sizes, never their contents. \`{{task_data.<key>_count}}\` is the number of files (a Condition can skip the loop when it is 0).
+
+\`\`\`json title="Log each file, then email them all"
+[
+  { "id": "each", "type": "loop", "config": { "items": "{{task_data.receipts}}" } },
+  { "id": "log", "type": "log", "config": { "message": "Receipt {{item.name}} ({{item.size}} bytes)" } },
+  { "id": "mail", "type": "send_email", "config": { "to": "{{task.assignee_email}}", "subject": "Receipts", "body": "{{=FILE_NAMES(task_data.receipts)}}", "attachments": "{{task_data.receipts}}" } }
+]
+\`\`\`
 
 ## Named outputs are optional
 

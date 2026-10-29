@@ -17,6 +17,8 @@ export interface BucketPolicy {
   tenantFromKey?: (key: string) => string | null
   /** Short-lived objects an instance migration does not copy (job results). */
   transient?: boolean
+  /** Never served by /files, even with a signed URL (served by its own authorised route). */
+  unserved?: boolean
 }
 
 const firstSegment = (key: string) => key.split('/')[0] || null
@@ -37,6 +39,12 @@ export const STORAGE_BUCKETS = {
    * belong to one user, so only the job download routes serve them.
    */
   'job-results': { public: false, tenantFromKey: () => null, transient: true },
+  /**
+   * Form attachments (`<tenant>/<context>-<id>/<uuid>/<name>`, lib/services/form-files.ts).
+   * Private and never served by /files: /attachments/<id> authorises every
+   * download (task / submission access) and streams the object itself.
+   */
+  'form-files': { public: false, tenantFromKey: () => null, unserved: true },
 } as const satisfies Record<string, BucketPolicy>
 
 export type StorageBucket = keyof typeof STORAGE_BUCKETS

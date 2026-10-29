@@ -11,6 +11,19 @@ export interface EmailMessage {
   /** Plain-text alternative (derived from the HTML when absent). */
   text?: string
   replyTo?: string
+  /** Files attached to the message (workflow Send Email: form attachments, generated documents). */
+  attachments?: EmailAttachment[]
+}
+
+export interface EmailAttachment {
+  filename: string
+  contentType: string
+  content: Uint8Array
+}
+
+/** Base64 of an attachment's bytes. */
+export function attachmentBase64(attachment: EmailAttachment): string {
+  return Buffer.from(attachment.content).toString('base64')
 }
 
 export interface EmailSendResult {

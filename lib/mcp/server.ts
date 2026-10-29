@@ -17,6 +17,7 @@ import { registerDecisionTableTools } from './tools/decision-tables'
 import { registerExtensibilityTools } from './tools/extensibility'
 import { registerEmailTemplateTools } from './tools/email-templates'
 import { registerFormTools } from './tools/forms'
+import { registerFileTools } from './tools/files'
 import { registerRetentionTools } from './tools/retention'
 import { registerWebhookTools } from './tools/webhooks'
 import { registerLogDestinationTools } from './tools/log-destinations'
@@ -67,6 +68,7 @@ const TOOL_REGISTRARS: Array<{ label: string; register: ToolRegistrar }> = [
   { label: 'extensibility', register: registerExtensibilityTools },
   { label: 'email_templates', register: registerEmailTemplateTools },
   { label: 'forms', register: registerFormTools },
+  { label: 'files', register: registerFileTools },
   { label: 'retention', register: registerRetentionTools },
   { label: 'webhooks', register: registerWebhookTools },
   { label: 'log_destinations', register: registerLogDestinationTools },

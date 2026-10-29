@@ -66,6 +66,9 @@ export function createSmtpTransport(options: EmailOptions): EmailTransport {
         html: message.html,
         ...(message.text ? { text: message.text } : {}),
         ...(message.replyTo ? { replyTo: message.replyTo } : {}),
+        ...(message.attachments?.length
+          ? { attachments: message.attachments.map((a) => ({ filename: a.filename, content: Buffer.from(a.content), contentType: a.contentType })) }
+          : {}),
       })
       return { id: info.messageId }
     },

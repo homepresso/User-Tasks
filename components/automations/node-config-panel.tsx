@@ -27,6 +27,7 @@ import { normalizeTaskFields, valueFields } from '@/lib/task-field-schema'
 import { CallReferenceConfig } from "./call-reference-config"
 import { TriggerFilterConfig } from "./trigger-filter-config"
 import { DocWordConfig, DocExcelConfig, DocPowerPointConfig } from "./doc-config-panels"
+import { DocumentActionConfig, isDocumentActionPanel } from "./document-action-panels"
 import { normalizeTableColumns } from '@/lib/data-table-columns'
 import { getWorkflowActivityDisplayName, getWorkflowActivityInputDefinitions, getWorkflowActivityOutputDefinitions, getWorkflowActivitySetupNotes, getWorkflowActivitySummary, getWorkflowActivityPresentation } from '@/lib/extensibility'
 import { PERMISSION_KEYS } from '@/lib/permissions'
@@ -1188,10 +1189,44 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
                 className="w-full rounded border px-2 py-1 text-[10px] mb-1" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
                 <option value="json">JSON</option>
                 <option value="form">Form URL Encoded</option>
+                <option value="multipart">Multipart form (files)</option>
+                <option value="binary">Binary (one file)</option>
                 <option value="text">Plain Text</option>
                 <option value="none">No Body</option>
               </select>
-              {(node.config.content_type ?? "json") !== "none" && (
+              {node.config.content_type === "multipart" && (
+                <div className="space-y-1" data-multipart-parts>
+                  {((node.config.multipart ?? []) as { key: string; value: string; type?: string }[]).map((part, i) => (
+                    <div key={i} className="flex gap-1">
+                      <Input value={part.key} onChange={(e) => {
+                        const updated = [...(node.config.multipart ?? [])]; updated[i] = { ...updated[i], key: e.target.value }
+                        updateConfig("multipart", updated)
+                      }} placeholder="Part name" className="!text-xs font-mono w-24 shrink-0" />
+                      <select value={part.type ?? "text"} aria-label="Part type" onChange={(e) => {
+                        const updated = [...(node.config.multipart ?? [])]; updated[i] = { ...updated[i], type: e.target.value }
+                        updateConfig("multipart", updated)
+                      }} className="rounded border px-1 py-1 text-[10px] shrink-0" style={{ backgroundColor: "var(--theme-card-bg)", borderColor: "var(--theme-surface-border)" }}>
+                        <option value="text">Text</option>
+                        <option value="file">File(s)</option>
+                      </select>
+                      <VariableInput value={part.value ?? ""} onChange={(value) => {
+                        const updated = [...(node.config.multipart ?? [])]; updated[i] = { ...updated[i], value }
+                        updateConfig("multipart", updated)
+                      }} placeholder={part.type === "file" ? "{{item}} or {{task_data.files}}" : "{{variable}} or value"} extraVariables={extraVariables} wrapperClassName="flex-1 min-w-0" />
+                      <button onClick={() => updateConfig("multipart", (node.config.multipart ?? []).filter((_: any, j: number) => j !== i))}
+                        className="text-xs px-1 hover:opacity-70" aria-label="Remove part" style={{ color: 'var(--theme-muted-text)' }}>×</button>
+                    </div>
+                  ))}
+                  <button onClick={() => updateConfig("multipart", [...(node.config.multipart ?? []), { key: '', value: '', type: 'text' }])}
+                    className="text-[10px] hover:opacity-70" style={{ color: 'var(--theme-primary-text)' }}>+ Add part</button>
+                  <p className="text-[9px]" style={{ color: "var(--theme-muted-text)" }}>A File(s) part sends a form attachment (or each file of a list) with its name and type.</p>
+                </div>
+              )}
+              {node.config.content_type === "binary" && (
+                <VariableInput value={node.config.body ?? ""} onChange={(value) => updateConfig("body", value)}
+                  placeholder="{{item}} — the file sent as the body" extraVariables={extraVariables} />
+              )}
+              {!["none", "multipart", "binary"].includes(node.config.content_type ?? "json") && (
                 <VariableInput multiline rows={4} value={node.config.body ?? ""} onChange={(value) => updateConfig("body", value)}
                   placeholder={(node.config.content_type ?? "json") === "json" ? '{"key": "{{task.title}}"}' : (node.config.content_type === "form" ? 'key={{value}}&key2={{value2}}' : 'Plain text body...')} extraVariables={extraVariables} />
               )}
@@ -1267,6 +1302,11 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
       {node.type === "doc_word" && <DocWordConfig config={node.config} onUpdate={updateConfig} />}
       {node.type === "doc_excel" && <DocExcelConfig config={node.config} onUpdate={updateConfig} />}
       {node.type === "doc_powerpoint" && <DocPowerPointConfig config={node.config} onUpdate={updateConfig} />}
+
+      {/* ─── Document actions (read / compare / convert / PDF / extract / redact / inspect) ─── */}
+      {isDocumentActionPanel(node.type) && (
+        <DocumentActionConfig type={node.type} config={node.config} onUpdate={updateConfig} onBatchUpdate={batchUpdateConfig} extraVariables={extraVariables} />
+      )}
 
       {/* ─── Auto Action ─── */}
       {node.type === "auto_action" && (
@@ -1968,6 +2008,14 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
               <VariableInput value={node.config.reply_to ?? ""} onChange={(value) => updateConfig("reply_to", value)}
                 placeholder="reply@example.com" extraVariables={extraVariables} />
             </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1">Attachments (optional)</label>
+            <VariableInput value={node.config.attachments ?? ""} onChange={(value) => updateConfig("attachments", value || undefined)}
+              placeholder="{{task_data.documents}} — all files, or {{item}} in a loop" extraVariables={extraVariables} />
+            <p className="text-[9px] mt-0.5" style={{ color: "var(--theme-muted-text)" }}>
+              A form&apos;s Attachments field attaches every file; one file (<code>{'{{item}}'}</code> inside a Loop, a generated document) attaches one. Separate several with commas. Up to 20 files, 25 MB in total.
+            </p>
           </div>
           <div className="rounded-lg p-2 text-[9px]" style={{ backgroundColor: "var(--theme-surface)", color: "var(--theme-muted-text)" }}>
             <p className="font-medium mb-0.5">Setup required:</p>
@@ -6214,6 +6262,16 @@ function RunAgentConfig({ config, onUpdate, onBatchUpdate, extraVariables }: {
           value={config.user_message ?? ""}
           onChange={(value) => onUpdate("user_message", value)}
           placeholder="What should this agent do? Use {{variables}} for dynamic values." extraVariables={extraVariables} />
+      </div>
+
+      {/* Files */}
+      <div>
+        <label className="block text-xs font-medium mb-1">Files (optional)</label>
+        <VariableInput value={config.files ?? ""} onChange={(value) => onUpdate("files", value || undefined)}
+          placeholder="{{form.receipts}} or {{item}}" extraVariables={extraVariables} />
+        <p className="text-[9px] mt-0.5" style={{ color: "var(--theme-muted-text)" }}>
+          Up to 10 files. Images go to vision models as images, PDFs as documents where the model&apos;s API takes them (OpenAI), everything else as extracted text; the agent can also read them with read_attached_file. Only names and sizes are logged.
+        </p>
       </div>
 
       {selectedAgent && (

@@ -7,7 +7,7 @@ import { repositoryUrl } from "@/lib/site-links"
 export const metadata = {
   title: "UserTasks: Open-Source Headless Workflow Engine",
   description:
-    "UserTasks is an open-source headless workflow engine: visual designer, human tasks, integrations, decision tables and optional AI agents, driven from a REST API, an MCP server and a CLI — with log export to Splunk, Datadog, OpenTelemetry and webhooks.",
+    "UserTasks is an open-source headless workflow engine: visual designer, human tasks, grid forms, document actions, integrations, decision tables and optional AI agents, driven from a REST API, an MCP server and a CLI — with log export to Splunk, Datadog, OpenTelemetry and webhooks.",
   keywords: [
     "headless workflow engine",
     "open source workflow engine",
@@ -58,7 +58,7 @@ export default async function Home() {
         applicationSubCategory: "Headless workflow engine",
         operatingSystem: "Web browser; managed cloud, private, or on-premises deployment",
         offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Open source (Apache-2.0)" },
-        featureList: ["Workflow engine", "Visual workflow designer", "REST, OData, database, webhook, and OAuth integrations", "Task list with SLAs, escalation, and audit trails", "Decision tables", "Optional AI agents", "Reports with a reporting API and MCP server", "Command-line interface with config as code", "Log export to Splunk, Datadog, OpenTelemetry and webhooks", "Cloud and on-premises deployment"],
+        featureList: ["Workflow engine", "Visual workflow designer", "REST, OData, database, webhook, and OAuth integrations", "Task list with SLAs, escalation, and audit trails", "Grid form designer with lookups, file uploads, form pages and QR codes", "Document actions: read, compare, convert, extract and redact Word, Excel, PowerPoint and PDF files", "Decision tables", "Optional AI agents", "Reports with a reporting API and MCP server", "Command-line interface with config as code", "Log export to Splunk, Datadog, OpenTelemetry and webhooks", "Cloud and on-premises deployment"],
         publisher: { "@id": `${baseUrl}/#organization` },
         ...(repoUrl ? { sameAs: [repoUrl] } : {}),
       },

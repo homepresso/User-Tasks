@@ -12,7 +12,7 @@ import {
   CircleStop, Inbox, Search, Users, MessageSquareDashed, Radio, CornerDownRight, XCircle, AlertTriangle, Presentation,
   GitFork, FileUp, FileDown, Download, Tag, Braces, Brackets, FileSpreadsheet, Sheet,
   Star, Scale, Bot, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore,
-  Puzzle, Briefcase, FilePen, Milestone, Link, Gauge, ChevronRight, ChevronsDownUp, ChevronsUpDown, PanelLeftClose } from 'lucide-react'
+  Puzzle, Briefcase, FilePen, Milestone, Link, Gauge, FileSearch, GitCompare, FileOutput, FileStack, ScanText, EyeOff, FileScan, ChevronRight, ChevronsDownUp, ChevronsUpDown, PanelLeftClose } from 'lucide-react'
 import {
   allCollapsed, allExpanded, initialPaletteCollapse, isGroupCollapsed, loadCollapseMap, paletteCollapseReducer, safeLocalStorage, saveCollapseMap,
 } from "@/lib/palette-collapse"
@@ -30,6 +30,7 @@ const iconMap: Record<string, any> = {
   Puzzle, Bot, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore,
   Gauge,
   Briefcase, FilePen, Milestone, Link, Search,
+  FileSearch, GitCompare, FileOutput, FileStack, ScanText, EyeOff, FileScan,
 }
 
 interface NodePaletteProps {

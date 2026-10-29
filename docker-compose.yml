@@ -26,12 +26,15 @@ x-app-image: &app-image
     args:
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-}
       DEPLOYMENT_MODE: ${DEPLOYMENT_MODE:-self_hosted}
+      # Form attachments sent through the app (local-disk storage): body limit in MB.
+      FORM_UPLOAD_MAX_BODY_MB: ${FORM_UPLOAD_MAX_BODY_MB:-50}
       # Optional packages (docs/optional-drivers.md). true adds the Snowflake,
       # Oracle and MongoDB drivers; false drops the storage SDKs, or the
-      # email / secrets / KMS SDKs.
+      # email / secrets / KMS SDKs; INCLUDE_OCR=true adds tesseract.js (OCR).
       INCLUDE_OPTIONAL_DB_DRIVERS: ${INCLUDE_OPTIONAL_DB_DRIVERS:-false}
       INCLUDE_STORAGE_SDKS: ${INCLUDE_STORAGE_SDKS:-true}
       INCLUDE_PROVIDER_SDKS: ${INCLUDE_PROVIDER_SDKS:-true}
+      INCLUDE_OCR: ${INCLUDE_OCR:-false}
   env_file:
     # USERTASKS_ENV_FILE: another env file (npm run stack uses one per profile).
     - path: ${USERTASKS_ENV_FILE:-.env}

@@ -2973,6 +2973,160 @@
    }
   }
  },
+ "form_files": {
+  "anon": {
+   "select": "err:42501",
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "move": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "delete": {
+    "A": "err:42501",
+    "B": "err:42501"
+   }
+  },
+  "ghost": {
+   "select": "err:42501",
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "move": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "delete": {
+    "A": "err:42501",
+    "B": "err:42501"
+   }
+  },
+  "a": {
+   "select": "err:42501",
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "move": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "delete": {
+    "A": "err:42501",
+    "B": "err:42501"
+   }
+  },
+  "b": {
+   "select": "err:42501",
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "move": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "delete": {
+    "A": "err:42501",
+    "B": "err:42501"
+   }
+  },
+  "ab_cur_a": {
+   "select": "err:42501",
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "move": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "delete": {
+    "A": "err:42501",
+    "B": "err:42501"
+   }
+  },
+  "ab_cur_b": {
+   "select": "err:42501",
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "move": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "delete": {
+    "A": "err:42501",
+    "B": "err:42501"
+   }
+  },
+  "ab_unified": {
+   "select": "err:42501",
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "move": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "delete": {
+    "A": "err:42501",
+    "B": "err:42501"
+   }
+  },
+  "b_inactive": {
+   "select": "err:42501",
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "move": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "delete": {
+    "A": "err:42501",
+    "B": "err:42501"
+   }
+  }
+ },
  "form_submissions": {
   "anon": {
    "select": "err:42501",

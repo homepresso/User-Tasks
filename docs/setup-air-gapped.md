@@ -25,6 +25,15 @@ The signature uses the same key type and fingerprint format as
 [package signing](changes/packages.md): ed25519, fingerprint = the first 16
 bytes of SHA-256 over the public key (DER), as `aa:bb:…`.
 
+Official UserTasks bundles are signed with the **UserTasks Release** key:
+
+| | |
+|---|---|
+| Fingerprint | `27:ca:1b:9e:57:19:b9:5b:ba:94:95:97:c5:f4:6c:bf` |
+| Public key (SPKI, base64) | `MCowBQYDK2VwAyEAQ4OS8ZHckZhX8gsyyP67TxZlpVhKW+QvhSEDROj7Ha8=` |
+
+`bundle verify` must report this fingerprint for a bundle you downloaded from usertasks.com or the GitHub releases.
+
 ## 1. Build it (connected machine)
 
 ```bash
@@ -38,7 +47,7 @@ npm run bundle -- create --image usertasks:0.1.0 --signing-key ~/keys/usertasks-
 | Option | Default | |
 |---|---|---|
 | `--image` | `usertasks:local` | The app image to ship. The manifest lists the [optional drivers](optional-drivers.md) it has, and `create` warns about missing ones: they can't be added offline |
-| `--build`, `--build-arg NAME=true\|false` | | Build `--image` from this checkout for `--platform` first, with the Dockerfile's `INCLUDE_OPTIONAL_DB_DRIVERS`, `INCLUDE_STORAGE_SDKS` and `INCLUDE_PROVIDER_SDKS` |
+| `--build`, `--build-arg NAME=true\|false` | | Build `--image` from this checkout for `--platform` first, with the Dockerfile's `INCLUDE_OPTIONAL_DB_DRIVERS`, `INCLUDE_STORAGE_SDKS`, `INCLUDE_PROVIDER_SDKS` and `INCLUDE_OCR` |
 | `--platform` | the Docker host's (`linux/amd64`, `linux/arm64`) | Dependencies are pulled for it; build the app image for it too (`docker buildx build --platform linux/amd64 --load …`) |
 | `--deps` | `postgres,minio,valkey,mailpit,openbao,smoke` | Add `pgbouncer`, `keycloak`, `local-kms`, `localstack` (the emulated `aws` profile, whose files are in `compose/` too); `none` ships the app image only |
 | `--signing-key` | `BUNDLE_SIGNING_KEY` (PEM), else a new key next to the bundle | An ed25519 private key (`openssl genpkey -algorithm ed25519 -out key.pem`). Keep it private and reuse it, so the fingerprint stays the same |
@@ -100,6 +109,21 @@ Start `my-values.yaml` from the chart's `examples/onprem.yaml` (your
 services, Vault, a private CA, the egress allowlist NetworkPolicy) or
 `examples/eval.yaml` (everything bundled). See
 [Kubernetes setup](setup-kubernetes.md).
+
+## OCR language data
+
+OCR of scanned PDFs (the document actions) is optional. If you build the
+image with `INCLUDE_OCR=true`, tesseract.js would download its language data
+from the internet on first use, which an air-gapped host can't do. Provide it
+locally instead: on the connected machine download one
+`<lang>.traineddata.gz` per language from the tesseract.js language data
+(for example
+`https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz`),
+carry the files across with the bundle, put them in a folder the app can
+read (a volume in Compose or Kubernetes) or on an internal web server, and
+set `DOCUMENT_OCR_LANG_PATH` to that folder or URL. Alternatively set
+`DOCUMENT_OCR_PROVIDER=none` to turn OCR off. See
+[Optional drivers](optional-drivers.md#ocr-tesseractjs).
 
 ## The CLI
 

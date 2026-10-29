@@ -193,6 +193,13 @@ export const BUILTIN_TOOL_DEFS: (AgentTool & { category: BuiltinToolCategory })[
     ],
   },
   {
+    id: 'builtin_read_attached_file', type: 'builtin', name: 'read_attached_file', category: 'files',
+    description: 'Read a file given to this agent step (its "Files", e.g. a form\'s attachments) as text: PDF, Word, Excel, PowerPoint, text, CSV, JSON. Pass its file id (or name).',
+    inputSchema: [
+      { name: 'file_id', type: 'string', description: 'The file id (or the file name)', required: true },
+    ],
+  },
+  {
     id: 'builtin_read_file', type: 'builtin', name: 'read_file_content', category: 'files',
     description: 'Read the text content of a file from storage.',
     inputSchema: [

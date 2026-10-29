@@ -61,6 +61,8 @@ export function MarketingHeader() {
         <Link href="/" aria-label="UserTasks home"><Wordmark size={34} /></Link>
         <div className="flex items-center gap-1 sm:gap-2">
           <Link href="/use-cases" className="hidden whitespace-nowrap rounded-lg px-1.5 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] min-[420px]:inline sm:px-3">Use cases</Link>
+          <Link href="/forms" className="hidden whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] sm:px-3 lg:inline">Forms</Link>
+          <Link href="/documents" className="hidden whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] sm:px-3 lg:inline">Documents</Link>
           <Link href="/gallery" className="whitespace-nowrap rounded-lg px-1.5 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] sm:px-3">Gallery</Link>
           <Link href="/deploy-anywhere" className="hidden whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] sm:inline sm:px-3">Deploy</Link>
           <Link href="/docs" className="whitespace-nowrap rounded-lg px-1.5 py-2 text-sm font-medium text-[#4A463E] hover:text-[#1B1916] sm:px-3">Docs</Link>
@@ -80,6 +82,8 @@ export function MarketingFooter() {
         <p className="text-xs text-[#857D6D]">Open-source headless workflow engine · Apache-2.0 · © {new Date().getFullYear()} UserTasks</p>
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-[#6E6759]">
           <Link href="/use-cases" className="hover:text-[#1B1916]">Use cases</Link>
+          <Link href="/forms" className="hover:text-[#1B1916]">Forms</Link>
+          <Link href="/documents" className="hover:text-[#1B1916]">Documents</Link>
           <Link href="/gallery" className="hover:text-[#1B1916]">Package gallery</Link>
           <Link href="/deploy-anywhere" className="hover:text-[#1B1916]">Deploy anywhere</Link>
           <Link href="/docs" className="hover:text-[#1B1916]">Docs</Link>

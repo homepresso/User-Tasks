@@ -61,7 +61,7 @@ function notFound(): Response {
 
 export async function serveStorageFile(request: Request, bucket: string, segments: string[], deps: ServeFileDeps): Promise<Response> {
   const policy = (deps.policy ?? bucketPolicy)(bucket)
-  if (!policy) return notFound()
+  if (!policy || policy.unserved) return notFound()
   // Route params arrive decoded; reject traversal / control characters outright.
   const key = segments.join('/')
   if (!isSafeStorageKey(key)) return new Response('Bad request', { status: 400, headers: { 'Cache-Control': 'no-store' } })

@@ -187,6 +187,19 @@ function toApiError(status: number, headers: Headers, body: unknown): UsertasksA
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
+/** An uploaded file (`POST /files/uploads`): what an Attachments field's value holds. */
+export interface UploadedFile {
+  id: string
+  name: string
+  size: number
+  mime_type: string
+  url: string
+  storage_ref: string
+  uploaded_by: string | null
+  uploaded_at: string
+  checksum_sha256: string
+}
+
 /** A background job (async requests, `GET /jobs/{id}`). */
 export interface Job {
   id: string
@@ -364,6 +377,44 @@ export class UsertasksClient {
     const plain = /filename="([^"]+)"/i.exec(disposition)
     const filename = star ? decodeURIComponent(star[1]) : plain?.[1] ?? `job-${id}`
     return { bytes: new Uint8Array(await response.arrayBuffer()), filename, contentType: response.headers.get('content-type') ?? 'application/octet-stream' }
+  }
+
+  /**
+   * Upload a file for an Attachments field and return its file object; put
+   * its `id` in the field's value (task completion, form submission,
+   * workflow start). `context` names where the field is: an open task, a
+   * reusable form, or a workflow's start form. Large files go straight to
+   * storage when the server's storage signs uploads (init → PUT → complete);
+   * otherwise the file is sent base64 in one request (`inlineMaxBytes`,
+   * default 3 MB, keeps it under small hosted body limits).
+   */
+  async uploadFile(
+    context: { task_id?: string; form_id?: string; workflow_id?: string; field_key: string },
+    file: { name: string; bytes: Uint8Array; contentType?: string },
+    options: { inlineMaxBytes?: number; signal?: AbortSignal } = {},
+  ): Promise<UploadedFile> {
+    const base = { ...context, name: file.name }
+    const toBase64 = (bytes: Uint8Array) => {
+      let binary = ''
+      for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+      return btoa(binary)
+    }
+    const inline = async () => {
+      const done = await this.request<{ mode: string; file: UploadedFile }>('POST', '/files/uploads', { body: { ...base, size: file.bytes.byteLength, content_base64: toBase64(file.bytes) } })
+      return done.file
+    }
+    if (file.bytes.byteLength <= (options.inlineMaxBytes ?? 3 * 1024 * 1024)) return inline()
+    const started = await this.request<{ mode: string; file_id?: string; upload?: { url: string; method: string; headers: Record<string, string> } }>('POST', '/files/uploads', { body: { ...base, size: file.bytes.byteLength } })
+    if (started.mode !== 'direct' || !started.file_id || !started.upload) return inline()
+    let put: Response
+    try {
+      put = await this.fetchImpl(started.upload.url, { method: started.upload.method, headers: started.upload.headers, body: file.bytes as unknown as NonNullable<RequestInit["body"]>, signal: options.signal })
+    } catch (error) {
+      throw new UsertasksNetworkError(`Upload of ${file.name} failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
+    }
+    if (!put.ok) throw new UsertasksNetworkError(`Upload of ${file.name} failed: storage answered ${put.status}`)
+    const done = await this.request<{ file: UploadedFile }>('POST', '/files/uploads/{id}/complete', { path: { id: started.file_id } })
+    return done.file
   }
 
   /** Perform a request and return status, headers and parsed body (throws on non-2xx). */

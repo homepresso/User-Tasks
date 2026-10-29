@@ -7,8 +7,12 @@ metadata:
   labels:
     {{- include "usertasks.labels" . | nindent 4 }}
   {{- $cm := .Values.ingress.certManager }}
-  {{- if or .Values.ingress.annotations $cm.clusterIssuer $cm.issuer }}
+  {{- $bodySize := and .Values.ingress.maxBodySize (not (hasKey (.Values.ingress.annotations | default dict) "nginx.ingress.kubernetes.io/proxy-body-size")) }}
+  {{- if or .Values.ingress.annotations $cm.clusterIssuer $cm.issuer $bodySize }}
   annotations:
+    {{- if $bodySize }}
+    nginx.ingress.kubernetes.io/proxy-body-size: {{ .Values.ingress.maxBodySize | quote }}
+    {{- end }}
     {{- with $cm.clusterIssuer }}
     cert-manager.io/cluster-issuer: {{ . | quote }}
     {{- end }}

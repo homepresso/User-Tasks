@@ -256,7 +256,7 @@ describe('POST /api/workflows/execute-stream with form_submission', () => {
     })
     const { NextRequest } = require('next/server')
     const { POST } = await import('@/app/api/workflows/execute-stream/route')
-    const sse = await POST(new NextRequest('http://localhost/api/workflows/execute-stream', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'text/event-stream' }, body: JSON.stringify({ workflow_id: WORKFLOW, variables: {} }) }))
+    const sse = await POST(new NextRequest('http://localhost/api/workflows/execute-stream', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'text/event-stream' }, body: JSON.stringify({ workflow_id: WORKFLOW, form_submission: { values: VALID, button_id: 'submit' } }) }))
     const events = (await sse.text()).split('\n\n').filter(Boolean).map((chunk) => JSON.parse(chunk.replace(/^data: /, '')))
     expect(events.filter((e) => /Workflow paused/.test(e.data?.message ?? ''))).toHaveLength(1)
     const done = events.filter((e) => e.type === 'done')
@@ -267,7 +267,7 @@ describe('POST /api/workflows/execute-stream with form_submission', () => {
       onEvent?.({ type: 'done', data: { status: 'waiting_for_event', event_id: 'ev-2' } })
       return { status: 'waiting_for_event', node_results: {}, event_id: 'ev-2', run_id: 'run-2' } as any
     })
-    const json = await (await POST(req({ workflow_id: WORKFLOW, variables: {} }))).json()
+    const json = await (await POST(req({ workflow_id: WORKFLOW, form_submission: { values: VALID, button_id: 'submit' } }))).json()
     expect(json.events.filter((e: any) => e.type === 'done')).toEqual([])
     expect(json.result).toMatchObject({ status: 'waiting_for_event', event_id: 'ev-2', run_id: 'run-2' })
   })
@@ -281,5 +281,46 @@ describe('POST /api/workflows/execute-stream with form_submission', () => {
     const body = await res.json()
     expect(Object.keys(body.fields).sort()).toEqual(['amount', 'name'])
     expect(executeWorkflow).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST /api/workflows/execute-stream never starts a form-start test before the form is submitted', () => {
+  function req(body: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { NextRequest } = require('next/server')
+    return new NextRequest('http://localhost/api/workflows/execute-stream', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+  }
+
+  it('a "Form submitted" workflow started without a form submission: 422 "needs form input", nothing runs', async () => {
+    const { executeWorkflow } = await import('@/lib/workflow-engine')
+    vi.mocked(executeWorkflow).mockClear()
+    const { POST } = await import('@/app/api/workflows/execute-stream/route')
+    for (const body of [{ workflow_id: WORKFLOW }, { workflow_id: WORKFLOW, variables: { form: { name: 'Nancy' } } }, { workflow_id: WORKFLOW, form_submission: 'yes' }]) {
+      const res = await POST(req(body))
+      expect(res.status).toBe(422)
+      expect(await res.json()).toMatchObject({ needs_form_input: true, error: expect.stringMatching(/submit/i) })
+    }
+    expect(executeWorkflow).not.toHaveBeenCalled()
+  })
+
+  it('a start-form workflow: its values are checked like the form (required fields), nothing runs on errors', async () => {
+    const { executeWorkflow } = await import('@/lib/workflow-engine')
+    vi.mocked(executeWorkflow).mockClear()
+    const { POST } = await import('@/app/api/workflows/execute-stream/route')
+    const bad = await POST(req({ workflow_id: START_WF, variables: { customerName: '', rush: false } }))
+    expect(bad.status).toBe(422)
+    const body = await bad.json()
+    expect(Object.keys(body.fields)).toHaveLength(1)
+    expect(Object.values(body.fields)[0]).toMatch(/required/i)
+    expect(executeWorkflow).not.toHaveBeenCalled()
+    const missing = await POST(req({ workflow_id: START_WF }))
+    expect(missing.status).toBe(422)
+    expect(executeWorkflow).not.toHaveBeenCalled()
+
+    const ok = await POST(req({ workflow_id: START_WF, variables: { customerName: 'ALFKI', rush: true } }))
+    expect(ok.status).toBe(200)
+    const call = vi.mocked(executeWorkflow).mock.calls[0] as any[]
+    expect(call[2]).toBe(true)
+    expect(call[3]).toMatchObject({ customerName: 'ALFKI', rush: true })
   })
 })

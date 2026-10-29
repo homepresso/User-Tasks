@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, BookOpen, RefreshCw } from 'lucide-react'
+import { ArrowLeft, BookOpen, Info, RefreshCw } from 'lucide-react'
 import type { InfrastructureView as View } from '@/lib/admin/infrastructure'
 import type { CheckStatus } from '@/lib/admin/doctor'
 import { providerFields } from '@/lib/config/provider-forms'
@@ -24,6 +24,18 @@ const HEALTH: Record<CheckStatus, { label: string; color: string; bg: string }> 
   skip: { label: 'Not checked', color: 'var(--status-todo)', bg: 'var(--status-todo-bg)' },
 }
 
+// Per-check status text: a check that doesn't apply (or can't run here) is information, not a problem.
+const CHECK_LABELS: Record<CheckStatus, string> = { ok: 'OK', warn: 'WARN', fail: 'FAIL', skip: 'INFO' }
+
+/** Info icon with the explanation as its tooltip (and its accessible name). */
+function NoteTip({ note }: { note: string }) {
+  return (
+    <span className="inline-flex align-middle ml-1 cursor-help" title={note} aria-label={note} role="img" tabIndex={0} style={{ color: 'var(--theme-muted-text)' }}>
+      <Info size={13} aria-hidden />
+    </span>
+  )
+}
+
 const BADGE_LABELS: Record<string, string> = { 'on-prem': 'On-prem', aws: 'AWS', azure: 'Azure', gcp: 'Google Cloud', supabase: 'Supabase', cloud: 'Cloud' }
 const SOURCE_LABELS: Record<string, string> = { env: 'environment', settings: 'instance setting', default: 'default' }
 
@@ -45,7 +57,15 @@ export function InfrastructureView({ view }: { view: View }) {
         </p>
       </div>
 
-      {!view.switching.gate.enabled && <InlineNotice tone="warning" message={view.switching.gate.reason ?? 'Changing providers from this page is turned off.'} />}
+      {!view.switching.gate.enabled && (view.switching.hasDb
+        ? <InlineNotice tone="warning" message={view.switching.gate.reason ?? 'Changing providers from this page is turned off.'} />
+        : (
+          // No DATABASE_URL is a supported setup (Supabase provider): information, not a warning.
+          <div className="flex items-start gap-2 rounded-lg border px-3 py-2 text-xs" style={{ borderColor: 'var(--theme-surface-border)', color: 'var(--theme-muted-text)' }} role="note">
+            <Info size={14} className="shrink-0 mt-px" aria-hidden />
+            <span>{view.switching.gate.reason ?? 'Changing providers from this page is turned off.'}</span>
+          </div>
+        ))}
       {view.switching.gate.enabled && view.switching.recentSwitchArea && <RollbackWindowWarning area={view.switching.recentSwitchArea} />}
 
       <div className="flex flex-wrap items-center gap-3 text-xs" style={muted}>
@@ -77,11 +97,11 @@ export function InfrastructureView({ view }: { view: View }) {
               </p>
               {area.checks.length > 0 && (
                 <ul className="mt-3 space-y-1 text-sm">
-                  {area.checks.map((check) => (
+                  {area.checks.map((check, i) => (
                     <li key={check.name} className="flex gap-2">
-                      <span className="shrink-0 w-24 text-xs font-medium pt-0.5" style={{ color: HEALTH[check.status].color }}>{check.status.toUpperCase()}</span>
+                      <span className="shrink-0 w-24 text-xs font-medium pt-0.5" style={{ color: HEALTH[check.status].color }}>{CHECK_LABELS[check.status]}</span>
                       <span className="shrink-0 w-28 text-xs pt-0.5" style={muted}>{check.name}</span>
-                      <span className="min-w-0 break-words">{check.detail}</span>
+                      <span className="min-w-0 break-words">{check.detail}{check.note && check.note !== area.checks[i - 1]?.note && <NoteTip note={check.note} />}</span>
                     </li>
                   ))}
                 </ul>

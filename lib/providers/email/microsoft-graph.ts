@@ -1,5 +1,5 @@
 import { ClientSecretCredential, DefaultAzureCredential, type TokenCredential } from '@azure/identity'
-import { emailOption, parseAddress, type EmailOptions, type EmailTransport } from './types'
+import { attachmentBase64, emailOption, parseAddress, type EmailOptions, type EmailTransport } from './types'
 
 /**
  * Microsoft 365 / Exchange Online via Microsoft Graph `sendMail`
@@ -50,6 +50,9 @@ export function createMicrosoftGraphTransport(options: EmailOptions, fetchImpl: 
             toRecipients: message.to.map(recipient),
             ...(message.replyTo ? { replyTo: [recipient(message.replyTo)] } : {}),
             ...(parseAddress(message.from).address.toLowerCase() !== sender.toLowerCase() ? { from: recipient(message.from) } : {}),
+            ...(message.attachments?.length
+              ? { attachments: message.attachments.map((a) => ({ '@odata.type': '#microsoft.graph.fileAttachment', name: a.filename, contentType: a.contentType, contentBytes: attachmentBase64(a) })) }
+              : {}),
           },
           saveToSentItems: false,
         }),

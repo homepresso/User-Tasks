@@ -158,6 +158,17 @@ export function createS3StorageProvider(options: StorageOptions): StorageProvide
       return getSignedUrl(client, new sdk.GetObjectCommand(where(bucket, key)), { expiresIn: Math.max(1, Math.min(Math.floor(ttlSeconds), 604800)) })
     },
 
+    /** Presigned PUT (the bucket's CORS must allow PUT from the app's origin). */
+    async createUploadUrl(bucket, key, opts) {
+      const { sdk, client } = await connect()
+      const { getSignedUrl } = await loadOptionalSdk('@aws-sdk/s3-request-presigner', () => import('@aws-sdk/s3-request-presigner'))
+      const contentType = opts.contentType || 'application/octet-stream'
+      const url = await getSignedUrl(client, new sdk.PutObjectCommand({ ...where(bucket, key), ContentType: contentType }), {
+        expiresIn: Math.max(1, Math.min(Math.floor(opts.ttlSeconds), 604800)),
+      })
+      return { url, method: 'PUT' as const, headers: { 'Content-Type': contentType } }
+    },
+
     async copy(bucket, fromKey, toKey, opts = {}) {
       const { sdk, client } = await connect()
       const from = where(bucket, fromKey)

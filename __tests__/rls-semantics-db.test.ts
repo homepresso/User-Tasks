@@ -36,6 +36,9 @@
  * the rows they submitted in their current workspace, or all of them with
  * forms.edit; no end-user writes — every caller gets 42501).
  *
+ * 20261120000000_form_files.sql added form_files (form attachments): no
+ * client grants at all — every caller gets 42501 for every statement.
+ *
  * 20261117000000_community_gallery.sql added the community gallery tables:
  * community_packages / community_package_versions (everyone, anon included,
  * reads listed rows only), gallery_submissions (a user reads their own) and
@@ -184,6 +187,14 @@ const SPECS: Spec[] = [
   { table: 'form_themes', make: (k, v) => ({ tenant_id: TENANT[k], name: `theme ${v}` }) },
   // Form submissions (20261116000000): own rows, or every row with forms.edit; writes service role only.
   { table: 'form_submissions', variants: ['row', 'other'], make: (k, v) => ({ tenant_id: TENANT[k], form_id: id('forms', k), form_name: `form ${v}`, submitted_by: v === 'other' ? null : OWNER[k] }) },
+  // Form attachments (20261120000000): no client access at all — the server reads and writes them.
+  {
+    table: 'form_files',
+    make: (k, v) => ({
+      tenant_id: TENANT[k], storage_key: `${TENANT[k]}/form-rls/${v}/f.txt`, name: 'f.txt', size: 1, mime_type: 'text/plain',
+      checksum_sha256: '0'.repeat(64), uploaded_by: OWNER[k], context_kind: 'form', form_id: id('forms', k), field_key: 'files',
+    }),
+  },
   // Community gallery (20261117000000): anyone reads LISTED packages and their versions, a user reads their own
   // submissions, abuse reports are moderators-only; no end-user writes at all.
   {

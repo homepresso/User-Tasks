@@ -67,6 +67,14 @@ export type NodeType =
   | 'doc_word'
   | 'doc_excel'
   | 'doc_powerpoint'
+  // Document actions
+  | 'doc_read'
+  | 'doc_compare'
+  | 'doc_convert'
+  | 'doc_pdf'
+  | 'doc_extract'
+  | 'doc_redact'
+  | 'doc_inspect'
   // Sub-workflow
   | 'call_sub_workflow'
   | 'decision_table'
@@ -205,6 +213,14 @@ export const NODE_CATALOG: {
   { type: 'doc_word', label: 'Word Document', icon: 'FileText', category: 'operation', color: '#2B579A', description: 'Find/replace, tables, lists, images in Word docs' },
   { type: 'doc_excel', label: 'Excel Spreadsheet', icon: 'Sheet', category: 'operation', color: '#217346', description: 'Update cells, find/replace, insert data in Excel' },
   { type: 'doc_powerpoint', label: 'PowerPoint Slides', icon: 'Presentation', category: 'operation', color: '#D24726', description: 'Find/replace, tables, lists, images in PowerPoint' },
+  // ─── Document actions ───
+  { type: 'doc_read', label: 'Read Document', icon: 'FileSearch', category: 'operation', color: '#0F766E', description: 'Read Word, Excel, PowerPoint, PDF and more into text, rows and structure' },
+  { type: 'doc_compare', label: 'Compare Documents', icon: 'GitCompare', category: 'operation', color: '#0F766E', description: 'Diff two documents, sheets or JSON: changes, similarity, report and redline' },
+  { type: 'doc_convert', label: 'Convert Document', icon: 'FileOutput', category: 'operation', color: '#0F766E', description: 'Convert between PDF, Word, HTML, Markdown, text, CSV, Excel and JSON' },
+  { type: 'doc_pdf', label: 'PDF Tools', icon: 'FileStack', category: 'operation', color: '#B91C1C', description: 'Merge, split, extract pages, watermark, rotate, fill or read PDF forms' },
+  { type: 'doc_extract', label: 'Extract from Document', icon: 'ScanText', category: 'operation', color: '#0F766E', description: 'Tables, key values, emails, dates and amounts — optionally into a data table' },
+  { type: 'doc_redact', label: 'Redact Document', icon: 'EyeOff', category: 'operation', color: '#0F766E', description: 'Remove emails, phone and card numbers, IBANs and custom terms from a copy' },
+  { type: 'doc_inspect', label: 'Inspect Document', icon: 'FileScan', category: 'operation', color: '#0F766E', description: 'File type, checksum, word counts and search with context' },
   // ─── Sub-workflow ───
   { type: 'call_sub_workflow', label: 'Call Sub Workflow', icon: 'GitMerge', category: 'action', color: '#6366F1', description: 'Execute another workflow as a sub-process' },
   { type: 'decision_table', label: 'Decision Table', icon: 'Scale', category: 'action', color: '#0EA5E9', description: 'Evaluate a business rule / decision table and return outputs' },

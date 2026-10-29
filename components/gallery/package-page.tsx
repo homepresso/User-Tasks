@@ -209,6 +209,7 @@ export function GalleryPackagePage({ pkg }: { pkg: GalleryPackage }) {
               <h3 className="mt-3 text-lg font-semibold">{GALLERY_TRIGGERS[pkg.trigger].label}</h3>
               <p className="mt-2 text-sm leading-6 text-[#4A463E]">{startDetail(pkg, entry)}</p>
               <p className="mt-3 text-xs leading-5 text-[#6E6759]">{GALLERY_TRIGGERS[pkg.trigger].description}</p>
+              {pkg.trigger === "form" && <Link href="/forms" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#8A6D45] hover:underline">How forms work <ArrowRight size={14} aria-hidden="true" /></Link>}
             </div>
           </div>
         </section>

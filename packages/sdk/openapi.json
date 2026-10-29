@@ -63,6 +63,9 @@
       "name": "Form submissions"
     },
     {
+      "name": "Files"
+    },
+    {
       "name": "Workflow activities"
     },
     {
@@ -2010,7 +2013,8 @@
                                   "json",
                                   "select",
                                   "email",
-                                  "url"
+                                  "url",
+                                  "attachments"
                                 ]
                               },
                               "required": {
@@ -17490,6 +17494,400 @@
         "x-usertasks-cli": {
           "resource": "forms",
           "verb": "lookup",
+          "positional": [
+            "id"
+          ]
+        }
+      }
+    },
+    "/files/uploads": {
+      "post": {
+        "operationId": "uploadFile",
+        "summary": "Upload a file for an Attachments field (or start a direct upload)",
+        "description": "With content_base64: the file is checked (size, type by content, blocked types, SVG sanitising, optional virus scan) and stored; returns `{ mode: \"uploaded\", file }`. With size only: returns `{ mode: \"direct\", file_id, upload: { url, method, headers }, expires_at }` — PUT the bytes to the URL with exactly those headers, then POST /files/uploads/{file_id}/complete — or `{ mode: \"server\", max_bytes }` when the storage can't sign uploads (send content_base64 instead). The file is pending until its id is used in a task completion, form submission or workflow start by the same user; unused uploads are deleted after 24 hours. Needs a user-bound credential.",
+        "tags": [
+          "Files"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "task_id": {
+                    "description": "Upload into this open task's form (you must be able to act on it)",
+                    "type": "string"
+                  },
+                  "form_id": {
+                    "description": "Upload for a submission of this reusable form (forms.submit)",
+                    "type": "string"
+                  },
+                  "workflow_id": {
+                    "description": "Upload for this workflow's start-form attachments input (workflows.activate)",
+                    "type": "string"
+                  },
+                  "field_key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "description": "The Attachments field (or start-form input) key"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "File name (its extension must be an allowed type)"
+                  },
+                  "size": {
+                    "description": "Size in bytes: without content_base64, starts a direct upload to storage",
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "content_base64": {
+                    "description": "The file itself, base64 (small files; the request body limit applies). Omit to get a signed upload URL",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "field_key",
+                  "name"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "task_id": {
+                    "description": "Upload into this open task's form (you must be able to act on it)",
+                    "type": "string"
+                  },
+                  "form_id": {
+                    "description": "Upload for a submission of this reusable form (forms.submit)",
+                    "type": "string"
+                  },
+                  "workflow_id": {
+                    "description": "Upload for this workflow's start-form attachments input (workflows.activate)",
+                    "type": "string"
+                  },
+                  "field_key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "description": "The Attachments field (or start-form input) key"
+                  },
+                  "size": {
+                    "description": "Size in bytes: without content_base64, starts a direct upload to storage",
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "uploaded",
+                            "direct",
+                            "server"
+                          ]
+                        },
+                        "file": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "size": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "mime_type": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string"
+                            },
+                            "storage_ref": {
+                              "type": "string"
+                            },
+                            "uploaded_by": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "uploaded_at": {
+                              "type": "string"
+                            },
+                            "checksum_sha256": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "size",
+                            "mime_type",
+                            "url",
+                            "storage_ref",
+                            "uploaded_by",
+                            "uploaded_at",
+                            "checksum_sha256"
+                          ],
+                          "additionalProperties": {}
+                        },
+                        "file_id": {
+                          "type": "string"
+                        },
+                        "upload": {
+                          "type": "object",
+                          "properties": {},
+                          "additionalProperties": {}
+                        },
+                        "expires_at": {
+                          "type": "string"
+                        },
+                        "max_bytes": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "mode"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": null,
+        "x-usertasks-cli": {
+          "resource": "files",
+          "verb": "upload-init"
+        }
+      }
+    },
+    "/files/uploads/{id}/complete": {
+      "post": {
+        "operationId": "completeFileUpload",
+        "summary": "Finish a direct upload (the server verifies the stored file)",
+        "description": "The uploader only, within the upload window (15 minutes by default). The object is read back and verified; a file that fails (wrong type or size, blocked content) is deleted and the reason returned.",
+        "tags": [
+          "Files"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "file": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "size": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "mime_type": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string"
+                            },
+                            "storage_ref": {
+                              "type": "string"
+                            },
+                            "uploaded_by": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "uploaded_at": {
+                              "type": "string"
+                            },
+                            "checksum_sha256": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "size",
+                            "mime_type",
+                            "url",
+                            "storage_ref",
+                            "uploaded_by",
+                            "uploaded_at",
+                            "checksum_sha256"
+                          ],
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "file"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": null,
+        "x-usertasks-cli": {
+          "resource": "files",
+          "verb": "upload-complete",
           "positional": [
             "id"
           ]

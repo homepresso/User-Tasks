@@ -440,6 +440,8 @@ export function includeRepoMarkdown(relativePath: string): DocBlock[] {
 }
 
 export const CHANGELOG_FILES = [
+  { id: 'form-attachments', file: 'docs/changes/form-attachments.md' },
+  { id: 'document-actions', file: 'docs/changes/document-actions.md' },
   { id: 'form-qr-publish', file: 'docs/changes/form-qr-publish.md' },
   { id: 'manager-view', file: 'docs/changes/manager-view.md' },
   { id: 'workflow-started-by', file: 'docs/changes/workflow-started-by.md' },

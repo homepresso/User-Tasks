@@ -3509,6 +3509,73 @@
   ]
  },
  {
+  "label": "Files",
+  "endpoints": [
+   {
+    "method": "POST",
+    "path": "/api/v1/files/uploads",
+    "label": "Upload a file for an Attachments field (or start a direct upload)",
+    "description": "With content_base64: the file is checked (size, type by content, blocked types, SVG sanitising, optional virus scan) and stored; returns `{ mode: \"uploaded\", file }`. With size only: returns `{ mode: \"direct\", file_id, upload: { url, method, headers }, expires_at }` — PUT the bytes to the URL with exactly those headers, then POST /files/uploads/{file_id}/complete — or `{ mode: \"server\", max_bytes }` when the storage can't sign uploads (send content_base64 instead). The file is pending until its id is used in a task completion, form submission or workflow start by the same user; unused uploads are deleted after 24 hours. Needs a user-bound credential.",
+    "params": [
+     {
+      "name": "task_id",
+      "type": "body",
+      "description": "Upload into this open task's form (you must be able to act on it)"
+     },
+     {
+      "name": "form_id",
+      "type": "body",
+      "description": "Upload for a submission of this reusable form (forms.submit)"
+     },
+     {
+      "name": "workflow_id",
+      "type": "body",
+      "description": "Upload for this workflow's start-form attachments input (workflows.activate)"
+     },
+     {
+      "name": "field_key",
+      "type": "body",
+      "required": true,
+      "description": "The Attachments field (or start-form input) key"
+     },
+     {
+      "name": "name",
+      "type": "body",
+      "required": true,
+      "description": "File name (its extension must be an allowed type)"
+     },
+     {
+      "name": "size",
+      "type": "body",
+      "placeholder": "0",
+      "description": "Size in bytes: without content_base64, starts a direct upload to storage"
+     },
+     {
+      "name": "content_base64",
+      "type": "body",
+      "description": "The file itself, base64 (small files; the request body limit applies). Omit to get a signed upload URL"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/files/uploads/{id}/complete",
+    "label": "Finish a direct upload (the server verifies the stored file)",
+    "description": "The uploader only, within the upload window (15 minutes by default). The object is read back and verified; a file that fails (wrong type or size, blocked content) is deleted and the reason returned.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Resource id"
+     }
+    ],
+    "permission": null
+   }
+  ]
+ },
+ {
   "label": "Workflow activities",
   "endpoints": [
    {

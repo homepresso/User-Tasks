@@ -13,9 +13,9 @@ fullnameOverride: ""
 image:
   # The UserTasks image (the repository's Dockerfile). Air-gapped: the bundle's
   # images pushed to your registry (docs/setup-air-gapped.md). Optional drivers
-  # (Snowflake, Oracle, MongoDB; the storage / email / secrets / KMS SDKs) are
-  # chosen when the image is built (INCLUDE_OPTIONAL_DB_DRIVERS,
-  # INCLUDE_STORAGE_SDKS, INCLUDE_PROVIDER_SDKS; docs/optional-drivers.md):
+  # (Snowflake, Oracle, MongoDB; the storage / email / secrets / KMS SDKs; OCR)
+  # are chosen when the image is built (INCLUDE_OPTIONAL_DB_DRIVERS,
+  # INCLUDE_STORAGE_SDKS, INCLUDE_PROVIDER_SDKS, INCLUDE_OCR; docs/optional-drivers.md):
   # build it with the ones your providers need.
   repository: usertasks
   # Defaults to the chart's appVersion.
@@ -315,6 +315,13 @@ ingress:
   enabled: false
   className: ""
   annotations: {}
+  # Largest request body the ingress passes to the app: form attachment
+  # uploads that go through the app (local-disk storage; providers with
+  # signed uploads send files straight to storage). Sets the ingress-nginx
+  # annotation nginx.ingress.kubernetes.io/proxy-body-size (other
+  # controllers: set their own annotation in `annotations`). Keep it at or
+  # above the app's FORM_UPLOAD_MAX_BODY_MB (default 50). "" = leave as is.
+  maxBodySize: "64m"
   # cert-manager: adds cert-manager.io/cluster-issuer (or issuer).
   certManager:
     clusterIssuer: ""

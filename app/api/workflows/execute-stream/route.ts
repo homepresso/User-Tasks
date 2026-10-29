@@ -35,23 +35,30 @@ export async function POST(request: NextRequest) {
       resumeRunId = authorized.run.id
       resumeEventId = authorized.run.event_id ?? undefined
       actorId = authorized.ctx.actorId
+      // Attachments in the test task's values: only the tester's own uploads, as the server recorded them.
+      const taskData = variables?.task_data
+      if (taskData && typeof taskData === 'object' && !Array.isArray(taskData)) {
+        const [{ sanitizeTestTaskFiles }, { createServiceClient }] = await Promise.all([import('@/lib/services/form-files'), import('@/lib/cron-auth')])
+        variables = { ...variables, task_data: await sanitizeTestTaskFiles(createServiceClient(), authorized.ctx.tenantId, actorId, taskData as Record<string, unknown>) }
+      }
     } else if (workflow_id) {
       const authorized = await authorizeWorkflowExecute({ workflowId: workflow_id, test: true })
       workflowId = authorized.workflow.id
       actorId = authorized.ctx.actorId
-      if (form_submission && typeof form_submission === 'object') {
-        const { prepareTestFormRun } = await import('@/lib/services/workflow-start-form')
-        const prepared = await prepareTestFormRun(authorized.ctx, workflowId, form_submission)
-        variables = prepared.variables
-        preLogs = prepared.logs
-      }
+      // A workflow that starts from a form never test-runs before that form
+      // is submitted: a "Form submitted" trigger needs a test submission
+      // (server-built payload), a start form values that pass its checks.
+      const { prepareTestStart } = await import('@/lib/services/workflow-start-form')
+      const prepared = await prepareTestStart(authorized.ctx, workflowId, { variables, form_submission })
+      variables = prepared.variables
+      preLogs = prepared.logs
     } else {
       return NextResponse.json({ error: 'workflow_id or resume_event_id required' }, { status: 400 })
     }
   } catch (error) {
     if (isServiceError(error) && error.code === 'validation_error') {
-      const details = error.details as { fields?: Record<string, string> } | undefined
-      return NextResponse.json({ error: error.message, ...(details?.fields ? { fields: details.fields } : {}) }, { status: 422 })
+      const details = error.details as { fields?: Record<string, string>; needs_form_input?: boolean } | undefined
+      return NextResponse.json({ error: error.message, ...(details?.fields ? { fields: details.fields } : {}), ...(details?.needs_form_input ? { needs_form_input: true } : {}) }, { status: 422 })
     }
     const { status, body: errorBody } = authzErrorResponse(error)
     return NextResponse.json(errorBody, { status })

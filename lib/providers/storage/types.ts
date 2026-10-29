@@ -60,6 +60,21 @@ export interface StorageProvider {
   copy(bucket: string, fromKey: string, toKey: string, options?: { toBucket?: string; upsert?: boolean }): Promise<void>
   /** Create the bucket / container / directory when missing (setup, tests, migration). */
   ensureBucket(bucket: string, options?: { public?: boolean }): Promise<void>
+  /**
+   * A time-limited URL the BROWSER uploads one object to directly (PUT the
+   * bytes with `headers`), so large files never pass through the app server
+   * (serverless request bodies are capped at a few MB). Optional: providers
+   * without it (local disk) use the server upload path. The object must not
+   * exist yet; the caller verifies it after the upload.
+   */
+  createUploadUrl?(bucket: string, key: string, options: { contentType: string; ttlSeconds: number }): Promise<DirectUploadTarget>
+}
+
+export interface DirectUploadTarget {
+  url: string
+  method: 'PUT'
+  /** Headers the browser sends with the PUT (exactly these). */
+  headers: Record<string, string>
 }
 
 export class StorageObjectExistsError extends Error {

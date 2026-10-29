@@ -133,7 +133,7 @@ export const workflowStartBody = z.object({
 const workflowInputField = z.looseObject({
   key: z.string(),
   label: z.string(),
-  type: z.enum(['text', 'number', 'boolean', 'date', 'datetime', 'json', 'select', 'email', 'url']),
+  type: z.enum(['text', 'number', 'boolean', 'date', 'datetime', 'json', 'select', 'email', 'url', 'attachments']),
   required: z.boolean(),
   default: z.any().describe('Typed default, or null'),
   description: z.string().nullable(),

@@ -126,7 +126,11 @@ export type StartWorkflowResult =
  * Start a run of an active workflow on its published version (the draft when
  * never published). Async enqueues it (priority 0-100), sync runs it now.
  */
-export async function startWorkflow(ctx: ServiceContext, input: StartWorkflowInput, options: { via?: StartedVia } = {}): Promise<StartWorkflowResult> {
+export async function startWorkflow(ctx: ServiceContext, input: StartWorkflowInput, options: {
+  via?: StartedVia
+  /** Attachments values were built by the server already (a form button's Start workflow, from the stored submission). */
+  filesVerified?: boolean
+} = {}): Promise<StartWorkflowResult> {
   requirePerm(ctx, 'workflows.activate')
   const { schema, publishedVersionId } = await loadWorkflowInputs(ctx, input.workflow_id)
   if (!schema.is_active) throw ServiceError.validation('Workflow is not active')
@@ -135,6 +139,23 @@ export async function startWorkflow(ctx: ServiceContext, input: StartWorkflowInp
   if (!checked.ok) {
     throw ServiceError.validation(`Invalid workflow inputs: ${formatInputErrors(checked.errors)}`,
       checked.errors.map((e) => ({ path: `body.variables.${e.field}`, field: e.field, message: e.message })))
+  }
+  // Attachments inputs: rebuilt from the upload records (this person's
+  // uploads to this workflow's start form, or file ids from the API).
+  const attachmentInputs = schema.fields.filter((f) => f.type === 'attachments')
+  if (attachmentInputs.length && !options.filesVerified) {
+    const { resolveAttachmentValues } = await import('./form-files')
+    const defs = attachmentInputs.map((f) => ({ key: f.key, label: f.label, type: 'attachments' as const, ...(f.required ? { required: true } : {}), ...(f.attachments ? { attachments: f.attachments } : {}) }))
+    const db = await serviceRoleClient(ctx)
+    const resolved = await resolveAttachmentValues(db, ctx.tenantId, defs, checked.values, { kind: 'start', workflowId: input.workflow_id, actorId: ctx.actorId })
+    if (Object.keys(resolved.errors).length) {
+      throw ServiceError.validation(`Invalid workflow inputs: ${Object.entries(resolved.errors).map(([k, m]) => `${k}: ${m}`).join('; ')}`,
+        Object.entries(resolved.errors).map(([field, message]) => ({ path: `body.variables.${field}`, field, message })))
+    }
+    for (const field of attachmentInputs) {
+      if (checked.values[field.key] === undefined && resolved.values[field.key] !== undefined && !(resolved.values[field.key] as unknown[]).length) continue
+      Object.assign(checked.values, { [field.key]: resolved.values[field.key], [`${field.key}_count`]: resolved.values[`${field.key}_count`] })
+    }
   }
   const warnings = checked.warnings.length ? { warnings: checked.warnings } : {}
   if (input.task_id) await requireTenantTask(ctx, input.task_id)

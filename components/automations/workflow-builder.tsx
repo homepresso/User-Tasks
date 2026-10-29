@@ -87,13 +87,16 @@ function PanelSkeleton({ rows }: { rows: number }) {
 export interface UserVariable {
   id: string
   name: string
-  type: 'string' | 'number' | 'boolean' | 'object'
+  /** `array` + format `attachments`: a list of uploaded files (designed in the start form). */
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array'
   defaultValue: string
   description: string
   /** Input parameter settings (Run dialog, API/CLI starts): a start must supply a value (or the default applies). */
   required?: boolean
   /** Refines a string input: date, datetime, email, url or select (with `options`). */
-  format?: 'text' | 'date' | 'datetime' | 'email' | 'url' | 'select'
+  format?: 'text' | 'date' | 'datetime' | 'email' | 'url' | 'select' | 'attachments'
+  /** Attachments inputs: counts, sizes, types (lib/forms/attachments.ts; set in the start form designer). */
+  attachments?: Record<string, unknown>
   /** Choices of a select input, comma separated. */
   options?: string
 }

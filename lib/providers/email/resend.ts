@@ -24,6 +24,9 @@ export function createResendTransport(options: EmailOptions): EmailTransport {
         html: message.html,
         ...(message.text ? { text: message.text } : {}),
         replyTo: message.replyTo || undefined,
+        ...(message.attachments?.length
+          ? { attachments: message.attachments.map((a) => ({ filename: a.filename, content: Buffer.from(a.content), contentType: a.contentType })) }
+          : {}),
       })
       if (error) throw new Error(error.message)
       return { id: data?.id }

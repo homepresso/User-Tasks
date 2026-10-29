@@ -63,6 +63,10 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   forms_duplicate: 'forms.edit',
   forms_delete: 'forms.delete',
   forms_submit: 'forms.submit',
+  // Attachments uploads (the service checks the context: task, form or workflow start).
+  files_upload: 'forms.submit',
+  files_upload_init: 'forms.submit',
+  files_upload_complete: 'forms.submit',
   form_themes_create: 'forms.edit',
   form_themes_update: 'forms.edit',
   form_themes_delete: 'forms.delete',

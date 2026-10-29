@@ -709,6 +709,18 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "envelope": true
   },
   {
+    "operationId": "uploadFile",
+    "method": "POST",
+    "path": "/files/uploads",
+    "envelope": true
+  },
+  {
+    "operationId": "completeFileUpload",
+    "method": "POST",
+    "path": "/files/uploads/{id}/complete",
+    "envelope": true
+  },
+  {
     "operationId": "listWorkflowActivities",
     "method": "GET",
     "path": "/workflow-activities",

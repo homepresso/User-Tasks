@@ -1,5 +1,6 @@
 'use client'
 
+import { documentNodeRoots } from '@/lib/documents/schemas'
 import { useState } from 'react'
 import { TASK_VARIABLE_CATALOG } from '@/lib/task-data'
 import { ChevronDown, ChevronRight, Variable, Globe, Zap, Database } from 'lucide-react'
@@ -116,6 +117,11 @@ export function ContextViewer({ nodes, triggerType }: ContextViewerProps) {
         variables.push({ name: `${finalVar}_sheets`, source: n.label, sourceIcon: 'variable', type: 'auto' })
       }
     }
+
+    // Document actions
+    documentNodeRoots(n.type, n.config ?? {}).forEach((root, k) => {
+      variables.push({ name: root.path, source: n.label, sourceIcon: 'variable', type: k === 0 ? 'dynamic' : 'auto' })
+    })
 
     // Set Variable
     if (n.type === 'set_variable' && n.config.name) {

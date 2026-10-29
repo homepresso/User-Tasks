@@ -1,6 +1,6 @@
 /**
  * The optional packages (package.json optionalDependencies): database drivers,
- * storage / email / secrets / KMS provider SDKs and the SAML library. Each is
+ * storage / email / secrets / KMS provider SDKs, the SAML library and tesseract.js (OCR). Each is
  * loaded only by the feature that needs it. When one is not installed at build
  * time, next.config.ts aliases it to the matching missing-*.ts stub in this
  * folder, so the feature fails with an actionable message (see
@@ -11,7 +11,7 @@
  * and the Dockerfile in step.
  */
 
-export type OptionalPackageGroup = 'database' | 'storage' | 'provider'
+export type OptionalPackageGroup = 'database' | 'storage' | 'provider' | 'document'
 
 export interface OptionalPackage {
   /** Version range from package.json optionalDependencies. */
@@ -29,6 +29,7 @@ export interface OptionalPackage {
 const DB_ARG = { name: 'INCLUDE_OPTIONAL_DB_DRIVERS', default: false }
 const STORAGE_ARG = { name: 'INCLUDE_STORAGE_SDKS', default: true }
 const PROVIDER_ARG = { name: 'INCLUDE_PROVIDER_SDKS', default: true }
+const OCR_ARG = { name: 'INCLUDE_OCR', default: false }
 
 export const OPTIONAL_PACKAGES = {
   'snowflake-sdk': { version: '^2.4.0', feature: 'Snowflake connector', group: 'database', dockerArg: DB_ARG },
@@ -50,6 +51,8 @@ export const OPTIONAL_PACKAGES = {
   // Always in the image: the SQL Server driver (tedious) depends on it too.
   '@azure/keyvault-keys': { version: '^4.10.2', feature: 'KMS_PROVIDER=azure_key_vault', group: 'provider', dockerArg: null },
   '@node-saml/node-saml': { version: '^5.1.0', feature: 'SAML sign-in', group: 'provider', dockerArg: null },
+  // OCR for scanned PDFs and images in the document actions (WebAssembly, no native code; ~45 MB).
+  'tesseract.js': { version: '7.0.0', feature: 'OCR in Read / Extract / Convert document (DOCUMENT_OCR_PROVIDER=tesseract)', group: 'document', dockerArg: OCR_ARG },
 } as const satisfies Record<string, OptionalPackage>
 
 export type OptionalPackageName = keyof typeof OPTIONAL_PACKAGES

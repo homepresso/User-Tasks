@@ -1,4 +1,5 @@
 import { emailOption, loadEmailSdk, type EmailOptions, type EmailTransport } from './types'
+import { buildMimeMessage } from './mime'
 
 /**
  * Amazon SES (SESv2 API, @aws-sdk/client-sesv2, an optional dependency).
@@ -37,7 +38,10 @@ export function createSesTransport(options: EmailOptions): EmailTransport {
           Destination: { ToAddresses: message.to },
           ...(message.replyTo ? { ReplyToAddresses: [message.replyTo] } : {}),
           ...(configurationSet ? { ConfigurationSetName: configurationSet } : {}),
-          Content: {
+          Content: message.attachments?.length ? {
+            // Attachments need a raw MIME message.
+            Raw: { Data: new TextEncoder().encode(buildMimeMessage(message)) },
+          } : {
             Simple: {
               Subject: { Data: message.subject, Charset: 'UTF-8' },
               Body: {

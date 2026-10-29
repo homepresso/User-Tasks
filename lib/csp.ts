@@ -61,7 +61,34 @@ export function storageMediaSources(publicBases: Record<string, string> | undefi
   return [...out]
 }
 
-export function buildContentSecurityPolicy(opts: { supabaseUrl: string | undefined; isDev: boolean; storagePublicBases?: Record<string, string> }): string {
+/**
+ * connect-src origins the browser PUTs direct uploads to (form attachments
+ * over 4 MB go straight to the store through a signed URL): the S3 endpoint
+ * (AWS: any amazonaws.com host), the Azure Blob account, Google Cloud
+ * Storage. Supabase Storage is already covered by the Supabase origin; the
+ * local provider has no direct uploads. Plain http only on loopback.
+ */
+export function storageUploadSources(id: string | undefined, options: Record<string, unknown> = {}): string[] {
+  const origin = (value: unknown): string | null => {
+    try {
+      const url = new URL(String(value ?? '').trim())
+      if (url.protocol === 'https:') return `https://${url.host}`
+      if (url.protocol === 'http:' && LOOPBACK_HOSTS.has(url.hostname)) return `http://${url.host}`
+    } catch { /* not a URL */ }
+    return null
+  }
+  if (id === 's3') return [origin(options.endpoint) ?? 'https://*.amazonaws.com']
+  if (id === 'azure_blob') {
+    const endpoint = origin(options.azure_endpoint)
+    if (endpoint) return [endpoint]
+    const account = String(options.azure_account_name ?? '').trim() || /AccountName=([^;]+)/i.exec(String(options.azure_connection_string ?? ''))?.[1]
+    return [account ? `https://${account}.blob.core.windows.net` : 'https://*.blob.core.windows.net']
+  }
+  if (id === 'gcs') return [origin(options.gcs_endpoint) ?? 'https://storage.googleapis.com']
+  return []
+}
+
+export function buildContentSecurityPolicy(opts: { supabaseUrl: string | undefined; isDev: boolean; storagePublicBases?: Record<string, string>; storageUploadSources?: string[] }): string {
   // Stored files: Supabase public URLs (https is already allowed; a loopback
   // http stack — `supabase start` — needs its origin) and direct store URLs.
   const loopbackSupabase = supabaseConnectSources(opts.supabaseUrl).filter((s) => s.startsWith('http://'))
@@ -72,7 +99,7 @@ export function buildContentSecurityPolicy(opts: { supabaseUrl: string | undefin
     "style-src 'self' 'unsafe-inline' https:",
     `img-src 'self' blob: data: https:${media}`,
     `font-src 'self' data: https:${media}`,
-    `connect-src 'self' ${supabaseConnectSources(opts.supabaseUrl).join(' ')}`,
+    `connect-src 'self' ${[...new Set([...supabaseConnectSources(opts.supabaseUrl), ...(opts.storageUploadSources ?? [])])].join(' ')}`,
     `media-src 'self' blob: data:${media}`,
     "worker-src 'self' blob:",
     "object-src 'none'",
@@ -85,9 +112,11 @@ export function buildContentSecurityPolicy(opts: { supabaseUrl: string | undefin
 /** The policy for the current runtime config (lib/config). */
 export function contentSecurityPolicy(): string {
   let storagePublicBases: Record<string, string> | undefined
+  let uploadSources: string[] = []
   try {
     const { id, options } = storageConfigSync()
     storagePublicBases = id === 'supabase' || id === 'local' ? undefined : publicBasesFor(options)
+    uploadSources = storageUploadSources(id, options)
   } catch {
     storagePublicBases = undefined
   }
@@ -95,5 +124,6 @@ export function contentSecurityPolicy(): string {
     supabaseUrl: supabaseUrl(),
     isDev: process.env.NODE_ENV === 'development',
     storagePublicBases,
+    storageUploadSources: uploadSources,
   })
 }

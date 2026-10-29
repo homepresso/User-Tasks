@@ -7,6 +7,7 @@ import { decisionTableEndpoints } from './decision-tables'
 import { directorySyncEndpoints } from './directory-sync'
 import { emailTemplateEndpoints } from './email-templates'
 import { eventEndpoints } from './events'
+import { fileEndpoints } from './files'
 import { formEndpoints } from './forms'
 import { githubSyncEndpoints } from './github-sync'
 import { governanceEndpoints } from './governance'
@@ -34,6 +35,7 @@ export const API_ENDPOINTS: readonly EndpointDef[] = [
   ...integrationEndpoints,
   ...emailTemplateEndpoints,
   ...formEndpoints,
+  ...fileEndpoints,
   ...workflowActivityEndpoints,
   ...reportEndpoints,
   ...retentionEndpoints,

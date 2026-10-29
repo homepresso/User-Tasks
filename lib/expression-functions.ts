@@ -115,6 +115,8 @@ export const FUNCTION_CATALOG: FunctionDef[] = [
   { name: 'FILE_EXT', category: 'file', description: 'Extract file extension', args: [{ name: 'path', type: 'string' }], example: 'FILE_EXT("report.pdf") → "pdf"', returnType: 'string' },
   { name: 'FILE_BASE_NAME', category: 'file', description: 'Filename without extension', args: [{ name: 'path', type: 'string' }], example: 'FILE_BASE_NAME("report.pdf") → "report"', returnType: 'string' },
   { name: 'MIME_TYPE', category: 'file', description: 'Get MIME type from extension', args: [{ name: 'filename', type: 'string' }], example: 'MIME_TYPE("doc.pdf") → "application/pdf"', returnType: 'string' },
+  { name: 'FILE_NAMES', category: 'file', description: 'Names of a list of files (an Attachments field), joined', args: [{ name: 'files', type: 'array' }, { name: 'separator', type: 'string', optional: true }], example: 'FILE_NAMES(task_data.receipts) → "a.pdf, b.png"', returnType: 'string' },
+  { name: 'FILES_TOTAL_SIZE', category: 'file', description: 'Total size in bytes of a list of files', args: [{ name: 'files', type: 'array' }], example: 'FILE_SIZE_FORMAT(FILES_TOTAL_SIZE(task_data.receipts)) → "2.4 MB"', returnType: 'number' },
   { name: 'FILE_SIZE_FORMAT', category: 'file', description: 'Format bytes to human-readable', args: [{ name: 'bytes', type: 'number' }], example: 'FILE_SIZE_FORMAT(1048576) → "1.0 MB"', returnType: 'string' },
   { name: 'DATA_URI', category: 'file', description: 'Build data URI from base64 + mime', args: [{ name: 'base64', type: 'string' }, { name: 'mimeType', type: 'string' }], example: 'DATA_URI("SGVs...", "text/plain")', returnType: 'string' },
   { name: 'DATA_URI_BASE64', category: 'file', description: 'Extract base64 from a data URI', args: [{ name: 'dataUri', type: 'string' }], example: 'DATA_URI_BASE64("data:text/plain;base64,SGVs...") → "SGVs..."', returnType: 'string' },
@@ -690,6 +692,15 @@ export function evaluateFunction(expr: string, scope?: Record<string, any>): any
           ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
         }
         return mimes[ext] ?? 'application/octet-stream'
+      }
+      // An Attachments field's list of file objects (or one file).
+      case 'FILE_NAMES': {
+        const list = Array.isArray(args[0]) ? args[0] : args[0] && typeof args[0] === 'object' ? [args[0]] : []
+        return list.map((f: any) => (f && typeof f === 'object' ? String(f.name ?? '') : String(f ?? ''))).filter(Boolean).join(args[1] === undefined ? ', ' : String(args[1]))
+      }
+      case 'FILES_TOTAL_SIZE': {
+        const list = Array.isArray(args[0]) ? args[0] : args[0] && typeof args[0] === 'object' ? [args[0]] : []
+        return list.reduce((sum: number, f: any) => sum + (Number(f?.size) || 0), 0)
       }
       case 'FILE_SIZE_FORMAT': {
         const bytes = Number(args[0]) || 0

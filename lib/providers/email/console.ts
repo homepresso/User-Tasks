@@ -23,7 +23,8 @@ export function createConsoleTransport(options: EmailOptions): EmailTransport {
         file = path.join(dir, `${id}.eml`)
         await writeFile(file, buildMimeMessage(message), { mode: 0o600 })
       }
-      console.log(`[email:console] to ${message.to.join(', ')} — ${message.subject}${file ? ` (${file})` : ''}`)
+      const files = message.attachments?.length ? ` [${message.attachments.length} attachment${message.attachments.length === 1 ? '' : 's'}: ${message.attachments.map((a) => a.filename).join(', ')}]` : ''
+      console.log(`[email:console] to ${message.to.join(', ')} — ${message.subject}${files}${file ? ` (${file})` : ''}`)
       return { id }
     },
   }

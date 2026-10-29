@@ -6,14 +6,20 @@
  * name an active member of the task's workspace, and an Autocomplete /
  * lookup field's value must exist in its source (unless it allows free
  * text); the selected item is stored as `<key>_item` (computed here, never
- * taken from the client). Never trust the client.
+ * taken from the client); an Attachments field's files are rebuilt from the
+ * server's upload records (lib/services/form-files.ts) — only files
+ * uploaded into this task / form by this submitter — with `<key>_count`.
+ * Never trust the client.
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { FileValueContext } from '@/lib/services/form-files'
 import { coerceTaskFieldValues, mergeTaskFieldValues, normalizeTaskFields } from '@/lib/task-field-schema'
 import { isPlainObject } from '@/lib/utils/guards'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- user_memberships is read untyped */
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /**
  * "Fill other fields from the selected item": the values come from the
@@ -27,7 +33,7 @@ function lookupFillTargets(fields: ReturnType<typeof normalizeTaskFields>, fills
   const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(fills)) {
     const target = fields.find((f) => f.key === key)
-    if (!target || target.type === 'lookup') continue
+    if (!target || target.type === 'lookup' || target.type === 'attachments') continue
     Object.assign(out, coerceTaskFieldValues([target], { [key]: value }))
   }
   return out
@@ -38,7 +44,13 @@ export async function mergeTaskFieldValuesChecked(
   tenantId: string,
   metadata: Record<string, unknown> | null | undefined,
   values: Record<string, unknown> | null | undefined,
-  options: { partial?: boolean; taskId?: string | null; task?: Record<string, unknown> | null } = {},
+  options: {
+    partial?: boolean
+    taskId?: string | null
+    task?: Record<string, unknown> | null
+    /** Where attachment uploads must come from (default: the task `taskId`). */
+    files?: FileValueContext | null
+  } = {},
 ): Promise<{ errors: Record<string, string>; templateValues: Record<string, unknown> }> {
   const merged = mergeTaskFieldValues(metadata, values, options)
   if (Object.keys(merged.errors).length > 0) return merged
@@ -65,6 +77,21 @@ export async function mergeTaskFieldValuesChecked(
     })
     Object.assign(errors, resolved.errors)
     templateValues = { ...templateValues, ...resolved.items, ...lookupFillTargets(fields, resolved.fills ?? {}) }
+  }
+  // Attachments: the files are re-read from the upload records (this
+  // task's, or this submitter's uploads to this form); `<key>_count` added.
+  const attachments = fields.filter((f) => f.type === 'attachments' && !f.read_only)
+  const attachmentKeys = options.partial
+    ? attachments.filter((f) => values && Object.prototype.hasOwnProperty.call(values, f.key)).map((f) => f.key)
+    : attachments.map((f) => f.key)
+  if (attachmentKeys.length) {
+    const { resolveAttachmentValues } = await import('@/lib/services/form-files')
+    const { createServiceClient } = await import('@/lib/cron-auth')
+    const context: FileValueContext | null = options.files
+      ?? (options.taskId && UUID_RE.test(options.taskId) ? { kind: 'task', taskId: options.taskId } : null)
+    const resolved = await resolveAttachmentValues(createServiceClient(), tenantId, fields, templateValues, context, attachmentKeys)
+    Object.assign(errors, resolved.errors)
+    templateValues = { ...templateValues, ...resolved.values }
   }
   if (!values) return { errors, templateValues }
   const people = fields.filter((f) => f.type === 'user' && !f.read_only)

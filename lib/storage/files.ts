@@ -38,13 +38,49 @@ export async function storeWorkflowFile(
 }
 
 /**
- * fetch() for a file URL a workflow references. Own stored objects are read
- * through the storage provider when it isn't Supabase (no HTTP round trip to
- * the app's own /files route, and it works where APP_URL isn't reachable
- * from the server); `storage://` references are resolved first. Everything
- * else, and every URL under the default provider, is a plain fetch as before.
+ * The string fetchFile() takes for a file-ish workflow value: a form
+ * attachment object → its `storage://form-files/…` reference; another file
+ * object (`{ url }`, `{ file_url }`) → its URL; a list → its first file;
+ * anything else → String(value).
  */
-export async function fetchFile(url: string, init?: RequestInit): Promise<Response> {
+export function fileSource(value: unknown): string {
+  if (Array.isArray(value)) return value.length ? fileSource(value[0]) : ''
+  if (value && typeof value === 'object') {
+    const v = value as Record<string, unknown>
+    if (typeof v.storage_ref === 'string' && v.storage_ref.startsWith('storage://form-files/')) return v.storage_ref
+    if (typeof v.url === 'string') return v.url
+    if (typeof v.file_url === 'string') return v.file_url
+    if (typeof v.ref === 'string') return v.ref
+  }
+  return value === null || value === undefined ? '' : String(value)
+}
+
+/**
+ * fetch() for a file URL a workflow references. Form attachments (their
+ * `storage://form-files/…` reference or /attachments/<id> link) are read
+ * through the storage provider for the run's tenant only (`tenantId`; none
+ * → 404). Own stored objects are read through the storage provider when it
+ * isn't Supabase (no HTTP round trip to the app's own /files route, and it
+ * works where APP_URL isn't reachable from the server); `storage://`
+ * references are resolved first. Everything else, and every URL under the
+ * default provider, is a plain fetch as before.
+ */
+export async function fetchFile(url: string, init?: RequestInit, options: { tenantId?: string | null } = {}): Promise<Response> {
+  const { formFileTarget, readWorkflowFile } = await import('@/lib/services/form-files')
+  if (formFileTarget(url)) {
+    if (!options.tenantId) return new Response('Not found', { status: 404 })
+    const { createServiceClient } = await import('@/lib/cron-auth')
+    const file = await readWorkflowFile(createServiceClient() as never, options.tenantId, url)
+    if (!file) return new Response('Not found', { status: 404 })
+    return new Response(file.bytes as unknown as BodyInit, {
+      status: 200,
+      headers: {
+        'content-type': file.mime_type,
+        'content-length': String(file.size),
+        'content-disposition': `attachment; filename="${file.name.replace(/[^\x20-\x7e]|["\\]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(file.name)}`,
+      },
+    })
+  }
   const target = isStorageRef(url) ? resolveStorageUrl(url, { absolute: true }) : url
   const own = parseOwnStorageUrl(url)
   if (own) {

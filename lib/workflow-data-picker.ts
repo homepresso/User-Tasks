@@ -14,6 +14,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- node config is free-form JSON */
 
+import { documentNodeRoots } from '@/lib/documents/schemas'
 import {
   inferSchema,
   isResponseSchema,
@@ -25,6 +26,7 @@ import {
   type SchemaNode,
 } from './response-schema'
 import { lookupItemFields, lookupItemKey } from './forms/lookup'
+import { attachmentsCountKey } from './forms/attachments'
 import { fieldValueSchemaType, normalizeTaskFields, TASK_FIELD_TYPE_LABELS, valueFields, type TaskFieldDef } from './task-field-schema'
 
 export interface PickerNodeLike {
@@ -165,8 +167,30 @@ function str(type: SchemaNode['type'], description?: string): SchemaNode {
 
 const TASK_FORM_TRIGGERS = new Set(['task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected'])
 
-/** The value model of a form field (numbers, booleans, ISO date strings, multi-select arrays). */
+/**
+ * One uploaded file of an Attachments field (lib/forms/attachments.ts
+ * AttachmentFile): what a Loop over the field gives as `{{item}}`, and what
+ * Send Email attachments, HTTP multipart, document and storage steps accept.
+ */
+export const ATTACHMENT_FILE_SCHEMA: SchemaNode = {
+  type: 'object',
+  description: 'An uploaded file',
+  fields: [
+    { name: 'name', type: 'string', description: 'File name', example: 'invoice.pdf' },
+    { name: 'size', type: 'integer', description: 'Size in bytes', example: 48213 },
+    { name: 'mime_type', type: 'string', description: 'Verified MIME type', example: 'application/pdf' },
+    { name: 'url', type: 'string', description: 'Download link (signed-in people who can see the task / submission)' },
+    { name: 'id', type: 'string', description: 'File id' },
+    { name: 'uploaded_by', type: 'string', description: 'User id of the uploader' },
+    { name: 'uploaded_at', type: 'string', description: 'ISO 8601' },
+    { name: 'checksum_sha256', type: 'string', description: 'SHA-256 of the content (hex)' },
+    { name: 'storage_ref', type: 'string', description: 'Storage reference the workflow reads the file with' },
+  ],
+}
+
+/** The value model of a form field (numbers, booleans, ISO date strings, multi-select arrays, file lists). */
 export function fieldSchema(field: TaskFieldDef): SchemaNode {
+  if (field.type === 'attachments') return { type: 'array', items: ATTACHMENT_FILE_SCHEMA, description: 'Uploaded files (loop over them, or attach them all)' }
   if (field.type === 'lookup') {
     const what = field.lookup?.source === 'reference' ? 'API reference' : 'data table'
     return field.lookup?.multiple
@@ -210,6 +234,7 @@ function formFieldEntries(fields: TaskFieldDef[]): FormFieldEntry[] {
     out.push({ key: field.key, label: field.label || field.key, schema: fieldSchema(field), typeLabel: TASK_FIELD_TYPE_LABELS[field.type], ...(field.default !== undefined ? { example: field.default } : {}) })
     const item = lookupItemSchema(field)
     if (item) out.push({ key: lookupItemKey(field.key), label: `${field.label || field.key} (selected item)`, schema: item, typeLabel: 'Lookup item' })
+    if (field.type === 'attachments') out.push({ key: attachmentsCountKey(field.key), label: `${field.label || field.key} (number of files)`, schema: { type: 'integer', description: 'Number of files' }, typeLabel: 'Number' })
   }
   return out
 }
@@ -435,6 +460,8 @@ export function rootsForNode(node: PickerNodeLike, known: DataRoot[] = []): Data
         { path: `${prefix}_status`, label: 'status', schema: { type: 'string' } },
         { path: `${prefix}_results`, label: 'results', schema: { type: 'object' } },
       ]
+    case 'doc_read': case 'doc_compare': case 'doc_convert': case 'doc_pdf': case 'doc_extract': case 'doc_redact': case 'doc_inspect':
+      return documentNodeRoots(node.type, c)
     default:
       return []
   }

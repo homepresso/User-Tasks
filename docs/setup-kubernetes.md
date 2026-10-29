@@ -28,7 +28,8 @@ or load it from the air-gapped bundle. The image decides which
 [optional drivers](optional-drivers.md) exist: the storage, email, secrets
 and KMS SDKs are in by default (`INCLUDE_STORAGE_SDKS`, `INCLUDE_PROVIDER_SDKS`),
 the Snowflake, Oracle and MongoDB drivers only with
-`--build-arg INCLUDE_OPTIONAL_DB_DRIVERS=true`. Values can't add a missing
+`--build-arg INCLUDE_OPTIONAL_DB_DRIVERS=true`, OCR (tesseract.js) only with
+`--build-arg INCLUDE_OCR=true`. Values can't add a missing
 one; rebuild the image. Set `image.repository` and
 `image.tag` (or `image.digest`), or `global.imageRegistry` to prefix every
 image, the bundled dependencies' included.

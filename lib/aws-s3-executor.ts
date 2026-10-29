@@ -411,6 +411,8 @@ export async function executeS3Reference(
   queryParams: Record<string, string>,
   inputHeaders: Record<string, string>,
   timeout: number,
+  /** The reference's workspace: form attachments in the body are read for it only. */
+  tenantId?: string | null,
 ): Promise<S3ExecutorResult> {
   const authCfg = integrationConfig.auth_config ?? {}
 
@@ -493,7 +495,13 @@ export async function executeS3Reference(
   // Resolve body content for uploads — handle URLs, base64, and file reference objects.
   // S3 needs raw binary bytes, not a base64 string or a URL.
   let resolvedBody: string | Buffer | undefined = body
-  if (method === 'PUT' && body) {
+  // A form attachment (file input of an upload): its bytes and verified type.
+  const { readFormFileBody } = method === 'PUT' && body ? await import('@/lib/services/form-files') : { readFormFileBody: null }
+  const formFile = readFormFileBody ? await readFormFileBody(body!, tenantId) : null
+  if (formFile) {
+    resolvedBody = Buffer.from(formFile.bytes)
+    if (contentType === 'application/octet-stream') contentType = formFile.mime_type
+  } else if (method === 'PUT' && body) {
     // File reference object: { _file: true, url: "https://...", ... } — stringified by caller
     let parsed: any = null
     if (body.startsWith('{') || body.startsWith('[object')) {

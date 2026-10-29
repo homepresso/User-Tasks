@@ -642,7 +642,14 @@ NODE TYPES AND CONFIGS:
 - read_file: { file_url: "{{file.url}}", output_var: "file_contents" }
 - read_csv / read_excel: { file_url: "{{file.url}}", output_var: "rows" }
 - add_user_to_role / remove_user_from_role: { user_id: "user-id", role_id: "role-id" } or role_name
-- check_permission: { user_id: "user-id", permission_key: "tasks.view", output_var: "has_permission" }`, {
+- check_permission: { user_id: "user-id", permission_key: "tasks.view", output_var: "has_permission" }
+- doc_read: { source: "{{form.invoice}}" (REQUIRED: a file object / list / storage:// ref / URL / text), pages: "1-3", sheet: "Orders", range: "A1:F200", header_row: "auto"|"first"|"none", ocr: "off"|"auto"|"force", output_var: "document" } → {{document.text}}, {{document.metadata.*}}, {{document.structure.*}}, {{document_rows}}
+- doc_compare: { original: "{{v1}}" (REQUIRED), revised: "{{v2}}" (REQUIRED), mode: "auto"|"lines"|"words"|"characters"|"sentences"|"sheet"|"json", key_columns: "id", ignore_whitespace: true, redline: "none"|"docx"|"pdf"|"both", report: "none"|"html"|"pdf", output_var: "comparison" } → {{comparison.similarity}}, {{comparison_html}}, {{comparison_redline_docx}}
+- doc_convert: { source: "{{file}}" (REQUIRED), target: "pdf"|"docx"|"html"|"markdown"|"text"|"csv"|"xlsx"|"json", engine: "auto"|"builtin"|"external", output_name: "Report", output_var: "converted_file" }
+- doc_pdf: { operation: "merge"|"split"|"extract_pages"|"page_count"|"watermark"|"rotate"|"fill_form"|"read_form", source: "{{pdf}}", sources: "{{form.attachments}}" (merge), pages: "1-3", ranges: "1-2; 3-5", text: "CONFIDENTIAL", fields: [{ name: "Name", value: "{{name}}" }], flatten: true, output_var: "pdf_file" }
+- doc_extract: { source: "{{file}}" (REQUIRED), patterns: [{ name: "invoice_number", pattern: "Invoice\\s*#?\\s*(\\w+)" }], finders: ["emails","urls","phones","dates","amounts","percentages"], to_table: true, table_id: "table-id", column_mapping: [{ column: "sku", field: "SKU" }], output_var: "extracted" }
+- doc_redact: { source: "{{file}}" (REQUIRED), presets: ["email","phone","credit_card","iban","ssn","ip_address","url","date"], terms: "Project Falcon", replacement: "block"|"label"|"text", output: "same"|"pdf"|"html"|"text", output_var: "redacted" }
+- doc_inspect: { source: "{{file}}" (REQUIRED), operation: "all"|"detect"|"checksum"|"stats"|"search", query: "termination", whole_word: true, output_var: "inspection" }`, {
     name: z.string().describe('Workflow name'),
     description: z.string().optional().describe('Workflow description'),
     trigger_type: z.string().optional().describe('Trigger type. Supported: task_created, task_received, task_submitted, task_updated, task_completed, task_rejected, workflow_error, workflow_sla, retention_policy_review, retention_policy_executed, data_table_event, form_submitted, middleware_received, schedule, webhook_received, manual. Default: task_created'),

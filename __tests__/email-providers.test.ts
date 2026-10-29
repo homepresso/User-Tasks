@@ -367,3 +367,67 @@ describe('sendEmail routes every message through the configured provider', () =>
     }
   })
 })
+
+// ── Attachments (workflow Send Email) ────────────────────────────────────────
+
+describe('attachments', () => {
+  const pdf = new TextEncoder().encode('%PDF-1.7\nhello\n%%EOF')
+  const WITH_FILES: EmailMessage = {
+    ...MESSAGE,
+    attachments: [
+      { filename: 'taxi receipt.pdf', contentType: 'application/pdf', content: pdf },
+      { filename: 'Résumé "v2".png', contentType: 'image/png', content: new Uint8Array([0x89, 0x50, 0x4e, 0x47]) },
+    ],
+  }
+
+  it('MIME: multipart/mixed around the alternative, base64 parts, RFC 2231 names, no header injection', () => {
+    const raw = buildMimeMessage({ ...WITH_FILES, attachments: [...WITH_FILES.attachments!, { filename: 'x.txt\r\nBcc: evil@x', contentType: 'text/plain\r\nX: y', content: new Uint8Array([65]) }] })
+    expect(raw).toMatch(/^Content-Type: multipart\/mixed; boundary="=_ut_mixed_/m)
+    expect(raw).toMatch(/Content-Type: multipart\/alternative; boundary=/)
+    expect(raw).toContain('Content-Disposition: attachment; filename="taxi receipt.pdf"')
+    expect(raw).toContain(`filename*=UTF-8''${encodeURIComponent('Résumé _v2_.png')}`)
+    expect(raw).toContain(Buffer.from(pdf).toString('base64'))
+    expect(raw).not.toMatch(/^Bcc:/m)
+    expect(raw).not.toMatch(/^X: y/m)
+    // Without attachments the message is unchanged (multipart/alternative only).
+    expect(buildMimeMessage(MESSAGE)).not.toMatch(/multipart\/mixed/)
+  })
+
+  it('each provider sends the files', async () => {
+    resendSend.mockResolvedValueOnce({ data: { id: 'r1' }, error: null })
+    await createResendTransport({ resend_api_key: 're_test' }).send(WITH_FILES)
+    expect(resendSend.mock.calls.at(-1)?.[0].attachments).toEqual([
+      { filename: 'taxi receipt.pdf', content: Buffer.from(pdf), contentType: 'application/pdf' },
+      expect.objectContaining({ filename: 'Résumé "v2".png', contentType: 'image/png' }),
+    ])
+
+    sesSend.mockResolvedValueOnce({ MessageId: 'ses-2' })
+    await createSesTransport({ ses_region: 'eu-west-1' }).send(WITH_FILES)
+    const raw = new TextDecoder().decode(sesSend.mock.calls.at(-1)?.[0].input.Content.Raw.Data)
+    expect(raw).toContain('filename="taxi receipt.pdf"')
+
+    acsBeginSend.mockResolvedValueOnce({ pollUntilDone: async () => ({ id: 'acs-2', status: 'Succeeded' }) })
+    await createAzureCommunicationTransport({ acs_connection_string: 'endpoint=https://x;accesskey=y' }).send(WITH_FILES)
+    expect(acsBeginSend.mock.calls.at(-1)?.[0].attachments[0]).toEqual({ name: 'taxi receipt.pdf', contentType: 'application/pdf', contentInBase64: Buffer.from(pdf).toString('base64') })
+
+    const fetchMock = vi.fn(async () => new Response(null, { status: 202 }))
+    const { ClientSecretCredential } = await import('@azure/identity')
+    const tokenSpy = vi.spyOn(ClientSecretCredential.prototype, 'getToken').mockResolvedValue({ token: 't', expiresOnTimestamp: Date.now() + 3600_000 })
+    await createMicrosoftGraphTransport({ graph_tenant_id: 't', graph_client_id: 'c', graph_client_secret: 's3' }, fetchMock as unknown as typeof fetch).send(WITH_FILES)
+    const body = JSON.parse(String((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body))
+    expect(body.message.attachments[0]).toEqual({ '@odata.type': '#microsoft.graph.fileAttachment', name: 'taxi receipt.pdf', contentType: 'application/pdf', contentBytes: Buffer.from(pdf).toString('base64') })
+    tokenSpy.mockRestore()
+  })
+
+  it('SMTP delivers the files', async () => {
+    const smtp = await startSmtp({ disableStartTls: true })
+    try {
+      await createSmtpTransport({ smtp_host: '127.0.0.1', smtp_port: String(smtp.port), smtp_starttls: 'off' }).send(WITH_FILES)
+      expect(smtp.received[0].raw).toMatch(/filename="?taxi receipt\.pdf"?/)
+      expect(smtp.received[0].raw.replace(/\r?\n/g, '')).toContain(Buffer.from(pdf).toString('base64'))
+    } finally {
+      await smtp.close()
+      closeSmtpTransports()
+    }
+  })
+})

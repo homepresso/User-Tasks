@@ -6,15 +6,16 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { fetchFile, storeWorkflowFile } from './storage/files'
+import { fetchFile, fileSource, storeWorkflowFile } from './storage/files'
 
 const TIMEOUT = 60_000
 const MAX_SIZE = 25 * 1024 * 1024
 
 // ─── Shared ───
 
-async function fetchTemplate(url: string): Promise<Buffer> {
-  const resp = await fetchFile(String(url), { signal: AbortSignal.timeout(TIMEOUT) })
+async function fetchTemplate(url: string, tenantId: string): Promise<Buffer> {
+  // Form attachments are read for this run's tenant only.
+  const resp = await fetchFile(String(url), { signal: AbortSignal.timeout(TIMEOUT) }, { tenantId })
   if (!resp.ok) throw new Error(`Template fetch failed: HTTP ${resp.status}`)
   const buf = Buffer.from(await resp.arrayBuffer())
   if (buf.byteLength > MAX_SIZE) throw new Error(`Template too large (${Math.round(buf.byteLength / 1024 / 1024)}MB max ${MAX_SIZE / 1024 / 1024}MB)`)
@@ -29,10 +30,10 @@ async function upload(supabase: SupabaseClient, tenantId: string, buf: Buffer, e
   }
 }
 
+/** A URL, a file object (an uploaded attachment, a generated file) or a list of them (the first). */
 function resolveUrl(raw: any): string | null {
-  if (!raw) return null
-  if (typeof raw === 'object' && raw.url) return raw.url
-  return String(raw)
+  if (!raw || (Array.isArray(raw) && !raw.length)) return null
+  return fileSource(raw) || null
 }
 
 // Resolve template URL — handles direct URL, file ref, or data table query
@@ -136,7 +137,7 @@ export async function handleDocWord(
   const outVar = config.output_var || 'doc_file'
   const outName = String(resolve(config.output_filename) || 'document.docx')
 
-  const tpl = await fetchTemplate(url)
+  const tpl = await fetchTemplate(url, tenantId)
   const PizZip = (await import('pizzip')).default
   const Docxtemplater = (await import('docxtemplater')).default
 
@@ -219,7 +220,7 @@ export async function handleDocExcel(
   const outVar = config.output_var || 'doc_file'
   const outName = String(resolve(config.output_filename) || 'spreadsheet.xlsx')
 
-  const tpl = await fetchTemplate(url)
+  const tpl = await fetchTemplate(url, tenantId)
   const xl = await import('./excel')
   const wb = await xl.loadWorkbook(tpl)
   let skippedReplacements = 0
@@ -290,7 +291,7 @@ export async function handleDocPowerpoint(
   const outVar = config.output_var || 'doc_file'
   const outName = String(resolve(config.output_filename) || 'presentation.pptx')
 
-  const tpl = await fetchTemplate(url)
+  const tpl = await fetchTemplate(url, tenantId)
   const PizZip = (await import('pizzip')).default
   const Docxtemplater = (await import('docxtemplater')).default
 

@@ -16,6 +16,7 @@ import { storedButtons, type FormDefinition } from './definition'
 import { normalizeFormButtons, type FormButton } from './buttons'
 import { defaultFormHeader, normalizeFormHeader, type FormHeader } from './header'
 import { lookupConfigProblem, lookupItemKey } from './lookup'
+import { ATTACHMENT_DEFAULTS, attachmentsConfigProblem, attachmentsCountKey } from './attachments'
 import type { FormThemeRef } from './form-theme'
 
 export interface DesignerField extends TaskFieldDef {
@@ -96,6 +97,7 @@ export function newField(type: TaskFieldType, taken: string[]): DesignerField {
   if (type === 'choice' || type === 'multi_choice') field.options = ['Option 1', 'Option 2']
   if (type === 'currency') field.currency = 'USD'
   if (type === 'lookup') field.lookup = { source: 'table' }
+  if (type === 'attachments') field.attachments = { max_files: ATTACHMENT_DEFAULTS.max_files, max_file_mb: ATTACHMENT_DEFAULTS.max_file_mb, types: ['any'] }
   return field
 }
 
@@ -176,6 +178,12 @@ export function designerProblems(state: DesignerState): Record<string, string> {
       const others = state.fields.filter((f) => f._id !== field._id && !DISPLAY_FIELD_TYPES.has(f.type)).map((f) => f.key)
       const problem = lookupConfigProblem(field.lookup, field.key, others)
         ?? (others.includes(lookupItemKey(field.key)) ? `Another field uses the key "${lookupItemKey(field.key)}" (this lookup stores its selected item there)` : null)
+      if (problem) out[field._id] = problem
+    }
+    if (field.type === 'attachments') {
+      const others = state.fields.filter((f) => f._id !== field._id && !DISPLAY_FIELD_TYPES.has(f.type)).map((f) => f.key)
+      const problem = attachmentsConfigProblem(field.attachments)
+        ?? (others.includes(attachmentsCountKey(field.key)) ? `Another field uses the key "${attachmentsCountKey(field.key)}" (this field stores its file count there)` : null)
       if (problem) out[field._id] = problem
     }
   }

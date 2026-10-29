@@ -15,7 +15,7 @@ export const LEGACY_TABLE_ID_KEYS = ['tableId', 'data_table_id', 'dataTableId', 
 export const LEGACY_TABLE_NAME_KEYS = ['tableName', 'data_table_name', 'dataTableName'] as const
 
 /** Node types whose config can bind a data table via `table_id`. */
-export const DATA_TABLE_NODE_TYPES = ['update_data_table', 'data_table_event', 'server_event', 'retention_policies'] as const
+export const DATA_TABLE_NODE_TYPES = ['update_data_table', 'data_table_event', 'server_event', 'retention_policies', 'doc_extract'] as const
 
 /** id → name of the tenant's data tables. `undefined` = not loaded (yet). */
 export type TableNames = Record<string, string>

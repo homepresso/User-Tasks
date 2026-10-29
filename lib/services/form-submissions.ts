@@ -32,6 +32,7 @@ import {
 } from '@/lib/forms/buttons'
 import { buildFormSubmittedPayload, readFormSubmittedConfig, triggerMatchesButton, FORM_SUBMITTED_TRIGGER } from '@/lib/forms/submitted-trigger'
 import { lookupItemKey } from '@/lib/forms/lookup'
+import { attachmentNames, attachmentsCountKey } from '@/lib/forms/attachments'
 import { valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
 import { isPlainObject } from '@/lib/utils/guards'
 import { hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
@@ -133,7 +134,7 @@ export async function runButtonActions(
           workflow_id: action.workflow_id!,
           variables: { ...variables, form_submission_id: input.submissionId, form_id: input.form.id },
           async: true,
-        }, { via: 'form' })
+        }, { via: 'form', filesVerified: true })
         runs.push({ workflow_id: action.workflow_id!, workflow_name: action.workflow_name ?? null, job_id: result.mode === 'async' ? result.job_id : undefined, status: 'queued' })
         void audit(ctx, {
           objectType: 'form', objectId: input.form.id, action: 'execute',
@@ -218,12 +219,13 @@ async function submitter(db: AnySupabaseClient, userId: string | null): Promise<
   return { id: userId, name: data?.display_name ?? null, email: data?.email ?? null }
 }
 
-/** Values stored for a submission: the form's value fields (and lookups' items), nothing else. */
+/** Values stored for a submission: the form's value fields (and lookups' items, attachments' counts), nothing else. */
 function storedValues(fields: TaskFieldDef[], values: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   for (const field of valueFields(fields)) {
     if (Object.prototype.hasOwnProperty.call(values, field.key)) out[field.key] = values[field.key]
     if (field.type === 'lookup' && Object.prototype.hasOwnProperty.call(values, lookupItemKey(field.key))) out[lookupItemKey(field.key)] = values[lookupItemKey(field.key)]
+    if (field.type === 'attachments' && Object.prototype.hasOwnProperty.call(values, attachmentsCountKey(field.key))) out[attachmentsCountKey(field.key)] = values[attachmentsCountKey(field.key)]
   }
   return out
 }
@@ -247,11 +249,14 @@ async function loadSubmission(ctx: ServiceContext, formId: string, input: { butt
   return { db, row, def, button }
 }
 
-/** Validate like a task: types, required, rules, people, lookups (scoped to this form + submitter). */
+/** Validate like a task: types, required, rules, people, lookups and attachments (scoped to this form + submitter). */
 async function checkSubmissionValues(ctx: ServiceContext, db: AnySupabaseClient, formId: string, fields: TaskFieldDef[], raw: unknown): Promise<Record<string, unknown>> {
   const { formLookupScope } = await import('./form-lookup')
   const scope = formLookupScope(formId, ctx.actorId)
-  const { errors, templateValues } = await mergeTaskFieldValuesChecked(db, ctx.tenantId, { fields, template_values: {} }, isPlainObject(raw) ? raw : {}, { taskId: scope })
+  const { errors, templateValues } = await mergeTaskFieldValuesChecked(db, ctx.tenantId, { fields, template_values: {} }, isPlainObject(raw) ? raw : {}, {
+    taskId: scope,
+    files: { kind: 'form', formId, actorId: ctx.actorId },
+  })
   if (Object.keys(errors).length) throw ServiceError.validation(`Invalid field values: ${Object.values(errors).join('; ')}`, { fields: errors })
   return storedValues(fields, templateValues)
 }
@@ -290,6 +295,9 @@ export async function submitForm(ctx: ServiceContext, formId: string, input: Sub
     if (replay) return replay
   }
   if (error || !inserted) throw dbError(error, 'Failed to store the submission')
+  // The uploads are the submission's now (no longer pending).
+  const { attachmentIdsIn, bindFormFiles } = await import('./form-files')
+  await bindFormFiles(db, ctx.tenantId, attachmentIdsIn(def.fields, values), { submissionId: inserted.id })
 
   const { runs, effects } = await runButtonActions(ctx, db, { button, values, form: { id: formId, name: row.name }, submissionId: inserted.id })
   const who = await submitter(db, ctx.actorId)
@@ -412,6 +420,8 @@ export async function recordTaskFormSubmission(db: AnySupabaseClient, input: {
       if (error && error.code !== '23503') console.warn('[forms] task form submission not recorded:', error.message)
       return null
     }
+    const { attachmentIdsIn, bindFormFiles } = await import('./form-files')
+    await bindFormFiles(db, input.tenantId, attachmentIdsIn(fields, values), { submissionId: inserted.id, taskId: input.task.id })
     const who = await submitter(db, input.userId)
     const payload = buildFormSubmittedPayload({
       form: { id: formId, name: inserted.form_name, version: inserted.form_version },
@@ -519,7 +529,7 @@ export async function formSubmissionsCsv(ctx: ServiceContext, filters: Submissio
   const lines = [header.map(csvCell).join(',')]
   for (const r of rows) {
     const values = isPlainObject(r.values) ? r.values : {}
-    lines.push([r.id, r.created_at, names.get(r.submitted_by) ?? r.submitted_by ?? '', r.source, r.button_id ?? '', r.outcome ?? '', r.task_id ?? '', ...fields.map((f) => values[f.key])].map(csvCell).join(','))
+    lines.push([r.id, r.created_at, names.get(r.submitted_by) ?? r.submitted_by ?? '', r.source, r.button_id ?? '', r.outcome ?? '', r.task_id ?? '', ...fields.map((f) => (f.type === 'attachments' ? attachmentNames(values[f.key]) : values[f.key]))].map(csvCell).join(','))
   }
   const slug = String(form.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'form'
   return { csv: `${lines.join('\n')}\n`, rows: rows.length, file_name: `${slug}-submissions.csv` }

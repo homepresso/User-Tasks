@@ -358,7 +358,7 @@ export interface InfrastructureSwitchDeps {
 
 export class NoDatabaseError extends Error {
   constructor() {
-    super('Changing providers from this page needs a direct database connection (DATABASE_URL). Use usertasks-admin on the server.')
+    super('Changing providers from this page uses a direct PostgreSQL connection (DATABASE_URL), which this deployment does not have (the Supabase provider does not otherwise need one). Use usertasks-admin switch where DATABASE_URL is set.')
     this.name = 'NoDatabaseError'
   }
 }

@@ -15,6 +15,7 @@
 
 import type { Command } from 'commander'
 import { applyAssignments, collect } from '../input'
+import { uploadFileFlags } from './files'
 import type { Runtime } from '../runtime'
 
 export function registerTaskCommands(program: Command, runtime: Runtime) {
@@ -25,12 +26,15 @@ export function registerTaskCommands(program: Command, runtime: Runtime) {
     .option('--outcome <value>', 'Outcome, e.g. approved / rejected (default completed)')
     .option('--notes <text>', 'Outcome notes')
     .option('--set <field=value>', 'Task field value (repeatable): field=value, field:=<json>, field=@file', collect, [])
+    .option('--attach <field=path>', 'Upload a file into an Attachments field (repeatable; the field collects them)', collect, [])
     .option('--on-behalf', 'Act for the assignee (you are their manager, or hold tasks.complete_any)')
     .option('--note <text>', 'Why you are acting on behalf (required with --on-behalf)')
     .addHelpText('after', '\nAPI: POST /api/v1/tasks/{id}/action  (permission: tasks.complete)')
-    .action(async (id: string, opts: { outcome?: string; notes?: string; set: string[]; onBehalf?: boolean; note?: string }, self: Command) => {
-      const values = opts.set.length ? await applyAssignments({}, opts.set) : undefined
-      const data = await runtime.client(self).request('POST', '/tasks/{id}/action', {
+    .action(async (id: string, opts: { outcome?: string; notes?: string; set: string[]; attach: string[]; onBehalf?: boolean; note?: string }, self: Command) => {
+      const client = runtime.client(self)
+      let values = opts.set.length ? await applyAssignments({}, opts.set) : undefined
+      if (opts.attach.length) values = { ...(values as Record<string, unknown> | undefined), ...(await uploadFileFlags(client, { task_id: id }, opts.attach)) }
+      const data = await client.request('POST', '/tasks/{id}/action', {
         path: { id },
         body: {
           action: 'complete',

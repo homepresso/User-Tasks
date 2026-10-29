@@ -1,5 +1,6 @@
 export { UsertasksClient, createClient, findOperation, buildPath } from './client'
 export type {
+  UploadedFile,
   ClientOptions,
   HttpMethod,
   PaginateOptions,

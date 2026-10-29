@@ -22,6 +22,17 @@ import { buildBody, collect } from '../input'
 import type { Runtime } from '../runtime'
 import type { CommandSpec } from '../spec'
 import { HTML_FIELDS, stripHtmlFields } from '../html'
+import { uploadFileFlags, type UploadContext } from './files'
+
+/**
+ * Generated commands whose body takes Attachments values: `--attach
+ * field=path` uploads into the right context and adds the file ids to
+ * `<bodyKey>.<field>`.
+ */
+const FILE_TARGETS: Record<string, { bodyKey: string; context: (path: Record<string, string>, body: Record<string, unknown>) => UploadContext }> = {
+  'forms submit': { bodyKey: 'values', context: (path) => ({ form_id: path.id }) },
+  'workflows start': { bodyKey: 'variables', context: (_path, body) => ({ workflow_id: String(body.workflow_id ?? '') }) },
+}
 
 const camel = (flag: string) => flag.replace(/-([a-z0-9])/g, (_, c: string) => c.toUpperCase())
 
@@ -61,6 +72,8 @@ export function addResourceCommand(parent: Command, spec: CommandSpec, runtime: 
     command.addOption(option)
   }
   if (spec.body) command.option('--set <assignment>', 'Set a body field (repeatable): key=value, key:=<json>, key=@file (text), key:=@file (JSON/YAML)', collect, [])
+  const fileTarget = FILE_TARGETS[`${spec.resource} ${spec.verb}`]
+  if (fileTarget) command.option('--attach <field=path>', 'Upload a file into an Attachments field (repeatable; the field collects them)', collect, [])
   if (spec.async) command.option('--no-wait', 'Start a background job and print it instead of waiting (follow it with `usertasks jobs get <id>`)')
   if (spec.paginated) command.addHelpText('after', '\nPaging: --limit/--offset for one page, --all to fetch every page.')
   if (spec.cursor) command.addHelpText('after', '\nPaging: --limit for the page size; pass next_cursor as --after for the next page.')
@@ -113,6 +126,14 @@ export function addResourceCommand(parent: Command, spec: CommandSpec, runtime: 
     }
 
     const client = runtime.client(self)
+    const fileFlags = (opts.attach as string[] | undefined) ?? []
+    if (fileTarget && fileFlags.length) {
+      const base = body && typeof body === 'object' && !Array.isArray(body) ? (body as Record<string, unknown>) : {}
+      const target = base[fileTarget.bodyKey] && typeof base[fileTarget.bodyKey] === 'object' ? (base[fileTarget.bodyKey] as Record<string, unknown>) : {}
+      const context = fileTarget.context(path, base)
+      if (Object.values(context).some((v) => !v)) throw new CliUsageError('--attach needs the target id (the form id, or workflow_id in the body)')
+      body = { ...base, [fileTarget.bodyKey]: { ...target, ...(await uploadFileFlags(client, context, fileFlags)) } }
+    }
     if (spec.paginated && flags.all && spec.listKey) {
       const items: unknown[] = []
       // paginate() owns limit (page size); a given --offset is the starting row.

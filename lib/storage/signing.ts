@@ -43,3 +43,16 @@ export function verifyFilesSignature(bucket: string, objectKey: string, expires:
   const given = Buffer.from(signature)
   return expected.length === given.length && timingSafeEqual(expected, given)
 }
+
+/**
+ * `expires=…&signature=…` for an object of `bucket` (same key and MAC as
+ * appSignedFilesUrl), for routes that serve a bucket themselves
+ * (/attachments/<id>); null when signing is unavailable.
+ */
+export function signedObjectQuery(bucket: string, objectKey: string, ttlSeconds: number, now = Date.now()): string | null {
+  const key = signingKey()
+  if (!key) return null
+  const ttl = Math.max(1, Math.min(Math.floor(ttlSeconds), MAX_TTL_SECONDS))
+  const expires = Math.floor(now / 1000) + ttl
+  return `expires=${expires}&signature=${mac(key, bucket, objectKey, expires)}`
+}

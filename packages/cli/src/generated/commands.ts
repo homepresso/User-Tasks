@@ -3789,6 +3789,86 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "destructive": false
   },
   {
+    "operationId": "uploadFile",
+    "method": "POST",
+    "path": "/files/uploads",
+    "resource": "files",
+    "verb": "upload-init",
+    "summary": "Upload a file for an Attachments field (or start a direct upload)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "task_id",
+          "type": "string",
+          "required": false,
+          "description": "Upload into this open task's form (you must be able to act on it)"
+        },
+        {
+          "name": "form_id",
+          "type": "string",
+          "required": false,
+          "description": "Upload for a submission of this reusable form (forms.submit)"
+        },
+        {
+          "name": "workflow_id",
+          "type": "string",
+          "required": false,
+          "description": "Upload for this workflow's start-form attachments input (workflows.activate)"
+        },
+        {
+          "name": "field_key",
+          "type": "string",
+          "required": true,
+          "description": "The Attachments field (or start-form input) key"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "File name (its extension must be an allowed type)"
+        },
+        {
+          "name": "size",
+          "type": "integer",
+          "required": false,
+          "description": "Size in bytes: without content_base64, starts a direct upload to storage"
+        },
+        {
+          "name": "content_base64",
+          "type": "string",
+          "required": false,
+          "description": "The file itself, base64 (small files; the request body limit applies). Omit to get a signed upload URL"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "completeFileUpload",
+    "method": "POST",
+    "path": "/files/uploads/{id}/complete",
+    "resource": "files",
+    "verb": "upload-complete",
+    "summary": "Finish a direct upload (the server verifies the stored file)",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
     "operationId": "listWorkflowActivities",
     "method": "GET",
     "path": "/workflow-activities",

@@ -197,6 +197,7 @@ export const CLI_HANDWRITTEN_COMMANDS: CliCommandGroup[] = [
           { flags: '--outcome <value>', description: 'Outcome, e.g. Approved or Rejected (default completed)' },
           { flags: '--notes <text>', description: 'Outcome notes' },
           { flags: '--set <field=value>', description: 'Task field value (repeatable): field=value, field:=<json>, field=@file' },
+          { flags: '--attach <field=path>', description: 'Upload a file into an Attachments field (repeatable; the field collects them). Also on `forms submit` and `workflows start`' },
           { flags: '--on-behalf', description: 'Act for the assignee of a workflow task (you are their manager, or hold tasks.complete_any)' },
           { flags: '--note <text>', description: 'Why you are acting on behalf (required with --on-behalf; the assignee sees it)' },
         ],
@@ -213,6 +214,23 @@ export const CLI_HANDWRITTEN_COMMANDS: CliCommandGroup[] = [
           { flags: '--assignee <id>', description: 'One report only' },
         ],
         example: 'usertasks tasks team --indirect --overdue',
+      },
+    ],
+  },
+  {
+    title: 'Files',
+    commands: [
+      {
+        command: 'files upload',
+        args: '<path>',
+        description: 'Upload a file for an Attachments field (a task, a reusable form submission or a workflow start form) and print the file object; its id goes in the field\'s value. Large files go straight to storage when the server can sign uploads.',
+        options: [
+          { flags: '--field <key>', description: 'The Attachments field (or start-form input) key' },
+          { flags: '--task <id>', description: 'For this open task' },
+          { flags: '--form <id>', description: 'For a submission of this reusable form' },
+          { flags: '--workflow <id>', description: 'For this workflow\'s start form' },
+        ],
+        example: 'usertasks files upload ./taxi.pdf --field receipts --task <task-id>',
       },
     ],
   },

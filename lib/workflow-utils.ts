@@ -180,6 +180,34 @@ export function getNodeConfigSummary(node: { type: string; config: Record<string
       return c.mode === 'write'
         ? `${c.data_var ?? 'data'} → ${c.file_name ?? 'export.xlsx'}`
         : c.file_url ? `${c.sheet_name ? c.sheet_name + ' → ' : '→ '}${c.output_var ?? 'excel_data'}` : null
+    case 'doc_read': {
+      const bits = [c.ocr && c.ocr !== 'off' ? `OCR ${c.ocr}` : '', c.sheet ? `sheet ${c.sheet}` : '', c.pages ? `pages ${c.pages}` : ''].filter(Boolean)
+      return c.source ? `${bits.length ? `${bits.join(', ')} ` : ''}→ ${c.output_var || 'document'}` : null
+    }
+    case 'doc_compare': {
+      if (!c.original || !c.revised) return null
+      const extras = [c.redline && c.redline !== 'none' ? `redline ${c.redline}` : '', c.report && c.report !== 'none' ? `${c.report} report` : ''].filter(Boolean)
+      return `${c.mode && c.mode !== 'auto' ? c.mode : 'auto'} diff${extras.length ? ` + ${extras.join(', ')}` : ''} → ${c.output_var || 'comparison'}`
+    }
+    case 'doc_convert':
+      return c.source ? `→ ${String(c.target ?? 'pdf').toUpperCase()}${c.engine === 'external' ? ' (external)' : ''}` : null
+    case 'doc_pdf': {
+      const op = String(c.operation ?? 'merge')
+      const labels: Record<string, string> = { merge: 'Merge PDFs', split: 'Split', extract_pages: 'Extract pages', page_count: 'Page count', watermark: 'Watermark', rotate: 'Rotate', fill_form: 'Fill form', read_form: 'Read form' }
+      const detail = op === 'extract_pages' && c.pages ? ` ${c.pages}` : op === 'watermark' && c.text ? ` "${String(c.text).slice(0, 20)}"` : op === 'split' && c.ranges ? ` ${c.ranges}` : ''
+      return `${labels[op] ?? op}${detail}`
+    }
+    case 'doc_extract': {
+      const parts = [c.extract_tables !== false ? 'tables' : '', Array.isArray(c.patterns) && c.patterns.length ? `${c.patterns.length} pattern${c.patterns.length === 1 ? '' : 's'}` : '', Array.isArray(c.finders) && c.finders.length ? c.finders.join(', ') : ''].filter(Boolean)
+      const table = c.to_table ? ` → ${dataTableLabel(c, lookups.tableNames) ?? 'data table'}` : ''
+      return c.source ? `${parts.join(' · ') || 'nothing selected'}${table}` : null
+    }
+    case 'doc_redact': {
+      const n = (Array.isArray(c.presets) ? c.presets.length : 0) + (String(c.terms ?? '').trim() ? 1 : 0) + (Array.isArray(c.patterns) ? c.patterns.length : 0)
+      return c.source ? `${Array.isArray(c.presets) && c.presets.length ? c.presets.join(', ') : `${n} rule${n === 1 ? '' : 's'}`} → ${c.output_var || 'redacted'}` : null
+    }
+    case 'doc_inspect':
+      return c.source ? (c.operation === 'search' && c.query ? `Find "${String(c.query).slice(0, 24)}"` : `${c.operation ?? 'all'} → ${c.output_var || 'inspection'}`) : null
     case 'doc_word':
     case 'doc_excel':
     case 'doc_powerpoint': {

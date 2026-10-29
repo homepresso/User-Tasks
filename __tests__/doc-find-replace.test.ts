@@ -10,7 +10,8 @@ import PizZip from 'pizzip'
 const stored: { body: Buffer }[] = []
 let template: Buffer = Buffer.alloc(0)
 
-vi.mock('@/lib/storage/files', () => ({
+vi.mock('@/lib/storage/files', async (importOriginal) => ({
+  fileSource: (await importOriginal<typeof import('@/lib/storage/files')>()).fileSource,
   fetchFile: async () => new Response(new Uint8Array(template)),
   storeWorkflowFile: async (_c: any, _t: string, body: Uint8Array) => {
     stored.push({ body: Buffer.from(body) })

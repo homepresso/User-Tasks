@@ -38,6 +38,19 @@ import infrastructureChangeProvider from '@/public/screenshots/infrastructure-ch
 import infrastructureSwitchPlan from '@/public/screenshots/infrastructure-switch-plan.webp'
 import infrastructureSwitchProgress from '@/public/screenshots/infrastructure-switch-progress.webp'
 import infrastructureDatabaseTest from '@/public/screenshots/infrastructure-database-test.webp'
+import documentsRead from '@/public/screenshots/documents-read.webp'
+import documentsDataPicker from '@/public/screenshots/documents-data-picker.webp'
+import documentsTestRun from '@/public/screenshots/documents-test-run.webp'
+import documentsCompare from '@/public/screenshots/documents-compare.webp'
+import documentsCompareReport from '@/public/screenshots/documents-compare-report.webp'
+import formsDesigner from '@/public/screenshots/forms-designer.webp'
+import formsLookup from '@/public/screenshots/forms-lookup.webp'
+import formsButtons from '@/public/screenshots/forms-buttons.webp'
+import formsTheme from '@/public/screenshots/forms-theme.webp'
+import formsPage from '@/public/screenshots/forms-page.webp'
+import formsTrigger from '@/public/screenshots/forms-trigger.webp'
+import formsDataPicker from '@/public/screenshots/forms-data-picker.webp'
+import formsPhone from '@/public/screenshots/forms-phone.webp'
 import type { ScreenshotName } from './screenshot-names'
 
 /** Static imports of public/screenshots (width, height and blur placeholder come from the files). */
@@ -81,4 +94,17 @@ export const SCREENSHOTS: Record<ScreenshotName, StaticImageData> = {
   'infrastructure-switch-plan': infrastructureSwitchPlan,
   'infrastructure-switch-progress': infrastructureSwitchProgress,
   'infrastructure-database-test': infrastructureDatabaseTest,
+  'documents-read': documentsRead,
+  'documents-data-picker': documentsDataPicker,
+  'documents-test-run': documentsTestRun,
+  'documents-compare': documentsCompare,
+  'documents-compare-report': documentsCompareReport,
+  'forms-designer': formsDesigner,
+  'forms-lookup': formsLookup,
+  'forms-buttons': formsButtons,
+  'forms-theme': formsTheme,
+  'forms-page': formsPage,
+  'forms-trigger': formsTrigger,
+  'forms-data-picker': formsDataPicker,
+  'forms-phone': formsPhone,
 }

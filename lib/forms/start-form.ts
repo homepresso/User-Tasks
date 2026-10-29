@@ -6,7 +6,8 @@
  * published version, like every node config).
  *
  * Variables map to the field types workflow inputs support: text, number,
- * checkbox, date, date-time, email, URL and single select. Object (JSON)
+ * checkbox, date, date-time, email, URL, single select and attachments
+ * (`{ type: 'array', format: 'attachments', attachments }`: a list of files). Object (JSON)
  * variables are left out of the designer and kept as they are. Variable
  * names are kept exactly (camelCase included) unless the author renames the
  * key in the designer. Pure.
@@ -19,7 +20,7 @@ import type { FormDefinition } from './definition'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- user_variables and node config are loose JSON */
 
-export const START_FORM_TYPES: TaskFieldType[] = ['text', 'number', 'boolean', 'date', 'datetime', 'email', 'url', 'choice']
+export const START_FORM_TYPES: TaskFieldType[] = ['text', 'number', 'boolean', 'date', 'datetime', 'email', 'url', 'choice', 'attachments']
 
 export interface StartFormVariable {
   id?: string
@@ -44,6 +45,7 @@ function fieldTypeOf(variable: StartFormVariable): TaskFieldType | null {
   const type = String(variable.type ?? 'string').toLowerCase()
   if (type === 'number' || type === 'integer') return 'number'
   if (type === 'boolean') return 'boolean'
+  if ((type === 'array' || type === 'attachments') && String(variable.format ?? '').toLowerCase() === 'attachments') return 'attachments'
   if (type === 'object' || type === 'array' || type === 'json') return null
   const format = String(variable.format ?? '').toLowerCase()
   if (format === 'date' || format === 'datetime' || format === 'email' || format === 'url') return format as TaskFieldType
@@ -77,6 +79,7 @@ export function startFormFromVariables(variables: StartFormVariable[] | null | u
       default: variable.defaultValue,
       placeholder: variable.placeholder,
       options: type === 'choice' ? optionsOf(variable.options) : undefined,
+      attachments: type === 'attachments' ? variable.attachments : undefined,
     })
   }
   const fields = normalizeTaskFields(raw)
@@ -121,6 +124,7 @@ function variableFor(field: TaskFieldDef, name: string, prev: StartFormVariable 
     : field.type === 'boolean' ? { type: 'boolean', format: undefined }
     : field.type === 'choice' ? { type: 'string', format: 'select', options: (field.options ?? []).join(', ') }
     : field.type === 'text' ? { type: 'string', format: prev?.format === 'text' ? 'text' : undefined }
+    : field.type === 'attachments' ? { type: 'array', format: 'attachments', attachments: field.attachments ?? {} }
     : { type: 'string', format: field.type }
   const next: StartFormVariable = {
     ...base,
@@ -131,6 +135,8 @@ function variableFor(field: TaskFieldDef, name: string, prev: StartFormVariable 
     required: field.required === true ? true : undefined,
   }
   if (field.type !== 'choice' && next.format !== 'select') delete next.options
+  if (field.type !== 'attachments') delete next.attachments
+  else next.defaultValue = ''
   if (field.placeholder) next.placeholder = field.placeholder
   else delete next.placeholder
   for (const key of Object.keys(next)) if (next[key] === undefined) delete next[key]

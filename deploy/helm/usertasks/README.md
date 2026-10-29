@@ -25,7 +25,7 @@ kubectl port-forward svc/usertasks 3000:80     # http://localhost:3000
 
 The image decides which [optional drivers](../../../docs/optional-drivers.md)
 exist (Dockerfile build args `INCLUDE_OPTIONAL_DB_DRIVERS`,
-`INCLUDE_STORAGE_SDKS`, `INCLUDE_PROVIDER_SDKS`); build it with what your
+`INCLUDE_STORAGE_SDKS`, `INCLUDE_PROVIDER_SDKS`, `INCLUDE_OCR`); build it with what your
 providers need.
 
 ## What it deploys
@@ -126,6 +126,7 @@ federate or bind it as well. Hook resources stay after `helm uninstall`
 | `ingress.enabled` / `className` / `annotations` / `host` | off | Host defaults to `appUrl`'s. SSE needs proxy buffering off and a long read timeout |
 | `ingress.certManager.clusterIssuer` / `issuer` | `""` | cert-manager annotations |
 | `ingress.tls.enabled` / `secretName` | off / `<fullname>-tls` | |
+| `ingress.maxBodySize` | `64m` | ingress-nginx `proxy-body-size` (form attachments uploaded through the app; keep ≥ `FORM_UPLOAD_MAX_BODY_MB`). An explicit annotation wins; `""` leaves the controller default |
 | `gateway.enabled` / `parentRefs` / `hostnames` / `annotations` | off | Gateway API HTTPRoute |
 | `networkPolicy.enabled` | `false` | |
 | `networkPolicy.ingress.from` | `[]` | Extra peers allowed to reach the app (empty: anyone in the cluster) |

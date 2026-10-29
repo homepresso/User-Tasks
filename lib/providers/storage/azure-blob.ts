@@ -186,6 +186,23 @@ export function createAzureBlobStorageProvider(options: StorageOptions): Storage
       throw new Error('azure_blob signed URLs need an account key or Entra ID (a pre-issued SAS token cannot sign)')
     },
 
+    /** A create/write blob SAS (the account's CORS must allow PUT from the app's origin). */
+    async createUploadUrl(bucket, key, opts) {
+      const { sdk, service, sharedKey, entra } = await connect()
+      const client = await blob(bucket, key)
+      const startsOn = new Date(Date.now() - 60_000)
+      const expiresOn = new Date(Date.now() + Math.max(1, Math.min(Math.floor(opts.ttlSeconds), 7 * 24 * 3600)) * 1000)
+      const permissions = sdk.BlobSASPermissions.parse('cw')
+      let sas: string
+      if (sharedKey) sas = sdk.generateBlobSASQueryParameters({ containerName: client.containerName, blobName: client.name, permissions, startsOn, expiresOn }, sharedKey).toString()
+      else if (entra) {
+        const delegationKey = await service.getUserDelegationKey(startsOn, expiresOn)
+        const accountName = new URL(client.url).hostname.split('.')[0]
+        sas = sdk.generateBlobSASQueryParameters({ containerName: client.containerName, blobName: client.name, permissions, startsOn, expiresOn }, delegationKey, accountName).toString()
+      } else throw new Error('azure_blob direct uploads need an account key or Entra ID')
+      return { url: `${client.url.split('?')[0]}?${sas}`, method: 'PUT' as const, headers: { 'x-ms-blob-type': 'BlockBlob', 'Content-Type': opts.contentType || 'application/octet-stream' } }
+    },
+
     async copy(bucket, fromKey, toKey, opts = {}) {
       const toBucket = opts.toBucket ?? bucket
       if (!opts.upsert && await provider.head(toBucket, toKey)) throw new StorageObjectExistsError(toBucket, toKey)

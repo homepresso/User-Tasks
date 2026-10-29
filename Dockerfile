@@ -38,6 +38,9 @@ ARG INCLUDE_STORAGE_SDKS=true
 # stays: the SQL Server driver needs it too),
 # INCLUDE_PROVIDER_SDKS=false drops them.
 ARG INCLUDE_PROVIDER_SDKS=true
+# OCR for scanned PDFs (tesseract.js, WebAssembly, about 45 MB) is left out
+# unless INCLUDE_OCR=true; a cloud OCR provider needs no package.
+ARG INCLUDE_OCR=false
 RUN npm ci \
  && if [ "$INCLUDE_OPTIONAL_DB_DRIVERS" != "true" ]; then \
       rm -rf node_modules/snowflake-sdk node_modules/oracledb node_modules/mongodb; \
@@ -47,14 +50,21 @@ RUN npm ci \
     fi \
  && if [ "$INCLUDE_PROVIDER_SDKS" != "true" ]; then \
       rm -rf node_modules/nodemailer node_modules/@aws-sdk/client-sesv2 node_modules/@azure/communication-email node_modules/@azure/keyvault-secrets node_modules/@google-cloud/secret-manager node_modules/@aws-sdk/client-secrets-manager node_modules/@aws-sdk/client-kms node_modules/@aws-sdk/rds-signer node_modules/@aws-sdk/credential-providers; \
+    fi \
+ && if [ "$INCLUDE_OCR" != "true" ]; then \
+      rm -rf node_modules/tesseract.js node_modules/tesseract.js-core; \
     fi
 
 FROM node:22-alpine AS builder
 WORKDIR /app
 ARG NEXT_PUBLIC_APP_URL
 ARG DEPLOYMENT_MODE=self_hosted
+# Largest upload body the app's proxy buffers (form attachments sent through
+# the app; next.config.ts proxyClientMaxBodySize, fixed at build time).
+ARG FORM_UPLOAD_MAX_BODY_MB=50
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
     DEPLOYMENT_MODE=$DEPLOYMENT_MODE \
+    FORM_UPLOAD_MAX_BODY_MB=$FORM_UPLOAD_MAX_BODY_MB \
     NEXT_OUTPUT_STANDALONE=true \
     NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules

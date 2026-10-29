@@ -2,6 +2,10 @@ import { taskDataFieldSlug } from '@/lib/task-data'
 import { isPlainObject } from '@/lib/utils/guards'
 import { compileUserRegex, MAX_REGEX_PATTERN_LENGTH } from '@/lib/safe-regex'
 import { LOOKUP_LIMITS, lookupConfigProblem, lookupItemKey, lookupValues, normalizeLookupConfig, type LookupConfig } from '@/lib/forms/lookup'
+import {
+  attachmentsConfigProblem, attachmentsCountKey, attachmentsValueError, attachmentUploadsInFlight, normalizeAttachmentsConfig, normalizeAttachmentValue,
+  type AttachmentFile, type AttachmentsConfig,
+} from '@/lib/forms/attachments'
 
 /**
  * User Task `fields` — the inputs a User Task node (or a reusable Form) asks
@@ -19,12 +23,12 @@ import { LOOKUP_LIMITS, lookupConfigProblem, lookupItemKey, lookupValues, normal
 export type TaskFieldType =
   | 'text' | 'textarea' | 'number' | 'currency' | 'email' | 'phone' | 'url'
   | 'date' | 'datetime' | 'boolean' | 'choice' | 'multi_choice' | 'user'
-  | 'lookup' | 'heading' | 'divider'
+  | 'lookup' | 'attachments' | 'heading' | 'divider'
 
 export const TASK_FIELD_TYPES: TaskFieldType[] = [
   'text', 'textarea', 'number', 'currency', 'email', 'phone', 'url',
   'date', 'datetime', 'boolean', 'choice', 'multi_choice', 'user',
-  'lookup', 'heading', 'divider',
+  'lookup', 'attachments', 'heading', 'divider',
 ]
 
 /** Display-only elements: placed on the grid, never hold a value. */
@@ -45,6 +49,7 @@ export const TASK_FIELD_TYPE_LABELS: Record<TaskFieldType, string> = {
   multi_choice: 'Multi-select',
   user: 'Person',
   lookup: 'Autocomplete / lookup',
+  attachments: 'Attachments',
   heading: 'Section heading',
   divider: 'Divider',
 }
@@ -110,9 +115,11 @@ export interface TaskFieldDef {
   visible_when?: VisibleWhen
   /** lookup only: where suggestions come from and what is stored (lib/forms/lookup.ts). */
   lookup?: LookupConfig
+  /** attachments only: counts, sizes and allowed types (lib/forms/attachments.ts). */
+  attachments?: AttachmentsConfig
 }
 
-export type TaskFieldValue = string | number | boolean | string[] | null
+export type TaskFieldValue = string | number | boolean | string[] | AttachmentFile[] | null
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}(?:[T ][\d:.]+(?:Z|[+-]\d{2}:?\d{2})?)?$/
 const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/
@@ -259,10 +266,14 @@ export function normalizeTaskFields(raw: unknown): TaskFieldDef[] {
       if (type === 'choice' && entry.display === 'radio') field.display = 'radio'
     }
     if (type === 'lookup') field.lookup = normalizeLookupConfig(entry.lookup)
+    if (type === 'attachments') {
+      const config = normalizeAttachmentsConfig(entry.attachments)
+      if (Object.keys(config).length) field.attachments = config
+    }
     if (typeof entry.placeholder === 'string' && entry.placeholder.trim()) {
       field.placeholder = entry.placeholder
     }
-    if (entry.default !== undefined && entry.default !== null && String(entry.default) !== '') {
+    if (type !== 'attachments' && entry.default !== undefined && entry.default !== null && String(entry.default) !== '') {
       field.default = Array.isArray(entry.default) ? entry.default.map(String).join(',') : String(entry.default)
     }
     const help = cleanString(entry.help_text, 2000)
@@ -314,6 +325,8 @@ export function fieldDefinitionProblems(fields: TaskFieldDef[]): Record<string, 
       problems[field.key] = lookupProblem
     } else if (field.type === 'lookup' && keys.has(lookupItemKey(field.key))) {
       problems[field.key] = `Another field uses the key "${lookupItemKey(field.key)}" (this lookup stores its selected item there)`
+    } else if (field.type === 'attachments' && (attachmentsConfigProblem(field.attachments) || keys.has(attachmentsCountKey(field.key)))) {
+      problems[field.key] = attachmentsConfigProblem(field.attachments) ?? `Another field uses the key "${attachmentsCountKey(field.key)}" (this field stores its file count there)`
     } else if (CHOICE_TYPES.has(field.type) && !(field.options ?? []).length && !field.options_source) {
       problems[field.key] = 'Add at least one option'
     } else if (field.pattern) {
@@ -430,6 +443,11 @@ export function validateTaskFieldValues(
     const visible = isFieldVisible(field, vals)
     const required = field.required && !options.partial && visible
     const value = vals[field.key]
+    // In the browser: files still uploading would be left out of the submission.
+    if (field.type === 'attachments' && attachmentUploadsInFlight(field.key) > 0) {
+      errors[field.key] = `${field.label}: wait for the files to finish uploading`
+      continue
+    }
     if (field.type === 'boolean') {
       if (!isBlank(value) && toBoolean(value) === null) {
         errors[field.key] = `${field.label} must be true or false`
@@ -451,6 +469,7 @@ export function validateTaskFieldValues(
 
 function valueError(field: TaskFieldDef, value: unknown): string | null {
   const label = field.label
+  if (field.type === 'attachments') return attachmentsValueError(field, value)
   if (field.type === 'lookup') {
     if (field.lookup?.multiple) {
       if (!Array.isArray(value) && typeof value !== 'string') return `${label} has an invalid value`
@@ -545,6 +564,7 @@ function coerceOne(field: TaskFieldDef, value: unknown): TaskFieldValue {
   if (field.type === 'boolean') return toBoolean(value) ?? false
   if (field.type === 'multi_choice') return toStringArray(value)
   if (field.type === 'lookup' && field.lookup?.multiple) return lookupValues(value, true)
+  if (field.type === 'attachments') return normalizeAttachmentValue(value)
   if (isBlank(value)) return null
   if (field.type === 'number' || field.type === 'currency') return toNumber(value)
   if (field.type === 'datetime') {
@@ -567,7 +587,7 @@ export function defaultTaskFieldValues(
   for (const field of fields) {
     if (isDisplayField(field)) continue
     if (field.default !== undefined) raw[field.key] = resolve(field.default)
-    else raw[field.key] = field.type === 'boolean' ? false : field.type === 'multi_choice' || (field.type === 'lookup' && field.lookup?.multiple) ? [] : null
+    else raw[field.key] = field.type === 'boolean' ? false : field.type === 'multi_choice' || field.type === 'attachments' || (field.type === 'lookup' && field.lookup?.multiple) ? [] : null
   }
   return coerceTaskFieldValues(fields, raw)
 }
@@ -604,6 +624,6 @@ export function mergeTaskFieldValues(
 export function fieldValueSchemaType(type: TaskFieldType): 'string' | 'number' | 'boolean' | 'array' {
   if (type === 'number' || type === 'currency') return 'number'
   if (type === 'boolean') return 'boolean'
-  if (type === 'multi_choice') return 'array'
+  if (type === 'multi_choice' || type === 'attachments') return 'array'
   return 'string'
 }

@@ -249,6 +249,74 @@ defaults per deployment (source, Docker, Kubernetes, Vercel, air-gapped),
 how to check for a missing package, and the Snowflake, Oracle and MongoDB
 connection specifics.
 
+### File uploads and request size limits
+
+Form **Attachments** fields upload one file per request, and choose the path
+per file automatically on any host:
+
+- **Straight to storage** whenever the storage provider signs uploads —
+  Supabase Storage, S3 / MinIO / R2, Azure Blob, Google Cloud Storage. The
+  app checks the user and the field's limits, hands the browser a signed URL
+  for that one object (valid for `FORM_ATTACHMENT_UPLOAD_WINDOW_MINUTES`,
+  default 15), the browser PUTs the file to the store, and the app then reads
+  it back and verifies it (size, content type by magic bytes, blocked types,
+  SVG sanitising, checksum, optional virus scan) before it can be submitted.
+  No request body limit of the app's host applies. For S3, Azure Blob and
+  GCS the bucket / account needs a **CORS rule** allowing `PUT` from the
+  app's origin with the `Content-Type` (and, on Azure, `x-ms-blob-type`)
+  header; the app's Content-Security-Policy already allows the store's
+  origin (`S3_ENDPOINT`, the Azure account, `storage.googleapis.com`).
+- **Through the app** for local-disk storage (or if signing fails): the file
+  is the request body, up to `FORM_UPLOAD_MAX_BODY_MB` (default **50**; it
+  also sets Next.js `proxyClientMaxBodySize` and is read at **build time** —
+  a Docker build arg). On Vercel it is capped at 4 MB (functions refuse
+  bodies over ~4.5 MB); larger files there need a storage provider with
+  signed uploads, and the user gets an error saying so.
+
+Every proxy in front of the app must allow at least that body size for the
+streamed path:
+
+| Front end | Setting |
+|---|---|
+| nginx | `client_max_body_size 64m;` in the `server` / `location` block |
+| ingress-nginx (Helm chart) | `ingress.maxBodySize: "64m"` (default) → `nginx.ingress.kubernetes.io/proxy-body-size` |
+| Traefik | a `buffering` middleware with `maxRequestBodyBytes: 67108864` (Traefik doesn't limit by default) |
+| Caddy | `request_body { max_size 64MB }` (no limit by default) |
+| Azure Container Apps | no small body cap on HTTP ingress, but a request must finish within the ingress timeout (240 s) — prefer direct uploads for big files |
+| Google Cloud Run | 32 MiB per HTTP/1 request — keep `FORM_UPLOAD_MAX_BODY_MB` ≤ 32 or use GCS direct uploads |
+| AWS ECS behind an ALB | no ALB body limit; API Gateway in front caps at 10 MB |
+| Docker Compose | `FORM_UPLOAD_MAX_BODY_MB` in `.env` (build arg) plus your reverse proxy's limit |
+
+The size of a single file is limited separately by each field and by
+`FORM_ATTACHMENT_MAX_MB` (default 25, at most 45).
+
+### Document converter (optional)
+
+Convert Document turns Word, Excel, PowerPoint and OpenDocument files into
+PDF with a built-in renderer that keeps the text, headings, lists and tables
+but not the layout, and can't read the 97–2003 formats (`.doc`, `.xls`,
+`.ppt`). For a faithful copy, run a [Gotenberg](https://gotenberg.dev)-compatible
+service next to the app and point the app at it:
+
+```bash
+docker run -d --name gotenberg --network <app-network> gotenberg/gotenberg:8
+```
+
+```bash
+DOCUMENT_CONVERTER_URL=http://gotenberg:3000
+# DOCUMENT_CONVERTER_TOKEN=               # bearer token, if a proxy in front of it requires one
+# DOCUMENT_CONVERTER_TIMEOUT_SECONDS=120
+```
+
+The app posts Office files to `/forms/libreoffice/convert` and HTML and
+Markdown to `/forms/chromium/convert/html` and
+`/forms/chromium/convert/markdown`, and accepts only a PDF back. Only the
+file being converted is sent. Run it on your own network, without a public
+address — never use a public conversion service. Private addresses are
+allowed for this URL (it is instance configuration, not workflow input).
+With it set, Convert Document's **Automatic** engine uses it for Office →
+PDF; see [Convert Document](/docs/workflows/documents/convert-document).
+
 ## 6. Security checklist
 
 - Keep `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` and `ENCRYPTION_KEY` out of

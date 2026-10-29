@@ -8,6 +8,7 @@ import { serverRead } from '@/lib/server-read'
 import { findCell, setCellSpan } from '@/lib/forms/layout'
 import { keyProblemFor, type DesignerField, type DesignerState } from '@/lib/forms/designer-state'
 import { LookupProperties } from './lookup-properties'
+import { AttachmentsProperties } from './attachments-properties'
 import {
   DISPLAY_FIELD_TYPES, TASK_FIELD_TYPE_LABELS, VISIBLE_WHEN_OPERATORS, isDisplayField,
   type TaskFieldDef, type TaskFieldType, type VisibleWhenOperator,
@@ -117,6 +118,7 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
               const patch: Partial<TaskFieldDef> = { type }
               if ((type === 'choice' || type === 'multi_choice') && !(field.options ?? []).length) patch.options = ['Option 1', 'Option 2']
               if (type === 'lookup' && !field.lookup) patch.lookup = { source: 'table' }
+              if (type === 'attachments' && !field.attachments) patch.attachments = { max_files: 10, max_file_mb: 10, types: ['any'] }
               onPatch(patch)
             }}
           />
@@ -153,7 +155,7 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
         </div>
       )}
 
-      {!display && field.type !== 'boolean' && field.type !== 'multi_choice' && !(field.type === 'choice' && field.display === 'radio') && (
+      {!display && field.type !== 'boolean' && field.type !== 'multi_choice' && field.type !== 'attachments' && !(field.type === 'choice' && field.display === 'radio') && (
         <div>
           <Label htmlFor={id('placeholder')}>Placeholder</Label>
           <input id={id('placeholder')} className={inputClass} style={inputStyle} value={field.placeholder ?? ''} onChange={(e) => onPatch({ placeholder: e.target.value || undefined }, `ph-${field._id}`)} />
@@ -166,14 +168,16 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
             <input type="checkbox" checked={field.required === true} onChange={(e) => onPatch({ required: e.target.checked || undefined })} style={{ accentColor: 'var(--theme-primary)' }} />
             Required
           </label>
-          <label className="flex items-center gap-1.5 text-[11px]">
-            <input type="checkbox" checked={field.read_only === true} onChange={(e) => onPatch({ read_only: e.target.checked || undefined })} style={{ accentColor: 'var(--theme-primary)' }} />
-            Read-only (shows the default)
-          </label>
+          {field.type !== 'attachments' && (
+            <label className="flex items-center gap-1.5 text-[11px]">
+              <input type="checkbox" checked={field.read_only === true} onChange={(e) => onPatch({ read_only: e.target.checked || undefined })} style={{ accentColor: 'var(--theme-primary)' }} />
+              Read-only (shows the default)
+            </label>
+          )}
         </div>
       )}
 
-      {!display && (
+      {!display && field.type !== 'attachments' && (
         <div>
           <Label>Default value</Label>
           {field.type === 'boolean' ? (
@@ -212,6 +216,10 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
             ))}
           </div>
         </div>
+      )}
+
+      {field.type === 'attachments' && (
+        <AttachmentsProperties field={field} onPatch={(attachments, tag) => onPatch({ attachments }, tag)} />
       )}
 
       {field.type === 'lookup' && (

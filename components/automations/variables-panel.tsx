@@ -1,5 +1,6 @@
 'use client'
 
+import { documentNodeRoots } from '@/lib/documents/schemas'
 import { useState, useMemo } from 'react'
 import { TASK_VARIABLE_CATALOG } from '@/lib/task-data'
 import { Variable, Search, X, Copy, Check } from 'lucide-react'
@@ -90,7 +91,7 @@ const CONTEXT_VARIABLES = [
 interface UserVariable {
   id: string
   name: string
-  type: 'string' | 'number' | 'boolean' | 'object'
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array'
   defaultValue: string
   description: string
 }
@@ -301,6 +302,12 @@ export function VariablesPanel({ open, onClose, nodes, edges, selectedNodeId, on
           vars.push({ name: `${ov}_sheets`, description: 'Sheet names' })
         }
         groups.push({ group: `📊 ${nodeLabel}`, vars })
+      }
+
+      // Document actions (Read / Compare / Convert / PDF / Extract / Redact / Inspect)
+      if (node.type.startsWith('doc_') && !['doc_word', 'doc_excel', 'doc_powerpoint'].includes(node.type)) {
+        const roots = documentNodeRoots(node.type, c)
+        if (roots.length) groups.push({ group: `📑 ${nodeLabel}`, vars: roots.map((r) => ({ name: r.path, description: r.description ?? r.schema.description ?? r.label })) })
       }
 
       // JSON operations

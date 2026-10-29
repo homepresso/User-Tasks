@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
-      allow: ['/', '/docs/', '/open-source', '/workflow-automation', '/bpm-workflow-automation', '/on-premises-workflow-automation', '/deploy-anywhere', '/use-cases', '/gallery'],
+      allow: ['/', '/docs/', '/open-source', '/workflow-automation', '/bpm-workflow-automation', '/on-premises-workflow-automation', '/deploy-anywhere', '/forms', '/documents', '/use-cases', '/gallery'],
       disallow: ['/api/', '/settings', '/reports', '/tasks', '/automations', '/agents', '/packages', '/data', '/integrations', '/extensibility', '/team', '/activity', '/oauth', '/invite', '/login', '/signup', '/forgot-password', '/reset-password', '/check-email', '/onboarding'],
     },
     sitemap: `${baseUrl}/sitemap.xml`,
